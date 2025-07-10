@@ -1,0 +1,21 @@
+.form {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+}
+
+::ng-deep .dx-datagrid-rowsview .dx-row > td {
+  border: 1px solid #ccc !important;
+}
+
+::ng-deep .dx-datagrid-headers .dx-header-row > td {
+  border: 1px solid #ccc !important;
+}
+
+::ng-deep .dx-datagrid {
+  border: 1px solid #888 !important; /* Borde exterior de la grilla */
+}
+
+.dx-datagrid-content .dx-datagrid-table .dx-row > td{
+  vertical-align: middle;  
+}

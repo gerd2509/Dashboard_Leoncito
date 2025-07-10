@@ -1,1 +1,18 @@
 /* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+
+.dx-datagrid-pager.dx-pager{
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.dx-datagrid-content .dx-datagrid-table .dx-row > td{
+  vertical-align: middle;  
+}
+
+.dx-license-banner {
+  display: none !important;
+}

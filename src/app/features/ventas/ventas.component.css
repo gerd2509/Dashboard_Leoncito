@@ -1,0 +1,11 @@
+.form { 
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+}
+
+.graficosVentas {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}

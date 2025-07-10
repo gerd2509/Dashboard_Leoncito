@@ -1,0 +1,34 @@
+<div class="dashboard-container">
+    <!-- Sidebar verde con botones -->
+    <aside class="sidebar">
+        <button (click)="selectModule('derivaciones')">Derivaciones</button>
+        <button (click)="selectModule('agendamientos')">Agendamientos</button>
+        <button (click)="selectModule('terceros')">Terceros</button>
+        <button (click)="selectModule('gestion')">Gestión</button>
+        <button (click)="selectModule('cierre')">Cierre Gestion</button>
+        <button (click)="selectModule('analisis')">Analisis Gestion Mensual</button>
+        <button (click)="selectModule('ventas')">Ventas</button>
+        <button (click)="selectModule('proyeccion-comparativo')">Proyeccion & Comparativo</button>
+    </aside>
+
+    <!-- Área principal -->
+    <div class="main-content">
+        <!-- Header con nombre del módulo -->
+        <header class="topbar">
+            <div class="titulo-modulo">
+                {{ getTituloModulo() }}
+            </div>
+        </header>
+
+        <!-- Contenido dinámico por módulo -->
+        <section class="contenido">
+            <app-derivaciones *ngIf="moduloSeleccionado === 'derivaciones'"></app-derivaciones>
+            <app-agendamientos *ngIf="moduloSeleccionado === 'agendamientos'"></app-agendamientos>
+            <app-gestion-contact-x-hora *ngIf="moduloSeleccionado === 'gestion'"></app-gestion-contact-x-hora>
+            <app-cierre-gestion *ngIf="moduloSeleccionado === 'cierre'"></app-cierre-gestion>
+            <app-analisis-gestion-mensual *ngIf="moduloSeleccionado === 'analisis'"></app-analisis-gestion-mensual>
+            <app-ventas *ngIf="moduloSeleccionado === 'ventas'"></app-ventas>
+            <app-proyeccion-comparativo *ngIf="moduloSeleccionado === 'proyeccion-comparativo'"></app-proyeccion-comparativo>
+        </section>
+    </div>
+</div>

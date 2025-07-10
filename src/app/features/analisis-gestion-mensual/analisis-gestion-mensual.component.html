@@ -1,0 +1,29 @@
+<form class="form mt-2" [formGroup]="formAnalisis">
+    <dx-date-box class="w-100" formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box class="w-100" formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-select-box class="w-100" formControlName="Asesores" [dataSource]="asesores"
+        displayExpr="viewValue" valueExpr="value" label="Asesor Contact"
+        labelMode="floating" stylingMode="underlined" placeholder="" />
+
+    <button mat-flat-button [disabled]="formAnalisis.invalid" (click)="actualizar()">
+        <mat-icon>search</mat-icon>
+        Actalizar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataGestion" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+    <dxi-column dataField="ASIGNADOS" caption="ASIGNADOS" />
+    <dxi-column dataField="GESTIONADOS" caption="GESTIONADOS" />
+    <dxi-column dataField="CONTACTADOS" caption="CONTACTADOS" />
+    <dxi-column dataField="INTERESADOS" caption="INTERESADOS" />
+    <dxi-column dataField="DERIVADOS" caption="DERIVADOS" />
+    <dxi-column dataField="VENTAS" caption="VENTAS" />
+</dx-data-grid>

@@ -1,0 +1,238 @@
+<form class="form mt-2" [formGroup]="formVentas">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
+        valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
+        (onValueChanged)="onAsesorChanged($event)" />
+    <dx-check-box formControlName="NAS" (onValueChanged)="filtrarNAS()" text="NAS" stylingMode="outlined"
+        [disabled]="formVentas.valid" />
+    <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon>
+        Actalizar
+    </button>
+
+    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Importar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="filtroVentas" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+    <dxo-paging [pageSize]="10"></dxo-paging>
+    <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+    <dxi-column caption="Id VENTA" dataField="IDVENTA" dataType="string" />
+    <dxi-column alignment="center" caption="FECHA VENTA" dataField="FECHAVENTA" dataType="date"
+        [format]="'dd/MM/yyyy'" />
+    <dxi-column caption="SEDE" dataField="Sede" dataType="string" />
+    <dxi-column caption="MONTO CONSOLIDADO" dataField="MontoConsolidado" dataType="number" />
+    <dxi-column caption="CUOTA INICIAL" dataField="CuotaInicial" dataType="number" />
+    <dxi-column caption="PRODUCTOS" dataField="Productos" dataType="string" />
+    <dxi-column caption="Nº CUOTAS" dataField="Cuotas" dataType="string" />
+    <dxi-column caption="DNI CLIENTE" dataField="DocIdentidad" dataType="string" />
+    <dxi-column caption="TIPO VENTA" dataField="TipoVenta" dataType="string" />
+    <dxi-column caption="ASESOR CONTACT" dataField="AsesorVenta" dataType="string" />
+    <dxi-column caption="ESTADO VENTA" dataField="EstadoVenta" dataType="string" />
+
+    <dxo-summary>
+        <dxi-total-item [alignment]="'right'" column="MontoConsolidado" summaryType="sum"
+            [valueFormat]="{ type: 'fixedPoint', precision: 2 }" displayFormat="{0}"></dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
+<div class="d-flex justify-content-between mt-2">
+    <button mat-icon-button (click)="abrirPopup('asesor')">
+        <mat-icon>zoom_out_map</mat-icon>
+    </button>
+
+    <!-- Popup del gráfico por Asesor -->
+    <dx-popup [(visible)]="popupVisibleAsesor" [showTitle]="true" title="Monto total por asesor" [dragEnabled]="true"
+        [closeOnOutsideClick]="true">
+        <dx-chart class="w-100 h-100" [dataSource]="chartData" [palette]="'Soft Pastel'" [rotated]="false">
+            <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" name="Monto Consolidado" type="bar">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [font]="{ color: '#000', size: 18, weight: 600 }" [position]="'outside'">
+                    <dxo-format [precision]="0"></dxo-format>
+                </dxo-label>
+            </dxi-series>
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+            <dxo-legend [visible]="false"></dxo-legend>
+        </dx-chart>
+    </dx-popup>
+
+    <button mat-icon-button (click)="abrirPopup('dia')">
+        <mat-icon>zoom_out_map</mat-icon>
+    </button>
+
+    <!-- Popup del gráfico por Día -->
+    <dx-popup [(visible)]="popupVisibleDia" [showTitle]="true" title="Ventas por Día de la Semana" [dragEnabled]="true"
+        [closeOnOutsideClick]="true">
+        <dx-chart class="w-100" [dataSource]="chartPorDia" title="Monto total de ventas por día"
+            [palette]="'Soft Pastel'">
+            <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
+                type="bar">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                    <dxo-format [precision]="0"></dxo-format>
+                </dxo-label>
+            </dxi-series>
+
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+        </dx-chart>
+    </dx-popup>
+</div>
+
+<div class="graficosVentas">
+    <dx-chart class="w-100" [dataSource]="chartData" title="Monto total por asesor" [palette]="'Soft Pastel'"
+        [rotated]="false">
+        <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" name="Monto Consolidado" type="bar">
+            <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                [font]="{ color: '#000', size: 18, weight: 600 }" [position]="'outside'">
+                <dxo-format [precision]="0"></dxo-format>
+            </dxo-label>
+        </dxi-series>
+
+        <dxo-argument-axis>
+            <dxo-label>
+                <dxo-font weight="bold" size="14"></dxo-font>
+            </dxo-label>
+        </dxo-argument-axis>
+
+        <dxo-legend [visible]="false"></dxo-legend>
+    </dx-chart>
+
+    <dx-chart class="w-100" [dataSource]="chartPorDia" title="Monto total de ventas por día" [palette]="'Soft Pastel'">
+        <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia" type="bar">
+            <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                <dxo-format [precision]="0"></dxo-format>
+            </dxo-label>
+        </dxi-series>
+
+        <dxo-argument-axis>
+            <dxo-label>
+                <dxo-font weight="bold" size="14"></dxo-font>
+            </dxo-label>
+        </dxo-argument-axis>
+
+        <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+    </dx-chart>
+</div>
+
+<div class="d-flex justify-content-between mt-2">
+    <button mat-icon-button (click)="abrirPopup('nroVentas')">
+        <mat-icon>zoom_out_map</mat-icon>
+    </button>
+
+    <!-- Popup del gráfico por Nro Ventas por Dias -->
+    <dx-popup [(visible)]="popupVisibleNroVentas" [showTitle]="true" title="Monto total por asesor" [dragEnabled]="true"
+        [closeOnOutsideClick]="true">
+        <dx-chart class="w-100" [dataSource]="chartNumeroVentasPorDia" title="Monto total de ventas por día"
+            [palette]="'Soft Pastel'">
+            <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
+                type="line">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                    <dxo-format [precision]="0"></dxo-format>
+                </dxo-label>
+            </dxi-series>
+
+            <dxo-common-series-settings type="line" [point]="{ visible: true, size: 7 }" />
+
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+        </dx-chart>
+    </dx-popup>
+
+    <button mat-icon-button (click)="abrirPopup('ventasSemanal')">
+        <mat-icon>zoom_out_map</mat-icon>
+    </button>
+
+    <!-- Popup del gráfico por Nro Ventas por Dias -->
+    <dx-popup [(visible)]="popupVisibleVentasSemanal" [showTitle]="true" title="Monto total por asesor" [dragEnabled]="true"
+        [closeOnOutsideClick]="true">
+        <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Monto Total de Ventas por Semana"
+            [palette]="'Soft Pastel'" type="area">
+            <dxi-series argumentField="Semana" valueField="MontoTotal" name="Julio" type="area">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                    <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
+                </dxo-label>
+            </dxi-series>
+
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+        </dx-chart>
+    </dx-popup>
+</div>
+
+<div class="graficosVentas">
+    <dx-chart class="w-100" [dataSource]="chartNumeroVentasPorDia" title="Monto total de ventas por día"
+        [palette]="'Soft Pastel'">
+        <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
+            type="line">
+            <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                <dxo-format [precision]="0"></dxo-format>
+            </dxo-label>
+        </dxi-series>
+
+        <dxo-common-series-settings type="line" [point]="{ visible: true, size: 7 }" />
+
+        <dxo-argument-axis>
+            <dxo-label>
+                <dxo-font weight="bold" size="14"></dxo-font>
+            </dxo-label>
+        </dxo-argument-axis>
+
+        <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+    </dx-chart>
+
+    <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Monto Total de Ventas por Semana"
+        [palette]="'Soft Pastel'" type="area">
+        <dxi-series argumentField="Semana" valueField="MontoTotal" name="Julio" type="area">
+            <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
+            </dxo-label>
+        </dxi-series>
+
+        <dxo-argument-axis>
+            <dxo-label>
+                <dxo-font weight="bold" size="14"></dxo-font>
+            </dxo-label>
+        </dxo-argument-axis>
+
+        <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+    </dx-chart>
+</div>

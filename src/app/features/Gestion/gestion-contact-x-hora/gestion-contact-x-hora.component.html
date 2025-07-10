@@ -1,0 +1,36 @@
+<form class="form mt-2" [formGroup]="formGestion">
+    <mat-form-field appearance="fill">
+        <mat-label>Fecha de Gestión</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="fechaGestion">
+        <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+        <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+        <mat-label>Rango Horario</mat-label>
+        <mat-select formControlName="rangoHorario">
+            <mat-option *ngFor="let rango of rangosHora" [value]="rango">{{ rango.label }}</mat-option>
+        </mat-select>
+    </mat-form-field>
+
+    <button mat-flat-button [disabled]="formGestion.invalid" (click)="actualizar()">
+        <mat-icon>search</mat-icon>
+        Actalizar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="listData" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
+    [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+    <dxi-column alignment="center" dataField="ID" caption="Código"></dxi-column>
+    <dxi-column alignment="center" dataField="Asesor" caption="Asesor"></dxi-column>
+    <dxi-column alignment="center" dataField="Contactos" caption="Contactos"></dxi-column>
+    <dxi-column alignment="center" dataField="NoContactos" caption="No Contactos"></dxi-column>
+    <dxi-column alignment="center" dataField="TotalLlamadas" caption="Llamadas x Hora"></dxi-column>
+    <dxi-column alignment="center" dataField="Meta" caption="Cumplimiento Meta" cellTemplate="icontemplate"></dxi-column>
+
+    <div *dxTemplate="let data of 'icontemplate'">
+        {{ data.data.Meta }} %
+    </div>
+</dx-data-grid>

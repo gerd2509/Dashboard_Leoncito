@@ -1,0 +1,80 @@
+<form class="form mt-2" [formGroup]="form">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" />
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" />
+
+    <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+
+    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button color="accent" (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Importar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="filtroVentas" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+    <dxi-column caption="NOMBRE ASESOR" dataField="ASESOR" dataType="string" />
+    <dxi-column caption="VENTAS" dataField="VENTAS" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="TICKET" dataField="TICKET" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="TICKET DIARIO" dataField="TICKETDIARIO" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="PROYECCION" dataField="PROYECCION" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="BONO" dataField="BONO" dataType="number"
+        alignment="right" [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="META MES" dataField="META" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="DIF/META" dataField="DIFMETA" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="CU/DIA/100%" dataField="CUADIA100" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+
+    <dxo-summary>
+        <dxi-total-item alignment="right" column="ASESOR" summaryType="sum" displayFormat="TOTAL">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="VENTAS" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="TICKET" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="TICKETDIARIO" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="PROYECCION" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="BONO" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="META" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="DIFMETA" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+        <dxi-total-item alignment="center" column="CUADIA100" summaryType="sum" displayFormat="Total: {0}"
+            [customizeText]="customizeCurrencyText">
+        </dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-3" [dataSource]="resumenPorSede" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+    <dxi-column caption="SEDE" dataField="SEDE" dataType="string" />
+    <dxi-column caption="VENTAS" dataField="VALOR" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
+</dx-data-grid>
