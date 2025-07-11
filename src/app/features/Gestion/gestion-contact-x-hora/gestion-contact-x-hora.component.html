@@ -1,4 +1,4 @@
-<form class="form mt-2" [formGroup]="formGestion">
+<!-- <form class="form mt-2" [formGroup]="formGestion">
     <mat-form-field appearance="fill">
         <mat-label>Fecha de Gestión</mat-label>
         <input matInput [matDatepicker]="picker" formControlName="fechaGestion">
@@ -33,4 +33,51 @@
     <div *dxTemplate="let data of 'icontemplate'">
         {{ data.data.Meta }} %
     </div>
+</dx-data-grid> -->
+
+<form class="form mt-2" [formGroup]="formGestion">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
+        valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
+        (onValueChanged)="onAsesorChanged($event)" />
+    <button mat-flat-button (click)="filtrarPorFecha()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+    <button mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+    <dxo-paging [pageSize]="10"></dxo-paging>
+    <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+    <dxi-column dataField="Marca temporal" caption="Marca temporal"></dxi-column>
+    <dxi-column dataField="ASESOR CONTACT" caption="Asesor Contact"></dxi-column>
+    <dxi-column dataField="DNI CLIENTE" caption="DNI Cliente"></dxi-column>
+    <dxi-column dataField="ESTADO DE GESTIÓN" caption="Estado de Gestión"></dxi-column>
+    <dxi-column dataField="MEDIO DE PRIMER CONTACTO" caption="Medio de Contacto"></dxi-column>
+    <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
+    <dxi-column dataField="RESULTADO DE GESTIÓN" caption="Resultado de Gestión"></dxi-column>
+    <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto de Interés"></dxi-column>
+    <dxi-column dataField="MOTIVO INTERÉS" caption="Motivo de Interés"></dxi-column>
+    <dxi-column dataField="FECHA DE INTERÉS" caption="Fecha de Interés"></dxi-column>
+    <dxi-column dataField="HORA APROXIMADA INTERÉS" caption="Hora Aproximada de Interés"></dxi-column>
+
+    <dxo-summary>
+        <dxi-total-item [alignment]="'right'" column="Marca temporal" summaryType="count"
+            displayFormat="Registros: {0}"></dxi-total-item>
+    </dxo-summary>
 </dx-data-grid>

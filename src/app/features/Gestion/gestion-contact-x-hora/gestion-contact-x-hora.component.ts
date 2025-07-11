@@ -1,9 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../../services/service-google.service';
 import { DX_COMMON_MODULES } from '../../dx_common_modules';
 import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
+import { ExcelExportService } from '../../../services/excel/excel.service';
+import { DxDataGridComponent } from 'devextreme-angular';
 
 @Component({
   selector: 'app-gestion-contact-x-hora',
@@ -13,128 +15,93 @@ import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
 })
 export class GestionContactXHoraComponent implements OnInit {
   protected service = inject(SheetsService);
+  protected excelService = inject(ExcelExportService);
 
   formGestion: UntypedFormGroup;
-  dataOriginal: any[] = [];
+  dataFiltrada: any[] = [];
   listData: any[] = [];
 
-  asesorCodigoMap: Record<string, string> = {
-    'MORETO DELGADO PATRICIA ESTEFANY': 'CC1',
-    'UCHOFEN VIGO FELICITA': 'CC3',
-    'QUISPE FONSECA KAREN AIMEE': 'CC5',
-    'MORALES ÑIQUE MARIA CANDELARIA': 'CC6',
-    'ACOSTA JIMENEZ MARIELA NATALY': 'CC7',
-    'CHANTA CAMPOS KELLY KARINTIA': 'CC8',
-    'PÉREZ TINEO MARICIELO TATIANA': 'CC9'
-  };
+  protected showFilterRow: boolean = true;
+  protected currentFilter: string = 'auto';
 
-  rangosHora = [
-    { label: '14:00 - 15:00', inicio: '14:00', fin: '15:00' },
-    { label: '15:00 - 16:00', inicio: '15:00', fin: '16:00' },
-    { label: '16:00 - 17:00', inicio: '16:00', fin: '17:00' },
-    { label: '17:00 - 18:00', inicio: '17:00', fin: '18:00' },
-    { label: '18:00 - 19:00', inicio: '18:00', fin: '19:00' },
-    { label: '19:00 - 20:00', inicio: '19:00', fin: '20:00' },
-    { label: '20:00 - 21:00', inicio: '20:00', fin: '21:00' }
+  asesores = [
+    { value: '', viewValue: 'Seleccione Asesor' },
+    { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
+    { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
+    { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
+    { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
+    { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
+    { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
+    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' }
   ];
 
-  metaCliXHora = 10;
+  @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
-    const currentDate = new Date();
+    // const currentDate = new Date();
 
     this.formGestion = this.fb.group({
-      fechaGestion: [currentDate],
-      rangoHorario: [this.rangosHora[0]]
+      fechaInicio: [null, Validators.required],
+      fechaFin: [null, Validators.required],
+      Asesores: ['']
     });
   }
 
   async ngOnInit() {
-    this.dataOriginal = await lastValueFrom(this.service.getSheetData());
+    this.listData = await lastValueFrom(this.service.getSheetData());
+    this.dataFiltrada = [...this.listData];
   }
 
-  async actualizar() {
-    this.dataOriginal = await lastValueFrom(this.service.getSheetData());
+  filtrarPorFecha() {
+    const fechaInicio = this.formGestion.value.fechaInicio;
+    const fechaFin = this.formGestion.value.fechaFin;
 
-    const fechaSeleccionada = this.formGestion.value.fechaGestion;
-    const rangoSeleccionado = this.formGestion.value.rangoHorario;
+    if (!fechaInicio || !fechaFin) {
+      this.dataFiltrada = [...this.listData];
+      return;
+    }
 
-    if (!fechaSeleccionada || !rangoSeleccionado) return;
+    const desde = new Date(fechaInicio);
+    desde.setHours(0, 0, 0, 0);
 
-    const fechaIso = new Date(fechaSeleccionada).toISOString().split('T')[0];
-    this.procesarData(fechaIso, rangoSeleccionado.inicio, rangoSeleccionado.fin);
-  }
+    const hasta = new Date(fechaFin);
+    hasta.setHours(23, 59, 59, 999);
 
-  procesarData(fechaFiltro: string, horaInicioStr: string, horaFinStr: string) {
-    const [hInicio, mInicio] = horaInicioStr.split(':').map(Number);
-    const [hFin, mFin] = horaFinStr.split(':').map(Number);
-    const inicioSegundos = hInicio * 3600 + mInicio * 60;
-    const finSegundos = hFin * 3600 + mFin * 60;
+    this.dataFiltrada = this.listData.filter(item => {
+      const texto = item["Marca temporal"]; // ejemplo: "3/02/2025 16:51:28"
+      if (!texto) return false;
 
-    const dataFiltrada = this.dataOriginal.filter(item => {
-      const fecha = this.parsearFechaLatina(item['Marca temporal']);
-      const estado = item['ESTADO DE GESTIÓN']?.toUpperCase().trim();
-      return (
-        fecha &&
-        fecha.toISOString().split('T')[0] === fechaFiltro &&
-        (estado === 'CONTACTO' || estado === 'NO CONTACTO')
-      );
+      // convertir correctamente la fecha
+      const partes = texto.split(/[/\s:]/); // [3, 02, 2025, 16, 51, 28]
+      const fecha = new Date(+partes[2], +partes[1] - 1, +partes[0]); // solo fecha
+
+      return fecha >= desde && fecha <= hasta;
     });
+  }
 
-    const asesoresUnicos = Array.from(
-      new Set(dataFiltrada.map(item => item['ASESOR CONTACT']).filter(Boolean))
-    );
+  onAsesorChanged(event: any): void {
+    const selectedValue = event.value;
 
-    this.listData = asesoresUnicos.map(nombre => {
-      const idAsesor = this.asesorCodigoMap[nombre] || 'SIN_CODIGO';
+    if (!selectedValue) {
+      // Si no hay asesor seleccionado, se muestra todo
+      this.dataFiltrada = [...this.listData];
+      return;
+    }
 
-      const llamadasPorHora = dataFiltrada.filter(item => {
-        const fecha = this.parsearFechaLatina(item['Marca temporal']);
-        const asesor = item['ASESOR CONTACT'];
-        const estado = item['ESTADO DE GESTIÓN']?.toUpperCase().trim();
-        if (!fecha || asesor !== nombre || (estado !== 'CONTACTO' && estado !== 'NO CONTACTO')) return false;
+    // Buscar el viewValue asociado al value seleccionado
+    const asesorSeleccionado = this.asesores.find(a => a.value === selectedValue)?.viewValue?.toString().trim().toUpperCase();
 
-        const segundos = fecha.getHours() * 3600 + fecha.getMinutes() * 60 + fecha.getSeconds();
-        return segundos >= inicioSegundos && segundos < finSegundos;
-      });
-
-      const contactos = llamadasPorHora.filter(item => item['ESTADO DE GESTIÓN']?.toUpperCase().trim() === 'CONTACTO');
-      const noContactos = llamadasPorHora.filter(item => item['ESTADO DE GESTIÓN']?.toUpperCase().trim() === 'NO CONTACTO');
-
-      const totalLlamadas = llamadasPorHora.length;
-
-      return {
-        ID: idAsesor,
-        Asesor: nombre,
-        Contactos: contactos.length,
-        NoContactos: noContactos.length,
-        TotalLlamadas: totalLlamadas,
-        Meta: Math.min((totalLlamadas / this.metaCliXHora) * 100, 100)
-      };
+    this.dataFiltrada = this.listData.filter(item => {
+      const asesorEnDato = (item['ASESOR CONTACT'] || '').toString().trim().toUpperCase();
+      return asesorEnDato === asesorSeleccionado;
     });
-
-    console.log('Resultado corregido:', this.listData);
   }
 
-
-  parsearFechaLatina(fechaHoraStr: string): Date | null {
-    if (!fechaHoraStr) return null;
-
-    const partes = fechaHoraStr.trim().split(' ');
-    if (partes.length !== 2) return null;
-
-    const [fechaStr, horaStr] = partes;
-    const [dia, mes, anio] = fechaStr.split('/').map(Number);
-    const [hora, minuto, segundo = 0] = horaStr.split(':').map(Number);
-
-    const fecha = new Date(anio, mes - 1, dia, hora, minuto, segundo);
-
-    return isNaN(fecha.getTime()) ? null : fecha;
+  exportar(): void {
+    if (this.dataGrid) {
+      this.excelService.exportarDesdeGrid("dataTipoReportes", this.dataGrid);
+    }
   }
-
-  formatCumplimientoMeta = (rowData: any): string => {
-    return rowData.Meta != null ? `${rowData.Meta.toFixed(0)} %` : '';
-  };
 
   onCellPrepared(e: any) {
     if (e.rowType === 'header') {
@@ -146,21 +113,6 @@ export class GestionContactXHoraComponent implements OnInit {
       e.cellElement.style.whiteSpace = "normal";
       e.cellElement.style.height = "auto";
       e.cellElement.style.border = "1.5px solid black";
-    }
-
-    if (e.rowType === 'data') {
-      e.cellElement.style.border = '1px solid #ccc';
-      e.cellElement.style.textAlign = 'center';
-
-      if (e.column.dataField === 'Meta') {
-        const valor = e.data.Meta;
-        if (valor >= 85) e.cellElement.style.backgroundColor = '#A5D6A7';
-        else if (valor >= 50) e.cellElement.style.backgroundColor = '#FFF59D';
-        else e.cellElement.style.backgroundColor = '#EF9A9A';
-
-        e.cellElement.style.fontWeight = 'bold';
-        e.cellElement.style.border = '1.5px solid black';
-      }
     }
   }
 }
