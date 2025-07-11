@@ -17,6 +17,7 @@ export class ProyeccionComparativoComponent implements OnInit {
   dataOriginal: any[] = [];
   filtroVentas: any[] = [];
   resumenPorSede: any[] = [];
+  ventasPorTipoBase: any[] = [];
 
   asesoresMeta = [
     { id: 'CC1', nombre: 'MORETO DELGADO PATRICIA ESTEFANY', meta: 60000 },
@@ -73,6 +74,7 @@ export class ProyeccionComparativoComponent implements OnInit {
           Cuotas: row['Cuotas'],
           DocIdentidad: row['DocIdentidad'],
           TipoVenta: row['TipoVenta'],
+          TipoBase: (row['TipoBase'] || '').toString().trim().toUpperCase(),
           AsesorVenta: (row['AsesorVenta'] || '').toString().trim().toUpperCase(),
           EstadoVenta: row['EstadoVenta']
         }))
@@ -81,6 +83,7 @@ export class ProyeccionComparativoComponent implements OnInit {
       this.aplicarFiltros();
       this.generarResumenPorAsesor();
       this.generarResumenPorSede();
+      this.generarVentasPorTipoBase();
     };
 
     reader.readAsArrayBuffer(file);
@@ -108,6 +111,7 @@ export class ProyeccionComparativoComponent implements OnInit {
       this.aplicarFiltros();
       this.generarResumenPorAsesor();
       this.generarResumenPorSede();
+      this.generarVentasPorTipoBase();
     }
   }
 
@@ -201,6 +205,29 @@ export class ProyeccionComparativoComponent implements OnInit {
     console.log('Resumen por Sede:', this.resumenPorSede);
   }
 
+  generarVentasPorTipoBase(): void {
+    const resumenMap = new Map<string, number>();
+
+    for (const venta of this.dataVentas) {
+      const tipoBase = (venta.TipoBase || '').toString().trim().toUpperCase();
+      if (!tipoBase) continue;
+
+      if (resumenMap.has(tipoBase)) {
+        resumenMap.set(tipoBase, resumenMap.get(tipoBase)! + 1);
+      } else {
+        resumenMap.set(tipoBase, 1);
+      }
+    }
+
+    this.ventasPorTipoBase = Array.from(resumenMap.entries()).map(([TipoBase, TOTAL]) => ({
+      TipoBase,
+      TOTAL
+    }));
+
+    console.log('Resumen por TipoBase:', this.ventasPorTipoBase);
+  }
+
+
   calcularBono(proyeccion: number): number {
     if (!proyeccion || proyeccion < 15000) return 0;
     for (const item of this.tablaBonos) {
@@ -214,6 +241,7 @@ export class ProyeccionComparativoComponent implements OnInit {
       this.aplicarFiltros();
       this.generarResumenPorAsesor();
       this.generarResumenPorSede();
+      this.generarVentasPorTipoBase();
     }
   }
 

@@ -41,6 +41,7 @@
     <dxi-column caption="Nº CUOTAS" dataField="Cuotas" dataType="string" />
     <dxi-column caption="DNI CLIENTE" dataField="DocIdentidad" dataType="string" />
     <dxi-column caption="TIPO VENTA" dataField="TipoVenta" dataType="string" />
+    <dxi-column caption="TIPO BASE" dataField="TipoBase" dataType="string" />
     <dxi-column caption="ASESOR CONTACT" dataField="AsesorVenta" dataType="string" />
     <dxi-column caption="ESTADO VENTA" dataField="EstadoVenta" dataType="string" />
 
@@ -157,6 +158,8 @@
                 </dxo-label>
             </dxi-series>
 
+            <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="customizeTooltip" />
+
             <dxo-common-series-settings type="line" [point]="{ visible: true, size: 7 }" />
 
             <dxo-argument-axis>
@@ -206,6 +209,8 @@
                 <dxo-format [precision]="0"></dxo-format>
             </dxo-label>
         </dxi-series>
+
+        <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="customizeTooltip" />
 
         <dxo-common-series-settings type="line" [point]="{ visible: true, size: 7 }" />
 

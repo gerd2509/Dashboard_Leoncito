@@ -22,7 +22,7 @@
     [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
 
     <dxi-column caption="NOMBRE ASESOR" dataField="ASESOR" dataType="string" />
-    <dxi-column caption="VENTAS" dataField="VENTAS" dataType="number" alignment="right"
+    <dxi-column caption="VENTAS" dataField="VENTAS" dataType="number" alignment="right" [sortOrder]="'desc'"
         [customizeText]="customizeCurrencyText" />
     <dxi-column caption="TICKET" dataField="TICKET" dataType="number" alignment="right"
         [customizeText]="customizeCurrencyText" />
@@ -30,8 +30,8 @@
         [customizeText]="customizeCurrencyText" />
     <dxi-column caption="PROYECCION" dataField="PROYECCION" dataType="number" alignment="right"
         [customizeText]="customizeCurrencyText" />
-    <dxi-column caption="BONO" dataField="BONO" dataType="number"
-        alignment="right" [customizeText]="customizeCurrencyText" />
+    <dxi-column caption="BONO" dataField="BONO" dataType="number" alignment="right"
+        [customizeText]="customizeCurrencyText" />
     <dxi-column caption="META MES" dataField="META" dataType="number" alignment="right"
         [customizeText]="customizeCurrencyText" />
     <dxi-column caption="DIF/META" dataField="DIFMETA" dataType="number" alignment="right"
@@ -66,12 +66,38 @@
     </dxo-summary>
 </dx-data-grid>
 
-<dx-data-grid id="dataGrid" class="focqus-elevation mt-3" [dataSource]="resumenPorSede" [allowColumnReordering]="true"
-    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
-    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+<div class="detalleGrillas">
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-3" [dataSource]="resumenPorSede"
+        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+        [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+        [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
 
-    <dxi-column caption="SEDE" dataField="SEDE" dataType="string" />
-    <dxi-column caption="VENTAS" dataField="VALOR" dataType="number" alignment="right"
-        [customizeText]="customizeCurrencyText" />
-</dx-data-grid>
+        <dxi-column caption="SEDE" dataField="SEDE" dataType="string" />
+        <dxi-column caption="VENTAS" dataField="VALOR" dataType="number" alignment="right"
+            [customizeText]="customizeCurrencyText" />
+
+        <dxo-summary>
+            <dxi-total-item alignment="center" column="SEDE" summaryType="sum" displayFormat="TOTAL">
+            </dxi-total-item>
+            <dxi-total-item alignment="center" column="VALOR" summaryType="sum" displayFormat="{0}"
+                [customizeText]="customizeCurrencyText">
+            </dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-3" [dataSource]="ventasPorTipoBase"
+        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+        [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+        [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+        <dxi-column caption="BASE" dataField="TipoBase" dataType="string" />
+        <dxi-column caption="VENTAS" dataField="TOTAL" dataType="number" alignment="right" />
+
+        <dxo-summary>
+            <dxi-total-item alignment="center" column="TipoBase" summaryType="sum" displayFormat="TOTAL">
+            </dxi-total-item>
+            <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}">
+            </dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>

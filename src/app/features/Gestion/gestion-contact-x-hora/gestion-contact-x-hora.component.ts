@@ -83,19 +83,21 @@ export class GestionContactXHoraComponent implements OnInit {
     const selectedValue = event.value;
 
     if (!selectedValue) {
-      // Si no hay asesor seleccionado, se muestra todo
-      this.dataFiltrada = [...this.listData];
+      // Si no hay asesor seleccionado, mostrar los datos ya filtrados por fecha
+      this.filtrarPorFecha();
       return;
     }
 
-    // Buscar el viewValue asociado al value seleccionado
+    // Buscar el nombre completo del asesor
     const asesorSeleccionado = this.asesores.find(a => a.value === selectedValue)?.viewValue?.toString().trim().toUpperCase();
 
-    this.dataFiltrada = this.listData.filter(item => {
+    // Aplicar filtro por asesor sobre los datos ya filtrados por fecha
+    this.dataFiltrada = this.dataFiltrada.filter(item => {
       const asesorEnDato = (item['ASESOR CONTACT'] || '').toString().trim().toUpperCase();
       return asesorEnDato === asesorSeleccionado;
     });
   }
+
 
   exportar(): void {
     if (this.dataGrid) {

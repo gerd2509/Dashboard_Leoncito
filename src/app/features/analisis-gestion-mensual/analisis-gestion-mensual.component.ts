@@ -23,7 +23,7 @@ export class AnalisisGestionMensualComponent implements OnInit {
   contactados: number = 0;
   interesados: number = 0;
   derivados: number = 0;
-  ventas: number = 26;
+  ventas: number = 51;
 
   asesores = [
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },

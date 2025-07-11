@@ -7,11 +7,12 @@ import { CierreGestionComponent } from "../features/cierre-gestion/cierre-gestio
 import { AnalisisGestionMensualComponent } from "../features/analisis-gestion-mensual/analisis-gestion-mensual.component";
 import { VentasComponent } from "../features/ventas/ventas.component";
 import { ProyeccionComparativoComponent } from "../features/proyeccion-comparativo/proyeccion-comparativo.component";
+import { ConvertidorExcelCsvComponent } from "../features/convertidor-excel-csv/convertidor-excel-csv.component";
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, AgendamientosComponent, DerivacionesComponent, GestionContactXHoraComponent, CierreGestionComponent, AnalisisGestionMensualComponent, VentasComponent, ProyeccionComparativoComponent],
+  imports: [CommonModule, AgendamientosComponent, DerivacionesComponent, GestionContactXHoraComponent, CierreGestionComponent, AnalisisGestionMensualComponent, VentasComponent, ProyeccionComparativoComponent, ConvertidorExcelCsvComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -31,6 +32,7 @@ export class DashboardComponent {
       case 'ventas': return 'Ventas';
       case 'analisis': return 'analisis';
       case 'proyeccion-comparativo': return 'proyeccion-comparativo';
+      case 'conversor-csv': return 'conversor-csvo';
       default: return 'Seleccione un módulo';
     }
   }

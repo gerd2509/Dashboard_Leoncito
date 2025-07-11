@@ -9,6 +9,7 @@
         <button (click)="selectModule('analisis')">Analisis Gestion Mensual</button>
         <button (click)="selectModule('ventas')">Ventas</button>
         <button (click)="selectModule('proyeccion-comparativo')">Proyeccion & Comparativo</button>
+        <button (click)="selectModule('conversor-csv')">Conversor CSV</button>
     </aside>
 
     <!-- Área principal -->
@@ -29,6 +30,7 @@
             <app-analisis-gestion-mensual *ngIf="moduloSeleccionado === 'analisis'"></app-analisis-gestion-mensual>
             <app-ventas *ngIf="moduloSeleccionado === 'ventas'"></app-ventas>
             <app-proyeccion-comparativo *ngIf="moduloSeleccionado === 'proyeccion-comparativo'"></app-proyeccion-comparativo>
+            <app-convertidor-excel-csv *ngIf="moduloSeleccionado === 'conversor-csv'"></app-convertidor-excel-csv>
         </section>
     </div>
 </div>

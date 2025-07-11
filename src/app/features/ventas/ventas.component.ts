@@ -81,6 +81,7 @@ export class VentasComponent implements OnInit {
         Cuotas: row['Cuotas'],
         DocIdentidad: row['DocIdentidad'],
         TipoVenta: row['TipoVenta'],
+        TipoBase: row['TipoBase'],
         AsesorVenta: row['AsesorVenta'],
         EstadoVenta: row['EstadoVenta']
       }));
@@ -346,6 +347,26 @@ export class VentasComponent implements OnInit {
       this.popupVisibleVentasSemanal = true;
     }
   }
+
+  customizeTooltip = (info: any): any => {
+    if (info.points?.length) {
+      let html = `<b>${info.argumentText}</b><br/>`;
+
+      info.points.forEach((point: any) => {
+        html += `
+        <span style="color:${point.color}">\u25A0</span>
+        ${point.seriesName}: <b>${point.valueText}</b><br/>
+      `;
+      });
+
+      return { html };
+    }
+
+    return {
+      text: `${info.seriesName}: ${info.valueText}`
+    };
+  };
+
 
   onCellPrepared(e: any) {
     if (e.rowType != 'header' || e.cellElement.classList.contains('dx-editor-cell')) return;
