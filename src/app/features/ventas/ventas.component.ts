@@ -33,8 +33,16 @@ export class VentasComponent implements OnInit {
   chartNumeroVentasPorDia: VentasPorDia[] = [];
   semanasCantidad: string[] = [];
 
-  chartMontoSemanal: { Semana: string, MontoTotal: number }[] = [];
+  chartMontoSemanal: any[] = [];
+  seriesMeses: string[] = [];
   semanasMontoTotal: string[] = [];
+
+  chartMontoMensual: { Mes: string; MontoTotal: number }[] = [];
+
+  totalMontoVentas = 0;
+  totalVentas = 0;
+  ticket = 0;
+  proyeccion = 0;
 
   asesores = [
     { value: '', viewValue: 'Seleccione Asesor' },
@@ -153,6 +161,20 @@ export class VentasComponent implements OnInit {
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
     this.generarChartMontoSemanal();
+    this.generarChartMontoMensual();
+
+    const hoy = new Date();
+    const diaHoy = hoy.getDate();
+    const mesHoy = hoy.getMonth();
+    const anioHoy = hoy.getFullYear();
+    const diasMesActual = new Date(anioHoy, mesHoy + 1, 0).getDate();
+    const diasTranscurridos = diaHoy - 1;
+
+    this.totalVentas = this.filtroVentas.length;
+    this.totalMontoVentas = this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0);
+    this.ticket = this.totalVentas ? this.totalMontoVentas / this.totalVentas : 0;
+    const ticketDiario = diasTranscurridos > 0 ? this.totalMontoVentas / diasTranscurridos : 0;
+    this.proyeccion = ticketDiario * diasMesActual;
   }
 
   generarChartData(): void {
@@ -226,94 +248,181 @@ export class VentasComponent implements OnInit {
     });
   }
 
+  // generarChartNroVentasPorDia(): void {
+  //   const diasSemanaBase = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+  //   const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+  //   const primerDiaMes = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), 1);
+  //   const diaInicial = primerDiaMes.getDay(); // 0 (Domingo) a 6 (Sábado)
+
+  //   // Reordenar días para empezar desde el primer día del mes
+  //   const diasSemana = [...diasSemanaBase.slice(diaInicial), ...diasSemanaBase.slice(0, diaInicial)];
+
+  //   const agrupado = new Map<string, Map<string, number>>();
+  //   const semanasSet = new Set<string>();
+
+  //   for (const venta of this.filtroVentas) {
+  //     if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
+
+  //     const fecha = new Date(venta.FECHAVENTA);
+  //     const diaTexto = diasSemanaBase[fecha.getDay()]; // Usamos el base para agrupar
+  //     const semanaIso = this.getSemanaISO(fecha);
+
+  //     semanasSet.add(semanaIso);
+
+  //     if (!agrupado.has(diaTexto)) {
+  //       agrupado.set(diaTexto, new Map());
+  //     }
+
+  //     const semanaMap = agrupado.get(diaTexto)!;
+  //     semanaMap.set(semanaIso, (semanaMap.get(semanaIso) || 0) + 1);
+  //   }
+
+  //   const semanasOrdenadas = Array.from(semanasSet).sort();
+
+  //   this.semanasCantidad = semanasOrdenadas.map((semanaIso, index) => {
+  //     const nombre = `Semana ${index + 1}`;
+  //     this.semanaMap.set(semanaIso, nombre);
+  //     return nombre;
+  //   });
+
+  //   this.chartNumeroVentasPorDia = diasSemana.map(dia => {
+  //     const semanaMap = agrupado.get(dia) || new Map();
+  //     const result: any = { Dia: dia };
+
+  //     for (const [semanaIso, cantidad] of semanaMap.entries()) {
+  //       const semanaNombre = this.semanaMap.get(semanaIso);
+  //       if (semanaNombre) {
+  //         result[semanaNombre] = cantidad;
+  //       }
+  //     }
+
+  //     return result;
+  //   });
+  // }
+
   generarChartNroVentasPorDia(): void {
-    const diasSemanaBase = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
-    const primerDiaMes = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), 1);
-    const diaInicial = primerDiaMes.getDay(); // 0 (Domingo) a 6 (Sábado)
-
-    // Reordenar días para empezar desde el primer día del mes
-    const diasSemana = [...diasSemanaBase.slice(diaInicial), ...diasSemanaBase.slice(0, diaInicial)];
-
-    const agrupado = new Map<string, Map<string, number>>();
-    const semanasSet = new Set<string>();
+    const diasSemanaBase = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sabado'];
+    const semanasMap = new Map<number, Map<string, number>>();
+    const semanasSet = new Set<number>();
 
     for (const venta of this.filtroVentas) {
       if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
 
       const fecha = new Date(venta.FECHAVENTA);
-      const diaTexto = diasSemanaBase[fecha.getDay()]; // Usamos el base para agrupar
-      const semanaIso = this.getSemanaISO(fecha);
+      const semana = this.getSemanaDelMes(fecha); // Semana 1, 2, etc.
+      const diaTexto = diasSemanaBase[fecha.getDay()];
 
-      semanasSet.add(semanaIso);
+      semanasSet.add(semana);
 
-      if (!agrupado.has(diaTexto)) {
-        agrupado.set(diaTexto, new Map());
+      if (!semanasMap.has(semana)) {
+        semanasMap.set(semana, new Map<string, number>());
       }
 
-      const semanaMap = agrupado.get(diaTexto)!;
-      semanaMap.set(semanaIso, (semanaMap.get(semanaIso) || 0) + 1);
+      const conteoSemana = semanasMap.get(semana)!;
+      conteoSemana.set(diaTexto, (conteoSemana.get(diaTexto) || 0) + 1);
     }
 
-    const semanasOrdenadas = Array.from(semanasSet).sort();
+    // Mapear: Semana 1 -> "Semana 1", etc.
+    const semanasOrdenadas = Array.from(semanasSet).sort((a, b) => a - b);
+    this.semanas = semanasOrdenadas.map(n => `Semana ${n}`);
 
-    this.semanasCantidad = semanasOrdenadas.map((semanaIso, index) => {
-      const nombre = `Semana ${index + 1}`;
-      this.semanaMap.set(semanaIso, nombre);
-      return nombre;
-    });
-
-    this.chartNumeroVentasPorDia = diasSemana.map(dia => {
-      const semanaMap = agrupado.get(dia) || new Map();
-      const result: any = { Dia: dia };
-
-      for (const [semanaIso, cantidad] of semanaMap.entries()) {
-        const semanaNombre = this.semanaMap.get(semanaIso);
-        if (semanaNombre) {
-          result[semanaNombre] = cantidad;
-        }
+    // Estructura final para dx-chart
+    this.chartNumeroVentasPorDia = diasSemanaBase.map(dia => {
+      const fila: any = { Dia: dia };
+      for (const semana of semanasOrdenadas) {
+        const nombre = `Semana ${semana}`;
+        const valor = semanasMap.get(semana)?.get(dia) || 0;
+        fila[nombre] = valor;
       }
-
-      return result;
+      return fila;
     });
   }
 
   generarChartMontoSemanal(): void {
-    const agrupado = new Map<string, number>();
+    const datosPorMesSemana = new Map<string, Map<string, number>>();
     const semanasSet = new Set<string>();
+    const mesesSet = new Set<string>();
 
     for (const venta of this.filtroVentas) {
       if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
 
       const fecha = new Date(venta.FECHAVENTA);
-      const semanaIso = this.getSemanaISO(fecha);
-      semanasSet.add(semanaIso);
+      const anio = fecha.getFullYear();
+      const mes = fecha.getMonth() + 1;
+      const nombreMes = `${this.getNombreMes(mes)} ${anio}`;
+      const semana = `Semana ${this.getSemanaDelMes(fecha)}`;
+
+      semanasSet.add(semana);
+      mesesSet.add(nombreMes);
+
+      if (!datosPorMesSemana.has(semana)) {
+        datosPorMesSemana.set(semana, new Map());
+      }
+
+      const mapMes = datosPorMesSemana.get(semana)!;
+      mapMes.set(nombreMes, (mapMes.get(nombreMes) || 0) + venta.MontoConsolidado);
+    }
+
+    const semanasOrdenadas = Array.from(semanasSet).sort((a, b) => {
+      return +a.split(' ')[1] - +b.split(' ')[1];
+    });
+
+    const mesesOrdenados = Array.from(mesesSet);
+
+    this.chartMontoSemanal = semanasOrdenadas.map(semana => {
+      const fila: any = { Semana: semana };
+      const mapMes = datosPorMesSemana.get(semana)!;
+      for (const mes of mesesOrdenados) {
+        fila[mes] = mapMes.get(mes) || 0;
+      }
+      return fila;
+    });
+
+    this.seriesMeses = mesesOrdenados;
+  }
+
+  generarChartMontoMensual(): void {
+    const agrupado = new Map<string, number>();
+    const mesesSet = new Set<string>();
+
+    for (const venta of this.filtroVentas) {
+      if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
+
+      const fecha = new Date(venta.FECHAVENTA);
+      const claveMes = `${fecha.getFullYear()}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}`; // Ej: "2025-07"
+      mesesSet.add(claveMes);
 
       agrupado.set(
-        semanaIso,
-        (agrupado.get(semanaIso) || 0) + venta.MontoConsolidado
+        claveMes,
+        (agrupado.get(claveMes) || 0) + venta.MontoConsolidado
       );
     }
 
-    const semanasOrdenadas = Array.from(semanasSet).sort();
+    const mesesOrdenados = Array.from(mesesSet).sort();
 
-    this.semanasMontoTotal = semanasOrdenadas.map((semanaIso, index) => {
-      const nombre = `Semana ${index + 1}`;
-      this.semanaMap.set(semanaIso, nombre);
-      return nombre;
-    });
-
-    this.chartMontoSemanal = this.semanasMontoTotal.map(nombre => {
-      // Obtener la clave ISO a partir del nombre amigable
-      const semanaIso = [...this.semanaMap.entries()].find(([k, v]) => v === nombre)?.[0];
+    this.chartMontoMensual = mesesOrdenados.map(claveMes => {
+      const [anio, mes] = claveMes.split('-');
+      const nombreMes = this.getNombreMes(+mes) + ' ' + anio;
       return {
-        Semana: nombre,
-        MontoTotal: agrupado.get(semanaIso!) || 0
+        Mes: nombreMes,
+        MontoTotal: agrupado.get(claveMes) || 0
       };
     });
   }
 
+  getNombreMes(mes: number): string {
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return meses[mes - 1] || '';
+  }
+
+  getSemanaDelMes(date: Date): number {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const dayOfMonth = date.getDate();
+    const adjustedDay = dayOfMonth + firstDay.getDay(); // para considerar inicio en lunes/domingo
+    return Math.ceil(adjustedDay / 7);
+  }
 
   getSemanaISO(date: Date): string {
     const tmp = new Date(date.getTime());
@@ -367,6 +476,40 @@ export class VentasComponent implements OnInit {
     };
   };
 
+  customizeMontoTexto = (pointInfo: any): string => {
+    if (pointInfo.value === 0) return ''; // Oculta ceros
+    return `S/ ${pointInfo.value.toLocaleString('es-PE', {
+      minimumFractionDigits: 1
+    })}`;
+  };
+
+  customizeLabel = (pointInfo: any) => {
+    const offsetMap: Record<string, number> = {
+      'Enero': -25,
+      'Febrero': -12,
+      'Marzo': 0,
+      'Abril': 12,
+      'Mayo': 25
+      // puedes seguir agregando según los meses que tengas
+    };
+
+    return {
+      visible: true,
+      font: {
+        size: 11,
+        weight: 600,
+        color: pointInfo.series.getColor()  // usa el color de la serie
+      },
+      verticalOffset: offsetMap[pointInfo.seriesName] || 0, // Espaciado
+      customizeText: () => {
+        if (!pointInfo.value || pointInfo.value === 0) return '';
+        return pointInfo.value.toLocaleString('es-PE', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1
+        });
+      }
+    };
+  };
 
   onCellPrepared(e: any) {
     if (e.rowType != 'header' || e.cellElement.classList.contains('dx-editor-cell')) return;
@@ -385,4 +528,13 @@ export class VentasComponent implements OnInit {
 interface VentasPorDia {
   Dia: string;
   [semana: string]: number | string;
+}
+
+interface DatoSerie {
+  [semana: string]: number;
+}
+
+interface SerieMes {
+  name: string; // ej: "Febrero"
+  series: { Semana: string; MontoTotal: number }[];
 }

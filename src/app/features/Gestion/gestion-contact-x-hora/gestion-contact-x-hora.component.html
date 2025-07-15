@@ -45,6 +45,8 @@
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
         valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
         (onValueChanged)="onAsesorChanged($event)" />
+    <dx-check-box text="Derivación" [(value)]="filtroDerivacionActivo" [disabled]="!formGestion.valid"
+        (onValueChanged)="aplicarFiltros()" stylingMode="outlined" />
     <button mat-flat-button (click)="filtrarPorFecha()">
         <mat-icon>search</mat-icon>
         Actualizar
@@ -55,29 +57,36 @@
     </button>
 </form>
 
-<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" [allowColumnReordering]="true"
-    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
-    [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+<div class="grid-container">
+    <!-- Spinner superpuesto -->
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
 
-    <dxo-paging [pageSize]="10"></dxo-paging>
-    <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
-    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" [allowColumnReordering]="true"
+        [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+        (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+        [columnAutoWidth]="true" [selection]="{mode: 'single'}">
 
-    <dxi-column dataField="Marca temporal" caption="Marca temporal"></dxi-column>
-    <dxi-column dataField="ASESOR CONTACT" caption="Asesor Contact"></dxi-column>
-    <dxi-column dataField="DNI CLIENTE" caption="DNI Cliente"></dxi-column>
-    <dxi-column dataField="ESTADO DE GESTIÓN" caption="Estado de Gestión"></dxi-column>
-    <dxi-column dataField="MEDIO DE PRIMER CONTACTO" caption="Medio de Contacto"></dxi-column>
-    <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
-    <dxi-column dataField="RESULTADO DE GESTIÓN" caption="Resultado de Gestión"></dxi-column>
-    <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto de Interés"></dxi-column>
-    <dxi-column dataField="MOTIVO INTERÉS" caption="Motivo de Interés"></dxi-column>
-    <dxi-column dataField="FECHA DE INTERÉS" caption="Fecha de Interés"></dxi-column>
-    <dxi-column dataField="HORA APROXIMADA INTERÉS" caption="Hora Aproximada de Interés"></dxi-column>
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+        <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
 
-    <dxo-summary>
-        <dxi-total-item [alignment]="'right'" column="Marca temporal" summaryType="count"
-            displayFormat="Registros: {0}"></dxi-total-item>
-    </dxo-summary>
-</dx-data-grid>
+        <dxi-column dataField="Marca temporal" caption="Marca temporal"></dxi-column>
+        <dxi-column dataField="ASESOR CONTACT" caption="Asesor Contact"></dxi-column>
+        <dxi-column dataField="DNI CLIENTE" caption="DNI Cliente"></dxi-column>
+        <dxi-column dataField="ESTADO DE GESTIÓN" caption="Estado de Gestión"></dxi-column>
+        <dxi-column dataField="MEDIO DE PRIMER CONTACTO" caption="Medio de Contacto"></dxi-column>
+        <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
+        <dxi-column dataField="RESULTADO DE GESTIÓN" caption="Resultado de Gestión"></dxi-column>
+        <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto de Interés"></dxi-column>
+        <dxi-column dataField="MOTIVO INTERÉS" caption="Motivo de Interés"></dxi-column>
+        <dxi-column dataField="FECHA DE INTERÉS" caption="Fecha de Interés"></dxi-column>
+        <dxi-column dataField="HORA APROXIMADA INTERÉS" caption="Hora Aproximada de Interés"></dxi-column>
+
+        <dxo-summary>
+            <dxi-total-item [alignment]="'right'" column="Marca temporal" summaryType="count"
+                displayFormat="Registros: {0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>

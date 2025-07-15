@@ -1,9 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { SheetsService } from '../../services/service-google.service';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
+import { DxDataGridComponent } from 'devextreme-angular';
+import { ExcelExportService } from '../../services/excel/excel.service';
 
 @Component({
   selector: 'app-agendamientos',
@@ -13,6 +15,7 @@ import { lastValueFrom } from 'rxjs';
 })
 export class AgendamientosComponent {
   protected service = inject(SheetsService);
+  protected excelService = inject(ExcelExportService);
 
   protected showFilterRow: boolean = true;  // Controla si la fila de filtro está visible o no
   protected currentFilter: string = 'auto'; // Puede ser 'auto' o 'onClick'
@@ -21,13 +24,18 @@ export class AgendamientosComponent {
   datosFiltrados: any[] = [];
   datosOriginales: any[] = [];
 
+  isLoading = false;
+
+  @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
+
   constructor(
     private fb: UntypedFormBuilder
   ) {
     const currentDate = new Date();
 
     this.formAgendamientos = this.fb.group({
-      fechaGestion: [currentDate]
+      fechaGestion: [currentDate],
+      Asesores: ['']
     });
   }
 
@@ -44,70 +52,86 @@ export class AgendamientosComponent {
     return d['Marca temporal']?.split(' ')[0] ?? '';
   };
 
-  // public calcularEstadoAgendamiento = (rowData: any): string => {
-  //   return this.evaluarEstadoString(rowData);
-  // };
-
-  evaluarEstadoString(fila: any, // fila actual a evaluar
-    agendamientos: any[] // todo el dataset completo
-  ): string {
+  evaluarEstadoString(fila: any, agendamientos: any[]): string {
     const dni = fila["DNI CLIENTE"];
-    const marcaTemporalActual = fila["Marca temporal"]; // ya es string
+    const marcaTemporalActualStr = fila["Marca temporal"];
     const motivoInteres = fila["MOTIVO INTERÉS"];
 
     if (motivoInteres !== "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)") return "";
 
-    // registros del mismo DNI con marca temporal posterior
-    const posteriores = agendamientos.filter(a =>
-      a["DNI CLIENTE"] === dni &&
-      a["Marca temporal"] > marcaTemporalActual // alfabéticamente funciona con este formato
-    );
+    const marcaTemporalActual = this.parseFecha(marcaTemporalActualStr);
+    if (!marcaTemporalActual) return "";
 
-    // 🔁 REAGENDADO
+    const posteriores = agendamientos.filter(p => {
+      const mt = this.parseFecha(p["Marca temporal"]);
+      return p["DNI CLIENTE"] === dni && mt && mt > marcaTemporalActual;
+    });
+
     const reagendado = posteriores.some(p =>
-      p["RESULTADO DE GESTIÓN"] === "TERCERO RELACIONADO" ||
-      p["MOTIVO INTERÉS"] === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)"
+      (p["RESULTADO DE GESTIÓN"]?.toUpperCase().trim() === "TERCERO RELACIONADO") ||
+      (p["MOTIVO INTERÉS"]?.toUpperCase().trim() === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)")
     );
     if (reagendado) return "REAGENDADO";
 
-    // ☎️ ATENDIDO
-    const atendido = posteriores.some(p =>
-      [
-        "NO INTERESADO", "NO ATENDIBLE",
-        "VENTA DERIVADA PARA CIERRE A SEDE",
-        "VISITARÁ TIENDA",
-        "SE ENVIÓ A ASESOR VISITA A DOMICILIO"
-      ].includes(p["RESULTADO DE GESTIÓN"] || p["MOTIVO INTERÉS"]) ||
-      ["CONTACTO", "NO CONTACTO"].includes(p["ESTADO DE GESTIÓN"])
-    );
-    if (atendido) return "ATENDIDO";
+    const resultadosAtendido = [
+      "VENTA DERIVADA PARA CIERRE A SEDE",
+      "VISITARÁ TIENDA",
+      "SE ENVIÓ A ASESOR VISITA A DOMICILIO",
+      "NO INTERESADO",
+      "NO ATENDIBLE"
+    ];
+    const estadosAtendido = ["CONTACTO", "NO CONTACTO"];
 
-    // 🟢 VIGENTE
-    return "VIGENTE";
+    const atendido = posteriores.some(p => {
+      const resultado = (p["RESULTADO DE GESTIÓN"] || "").toUpperCase().trim();
+      const estado = (p["ESTADO DE GESTIÓN"] || "").toUpperCase().trim();
+      return resultadosAtendido.includes(resultado) || estadosAtendido.includes(estado);
+    });
+
+    return atendido ? "ATENDIDO" : "VIGENTE";
   }
 
-  actualizar() {
+  parseFecha(fechaStr: string): Date | null {
+    if (!fechaStr) return null;
+    const partes = fechaStr.split(' ');
+    const [dia, mes, anio] = partes[0].split('/').map(Number);
+    const [hora, minuto, segundo] = partes[1]?.split(':').map(Number) || [0, 0, 0];
+
+    return new Date(anio, mes - 1, dia, hora, minuto, segundo);
+  }
+
+  async actualizar() {
     const fechaSeleccionada = this.formAgendamientos.value.fechaGestion;
     if (!fechaSeleccionada) return;
 
-    const dia = fechaSeleccionada.getDate().toString().padStart(2, '0');
-    const mes = (fechaSeleccionada.getMonth() + 1).toString().padStart(2, '0');
-    const anio = fechaSeleccionada.getFullYear();
-    const fechaSeleccionadaFormateada = `${dia}/${mes}/${anio}`;
+    this.isLoading = true;
 
-    // Filtrar solo registros de la fecha seleccionada por FECHA DE INTERÉS
-    const agendamientosDelDia = this.datosOriginales.filter((d: any) => {
-      const fechaInteres = d['FECHA DE INTERÉS'];
-      if (!fechaInteres) return false;
-      return fechaInteres.trim() === fechaSeleccionadaFormateada;
-    });
+    try {
+      // Re-consultar los datos desde Google Sheets
+      this.datosOriginales = await lastValueFrom(this.service.getSheetData());
 
-    this.datosFiltrados = agendamientosDelDia.map(fila => ({
-      ...fila,
-      estadoAgendamiento: this.evaluarEstadoString(fila, agendamientosDelDia)
-    }));
+      const dia = fechaSeleccionada.getDate().toString().padStart(2, '0');
+      const mes = (fechaSeleccionada.getMonth() + 1).toString().padStart(2, '0');
+      const anio = fechaSeleccionada.getFullYear();
+      const fechaSeleccionadaFormateada = `${dia}/${mes}/${anio}`;
 
-    console.log('Filtrados con estado:', this.datosFiltrados);
+      const agendamientosDelDia = this.datosOriginales.filter((d: any) => {
+        const fechaInteres = (d['FECHA DE INTERÉS'] || '').trim();
+        const motivo = (d['MOTIVO INTERÉS'] || '').trim().toUpperCase();
+
+        return fechaInteres === fechaSeleccionadaFormateada &&
+          motivo === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)";
+      });
+
+      this.datosFiltrados = agendamientosDelDia.map(fila => ({
+        ...fila,
+        estadoAgendamiento: this.evaluarEstadoString(fila, this.datosOriginales)
+      }));
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   getComentarioAdicionalUnido = (d: any): string => {
@@ -117,6 +141,12 @@ export class AgendamientosComponent {
       .filter(valor => valor && valor.trim() !== '');
     return comentarios.join(' | ');
   };
+
+  exportar(): void {
+    if (this.dataGrid) {
+      this.excelService.exportarDesdeGrid("dataAgendamientos", this.dataGrid);
+    }
+  }
 
   onCellPrepared(e: any) {
     // Estilos para el encabezado

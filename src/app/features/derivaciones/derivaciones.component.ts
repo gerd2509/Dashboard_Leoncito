@@ -21,6 +21,8 @@ export class DerivacionesComponent implements OnInit {
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
 
+  isLoading = false;
+
   constructor(private fb: UntypedFormBuilder) {
     const currentDate = new Date();
     this.formDerivaciones = this.fb.group({
@@ -51,33 +53,43 @@ export class DerivacionesComponent implements OnInit {
     return isNaN(fecha.getTime()) ? null : fecha;
   }
 
-  actualizar() {
-    const fechaSeleccionada: Date = new Date(this.formDerivaciones.value.fechaGestion);
-    fechaSeleccionada.setHours(0, 0, 0, 0);
+  async actualizar() {
+    this.isLoading = true;
 
-    const motivosPermitidos = [
-      'SE ENVIÓ A ASESOR VISITA A DOMICILIO',
-      'VENTA DERIVADA PARA CIERRE A SEDE',
-      'VISITARÁ TIENDA'
-    ];
+    try {
+      this.datosOriginales = await lastValueFrom(this.service.getSheetData());
 
-    this.datosFiltrados = this.datosOriginales.filter((d: any) => {
-      const fechaInteresStr = d['FECHA DE INTERÉS'];
-      const motivo = d['MOTIVO INTERÉS']?.toString().trim();
+      const fechaSeleccionada: Date = new Date(this.formDerivaciones.value.fechaGestion);
+      fechaSeleccionada.setHours(0, 0, 0, 0);
 
-      const fechaInteres = this.parseFecha(fechaInteresStr);
-      if (!fechaInteres || !motivo) return false;
+      const motivosPermitidos = [
+        'SE ENVIÓ A ASESOR VISITA A DOMICILIO',
+        'VENTA DERIVADA PARA CIERRE A SEDE',
+        'VISITARÁ TIENDA'
+      ];
 
-      fechaInteres.setHours(0, 0, 0, 0);
+      this.datosFiltrados = this.datosOriginales.filter((d: any) => {
+        const fechaInteresStr = d['FECHA DE INTERÉS'];
+        const motivo = d['MOTIVO INTERÉS']?.toString().trim();
 
-      const mismaFecha = fechaInteres.getTime() === fechaSeleccionada.getTime();
-      const motivoValido = motivosPermitidos.includes(motivo.toUpperCase());
+        const fechaInteres = this.parseFecha(fechaInteresStr);
+        if (!fechaInteres || !motivo) return false;
 
-      return mismaFecha && motivoValido;
-    });
+        fechaInteres.setHours(0, 0, 0, 0);
 
-    console.log('Fecha seleccionada:', fechaSeleccionada.toLocaleDateString('es-PE'));
-    console.log('Filtrados:', this.datosFiltrados);
+        const mismaFecha = fechaInteres.getTime() === fechaSeleccionada.getTime();
+        const motivoValido = motivosPermitidos.includes(motivo.toUpperCase());
+
+        return mismaFecha && motivoValido;
+      });
+
+      console.log('Fecha seleccionada:', fechaSeleccionada.toLocaleDateString('es-PE'));
+      console.log('Filtrados:', this.datosFiltrados);
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   soloFecha = (d: any) => {

@@ -21,11 +21,6 @@ export class CierreGestionComponent implements OnInit {
   dataAgendamientos: any[] = [];
   dataDerivaciones: any[] = [];
 
-  isLoadingContactabilidad = false;
-  isLoadingAgendamientos = false;
-  isLoadingDerivaciones = false;
-  isLoadingOtros = false;
-
   agendamientoIndividual = 15;
   derivacionesIndividual = 2;
   metaDerivacionEquipo = 12;
@@ -49,6 +44,8 @@ export class CierreGestionComponent implements OnInit {
     'CHANTA CAMPOS KELLY KARINTIA',
     'PÉREZ TINEO MARICIELO TATIANA'
   ];
+
+  isLoading = false;
 
   constructor(private fb: UntypedFormBuilder) {
     const currentDate = new Date();
@@ -251,23 +248,23 @@ export class CierreGestionComponent implements OnInit {
     return `GESTIÓN DIARIA CONTACT CENTER LEONCITO - ${fechaFormateada}`;
   }
 
-  actualizar() {
-    this.isLoadingContactabilidad = true;
-    this.isLoadingAgendamientos = true;
-    this.isLoadingDerivaciones = true;
-    this.isLoadingOtros = true;
+  async actualizar() {
+    this.isLoading = true;
 
-    setTimeout(() => {
+    try {
+      // 🔄 Volver a obtener los datos desde Google Sheets
+      this.dataOriginal = await lastValueFrom(this.service.getSheetData());
+
+      // Luego procesar los nuevos datos
       this.totalContactabilidadContact();
-      this.isLoadingContactabilidad = false;
       this.totalAgendamientosContact();
-      this.isLoadingAgendamientos = false;
       this.totalDerivacionesContact();
-      this.isLoadingDerivaciones = false;
-      this.isLoadingOtros = false;
-
       this.graficoData();
-    }, 500);
+    } catch (error) {
+      console.error('Error al actualizar datos:', error);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   onCellPrepared(e: any) {

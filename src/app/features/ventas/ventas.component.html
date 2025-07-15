@@ -51,6 +51,28 @@
     </dxo-summary>
 </dx-data-grid>
 
+<div class="d-flex justify-content-between mt-3 flex-wrap">
+    <div class="card-resumen">
+        <div class="titulo">TOTAL MONTO VENTAS</div>
+        <div class="valor">S/. {{ totalMontoVentas | number:'1.0-0' }}K</div>
+    </div>
+
+    <div class="card-resumen">
+        <div class="titulo">TOTAL VENTAS</div>
+        <div class="valor">{{ totalVentas }}</div>
+    </div>
+
+    <div class="card-resumen">
+        <div class="titulo">TICKET</div>
+        <div class="valor">S/. {{ ticket | number:'1.0-0' }}K</div>
+    </div>
+
+    <div class="card-resumen">
+        <div class="titulo">PROYECCIÓN</div>
+        <div class="valor">S/. {{ proyeccion | number:'1.0-0' }}K</div>
+    </div>
+</div>
+
 <div class="d-flex justify-content-between mt-2">
     <button mat-icon-button (click)="abrirPopup('asesor')">
         <mat-icon>zoom_out_map</mat-icon>
@@ -59,7 +81,7 @@
     <!-- Popup del gráfico por Asesor -->
     <dx-popup [(visible)]="popupVisibleAsesor" [showTitle]="true" title="Monto total por asesor" [dragEnabled]="true"
         [closeOnOutsideClick]="true">
-        <dx-chart class="w-100 h-100" [dataSource]="chartData" [palette]="'Soft Pastel'" [rotated]="false">
+        <dx-chart class="w-100 h-100" [dataSource]="chartData" [palette]="'Material'" [rotated]="false">
             <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" name="Monto Consolidado" type="bar">
                 <dxo-label [visible]="true" [backgroundColor]="'transparent'"
                     [font]="{ color: '#000', size: 18, weight: 600 }" [position]="'outside'">
@@ -82,8 +104,7 @@
     <!-- Popup del gráfico por Día -->
     <dx-popup [(visible)]="popupVisibleDia" [showTitle]="true" title="Ventas por Día de la Semana" [dragEnabled]="true"
         [closeOnOutsideClick]="true">
-        <dx-chart class="w-100" [dataSource]="chartPorDia" title="Monto total de ventas por día"
-            [palette]="'Soft Pastel'">
+        <dx-chart class="w-100" [dataSource]="chartPorDia" title="Monto total de ventas por día" [palette]="'Material'">
             <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
                 type="bar">
                 <dxo-label [visible]="true" [backgroundColor]="'transparent'"
@@ -104,7 +125,7 @@
 </div>
 
 <div class="graficosVentas">
-    <dx-chart class="w-100" [dataSource]="chartData" title="Monto total por asesor" [palette]="'Soft Pastel'"
+    <dx-chart class="w-100" [dataSource]="chartData" title="Monto total por asesor" [palette]="'Material'"
         [rotated]="false">
         <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" name="Monto Consolidado" type="bar">
             <dxo-label [visible]="true" [backgroundColor]="'transparent'"
@@ -122,7 +143,7 @@
         <dxo-legend [visible]="false"></dxo-legend>
     </dx-chart>
 
-    <dx-chart class="w-100" [dataSource]="chartPorDia" title="Monto total de ventas por día" [palette]="'Soft Pastel'">
+    <dx-chart class="w-100" [dataSource]="chartPorDia" title="Monto total de ventas por día" [palette]="'Material'">
         <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia" type="bar">
             <dxo-label [visible]="true" [backgroundColor]="'transparent'"
                 [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
@@ -149,7 +170,7 @@
     <dx-popup [(visible)]="popupVisibleNroVentas" [showTitle]="true" title="Monto total por asesor" [dragEnabled]="true"
         [closeOnOutsideClick]="true">
         <dx-chart class="w-100" [dataSource]="chartNumeroVentasPorDia" title="Monto total de ventas por día"
-            [palette]="'Soft Pastel'">
+            [palette]="'Material'">
             <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
                 type="line">
                 <dxo-label [visible]="true" [backgroundColor]="'transparent'"
@@ -177,9 +198,9 @@
     </button>
 
     <!-- Popup del gráfico por Nro Ventas por Dias -->
-    <dx-popup [(visible)]="popupVisibleVentasSemanal" [showTitle]="true" title="Monto total por asesor" [dragEnabled]="true"
-        [closeOnOutsideClick]="true">
-        <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Monto Total de Ventas por Semana"
+    <dx-popup [(visible)]="popupVisibleVentasSemanal" [showTitle]="true" title="Monto total por asesor"
+        [dragEnabled]="true" [closeOnOutsideClick]="true" [height]="900" [width]="1800">
+        <!-- <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Monto Total de Ventas por Semana"
             [palette]="'Soft Pastel'" type="area">
             <dxi-series argumentField="Semana" valueField="MontoTotal" name="Julio" type="area">
                 <dxo-label [visible]="true" [backgroundColor]="'transparent'"
@@ -195,13 +216,41 @@
             </dxo-argument-axis>
 
             <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+        </dx-chart> -->
+
+        <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Ventas por Semana y Mes" [palette]="'Material'"
+            style="height: 800px">
+
+            <!-- Configuración general de las series -->
+            <dxo-common-series-settings argumentField="Semana" type="area">
+                <dxo-label [visible]="true" position="inside" [font]="{ color: '#000', size: 10, weight: 600 }"
+                    [backgroundColor]="'transparent'" [customizeText]="customizeMontoTexto">
+                </dxo-label>
+                <dxo-point [visible]="true" [size]="6" symbol="circle">
+                </dxo-point>
+            </dxo-common-series-settings>
+
+            <!-- Series por mes -->
+            <dxi-series *ngFor="let mes of seriesMeses" [name]="mes" [valueField]="mes">
+            </dxi-series>
+
+            <!-- Eje X -->
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <!-- Leyenda -->
+            <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center">
+            </dxo-legend>
         </dx-chart>
     </dx-popup>
 </div>
 
 <div class="graficosVentas">
     <dx-chart class="w-100" [dataSource]="chartNumeroVentasPorDia" title="Monto total de ventas por día"
-        [palette]="'Soft Pastel'">
+        [palette]="'Material'">
         <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
             type="line">
             <dxo-label [visible]="true" [backgroundColor]="'transparent'"
@@ -223,9 +272,39 @@
         <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
     </dx-chart>
 
-    <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Monto Total de Ventas por Semana"
-        [palette]="'Soft Pastel'" type="area">
-        <dxi-series argumentField="Semana" valueField="MontoTotal" name="Julio" type="area">
+    <dx-chart class="w-100" [dataSource]="chartMontoSemanal" title="Ventas por Semana y Mes" [palette]="'Material'">
+
+        <!-- Configuración general de las series -->
+        <dxo-common-series-settings argumentField="Semana" type="area">
+            <dxo-label [visible]="true" position="inside" [font]="{ color: '#000', size: 13, weight: 600 }"
+                [backgroundColor]="'transparent'" [customizeText]="customizeMontoTexto">
+                <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
+            </dxo-label>
+            <dxo-point [visible]="true" [size]="6" symbol="circle">
+            </dxo-point>
+        </dxo-common-series-settings>
+
+        <!-- Series por mes -->
+        <dxi-series *ngFor="let mes of seriesMeses" [name]="mes" [valueField]="mes">
+        </dxi-series>
+
+        <!-- Eje X -->
+        <dxo-argument-axis>
+            <dxo-label>
+                <dxo-font weight="bold" size="14"></dxo-font>
+            </dxo-label>
+        </dxo-argument-axis>
+
+        <!-- Leyenda -->
+        <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center">
+        </dxo-legend>
+    </dx-chart>
+</div>
+
+<div>
+    <dx-chart class="w-100" [dataSource]="chartMontoMensual" title="Monto Total de Ventas por Mes"
+        [palette]="'Material'" type="area">
+        <dxi-series argumentField="Mes" valueField="MontoTotal" name="Monto Total de Ventas por Mes" type="area">
             <dxo-label [visible]="true" [backgroundColor]="'transparent'"
                 [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
                 <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
