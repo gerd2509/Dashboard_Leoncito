@@ -171,10 +171,10 @@ export class VentasComponent implements OnInit {
     const diasTranscurridos = diaHoy - 1;
 
     this.totalVentas = this.filtroVentas.length;
-    this.totalMontoVentas = this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0);
-    this.ticket = this.totalVentas ? this.totalMontoVentas / this.totalVentas : 0;
+    this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
+    this.ticket = this.totalVentas ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
     const ticketDiario = diasTranscurridos > 0 ? this.totalMontoVentas / diasTranscurridos : 0;
-    this.proyeccion = ticketDiario * diasMesActual;
+    this.proyeccion = Math.round(ticketDiario * diasMesActual);
   }
 
   generarChartData(): void {
@@ -187,7 +187,7 @@ export class VentasComponent implements OnInit {
 
       if (excluirNAS && asesorUpper === 'NAS') continue;
 
-      const monto = venta.MontoConsolidado || 0;
+      const monto = Math.round(venta.MontoConsolidado || 0);
 
       if (agrupado.has(asesor)) {
         agrupado.set(asesor, agrupado.get(asesor)! + monto);
@@ -199,7 +199,7 @@ export class VentasComponent implements OnInit {
     this.chartData = Array.from(agrupado, ([id, MontoTotal]) => {
       const asesor = this.asesores.find(a => a.value === id);
       const AsesorVenta = asesor ? asesor.viewValue : id;
-      return { AsesorVenta, MontoTotal };
+      return { AsesorVenta, MontoTotal: Math.round(MontoTotal) };
     }).sort((a, b) => b.MontoTotal - a.MontoTotal);
   }
 
@@ -221,7 +221,7 @@ export class VentasComponent implements OnInit {
       }
 
       const semanaMap = agrupado.get(diaTexto)!;
-      semanaMap.set(semanaIso, (semanaMap.get(semanaIso) || 0) + monto);
+      semanaMap.set(semanaIso, Math.round((semanaMap.get(semanaIso) || 0) + monto));
     }
 
     // Ordenar semanas y generar alias: Semana 1, Semana 2, ...
@@ -361,7 +361,7 @@ export class VentasComponent implements OnInit {
       }
 
       const mapMes = datosPorMesSemana.get(semana)!;
-      mapMes.set(nombreMes, (mapMes.get(nombreMes) || 0) + venta.MontoConsolidado);
+      mapMes.set(nombreMes, Math.round((mapMes.get(nombreMes) || 0) + venta.MontoConsolidado));
     }
 
     const semanasOrdenadas = Array.from(semanasSet).sort((a, b) => {
@@ -464,7 +464,7 @@ export class VentasComponent implements OnInit {
       info.points.forEach((point: any) => {
         html += `
         <span style="color:${point.color}">\u25A0</span>
-        ${point.seriesName}: <b>${point.valueText}</b><br/>
+        ${point.seriesName}: <b>${Math.round(point.originalValue).toLocaleString('es-PE')}</b><br/>
       `;
       });
 
@@ -478,37 +478,7 @@ export class VentasComponent implements OnInit {
 
   customizeMontoTexto = (pointInfo: any): string => {
     if (pointInfo.value === 0) return ''; // Oculta ceros
-    return `S/ ${pointInfo.value.toLocaleString('es-PE', {
-      minimumFractionDigits: 1
-    })}`;
-  };
-
-  customizeLabel = (pointInfo: any) => {
-    const offsetMap: Record<string, number> = {
-      'Enero': -25,
-      'Febrero': -12,
-      'Marzo': 0,
-      'Abril': 12,
-      'Mayo': 25
-      // puedes seguir agregando según los meses que tengas
-    };
-
-    return {
-      visible: true,
-      font: {
-        size: 11,
-        weight: 600,
-        color: pointInfo.series.getColor()  // usa el color de la serie
-      },
-      verticalOffset: offsetMap[pointInfo.seriesName] || 0, // Espaciado
-      customizeText: () => {
-        if (!pointInfo.value || pointInfo.value === 0) return '';
-        return pointInfo.value.toLocaleString('es-PE', {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1
-        });
-      }
-    };
+    return `S/ ${Math.round(pointInfo.value).toLocaleString('es-PE')}`;
   };
 
   onCellPrepared(e: any) {

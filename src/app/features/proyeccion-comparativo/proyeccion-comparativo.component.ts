@@ -161,12 +161,12 @@ export class ProyeccionComparativoComponent implements OnInit {
       const nombreAsesor = metaData?.nombre || id;
       const meta = metaData?.meta || 0;
 
-      const ventas = data.VENTAS;
-      const ticket = ventas / (data.TICKET || 1);
+      const ventas = Math.round(data.VENTAS);
+      const ticket = Math.round(ventas / (data.TICKET || 1));
       const ticketDiario = diasTranscurridos > 0 ? ventas / diasTranscurridos : 0;
-      const proyeccion = ticketDiario * diasMesActual;
-      const difMeta = meta - ventas;
-      const cuDia100 = diasRestantes > 0 ? difMeta / diasRestantes : 0;
+      const proyeccion = Math.round(ticketDiario * diasMesActual);
+      const difMeta = Math.round(meta - ventas);
+      const cuDia100 = diasRestantes > 0 ? Math.round(difMeta / diasRestantes) : 0;
       const bono = this.calcularBono(proyeccion);
 
       return {
@@ -199,7 +199,7 @@ export class ProyeccionComparativoComponent implements OnInit {
 
     this.resumenPorSede = Array.from(resumen.entries()).map(([sede, monto]) => ({
       SEDE: sede,
-      VALOR: monto
+      VALOR: Math.round(monto)
     }));
 
     console.log('Resumen por Sede:', this.resumenPorSede);
@@ -246,7 +246,7 @@ export class ProyeccionComparativoComponent implements OnInit {
   }
 
   customizeCurrencyText(cell: any): string {
-    return `S/. ${cell.value.toFixed(2)}`;
+    return `S/. ${Math.round(cell.value)}`;
   }
 
   onCellPrepared(e: any) {
