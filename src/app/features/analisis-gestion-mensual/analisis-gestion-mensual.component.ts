@@ -18,21 +18,24 @@ export class AnalisisGestionMensualComponent implements OnInit {
   dataOriginal: any[] = [];
   dataGestion: any[] = [];
 
-  asignados: number = 7565;
+  asignados: number = 12604;
   gestionados: number = 0;
   contactados: number = 0;
+  noContactados: number = 0;
   interesados: number = 0;
   derivados: number = 0;
-  ventas: number = 64;
+  ventas: number = 14;
 
   asesores = [
+    { value: '', viewValue: 'Seleccione Asesor' },
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
     { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
     { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' }
+    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
+    { value: 'CC10', viewValue: 'RIVAS PURISACA KAREN YUDITH' }
   ];
 
   constructor(private fb: UntypedFormBuilder) {
@@ -56,6 +59,7 @@ export class AnalisisGestionMensualComponent implements OnInit {
 
   getNombreAsesorSeleccionado(): string {
     const codigoAsesor = this.formAnalisis.get('Asesores')?.value;
+    if (!codigoAsesor) return ''; // No hay selección
     const asesor = this.asesores.find(a => a.value === codigoAsesor);
     return asesor?.viewValue || '';
   }
@@ -128,6 +132,21 @@ export class AnalisisGestionMensualComponent implements OnInit {
     }).length;
   }
 
+  getNoContactados() {
+    const fechaInicio = new Date(this.formAnalisis.get('fechaInicio')?.value);
+    const fechaFin = new Date(this.formAnalisis.get('fechaFin')?.value);
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
+
+    const asesorSeleccionado = this.getNombreAsesorSeleccionado();
+
+    this.noContactados = this.dataOriginal.filter(item => {
+      const estadoGestion = item['ESTADO DE GESTIÓN']?.toString().trim().toUpperCase();
+      return this.filtrarPorFechaYRango(item, fechaInicio, fechaFin, asesorSeleccionado)
+        && estadoGestion === 'NO CONTACTO';
+    }).length;
+  }
+
   getInteresados() {
     const fechaInicio = new Date(this.formAnalisis.get('fechaInicio')?.value);
     const fechaFin = new Date(this.formAnalisis.get('fechaFin')?.value);
@@ -168,6 +187,7 @@ export class AnalisisGestionMensualComponent implements OnInit {
       ASIGNADOS: this.asignados,
       GESTIONADOS: this.gestionados,
       CONTACTADOS: this.contactados,
+      NO_CONTACTADOS: this.noContactados,
       INTERESADOS: this.interesados,
       DERIVADOS: this.derivados,
       VENTAS: this.ventas
@@ -177,6 +197,7 @@ export class AnalisisGestionMensualComponent implements OnInit {
   actualizar() {
     this.getGestionados();
     this.getContactados();
+    this.getNoContactados();
     this.getInteresados();
     this.getDerivados();
     this.cargarDatos();

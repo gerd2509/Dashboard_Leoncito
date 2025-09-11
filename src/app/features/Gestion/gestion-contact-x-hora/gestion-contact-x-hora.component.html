@@ -55,6 +55,10 @@
         <mat-icon>file_download</mat-icon>
         Exportar
     </button>
+    <button mat-flat-button (click)="exportarGestion()" [disabled]="!dataFiltrada?.length">
+        <mat-icon>summarize</mat-icon>
+        Gestión
+    </button>
 </form>
 
 <div class="grid-container">
@@ -75,6 +79,7 @@
         <dxi-column dataField="Marca temporal" caption="Marca temporal"></dxi-column>
         <dxi-column dataField="ASESOR CONTACT" caption="Asesor Contact"></dxi-column>
         <dxi-column dataField="DNI CLIENTE" caption="DNI Cliente"></dxi-column>
+        <dxi-column dataField="TIPO DE CLIENTE" caption="Tipo de Cliente"></dxi-column>
         <dxi-column dataField="ESTADO DE GESTIÓN" caption="Estado de Gestión"></dxi-column>
         <dxi-column dataField="MEDIO DE PRIMER CONTACTO" caption="Medio de Contacto"></dxi-column>
         <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
@@ -83,6 +88,7 @@
         <dxi-column dataField="MOTIVO INTERÉS" caption="Motivo de Interés"></dxi-column>
         <dxi-column dataField="FECHA DE INTERÉS" caption="Fecha de Interés"></dxi-column>
         <dxi-column dataField="HORA APROXIMADA INTERÉS" caption="Hora Aproximada de Interés"></dxi-column>
+        <dxi-column dataField="SEDE" caption="Sede"></dxi-column>
 
         <dxo-summary>
             <dxi-total-item [alignment]="'right'" column="Marca temporal" summaryType="count"
@@ -90,3 +96,8 @@
         </dxo-summary>
     </dx-data-grid>
 </div>
+
+<!-- NUEVO: Grid “oculto” para exportar la tabla de Gestión -->
+<dx-data-grid #gridGestion id="gridGestion" class="focqus-elevation" [dataSource]="tablaGestion"
+    [columns]="columnasGestion" [showBorders]="true" [visible]="false">
+</dx-data-grid>

@@ -5,33 +5,29 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import * as XLSX from 'xlsx';
 
 @Component({
-  selector: 'app-proyeccion-comparativo',
+  selector: 'app-proyeccion-ffvv-campo',
   imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
-  templateUrl: './proyeccion-comparativo.component.html',
-  styleUrl: './proyeccion-comparativo.component.css'
+  templateUrl: './proyeccion-ffvv-campo.component.html',
+  styleUrl: './proyeccion-ffvv-campo.component.css'
 })
-export class ProyeccionComparativoComponent implements OnInit {
+export class ProyeccionFfvvCampoComponent implements OnInit {
   form: UntypedFormGroup;
 
   dataVentas: any[] = [];
   dataOriginal: any[] = [];
   filtroVentas: any[] = [];
-  resumenPorSede: any[] = [];
-  ventasPorTipoBase: any[] = [];
 
   totalVentas = 0;
   totalMontoVentas = 0;
   ticket = 0;
 
   asesoresMeta = [
-    { id: 'CC1', nombre: 'MORETO DELGADO PATRICIA ESTEFANY', meta: 60000 },
-    { id: 'CC3', nombre: 'UCHOFEN VIGO FELICITA', meta: 50000 },
-    { id: 'CC5', nombre: 'QUISPE FONSECA KAREN AIMEE', meta: 70000 },
-    { id: 'CC6', nombre: 'MORALES ÑIQUE MARIA CANDELARIA', meta: 60000 },
-    { id: 'CC7', nombre: 'ACOSTA JIMENEZ MARIELA NATALY', meta: 30000 },
-    { id: 'CC8', nombre: 'CHANTA CAMPOS KELLY KARINTIA', meta: 50000 },
-    { id: 'CC9', nombre: 'PÉREZ TINEO MARICIELO TATIANA', meta: 30000 },
-    { id: 'CC10', nombre: 'RIVAS PURISACA KAREN YUDITH', meta: 10000 }
+    { id: 'AV1', nombre: 'MONTALVO LUYO ERNESTO ADOLFO', meta: 75000 },
+    { id: 'AV2', nombre: 'NAVARRO CASTAÑEDA MARISA GLADYS', meta: 25000 },
+    { id: 'AV3', nombre: 'PAOLA', meta: 25000 },
+    { id: 'AV4', nombre: 'ORDINOLA LEON SILVANA MARTINA', meta: 25000 },
+    { id: 'AV5', nombre: 'VALERA GAMARRA HERBERT ARMANDO', meta: 25000 },
+    { id: 'AV6', nombre: 'CORDOVA GRANADOS YOHANA', meta: 25000 },
   ];
 
   tablaBonos = [
@@ -83,14 +79,15 @@ export class ProyeccionComparativoComponent implements OnInit {
           TipoVenta: row['TipoVenta'],
           TipoBase: (row['TipoBase'] || '').toString().trim().toUpperCase(),
           AsesorVenta: (row['AsesorVenta'] || '').toString().trim().toUpperCase(),
+          Vendedor: (row['Vendedor'] || '').toString().trim().toUpperCase(), // 🟢 nuevo campo
           EstadoVenta: row['EstadoVenta']
-        }))
-        .filter(venta => venta.AsesorVenta !== 'NAS');
+        }));
+
+
+      this.dataVentas = [...this.dataOriginal];
 
       this.aplicarFiltros();
       this.generarResumenPorAsesor();
-      this.generarResumenPorSede();
-      this.generarVentasPorTipoBase();
     };
 
     reader.readAsArrayBuffer(file);
@@ -103,6 +100,7 @@ export class ProyeccionComparativoComponent implements OnInit {
       const date_info = new Date(utc_value);
       return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate());
     }
+
     const parsed = new Date(excelDate);
     return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
@@ -117,8 +115,6 @@ export class ProyeccionComparativoComponent implements OnInit {
     if (this.form.valid) {
       this.aplicarFiltros();
       this.generarResumenPorAsesor();
-      this.generarResumenPorSede();
-      this.generarVentasPorTipoBase();
     }
   }
 
@@ -130,69 +126,23 @@ export class ProyeccionComparativoComponent implements OnInit {
     fechaInicio.setHours(0, 0, 0, 0);
     fechaFin.setHours(23, 59, 59, 999);
 
+    // 🟢 Lista de asesores válidos (en mayúsculas)
+    const asesoresValidos = this.asesoresMeta.map(a => a.nombre.toUpperCase());
+
     this.dataVentas = this.dataOriginal.filter(venta => {
       const fechaVenta = new Date(venta.FECHAVENTA);
+
       const cumpleFecha = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
-      const asesor = (venta.AsesorVenta || '').toString().trim().toUpperCase();
-      const cumpleAsesor = !selectedAsesor || asesor === selectedAsesor;
-      return cumpleFecha && cumpleAsesor && asesor !== 'NAS';
+
+      // ✅ Comparación contra la columna Vendedor
+      const cumpleAsesor = selectedAsesor
+        ? venta.Vendedor === selectedAsesor
+        : asesoresValidos.includes(venta.Vendedor);
+
+      return cumpleFecha && cumpleAsesor;
     });
   }
 
-  // generarResumenPorAsesor(): void {
-  //   const hoy = new Date();
-  //   const diaHoy = hoy.getDate();
-  //   const mesHoy = hoy.getMonth();
-  //   const anioHoy = hoy.getFullYear();
-  //   const diasMesActual = new Date(anioHoy, mesHoy + 1, 0).getDate();
-  //   const diasTranscurridos = diaHoy - 1;
-  //   const diasRestantes = diasMesActual - diaHoy + 1;
-
-  //   const resumenMap = new Map<string, any>();
-
-  //   for (const venta of this.dataVentas) {
-  //     const asesorID = venta.AsesorVenta;
-  //     if (!asesorID || asesorID === 'NAS') continue;
-
-  //     if (!resumenMap.has(asesorID)) {
-  //       resumenMap.set(asesorID, { ASESOR: asesorID, VENTAS: 0, TICKET: 0 });
-  //     }
-
-  //     const item = resumenMap.get(asesorID)!;
-  //     item.VENTAS += venta.MontoConsolidado;
-  //     item.TICKET += 1;
-  //   }
-
-  //   this.filtroVentas = Array.from(resumenMap.entries()).map(([id, data]) => {
-  //     const metaData = this.asesoresMeta.find(a => a.id === id);
-  //     const nombreAsesor = metaData?.nombre || id;
-  //     const meta = metaData?.meta || 0;
-
-  //     const ventas = Math.round(data.VENTAS);
-  //     const ticket = Math.round(ventas / (data.TICKET || 1));
-  //     const ticketDiario = diasTranscurridos > 0 ? ventas / diasTranscurridos : 0;
-  //     const proyeccion = Math.round(ticketDiario * diasMesActual);
-  //     const difMeta = Math.round(meta - ventas);
-  //     const cuDia100 = diasRestantes > 0 ? Math.round(difMeta / diasRestantes) : 0;
-  //     const bono = this.calcularBono(proyeccion);
-
-  //     return {
-  //       ASESOR: nombreAsesor,
-  //       VENTAS: ventas,
-  //       TICKET: ticket,
-  //       TICKETDIARIO: ticketDiario,
-  //       PROYECCION: proyeccion,
-  //       BONO: bono,
-  //       META: meta,
-  //       DIFMETA: difMeta,
-  //       CUADIA100: cuDia100
-  //     };
-  //   });
-
-  //   this.totalVentas = this.dataVentas.length;
-  //   this.totalMontoVentas = this.dataVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0);
-  //   this.ticket = this.totalVentas ? this.totalMontoVentas / this.totalVentas : 0;
-  // }
 
   generarResumenPorAsesor(): void {
     const hoy = new Date();
@@ -208,8 +158,11 @@ export class ProyeccionComparativoComponent implements OnInit {
     fechaInicio.setHours(0, 0, 0, 0);
     fechaFin.setHours(23, 59, 59, 999);
 
-    const diasRango = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const diasMesSeleccionado = new Date(fechaFin.getFullYear(), fechaFin.getMonth() + 1, 0).getDate();
+    const diasMesSeleccionado = new Date(
+      fechaFin.getFullYear(),
+      fechaFin.getMonth() + 1,
+      0
+    ).getDate();
 
     // 🟢 Detectar si se seleccionó todo el mes
     const seleccionaMesCompleto =
@@ -220,21 +173,28 @@ export class ProyeccionComparativoComponent implements OnInit {
 
     const resumenMap = new Map<string, any>();
 
+    // 📌 Usar la columna Vendedor para agrupar las ventas
     for (const venta of this.dataVentas) {
-      const asesorID = venta.AsesorVenta;
-      if (!asesorID || asesorID === 'NAS') continue;
+      // ⚠️ Filtrar solo las ventas de la sede REALZZA STORE
+      if (venta.Sede?.toUpperCase() !== 'SEDE REALZZA STORE') continue;
 
-      if (!resumenMap.has(asesorID)) {
-        resumenMap.set(asesorID, { ASESOR: asesorID, VENTAS: 0, TICKET: 0 });
+      const vendedor = venta.Vendedor;
+      if (!vendedor) continue;
+
+      if (!resumenMap.has(vendedor)) {
+        resumenMap.set(vendedor, { ASESOR: vendedor, VENTAS: 0, TICKET: 0 });
       }
 
-      const item = resumenMap.get(asesorID)!;
+      const item = resumenMap.get(vendedor)!;
       item.VENTAS += venta.MontoConsolidado;
       item.TICKET += 1;
     }
 
+    // 📌 Generar el resumen final por asesor válido
     this.filtroVentas = Array.from(resumenMap.entries()).map(([id, data]) => {
-      const metaData = this.asesoresMeta.find(a => a.id === id);
+      const metaData = this.asesoresMeta.find(
+        a => a.nombre.toUpperCase() === id
+      );
       const nombreAsesor = metaData?.nombre || id;
       const meta = metaData?.meta || 0;
 
@@ -247,13 +207,11 @@ export class ProyeccionComparativoComponent implements OnInit {
       let cuDia100 = 0;
 
       if (seleccionaMesCompleto) {
-        // ⚠️ Si se selecciona el mes completo, se usa lo vendido directamente
         ticketDiario = ventas / diasMesSeleccionado;
         proyeccion = ventas;
         bono = this.calcularBono(ventas);
         cuDia100 = 0;
       } else {
-        // ✅ Caso normal (mes en curso o parcial)
         ticketDiario = diasTranscurridos > 0 ? ventas / diasTranscurridos : 0;
         proyeccion = Math.round(ticketDiario * diasMesActual);
         bono = this.calcularBono(proyeccion);
@@ -276,55 +234,20 @@ export class ProyeccionComparativoComponent implements OnInit {
       };
     });
 
-    this.totalVentas = this.dataVentas.length;
-    this.totalMontoVentas = this.dataVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0);
-    this.ticket = this.totalVentas ? this.totalMontoVentas / this.totalVentas : 0;
+    // Totales solo de REALZZA STORE
+    const ventasFiltradas = this.dataVentas.filter(
+      v => v.Sede?.toUpperCase() === 'REALZZA STORE'
+    );
+
+    this.totalVentas = ventasFiltradas.length;
+    this.totalMontoVentas = ventasFiltradas.reduce(
+      (sum, v) => sum + v.MontoConsolidado,
+      0
+    );
+    this.ticket = this.totalVentas
+      ? this.totalMontoVentas / this.totalVentas
+      : 0;
   }
-
-  generarResumenPorSede(): void {
-    const resumen = new Map<string, number>();
-
-    for (const venta of this.dataVentas) {
-      const sede = (venta.Sede || '').toString().trim().toUpperCase();
-      const monto = venta.MontoConsolidado || 0;
-
-      if (!resumen.has(sede)) {
-        resumen.set(sede, monto);
-      } else {
-        resumen.set(sede, resumen.get(sede)! + monto);
-      }
-    }
-
-    this.resumenPorSede = Array.from(resumen.entries()).map(([sede, monto]) => ({
-      SEDE: sede,
-      VALOR: Math.round(monto)
-    }));
-
-    console.log('Resumen por Sede:', this.resumenPorSede);
-  }
-
-  generarVentasPorTipoBase(): void {
-    const resumenMap = new Map<string, number>();
-
-    for (const venta of this.dataVentas) {
-      const tipoBase = (venta.TipoBase || '').toString().trim().toUpperCase();
-      if (!tipoBase) continue;
-
-      if (resumenMap.has(tipoBase)) {
-        resumenMap.set(tipoBase, resumenMap.get(tipoBase)! + 1);
-      } else {
-        resumenMap.set(tipoBase, 1);
-      }
-    }
-
-    this.ventasPorTipoBase = Array.from(resumenMap.entries()).map(([TipoBase, TOTAL]) => ({
-      TipoBase,
-      TOTAL
-    }));
-
-    console.log('Resumen por TipoBase:', this.ventasPorTipoBase);
-  }
-
 
   calcularBono(proyeccion: number): number {
     if (!proyeccion || proyeccion < 15000) return 0;
@@ -332,15 +255,6 @@ export class ProyeccionComparativoComponent implements OnInit {
       if (proyeccion >= item.monto) return item.bono;
     }
     return 0;
-  }
-
-  onAsesorChanged(event: any): void {
-    if (this.form.valid) {
-      this.aplicarFiltros();
-      this.generarResumenPorAsesor();
-      this.generarResumenPorSede();
-      this.generarVentasPorTipoBase();
-    }
   }
 
   customizeCurrencyText(cell: any): string {

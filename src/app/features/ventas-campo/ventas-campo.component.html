@@ -8,15 +8,6 @@
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
         valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
         (onValueChanged)="onAsesorChanged($event)" />
-    <dx-select-box style="width: 300px;" formControlName="TipoProducto" [dataSource]="tipoProducto" displayExpr="viewValue"
-        valueExpr="value" label="Tipo Producto" labelMode="floating" stylingMode="underlined" placeholder=""
-        (onValueChanged)="onTipoProductoChanged($event)" />
-    <dx-tag-box style="width: 300px;" formControlName="columnas" [dataSource]="displayedColumnsOriginales"
-        displayExpr="HeaderName" valueExpr="HeaderField" placeholder="Columnas" label="Columnas" labelMode="floating"
-        stylingMode="underlined" [showSelectionControls]="true" (onValueChanged)="onColumnsChange()"
-        [showDropDownButton]="true" [maxDisplayedTags]="0" />
-    <dx-check-box formControlName="NAS" (onValueChanged)="filtrarNAS()" text="NAS" stylingMode="outlined"
-        [disabled]="formVentas.valid" />
     <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
         <mat-icon>search</mat-icon>
         Actualizar
@@ -42,34 +33,59 @@
     <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
     <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
 
-    <dxi-column alignment="center" caption="ID VENTA" dataField="IDVENTA" [visible]="columnasVisibles['IDVENTA']" />
-    <dxi-column alignment="center" caption="FECHA VENTA" dataField="FECHAVENTA" dataType="date" [format]="'dd/MM/yyyy'"
-        [visible]="columnasVisibles['FECHAVENTA']" />
-    <dxi-column caption="SEDE" dataField="Sede" [visible]="columnasVisibles['Sede']" />
-    <dxi-column alignment="center" caption="MONTO CONSOLIDADO" dataField="MontoConsolidado"
-        [customizeText]="customizeCurrencyText" [visible]="columnasVisibles['MontoConsolidado']" />
-    <dxi-column alignment="center" caption="CUOTA INICIAL" dataField="CuotaInicial"
-        [visible]="columnasVisibles['CuotaInicial']" />
-    <dxi-column caption="PRODUCTOS" dataField="Productos" [visible]="columnasVisibles['Productos']" />
-    <dxi-column alignment="center" caption="Nº CUOTAS" dataField="Cuotas" [visible]="columnasVisibles['Cuotas']" />
-    <dxi-column alignment="center" caption="DNI CLIENTE" dataField="DocIdentidad"
-        [visible]="columnasVisibles['DocIdentidad']" />
-    <dxi-column alignment="center" caption="TIPO VENTA" dataField="TipoVenta"
-        [visible]="columnasVisibles['TipoVenta']" />
-    <dxi-column alignment="center" caption="TIPO BASE" dataField="TipoBase" [visible]="columnasVisibles['TipoBase']" />
-    <dxi-column alignment="center" caption="ASESOR CONTACT" dataField="AsesorVenta"
-        [visible]="columnasVisibles['AsesorVenta']" />
-    <dxi-column alignment="center" caption="ESTADO VENTA" dataField="EstadoVenta"
-        [visible]="columnasVisibles['EstadoVenta']" />
-    <dxi-column alignment="center" caption="ENTIDAD" dataField="Entidad" [visible]="columnasVisibles['Entidad']" />
-    <dxi-column alignment="center" caption="TIPO DE PRODUCTO" dataField="TipoProducto"
-        [visible]="columnasVisibles['TipoProducto']" />
+    <dxi-column alignment="center" caption="Id VENTA" dataField="IDVENTA" dataType="string" />
+    <dxi-column alignment="center" caption="FECHA VENTA" dataField="FECHAVENTA" dataType="date"
+        [format]="'dd/MM/yyyy'" />
+    <dxi-column caption="SEDE" dataField="Sede" dataType="string" />
+    <dxi-column alignment="center" caption="MONTO CONSOLIDADO" dataField="MontoConsolidado" dataType="number"
+        [customizeText]="customizeCurrencyText" />
+    <dxi-column alignment="center" caption="CUOTA INICIAL" dataField="CuotaInicial" dataType="number" />
+    <dxi-column caption="PRODUCTOS" dataField="Productos" dataType="string" />
+    <dxi-column alignment="center" caption="Nº CUOTAS" dataField="Cuotas" dataType="string" />
+    <dxi-column alignment="center" caption="DNI CLIENTE" dataField="DocIdentidad" dataType="string" />
+    <dxi-column alignment="center" caption="Asesor Venta" dataField="AsesorVenta" dataType="string" />
+    <dxi-column alignment="center" caption="VENDEDOR" dataField="Vendedor" dataType="string" />
+    <dxi-column alignment="center" caption="ESTADO VENTA" dataField="EstadoVenta" dataType="string" />
+    <dxi-column alignment="center" caption="ESTADO TIPO PRODUCTO" dataField="EstadoTipoProducto" dataType="string" />
 
     <dxo-summary>
         <dxi-total-item [alignment]="'center'" column="MontoConsolidado" summaryType="sum"
             [valueFormat]="{ type: 'fixedPoint', precision: 2 }" displayFormat="{0}"></dxi-total-item>
     </dxo-summary>
 </dx-data-grid>
+
+<h3 class="mt-4">Ventas por Asesor - Mes Actual</h3>
+<dx-data-grid [dataSource]="ventasPorDiaMesActual" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+    [columnAutoWidth]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPreparedVA($event)"
+    [hoverStateEnabled]="true" [selection]="{mode: 'single'}">
+
+    <dxi-column dataField="Asesor" caption="Asesor" />
+    <dxi-column *ngFor="let dia of columnasDiasMes" [dataField]="dia" [caption]="dia"
+        [customizeText]="customizeCurrencyText" />
+
+    <dxo-summary>
+        <dxi-total-item alignment="center" *ngFor="let dia of columnasDiasMes" [column]="dia" summaryType="sum"
+            [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}">
+        </dxi-total-item>
+    </dxo-summary>
+
+</dx-data-grid>
+
+<h3 class="mt-4">Operaciones por Asesor - Mes Actual</h3>
+<dx-data-grid [dataSource]="operacionesPorDiaMesActual" [showBorders]="true" [showColumnLines]="true"
+    [showRowLines]="true" [columnAutoWidth]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPreparedVA($event)" [hoverStateEnabled]="true" [selection]="{mode: 'single'}">
+
+    <dxi-column dataField="Asesor" caption="Asesor" />
+    <dxi-column *ngFor="let dia of columnasDiasMes" [dataField]="dia" [caption]="dia" />
+
+    <dxo-summary>
+        <dxi-total-item alignment="center" *ngFor="let dia of columnasDiasMes" [column]="dia" summaryType="sum"
+            [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}">
+        </dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
 
 <div class="d-flex justify-content-between mt-3 flex-wrap">
     <div class="card-resumen">
@@ -301,6 +317,33 @@
         <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center">
         </dxo-legend>
     </dx-chart>
+</div>
+
+<div class="d-flex justify-content-between mt-2">
+    <button mat-icon-button (click)="abrirPopup('ventasPorMes')">
+        <mat-icon>zoom_out_map</mat-icon>
+    </button>
+
+    <dx-popup [(visible)]="popupVisibleVentasPorMes" [showTitle]="true" title="Monto total por asesor"
+        [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart class="w-100" [dataSource]="chartMontoMensual" title="Monto Total de Ventas por Mes"
+            [palette]="'Material'" type="area">
+            <dxi-series argumentField="Mes" valueField="MontoTotal" name="Monto Total de Ventas por Mes" type="area">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                    <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
+                </dxo-label>
+            </dxi-series>
+
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+        </dx-chart>
+    </dx-popup>
 </div>
 
 <div class="d-flex justify-content-between mt-2">

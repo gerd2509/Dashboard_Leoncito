@@ -1,0 +1,117 @@
+<form class="form mt-2" [formGroup]="form">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <button mat-flat-button [disabled]="form.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+
+    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Importar
+    </button>
+    <button class="button" mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="filtroVentas" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+    <dxi-column alignment="center" caption="ASESOR CONTACT" dataField="AsesorVenta" dataType="string"
+        [sortOrder]="'asc'" />
+    <dxi-column alignment="center" *ngFor="let cuota of cuotas" [caption]="cuota" [dataField]="cuota" dataType="number"
+        [format]="{ type: 'fixedPoint', precision: 0 }" />
+    <dxi-column alignment="center" caption="Total" dataField="TotalVentas" dataType="number"
+        [format]="{ type: 'fixedPoint', precision: 0 }" />
+
+    <dxo-summary>
+        <dxi-total-item alignment="center" column="AsesorVenta" summaryType="sum" displayFormat="Total" />
+        <dxi-total-item alignment="center" *ngFor="let cuota of cuotas" [column]="cuota" summaryType="sum"
+            [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}" />
+        <dxi-total-item alignment="center" column="TotalVentas" summaryType="sum"
+            [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}" />
+    </dxo-summary>
+</dx-data-grid>
+
+<div class="form">
+    <div>
+        <h4 class="mt-4">Ventas Corto Plazo</h4>
+        <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="ventasPorCuotaAcumulada"
+            [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+            [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+            [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+            <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+            <dxi-column alignment="center" caption="ASESOR" dataField="AsesorVenta" dataType="string"
+                [sortOrder]="'asc'"></dxi-column>
+            <dxi-column alignment="center" caption="CUOTA 1 a 7" dataField="CuotaMenorIgualSiete" dataType="number"
+                [format]="{ type: 'fixedPoint', precision: 0 }"></dxi-column>
+
+            <dxo-summary>
+                <dxi-total-item alignment="center" column="AsesorVenta" summaryType="sum"
+                    displayFormat="Total"></dxi-total-item>
+                <dxi-total-item alignment="center" column="CuotaMenorIgualSiete" summaryType="sum"
+                    [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+
+    <div>
+        <h4 class="mt-4">Ventas Corto Plazo</h4>
+        <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="ventasPorCuota8"
+            [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+            [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+            [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+            <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+            <dxi-column alignment="center" caption="ASESOR" dataField="AsesorVenta" dataType="string"
+                [sortOrder]="'asc'"></dxi-column>
+            <dxi-column alignment="center" caption="CUOTA 8" dataField="CuotaOcho" dataType="number"
+                [format]="{ type: 'fixedPoint', precision: 0 }"></dxi-column>
+
+            <dxo-summary>
+                <dxi-total-item alignment="center" column="AsesorVenta" summaryType="sum"
+                    displayFormat="Total"></dxi-total-item>
+                <dxi-total-item alignment="center" column="CuotaOcho" summaryType="sum"
+                    [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+
+    <div>
+
+        <h4 class="mt-4">Ventas Largo Plazo</h4>
+        <dx-data-grid id="dataGridOchoDoce" class="focqus-elevation mt-2" [dataSource]="ventasPorCuotaOchoADoce"
+            [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+            [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+            [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+            <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+            <dxi-column alignment="center" caption="ASESOR" dataField="AsesorVenta" dataType="string"
+                [sortOrder]="'asc'"></dxi-column>
+            <dxi-column alignment="center" caption="CUOTA 9 a 12" dataField="CuotaOchoADoce" dataType="number"
+                [format]="{ type: 'fixedPoint', precision: 0 }"></dxi-column>
+
+            <dxo-summary>
+                <dxi-total-item alignment="center" column="AsesorVenta" summaryType="sum"
+                    displayFormat="Total"></dxi-total-item>
+                <dxi-total-item alignment="center" column="CuotaOchoADoce" summaryType="sum"
+                    [valueFormat]="{ type: 'fixedPoint', precision: 0 }" displayFormat="{0}"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+</div>

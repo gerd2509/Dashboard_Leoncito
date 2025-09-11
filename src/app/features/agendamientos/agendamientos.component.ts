@@ -107,7 +107,6 @@ export class AgendamientosComponent {
     this.isLoading = true;
 
     try {
-      // Re-consultar los datos desde Google Sheets
       this.datosOriginales = await lastValueFrom(this.service.getSheetData());
 
       const dia = fechaSeleccionada.getDate().toString().padStart(2, '0');
@@ -116,10 +115,15 @@ export class AgendamientosComponent {
       const fechaSeleccionadaFormateada = `${dia}/${mes}/${anio}`;
 
       const agendamientosDelDia = this.datosOriginales.filter((d: any) => {
-        const fechaInteres = (d['FECHA DE INTERÉS'] || '').trim();
+        const fechaRaw = (d['FECHA DE INTERÉS AGENDAMIENTO'] || '').trim(); // <-- viene como "1/08/2025"
+
+        const [dDia, dMes, dAnio] = fechaRaw.split('/');
+        if (!dDia || !dMes || !dAnio) return false;
+
+        const fechaInteresFormateada = `${dDia.padStart(2, '0')}/${dMes.padStart(2, '0')}/${dAnio}`;
         const motivo = (d['MOTIVO INTERÉS'] || '').trim().toUpperCase();
 
-        return fechaInteres === fechaSeleccionadaFormateada &&
+        return fechaInteresFormateada === fechaSeleccionadaFormateada &&
           motivo === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)";
       });
 
@@ -136,7 +140,7 @@ export class AgendamientosComponent {
 
   getComentarioAdicionalUnido = (d: any): string => {
     const comentarios = Object.keys(d)
-      .filter(key => key.toUpperCase().startsWith('COMENTARIO ADICIONAL'))
+      .filter(key => key.toUpperCase().startsWith('COMENTARIO ADICIONAL AGENDAMIENTO'))
       .map(key => d[key])
       .filter(valor => valor && valor.trim() !== '');
     return comentarios.join(' | ');

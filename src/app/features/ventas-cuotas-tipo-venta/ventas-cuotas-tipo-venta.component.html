@@ -1,0 +1,116 @@
+<form class="form mt-2" [formGroup]="form">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <button mat-flat-button [disabled]="form.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+
+    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Importar
+    </button>
+    <button class="button" mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+</form>
+
+<dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="filtroVentasPorcentaje"
+    [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+    [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+    [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+    <dxi-column caption="SEDE" dataField="Sede" dataType="string" />
+    <dxi-column alig="center" *ngFor="let cuota of cuotas" [caption]="cuota" [dataField]="cuota" dataType="number"
+        [format]="{ type: 'percent', precision: 2 }" />
+    <dxi-column alignment="center" caption="Total" dataField="Total" dataType="number"
+        [format]="{ type: 'percent', precision: 2 }" />
+
+    <dxo-summary>
+        <dxi-total-item alignment="right" column="Sede" summaryType="sum" displayFormat="Total" />
+        <dxi-total-item alignment="center" *ngFor="let cuota of cuotas" [column]="cuota" summaryType="sum"
+            [valueFormat]="{ type: 'percent', precision: 2 }" displayFormat="{0}" />
+        <dxi-total-item alignment="center" column="Total" summaryType="sum"
+            [valueFormat]="{ type: 'percent', precision: 2 }" displayFormat="{0}" />
+    </dxo-summary>
+</dx-data-grid>
+
+<dx-data-grid class="focqus-elevation mt-2" [dataSource]="filtroVentasMontos" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}"
+    (onCellPrepared)="onCellPrepared($event)">
+
+    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+    <dxi-column caption="SEDE" dataField="Sede" dataType="string" />
+
+    <dxi-column *ngFor="let cuota of cuotas" [caption]="cuota" [dataField]="cuota" dataType="number"
+        [customizeText]="customizeCurrencyText" alignment="center" />
+
+    <dxi-column caption="Total" dataField="Total" dataType="number" [customizeText]="customizeCurrencyText"
+        alignment="center" />
+
+    <dxo-summary>
+        <dxi-total-item column="Sede" summaryType="sum" displayFormat="Total" alignment="right" />
+        <dxi-total-item *ngFor="let cuota of cuotas" [column]="cuota" summaryType="sum"
+            [customizeText]="customizeCurrencyText" displayFormat="{0}" alignment="center" />
+        <dxi-total-item column="Total" summaryType="sum" [customizeText]="customizeCurrencyText" displayFormat="{0}"
+            alignment="center" />
+    </dxo-summary>
+</dx-data-grid>
+
+<!-- Totales por mes - Porcentaje -->
+<h4 class="tituloGrillas mt-2">VENTA CONTACT RELENOR (%)</h4>
+<dx-data-grid class="focqus-elevation mt-2" [dataSource]="totalesPorMesPorcentaje" [showBorders]="true"
+    [columnAutoWidth]="true" [hoverStateEnabled]="true" [rowAlternationEnabled]="true" [wordWrapEnabled]="true"
+    [selection]="{mode: 'single'}" (onCellPrepared)="onCellPrepared($event)">
+
+    <dxi-column alignment="center" caption="Mes" dataField="Mes" dataType="string" />
+    <dxi-column *ngFor="let cuota of cuotas" [caption]="cuota" [dataField]="cuota" dataType="number"
+        [format]="{ type: 'percent', precision: 2 }" alignment="center" />
+    <dxi-column caption="Total" dataField="Total" dataType="number" [format]="{ type: 'percent', precision: 2 }"
+        alignment="center" />
+</dx-data-grid>
+
+<!-- Totales por mes - Montos -->
+<h4 class="tituloGrillas mt-2">VENTA CONTACT RELENOR (MONTO)</h4>
+<dx-data-grid class="focqus-elevation mt-2" [dataSource]="totalesPorMesMontos" [showBorders]="true"
+    [columnAutoWidth]="true" [hoverStateEnabled]="true" [rowAlternationEnabled]="true" [wordWrapEnabled]="true"
+    [selection]="{mode: 'single'}" (onCellPrepared)="onCellPrepared($event)">
+
+    <dxi-column alignment="center" caption="Mes" dataField="Mes" dataType="string" />
+    <dxi-column *ngFor="let cuota of cuotas" [caption]="cuota" [dataField]="cuota" dataType="number"
+        [customizeText]="customizeCurrencyText" alignment="center" />
+    <dxi-column caption="Total" dataField="Total" dataType="number" [customizeText]="customizeCurrencyText"
+        alignment="center" />
+</dx-data-grid>
+
+<h4 class="tituloGrillas mt-2">VENTA POR TIPO DE VENTA</h4>
+<dx-data-grid class="focqus-elevation mt-2" [dataSource]="resumenTipoVenta" [showBorders]="true"
+    [columnAutoWidth]="true" [hoverStateEnabled]="true" [rowAlternationEnabled]="true" [wordWrapEnabled]="true"
+    [selection]="{mode: 'single'}" (onCellPrepared)="onCellPrepared($event)">
+
+    <dxi-column caption="SEDE" dataField="Sede" alignment="center" />
+
+    <dxi-column *ngFor="let tipo of tiposDeVenta" [caption]="tipo" [dataField]="tipo" dataType="number"
+        alignment="center" [customizeText]="customizeCurrencyText" />
+
+    <dxi-column caption="Total" dataField="Total" dataType="number" alignment="center"
+        [customizeText]="customizeCurrencyText" />
+
+    <dxo-summary>
+        <dxi-total-item column="Sede" summaryType="sum" displayFormat="Total" alignment="right" />
+        <dxi-total-item *ngFor="let tipo of tiposDeVenta" [column]="tipo" summaryType="sum"
+            [customizeText]="customizeCurrencyText" displayFormat="{0}" alignment="center" />
+        <dxi-total-item column="Total" summaryType="sum" [customizeText]="customizeCurrencyText" displayFormat="{0}"
+            alignment="center" />
+    </dxo-summary>
+</dx-data-grid>

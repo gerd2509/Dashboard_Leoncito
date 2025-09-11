@@ -44,7 +44,16 @@ export class ExcelExportService {
 
     // Agregar filas al Excel
     datos.forEach(item => {
-      const fila = columnas.map(col => col.dataField ? item[col.dataField] : '');
+      const fila = columnas.map(col => {
+        if (col.calculateCellValue) {
+          try {
+            return col.calculateCellValue(item);
+          } catch {
+            return ''; // En caso falle la función
+          }
+        }
+        return col.dataField ? item[col.dataField] : '';
+      });
       worksheet.addRow(fila);
     });
 
@@ -67,4 +76,5 @@ export class ExcelExportService {
 
     FileSaver.saveAs(blob, `${nombreArchivo}.xlsx`);
   }
+
 }

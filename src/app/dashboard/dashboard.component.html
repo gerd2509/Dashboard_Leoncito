@@ -7,8 +7,14 @@
         <button (click)="selectModule('gestion')">Gestión</button>
         <button (click)="selectModule('cierre')">Cierre Gestion</button>
         <button (click)="selectModule('analisis')">Analisis Gestion Mensual</button>
-        <button (click)="selectModule('ventas')">Ventas</button>
+        <button (click)="selectModule('ventas')">Ventas Contact</button>
+        <button (click)="selectModule('ventas-campo')">Ventas Campo</button>
+        <button (click)="selectModule('ventas-brilla-realzza')">Ventas Brilla Realzza</button>
+        <button (click)="selectModule('ventas-cuotas-tipoVenta')">Ventas - Cuotas - Tipo Venta</button>
+        <button (click)="selectModule('ventas-plazo-av')">Ventas Por Plazo AV</button>
         <button (click)="selectModule('proyeccion-comparativo')">Proyeccion & Comparativo</button>
+        <button (click)="selectModule('proyeccion-comparativo-campo')">Proyeccion & Comparativo Campo</button>
+        <button (click)="selectModule('cobranzas')">Cobranzas</button>
         <button (click)="selectModule('conversor-csv')">Conversor CSV</button>
     </aside>
 
@@ -25,11 +31,18 @@
         <section class="contenido">
             <app-derivaciones *ngIf="moduloSeleccionado === 'derivaciones'"></app-derivaciones>
             <app-agendamientos *ngIf="moduloSeleccionado === 'agendamientos'"></app-agendamientos>
+            <app-terceros *ngIf="moduloSeleccionado === 'terceros'"></app-terceros>
             <app-gestion-contact-x-hora *ngIf="moduloSeleccionado === 'gestion'"></app-gestion-contact-x-hora>
             <app-cierre-gestion *ngIf="moduloSeleccionado === 'cierre'"></app-cierre-gestion>
             <app-analisis-gestion-mensual *ngIf="moduloSeleccionado === 'analisis'"></app-analisis-gestion-mensual>
             <app-ventas *ngIf="moduloSeleccionado === 'ventas'"></app-ventas>
+            <app-ventas-campo *ngIf="moduloSeleccionado === 'ventas-campo'"></app-ventas-campo>
+            <app-ventas-brilla-realzza *ngIf="moduloSeleccionado === 'ventas-brilla-realzza'"></app-ventas-brilla-realzza>
+            <app-ventas-cuotas-tipo-venta *ngIf="moduloSeleccionado === 'ventas-cuotas-tipoVenta'"></app-ventas-cuotas-tipo-venta>
+            <app-venta-x-plazo-av *ngIf="moduloSeleccionado === 'ventas-plazo-av'"></app-venta-x-plazo-av>
             <app-proyeccion-comparativo *ngIf="moduloSeleccionado === 'proyeccion-comparativo'"></app-proyeccion-comparativo>
+            <app-proyeccion-ffvv-campo *ngIf="moduloSeleccionado === 'proyeccion-comparativo-campo'"></app-proyeccion-ffvv-campo>
+            <app-gestion-cobranzas *ngIf="moduloSeleccionado === 'cobranzas'"></app-gestion-cobranzas>
             <app-convertidor-excel-csv *ngIf="moduloSeleccionado === 'conversor-csv'"></app-convertidor-excel-csv>
         </section>
     </div>

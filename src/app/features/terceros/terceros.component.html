@@ -1,6 +1,9 @@
-<form class="form mt-2" [formGroup]="formAgendamientos">
-    <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+<form class="form mt-2" [formGroup]="formTerceros">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
 
     <button class="button" mat-flat-button (click)="actualizar()">
@@ -8,7 +11,7 @@
         Actualizar
     </button>
 
-    <button class="button"  mat-flat-button (click)="exportar()">
+    <button class="button" mat-flat-button (click)="exportar()">
         <mat-icon>file_download</mat-icon>
         Exportar
     </button>
@@ -31,15 +34,13 @@
 
         <dxi-column dataField="Marca temporal" [calculateCellValue]="soloFecha" caption="Fecha"></dxi-column>
         <dxi-column dataField="ASESOR CONTACT" caption="Asesor Contact"></dxi-column>
-        <dxi-column dataField="TIPO DE CLIENTE" caption="Tipo de Cliente"></dxi-column>
         <dxi-column dataField="DNI CLIENTE" caption="Dni Cliente"></dxi-column>
         <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
-        <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto Interés"></dxi-column>
-        <dxi-column dataField="FECHA DE INTERÉS AGENDAMIENTO" dataType="date" caption="Fecha de Interés"></dxi-column>
-        <dxi-column dataField="HORA APROXIMADA INTERÉS AGENDAMIENTO" caption="Hora Aproximada Interés"
-            [sortOrder]="'asc'"></dxi-column>
+        <dxi-column dataField="FECHA DE RE-LLAMADA" caption="Fecha de Rellamada"></dxi-column>
+        <dxi-column dataField="HORA DE RELLAMADA" dataType="date" caption="Hora de Rellamada"></dxi-column>
+        <dxi-column dataField="NÚMERO TITULAR ACTUAL" caption="Número Titular Actual"></dxi-column>
         <dxi-column dataField="SEDE" caption="Sede"></dxi-column>
-        <dxi-column caption="COMENTARIO ADICIONAL AGENDAMIENTO" [calculateCellValue]="getComentarioAdicionalUnido"></dxi-column>
-        <dxi-column dataField="estadoAgendamiento" caption="Estado Agendamiento"></dxi-column>
+        <dxi-column dataField="MOTIVOS TERCERO RELACIONADO" caption="Motivo General"></dxi-column>
+        <dxi-column dataField="estadoTercero" caption="Estado Terceros"></dxi-column>
     </dx-data-grid>
 </div>

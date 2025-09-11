@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import * as XLSX from 'xlsx';
+import { DxDataGridComponent } from 'devextreme-angular';
+import { ExcelExportService } from '../../services/excel/excel.service';
 
 @Component({
   selector: 'app-ventas',
@@ -11,6 +13,8 @@ import * as XLSX from 'xlsx';
   styleUrl: './ventas.component.css'
 })
 export class VentasComponent implements OnInit {
+  protected excelService = inject(ExcelExportService);
+
   formVentas: UntypedFormGroup;
 
   dataVentas: any[] = [];
@@ -23,6 +27,7 @@ export class VentasComponent implements OnInit {
   popupVisibleDia: boolean = false;
   popupVisibleNroVentas: boolean = false;
   popupVisibleVentasSemanal: boolean = false;
+  popupVisibleVentasPorMes: boolean = false;
 
   semanas: string[] = [];
   semanaMap = new Map<string, string>();
@@ -52,19 +57,70 @@ export class VentasComponent implements OnInit {
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
     { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' }
+    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
+    { value: 'CC10', viewValue: 'RIVAS PURISACA KAREN YUDITH' }
   ];
+
+  displayedColumnsOriginales = [
+    { HeaderField: 'IDVENTA', HeaderName: 'ID VENTA', Visible: true },
+    { HeaderField: 'FECHAVENTA', HeaderName: 'FECHA VENTA', Visible: true },
+    { HeaderField: 'Sede', HeaderName: 'SEDE', Visible: true },
+    { HeaderField: 'MontoConsolidado', HeaderName: 'MONTO CONSOLIDADO', Visible: true },
+    { HeaderField: 'CuotaInicial', HeaderName: 'CUOTA INICIAL', Visible: true },
+    { HeaderField: 'Productos', HeaderName: 'PRODUCTOS', Visible: true },
+    { HeaderField: 'Cuotas', HeaderName: 'Nº CUOTAS', Visible: true },
+    { HeaderField: 'DocIdentidad', HeaderName: 'DNI CLIENTE', Visible: true },
+    { HeaderField: 'TipoVenta', HeaderName: 'TIPO VENTA', Visible: true },
+    { HeaderField: 'TipoBase', HeaderName: 'TIPO BASE', Visible: true },
+    { HeaderField: 'AsesorVenta', HeaderName: 'ASESOR CONTACT', Visible: true },
+    { HeaderField: 'EstadoVenta', HeaderName: 'ESTADO VENTA', Visible: true },
+    { HeaderField: 'Entidad', HeaderName: 'ENTIDAD', Visible: true },
+    { HeaderField: 'TipoProducto', HeaderName: 'TIPO DE PRODUCTO', Visible: true }
+  ];
+
+  columnasVisibles: Record<string, boolean> = {
+    'IDVENTA': true,
+    'FECHAVENTA': true,
+    'Sede': true,
+    'MontoConsolidado': true,
+    'CuotaInicial': true,
+    'Productos': true,
+    'Cuotas': true,
+    'DocIdentidad': true,
+    'TipoVenta': true,
+    'TipoBase': true,
+    'AsesorVenta': true,
+    'EstadoVenta': true,
+    'Entidad': true,
+    'TipoProducto': true
+  };
+
+  tipoProducto = [
+    { value: '', viewValue: 'Seleccione Producto' },
+    { value: '1', viewValue: 'ELECTRO' },
+    { value: '2', viewValue: 'MELAMINA' }
+  ];
+
+  @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
     this.formVentas = this.fb.group({
       fechaInicio: [null, Validators.required],
       fechaFin: [null, Validators.required],
       Asesores: [''],
+      TipoProducto: [''],
+      columnas: [],
       NAS: [{ value: false, disabled: true }]
     });
   }
 
-  async ngOnInit() { }
+  async ngOnInit() {
+    this.configuracionesIniciales();
+  }
+
+  configuracionesIniciales(): void {
+    this.formVentas.controls["columnas"].setValue(this.displayedColumnsOriginales.map(objeto => objeto.HeaderField));
+  }
 
   importar(event: any): void {
     const file = event.target.files[0];
@@ -91,7 +147,9 @@ export class VentasComponent implements OnInit {
         TipoVenta: row['TipoVenta'],
         TipoBase: row['TipoBase'],
         AsesorVenta: row['AsesorVenta'],
-        EstadoVenta: row['EstadoVenta']
+        EstadoVenta: row['EstadoVenta'],
+        Entidad: row['Entidad'],
+        TipoProducto: row['TipoProducto']
       }));
 
       this.filtroVentas = [...this.dataVentas];
@@ -126,6 +184,12 @@ export class VentasComponent implements OnInit {
     }
   }
 
+  onTipoProductoChanged(event: any) {
+    if (this.formVentas.valid) {
+      this.aplicarFiltros();
+    }
+  }
+
   actualizarFiltros(): void {
     if (this.formVentas.valid) {
       // Activar checkbox NAS al hacer clic
@@ -140,6 +204,7 @@ export class VentasComponent implements OnInit {
   aplicarFiltros(): void {
     const selectedAsesor = (this.formVentas.value.Asesores || '').toString().trim().toUpperCase();
     const excluirNAS = this.formVentas.value.NAS === true;
+    const selectedTipoProducto = this.formVentas.value.TipoProducto; // 👈 nuevo
 
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);
     const fechaFin = new Date(this.formVentas.value.fechaFin);
@@ -154,9 +219,18 @@ export class VentasComponent implements OnInit {
       const cumpleAsesor = !selectedAsesor || asesor === selectedAsesor;
       const noEsNAS = !excluirNAS || asesor !== 'NAS';
 
-      return cumpleFecha && cumpleAsesor && noEsNAS;
+      // 👇 Nuevo filtro de TipoProducto
+      let cumpleTipoProducto = true;
+      if (selectedTipoProducto === '1') {
+        cumpleTipoProducto = venta.TipoProducto === 'ELECTRO' || venta.TipoProducto === 'ELECTRO y LEONCITO';
+      } else if (selectedTipoProducto === '2') {
+        cumpleTipoProducto = venta.TipoProducto === 'LEONCITO' || venta.TipoProducto === 'ELECTRO y LEONCITO';
+      }
+
+      return cumpleFecha && cumpleAsesor && noEsNAS && cumpleTipoProducto;
     });
 
+    // Recalcular todo
     this.generarChartData();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
@@ -187,7 +261,7 @@ export class VentasComponent implements OnInit {
 
       if (excluirNAS && asesorUpper === 'NAS') continue;
 
-      const monto = Math.round(venta.MontoConsolidado || 0);
+      const monto = venta.MontoConsolidado || 0;
 
       if (agrupado.has(asesor)) {
         agrupado.set(asesor, agrupado.get(asesor)! + monto);
@@ -247,59 +321,6 @@ export class VentasComponent implements OnInit {
       return result;
     });
   }
-
-  // generarChartNroVentasPorDia(): void {
-  //   const diasSemanaBase = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-  //   const fechaInicio = new Date(this.formVentas.value.fechaInicio);
-  //   const primerDiaMes = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth(), 1);
-  //   const diaInicial = primerDiaMes.getDay(); // 0 (Domingo) a 6 (Sábado)
-
-  //   // Reordenar días para empezar desde el primer día del mes
-  //   const diasSemana = [...diasSemanaBase.slice(diaInicial), ...diasSemanaBase.slice(0, diaInicial)];
-
-  //   const agrupado = new Map<string, Map<string, number>>();
-  //   const semanasSet = new Set<string>();
-
-  //   for (const venta of this.filtroVentas) {
-  //     if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
-
-  //     const fecha = new Date(venta.FECHAVENTA);
-  //     const diaTexto = diasSemanaBase[fecha.getDay()]; // Usamos el base para agrupar
-  //     const semanaIso = this.getSemanaISO(fecha);
-
-  //     semanasSet.add(semanaIso);
-
-  //     if (!agrupado.has(diaTexto)) {
-  //       agrupado.set(diaTexto, new Map());
-  //     }
-
-  //     const semanaMap = agrupado.get(diaTexto)!;
-  //     semanaMap.set(semanaIso, (semanaMap.get(semanaIso) || 0) + 1);
-  //   }
-
-  //   const semanasOrdenadas = Array.from(semanasSet).sort();
-
-  //   this.semanasCantidad = semanasOrdenadas.map((semanaIso, index) => {
-  //     const nombre = `Semana ${index + 1}`;
-  //     this.semanaMap.set(semanaIso, nombre);
-  //     return nombre;
-  //   });
-
-  //   this.chartNumeroVentasPorDia = diasSemana.map(dia => {
-  //     const semanaMap = agrupado.get(dia) || new Map();
-  //     const result: any = { Dia: dia };
-
-  //     for (const [semanaIso, cantidad] of semanaMap.entries()) {
-  //       const semanaNombre = this.semanaMap.get(semanaIso);
-  //       if (semanaNombre) {
-  //         result[semanaNombre] = cantidad;
-  //       }
-  //     }
-
-  //     return result;
-  //   });
-  // }
 
   generarChartNroVentasPorDia(): void {
     const diasSemanaBase = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sabado'];
@@ -445,7 +466,23 @@ export class VentasComponent implements OnInit {
     }
   }
 
-  abrirPopup(tipo: 'asesor' | 'dia' | 'nroVentas' | 'ventasSemanal') {
+  onColumnsChange() {
+    const columnasSeleccionadas = this.formVentas.controls["columnas"].value;
+
+    // 1. Actualiza las originales
+    this.displayedColumnsOriginales.forEach(columna => {
+      columna.Visible = columnasSeleccionadas.includes(columna.HeaderField);
+    });
+
+    // 2. Actualiza columnasVisibles (que es lo que usan tus <dxi-column>)
+    Object.keys(this.columnasVisibles).forEach(key => {
+      this.columnasVisibles[key] = columnasSeleccionadas.includes(key);
+    });
+    console.log(columnasSeleccionadas)
+    console.log(this.displayedColumnsOriginales)
+  }
+
+  abrirPopup(tipo: 'asesor' | 'dia' | 'nroVentas' | 'ventasSemanal' | 'ventasPorMes') {
     if (tipo === 'asesor') {
       this.popupVisibleAsesor = true;
     } else if (tipo === 'dia') {
@@ -454,6 +491,8 @@ export class VentasComponent implements OnInit {
       this.popupVisibleNroVentas = true;
     } else if (tipo === 'ventasSemanal') {
       this.popupVisibleVentasSemanal = true;
+    } else if (tipo === 'ventasPorMes') {
+      this.popupVisibleVentasPorMes = true;
     }
   }
 
@@ -480,6 +519,22 @@ export class VentasComponent implements OnInit {
     if (pointInfo.value === 0) return ''; // Oculta ceros
     return `S/ ${Math.round(pointInfo.value).toLocaleString('es-PE')}`;
   };
+
+  customizeCurrencyText = function (cell: any): string {
+    if (typeof cell.value === 'number') {
+      return `S/. ${cell.value.toLocaleString('es-PE', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      })}`;
+    }
+    return '';
+  };
+
+  exportar(): void {
+    if (this.dataGrid) {
+      this.excelService.exportarDesdeGrid("dataAgendamientos", this.dataGrid);
+    }
+  }
 
   onCellPrepared(e: any) {
     if (e.rowType != 'header' || e.cellElement.classList.contains('dx-editor-cell')) return;

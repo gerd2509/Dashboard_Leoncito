@@ -1,4 +1,4 @@
-import { DxAutocompleteModule, DxBarGaugeModule, DxChartModule, DxCheckBoxModule, DxCircularGaugeModule, DxDataGridModule, DxDateBoxModule, DxDropDownBoxModule, DxListModule, DxLoadPanelModule, DxNumberBoxModule, DxPopupModule, DxRadioGroupModule, DxSelectBoxModule, DxTemplateModule, DxTextAreaModule, DxTextBoxModule, DxValidatorModule } from "devextreme-angular";
+import { DxAutocompleteModule, DxBarGaugeModule, DxChartModule, DxCheckBoxModule, DxCircularGaugeModule, DxDataGridModule, DxDateBoxModule, DxDropDownBoxModule, DxListModule, DxLoadPanelModule, DxNumberBoxModule, DxPopupModule, DxRadioGroupModule, DxSelectBoxModule, DxTagBoxModule, DxTemplateModule, DxTextAreaModule, DxTextBoxModule, DxValidatorModule } from "devextreme-angular";
 import { DxiValidationRuleModule, DxoSummaryModule, DxoValueAxisModule } from "devextreme-angular/ui/nested";
 
 export const DX_COMMON_MODULES = [
@@ -22,5 +22,6 @@ export const DX_COMMON_MODULES = [
     DxoSummaryModule,
     DxChartModule,
     DxoValueAxisModule,
-    DxPopupModule
+    DxPopupModule,
+    DxTagBoxModule
 ]

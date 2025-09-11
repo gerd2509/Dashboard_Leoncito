@@ -1,38 +1,81 @@
-.form {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-}
-
-.button {
-    margin-top: 15px;
-}
-
-.focqus-elevation {
-  box-shadow: 0px 5px 5px -3px rgba(0, 0, 0, 0.2),
-    0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12);
-}
-
-.firstContainer {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.secondContainer {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    margin-top: 30px;
-}
-
-.titulosGrillas { 
-    margin: 0 0 0 0;
-}
-
 .grid-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  margin-top: 20px;
   position: relative;
+}
+
+/* Columna izquierda con gráficos (40%) */
+.left-container {
+  flex: 0.9; /* ~40% */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.left-container > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Columna derecha con grillas (60%) */
+.right-container {
+  flex: 1.1; /* ~60% */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Fila superior: Contactabilidad + Sedes */
+.top-grids {
+  flex: 0.3; /* menos altura que la inferior */
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.top-grids > .contactabilidad {
+  flex: 7;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-grids > .sedes {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fila inferior: Agendamientos + Derivaciones */
+.bottom-grids {
+  flex: 0.4; /* más altura que la superior */
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+}
+
+.bottom-grids > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tarjetas internas */
+.focqus-elevation {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0px 5px 5px -3px rgba(0, 0, 0, 0.2),
+              0px 8px 10px 1px rgba(0, 0, 0, 0.14),
+              0px 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
+
+.form {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
 }
 
 .grid-overlay {
@@ -41,10 +84,36 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(255, 255, 255, 0.7); /* fondo blanco semitransparente */
+  background-color: rgba(255, 255, 255, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 10;
 }
 
+.titulosGrillas {
+  margin: 0;
+}
+
+.card-resumen {
+  background: #f8f8f8;
+  border-radius: 20px;
+  box-shadow: 0 0 10px rgba(151, 255, 165, 0.3);
+  padding: 20px 25px;
+  width: 220px;
+  margin: 10px;
+  text-align: center;
+}
+
+.card-resumen .titulo {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.card-resumen .valor {
+  font-size: 24px;
+  font-weight: bold;
+  color: #000;
+}

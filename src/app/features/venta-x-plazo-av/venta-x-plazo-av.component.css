@@ -1,0 +1,9 @@
+.form { 
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+}
+
+.tituloGrillas {
+    text-align: center;
+}

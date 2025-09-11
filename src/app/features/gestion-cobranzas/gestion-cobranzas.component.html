@@ -1,0 +1,43 @@
+<form class="form mt-2" [formGroup]="formCobranzas">
+    <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true" label="Fecha de Gestión"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <button mat-flat-button [disabled]="formCobranzas.invalid" (click)="actualizar()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+    <!-- <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Importar
+    </button> -->
+</form>
+
+<div class="contactabilidad">
+    <h3 class="titulosGrillas">CONTACTABILIDAD POR ASESOR</h3>
+    <dx-data-grid id="dataGrid" class="focqus-elevation" [dataSource]="dataContactabilidad"
+        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+        [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+        [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+        <dxi-column dataField="ASESOR CONTACT" caption="Asesor"></dxi-column>
+        <dxi-column dataField="CONTACTO" caption="CONTACTO"></dxi-column>
+        <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO"></dxi-column>
+        <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA"></dxi-column>
+        <dxi-column dataField="TOTAL" caption="TOTAL GENERAL"></dxi-column>
+        <dxi-column dataField="PORCENTAJE" caption="TOTAL %" [format]="{ type: 'percent', precision: 0 }"></dxi-column>
+        <dxo-summary>
+            <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'"></dxi-total-item>
+            <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum"
+                [displayFormat]="'{0}'"></dxi-total-item>
+            <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
+                [displayFormat]="'{0}'"></dxi-total-item>
+            <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
+                [displayFormat]="'{0}'"></dxi-total-item>
+            <dxi-total-item alignment="center" column="TOTAL" summaryType="sum"
+                [displayFormat]="'{0}'"></dxi-total-item>
+            <dxi-total-item alignment="center" column="PORCENTAJE" summaryType="sum"
+                displayFormat="{{porcentajeTotalContactabilidad}}%"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>
