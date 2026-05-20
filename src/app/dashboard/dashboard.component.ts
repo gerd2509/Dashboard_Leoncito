@@ -67,8 +67,8 @@ export class DashboardComponent {
       icon: 'event',
       label: 'Agendamientos',
       submenu: [
-        { label: 'Call Center', icon: 'call', modulo: 'agendamientos' },
-        { label: 'Campo', icon: 'storefront', modulo: 'agendamientos-campo' },
+        { label: 'CALL CENTER', icon: 'call', modulo: 'agendamientos' },
+        { label: 'REALZZA', icon: 'storefront', modulo: 'agendamientos-campo' },
         { label: 'KOMMO', icon: 'public', modulo: 'agendamientos-kommo' }
       ]
     },
@@ -77,8 +77,8 @@ export class DashboardComponent {
       icon: 'bar_chart',
       label: 'Gestión',
       submenu: [
-        { label: 'Call Center', icon: 'call', modulo: 'gestion' },
-        { label: 'Campo', icon: 'storefront', modulo: 'gestion-campo' },
+        { label: 'CALL CENTER', icon: 'call', modulo: 'gestion' },
+        { label: 'REALZZA', icon: 'storefront', modulo: 'gestion-campo' },
         { label: 'Post_venta', icon: 'storefront', modulo: 'gestion-post-venta' },
         { label: 'KOMMO', icon: 'public', modulo: 'gestion-kommo' }
       ]
@@ -89,10 +89,10 @@ export class DashboardComponent {
       icon: 'shopping_cart',
       label: 'Ventas',
       submenu: [
-        { label: 'Call Center', icon: 'call', modulo: 'ventas' },
-        { label: 'Campo', icon: 'storefront', modulo: 'ventas-campo' },
-        { label: 'Comparativo', icon: 'balance', modulo: 'ventas-comparativo' },
-        { label: 'Evolucion', icon: 'balance', modulo: 'evolucion-tipo-cliente' },
+        { label: 'CALL CENTER', icon: 'call', modulo: 'ventas' },
+        { label: 'REALZZA', icon: 'storefront', modulo: 'ventas-campo' },
+        { label: 'COMPARATIVO', icon: 'balance', modulo: 'ventas-comparativo' },
+        { label: 'EVOLUTIVO', icon: 'balance', modulo: 'evolucion-tipo-cliente' },
       ]
     },
     { icon: 'storefront', label: 'Ventas Brilla Realzza', modulo: 'ventas-brilla-realzza' },
