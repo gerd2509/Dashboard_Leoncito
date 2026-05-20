@@ -13,6 +13,9 @@ import * as XLSX from 'xlsx';
 export class ProyeccionComparativoComponent implements OnInit {
   form: UntypedFormGroup;
 
+  protected showFilterRow: boolean = true;
+  protected currentFilter: string = 'auto';
+
   dataVentas: any[] = [];
   dataOriginal: any[] = [];
   filtroVentas: any[] = [];
@@ -23,15 +26,35 @@ export class ProyeccionComparativoComponent implements OnInit {
   totalMontoVentas = 0;
   ticket = 0;
 
+  tablaSedeBase: any[] = [];
+  columnasDinamicas: string[] = [];
+  tablaResumen: any[] = [];
+  tablaResumenZonas: any[] = [];
+  columnasResumen: string[] = [];
+  tablaAsesorTipoCliente: any[] = [];
+  columnasAsesorTipoCliente: string[] = [];
+
+  // NUEVAS VARIABLES PARA LA TABLA DIARIA
+  tablaDiariaSedes: any[] = [];
+
+  // Definición de las zonas según tu imagen
+  sedesZona1 = ['FERREÑAFE', 'LAMBAYEQUE', 'CAYALTI', 'CHONGOYAPE', 'MORROPE', 'MOCHUMI', 'OYOTUN'];
+  sedesZona2 = ['OLMOS', 'MOTUPE', 'JAYANCA'];
+  sedeRealzza = 'REALZZA';
+
+  columnasResumenZonas: string[] = ['ZONA 1', 'ZONA 2', 'REALZZA'];
+
   asesoresMeta = [
-    { id: 'CC1', nombre: 'MORETO DELGADO PATRICIA ESTEFANY', meta: 60000 },
-    { id: 'CC3', nombre: 'UCHOFEN VIGO FELICITA', meta: 50000 },
-    { id: 'CC5', nombre: 'QUISPE FONSECA KAREN AIMEE', meta: 70000 },
+    { id: 'CC1', nombre: 'MORETO DELGADO PATRICIA ESTEFANY', meta: 70000 },
+    { id: 'CC3', nombre: 'UCHOFEN VIGO FELICITA', meta: 65000 },
+    { id: 'CC5', nombre: 'QUISPE FONSECA KAREN AIMEE', meta: 75000 },
     { id: 'CC6', nombre: 'MORALES ÑIQUE MARIA CANDELARIA', meta: 60000 },
-    { id: 'CC7', nombre: 'ACOSTA JIMENEZ MARIELA NATALY', meta: 30000 },
-    { id: 'CC8', nombre: 'CHANTA CAMPOS KELLY KARINTIA', meta: 50000 },
-    { id: 'CC9', nombre: 'PÉREZ TINEO MARICIELO TATIANA', meta: 30000 },
-    { id: 'CC10', nombre: 'RIVAS PURISACA KAREN YUDITH', meta: 10000 }
+    { id: 'CC8', nombre: 'CHANTA CAMPOS KELLY KARINTIA', meta: 80000 },
+    { id: 'CC11', nombre: 'SAMAME HUAMAN ARIADNE', meta: 50000 },
+    { id: 'CC13', nombre: 'CARBONEL GUERRERO FRANCIS JHON', meta: 10000 },
+    { id: 'CC14', nombre: 'MIÑOPE GONZALES ANYELA ESTHEFANY', meta: 10000 },
+    { id: 'CC15', nombre: 'TORRES ALVARADO JUDY ESMERALDA', meta: 50000 },
+    { id: 'CC16', nombre: 'BONILLA CHUMACERO VILMA ROSSMERY', meta: 50000 }
   ];
 
   tablaBonos = [
@@ -82,15 +105,16 @@ export class ProyeccionComparativoComponent implements OnInit {
           DocIdentidad: row['DocIdentidad'],
           TipoVenta: row['TipoVenta'],
           TipoBase: (row['TipoBase'] || '').toString().trim().toUpperCase(),
-          AsesorVenta: (row['AsesorVenta'] || '').toString().trim().toUpperCase(),
-          EstadoVenta: row['EstadoVenta']
-        }))
-        .filter(venta => venta.AsesorVenta !== 'NAS');
+          TipoCliente: (row['TipoCliente'] || '').toString().trim().toUpperCase(),
+          EstadoVenta: row['EstadoVenta'],
+          AsesorVenta: (row['AsesorVenta'] || '').toString().trim().toUpperCase()
+        }));
 
       this.aplicarFiltros();
       this.generarResumenPorAsesor();
       this.generarResumenPorSede();
       this.generarVentasPorTipoBase();
+      this.generarTablaPorAsesorYTipoCliente();
     };
 
     reader.readAsArrayBuffer(file);
@@ -119,6 +143,21 @@ export class ProyeccionComparativoComponent implements OnInit {
       this.generarResumenPorAsesor();
       this.generarResumenPorSede();
       this.generarVentasPorTipoBase();
+
+      const { columnas, filas } = this.generarTablaSedeVsTipoBase();
+      this.columnasDinamicas = columnas;
+      this.tablaSedeBase = filas;
+
+      const { columnasC, filasC } = this.generarResumenCarteraVsVigente();
+      this.columnasResumen = columnasC;
+      this.tablaResumen = filasC;
+
+      const { columnasTipoCliente, filasTipoCliente } = this.generarTablaPorAsesorYTipoCliente();
+      this.columnasAsesorTipoCliente = columnasTipoCliente;
+      this.tablaAsesorTipoCliente = filasTipoCliente;
+
+      this.generarTablaDiariaPorSede();
+      this.generarResumenZonasSede();
     }
   }
 
@@ -281,6 +320,65 @@ export class ProyeccionComparativoComponent implements OnInit {
     this.ticket = this.totalVentas ? this.totalMontoVentas / this.totalVentas : 0;
   }
 
+  // 
+  generarTablaPorAsesorYTipoCliente(): { columnasTipoCliente: string[], filasTipoCliente: any[] } {
+    const resultado: any[] = [];
+
+    // 1. Crear un Mapa rápido para buscar nombres por ID
+    // Esto convierte el array en un objeto: { 'CC1': 'MORETO...', 'CC3': 'UCHOFEN...' }
+    const mapaNombres: Record<string, string> = {};
+    this.asesoresMeta.forEach(m => {
+      mapaNombres[m.id] = m.nombre;
+    });
+
+    // 2. Obtener los IDs únicos de la data de ventas (Igual que antes)
+    let asesoresIds = [...new Set(this.dataVentas
+      .map(v => (v.AsesorVenta || '').toString().trim().toUpperCase())
+      .filter(a => a && a !== 'NAS' && a !== 'TOTAL'))];
+
+    // 3. Crear una lista de objetos { id, nombre } y ORDENAR POR NOMBRE
+    let asesoresOrdenados = asesoresIds.map(id => {
+      return {
+        id: id,
+        // Si el ID existe en tu lista de meta, usa el nombre. Si no, usa el ID como respaldo.
+        nombre: mapaNombres[id] || id
+      };
+    });
+
+    // Ordenamos alfabéticamente por el NOMBRE
+    asesoresOrdenados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    // 4. Obtener tipos de cliente (Igual que antes)
+    let tiposCliente = [...new Set(this.dataVentas
+      .map(v => (v.TipoCliente || '').toString().trim().toUpperCase())
+      .filter(t => t !== ''))];
+    tiposCliente.sort((a, b) => a.localeCompare(b));
+
+    // 5. Construir filas iterando sobre la lista ordenada
+    asesoresOrdenados.forEach(asesorObj => {
+      // 👁️ OJO: Aquí usamos el NOMBRE para la visualización
+      const fila: any = { ASESOR: asesorObj.nombre };
+      let totalFila = 0;
+
+      tiposCliente.forEach(tipo => {
+        const ventasFiltradas = this.dataVentas.filter(v =>
+          // 🧠 LÓGICA: Filtramos usando el ID original ('CC1'), no el nombre largo
+          (v.AsesorVenta || '').toString().trim().toUpperCase() === asesorObj.id &&
+          (v.TipoCliente || '').toString().trim().toUpperCase() === tipo
+        );
+
+        const monto = ventasFiltradas.reduce((sum, v) => sum + (v.MontoConsolidado || 0), 0);
+        fila[tipo] = monto;
+        totalFila += monto;
+      });
+
+      fila['TOTAL'] = totalFila;
+      resultado.push(fila);
+    });
+
+    return { columnasTipoCliente: [...tiposCliente, 'TOTAL'], filasTipoCliente: resultado };
+  }
+
   generarResumenPorSede(): void {
     const resumen = new Map<string, number>();
 
@@ -324,14 +422,166 @@ export class ProyeccionComparativoComponent implements OnInit {
 
     console.log('Resumen por TipoBase:', this.ventasPorTipoBase);
   }
-
-
   calcularBono(proyeccion: number): number {
     if (!proyeccion || proyeccion < 15000) return 0;
     for (const item of this.tablaBonos) {
       if (proyeccion >= item.monto) return item.bono;
     }
     return 0;
+  }
+
+  generarTablaSedeVsTipoBase(): { columnas: string[], filas: any[] } {
+    const resultado: any[] = [];
+    const sedes = [...new Set(this.dataVentas.map(v => (v.Sede || '').toString().trim().toUpperCase()))];
+    let tiposBase = [...new Set(this.dataVentas.map(v => (v.TipoBase || '').toString().trim().toUpperCase()))];
+
+    // 🚀 Ordenar alfabéticamente las columnas dinámicas
+    tiposBase = tiposBase.sort((a, b) => a.localeCompare(b));
+
+    sedes.forEach(sede => {
+      const fila: any = { SEDE: sede };
+      let totalFila = 0;
+
+      tiposBase.forEach(base => {
+        const ventasFiltradas = this.dataVentas.filter(v =>
+          (v.Sede || '').toString().trim().toUpperCase() === sede &&
+          (v.TipoBase || '').toString().trim().toUpperCase() === base
+        );
+
+        const monto = ventasFiltradas.reduce((sum, v) => sum + (v.MontoConsolidado || 0), 0);
+        fila[base] = monto;
+        totalFila += monto;
+      });
+
+      fila['TOTAL'] = totalFila; // 🚀 solo columna total por sede
+      resultado.push(fila);
+    });
+
+    // 🚀 columnas ordenadas + la columna TOTAL al final
+    return { columnas: [...tiposBase, 'TOTAL'], filas: resultado };
+  }
+
+  generarResumenCarteraVsVigente(): { columnasC: string[], filasC: any[] } {
+    let carteraCall = 0;
+    let vigente = 0;
+
+    this.dataVentas.forEach(v => {
+      const tipoBase = (v.TipoBase || '').toString().trim().toUpperCase();
+      const monto = v.MontoConsolidado || 0;
+
+      if (tipoBase === 'VIGENTE') {
+        vigente += monto;
+      } else {
+        carteraCall += monto;
+      }
+    });
+
+    const filaResumen = {
+      'CARTERA CALL': carteraCall,
+      'VIGENTE': vigente
+    };
+
+    return { columnasC: ['CARTERA CALL', 'VIGENTE'], filasC: [filaResumen] };
+  }
+
+  generarResumenZonasSede(): void {
+    let totalZona1 = 0;
+    let totalZona2 = 0;
+    let totalRealzza = 0;
+
+    this.dataVentas.forEach(venta => {
+      const nombreSede = (venta.Sede || '').toString().trim().toUpperCase();
+      const monto = venta.MontoConsolidado || 0;
+
+      // Lógica para detectar si pertenece a Zona 1 (Búsqueda parcial "includes")
+      if (this.sedesZona1.some(s => nombreSede.includes(s))) {
+        totalZona1 += monto;
+      }
+      // Lógica para Zona 2
+      else if (this.sedesZona2.some(s => nombreSede.includes(s))) {
+        totalZona2 += monto;
+      }
+      // Lógica para Realzza
+      else if (nombreSede.includes(this.sedeRealzza)) {
+        totalRealzza += monto;
+      }
+    });
+
+    // Creamos una única fila con los resultados
+    const filaResumen = {
+      'ZONA 1': totalZona1,
+      'ZONA 2': totalZona2,
+      'REALZZA': totalRealzza
+    };
+
+    this.tablaResumenZonas = [filaResumen];
+  }
+
+  generarTablaDiariaPorSede(): void {
+    if (!this.form.value.fechaInicio || !this.form.value.fechaFin) return;
+
+    const fechaInicio = new Date(this.form.value.fechaInicio);
+    const fechaFin = new Date(this.form.value.fechaFin);
+
+    // Normalizar horas para comparar solo fechas
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
+
+    const resultado: any[] = [];
+    const loopDate = new Date(fechaInicio);
+
+    // Formateador: "01 ene"
+    const options: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short' };
+
+    // Lista completa de tus columnas simplificadas para inicializar en 0
+    const todasLasSedes = [...this.sedesZona1, ...this.sedesZona2, this.sedeRealzza];
+
+    // --- BUCLE POR CADA DÍA DEL RANGO ---
+    while (loopDate <= fechaFin) {
+      const fechaStr = loopDate.toLocaleDateString('es-ES', options);
+
+      // 1. Crear la fila vacía para este día
+      const fila: any = {
+        DIA: fechaStr,
+        FECHA_OBJ: new Date(loopDate) // Útil si necesitas ordenar por fecha real
+      };
+
+      // Inicializar todas las columnas en 0
+      todasLasSedes.forEach(sede => fila[sede] = 0);
+
+      // 2. Filtrar las ventas SOLO de este día
+      const ventasDelDia = this.dataVentas.filter(v => {
+        const fVenta = new Date(v.FECHAVENTA);
+        return fVenta.getDate() === loopDate.getDate() &&
+          fVenta.getMonth() === loopDate.getMonth() &&
+          fVenta.getFullYear() === loopDate.getFullYear();
+      });
+
+      // 3. Asignar los montos a la columna correcta (LÓGICA CORREGIDA)
+      ventasDelDia.forEach(venta => {
+        const nombreSedeExcel = (venta.Sede || '').toString().trim().toUpperCase();
+        const monto = venta.MontoConsolidado || 0;
+
+        // Buscamos a qué sede simplificada pertenece este registro del Excel.
+        // Ejemplo: Si nombreSedeExcel es "SEDE RELENOR FERREÑAFE", .find devolverá "FERREÑAFE"
+        const sedeKey = todasLasSedes.find(sedeSimple => nombreSedeExcel.includes(sedeSimple));
+
+        if (sedeKey) {
+          // Si encontramos coincidencia, sumamos al acumulador de esa columna
+          fila[sedeKey] += monto;
+        } else {
+          // Opcional: Console log para detectar sedes que no cuadran con tu lista
+          // console.warn('Sede no mapeada:', nombreSedeExcel);
+        }
+      });
+
+      resultado.push(fila);
+
+      // Avanzar al siguiente día
+      loopDate.setDate(loopDate.getDate() + 1);
+    }
+
+    this.tablaDiariaSedes = resultado;
   }
 
   onAsesorChanged(event: any): void {

@@ -1,0 +1,376 @@
+<form class="form mt-2" [formGroup]="formPostVentas">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <button mat-flat-button [disabled]="formPostVentas.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+</form>
+
+<div class="grid-container">
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <div class="grid-container">
+        <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
+            class="dashboard-box mt-3">
+            <dxi-item baseSize="25%">
+                <div class="metric-card">
+                    <div class="metric-title">CONTACTOS</div>
+                    <div class="metric-content">
+                        ✅ <span class="ok">{{ dataResumen[0]?.contacto }}</span> /
+                        ❌ <span class="error">{{ dataResumen[0]?.noContacto }}</span>
+                    </div>
+                </div>
+            </dxi-item>
+            <dxi-item baseSize="25%">
+                <div class="metric-card">
+                    <div class="metric-title">CONFORMIDAD</div>
+                    <div class="metric-content">
+                        👍 <span class="ok">{{ dataResumen[0]?.conforme }}</span> /
+                        👎 <span class="error">{{ dataResumen[0]?.noConforme }}</span>
+                    </div>
+                </div>
+            </dxi-item>
+            <dxi-item baseSize="25%">
+                <div class="metric-card">
+                    <div class="metric-title">ÁREAS</div>
+                    <div class="metric-content">
+                        🏢 <span class="area">{{ dataResumen[0]?.area }}</span> /
+                        <span class="highlight">{{ dataResumen[0]?.porcentajeArea }}%</span>
+                    </div>
+                </div>
+            </dxi-item>
+            <dxi-item baseSize="25%">
+                <div class="metric-card">
+                    <div class="metric-title">SATISFACCIÓN</div>
+                    <div class="metric-content">
+                        ⭐ <span class="highlight">{{ dataResumen[0]?.satisfaccion }}</span> / 10
+                    </div>
+                </div>
+            </dxi-item>
+        </dx-box>
+
+        <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
+            class="charts-box mt-3" wrap="wrap">
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <h3>Estado de Gestión</h3>
+                    <dx-chart [dataSource]="chartEstadoGestion" palette="Pastel">
+                        <dxi-series argumentField="tipo" valueField="cantidad" name="Gestión" type="bar" />
+                        <dxo-legend [visible]="false" />
+                        <dxo-value-axis [title]="{ text: 'Cantidad' }" />
+                    </dx-chart>
+                </div>
+            </dxi-item>
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <h3>Conformidad Cliente</h3>
+                    <dx-chart [dataSource]="chartConformidad" palette="Material">
+                        <dxi-series argumentField="tipo" valueField="cantidad" name="Gestión" type="bar" />
+                        <dxo-legend [visible]="false" />
+                        <dxo-value-axis [title]="{ text: 'Cantidad' }" />
+                    </dx-chart>
+                </div>
+            </dxi-item>
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <h3>Distribución por Áreas</h3>
+                    <dx-pie-chart [dataSource]="chartAreas" palette="Soft"
+                        [legend]="{ visible: true, horizontalAlignment: 'center', verticalAlignment: 'bottom' }">
+                        <dxi-series argumentField="area" valueField="cantidad" type="doughnut">
+                            <dxo-label [visible]="true" [connector]="{ visible: true }" [customizeText]="customizeText"
+                                format="fixedPoint">
+                            </dxo-label>
+                        </dxi-series>
+                        <dxo-legend [visible]="false" />
+                        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+                    </dx-pie-chart>
+                </div>
+            </dxi-item>
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <h3>Nivel de Satisfacción</h3>
+                    <dx-chart [dataSource]="chartSatisfaccion" palette="Violet">
+                        <dxi-series argumentField="indice" valueField="nivel" type="line" name="Nivel" />
+                        <dxo-legend [visible]="false" />
+                        <dxo-tooltip [enabled]="true" format="#.##" />
+                        <dxo-value-axis [title]="{ text: 'Puntaje' }" />
+                    </dx-chart>
+                </div>
+            </dxi-item>
+        </dx-box>
+
+        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Evolución Mensual General
+        </h3>
+        <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
+            class="charts-box mt-3" wrap="wrap">
+            <dxi-item baseSize="50%">
+                <div class="chart-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Gestión por Mes</h3>
+                        <dx-button icon="expand" type="default" stylingMode="text"
+                            (onClick)="abrirGraficoEnGrande('MENSUAL_GESTION', 'Gestión Mensual')">
+                        </dx-button>
+                    </div>
+                    <dx-chart [dataSource]="dataMensual">
+                        <dxi-series valueField="contacto" name="Contacto" color="#4caf50"></dxi-series>
+                        <dxi-series valueField="noContacto" name="No Contacto" color="#f44336"></dxi-series>
+                        <dxo-common-series-settings argumentField="mes" type="stackedBar">
+                            <dxo-label [visible]="true" [customizeText]="customizeLabelValue"></dxo-label>
+                        </dxo-common-series-settings>
+                        <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+                        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+                    </dx-chart>
+                </div>
+            </dxi-item>
+
+            <dxi-item baseSize="50%">
+                <div class="chart-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Conformidad por Mes</h3>
+                        <dx-button icon="expand" type="default" stylingMode="text"
+                            (onClick)="abrirGraficoEnGrande('MENSUAL_CONFORMIDAD', 'Conformidad Mensual')">
+                        </dx-button>
+                    </div>
+                    <dx-chart [dataSource]="dataMensual">
+                        <dxi-series valueField="conforme" name="Conforme" color="#2196f3"></dxi-series>
+                        <dxi-series valueField="noConforme" name="No Conforme" color="#ff9800"></dxi-series>
+                        <dxo-common-series-settings argumentField="mes" type="stackedBar">
+                            <dxo-label [visible]="true" [customizeText]="customizeLabelValue"></dxo-label>
+                        </dxo-common-series-settings>
+                        <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+                        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+                    </dx-chart>
+                </div>
+            </dxi-item>
+        </dx-box>
+
+        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Evolución de No Conformidad
+            por Área</h3>
+        <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="center"
+            class="charts-box mt-3">
+            <dxi-item baseSize="100%">
+                <div class="chart-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Áreas No Conforme (Mensual)</h3>
+                        <dx-button icon="expand" type="default" stylingMode="text"
+                            (onClick)="abrirGraficoEnGrande('MENSUAL_AREAS_NC', 'Evolución Áreas No Conforme')">
+                        </dx-button>
+                    </div>
+
+                    <dx-chart [dataSource]="dataNCMensualFlat" palette="Ocean">
+                        <dxo-common-series-settings argumentField="mes" valueField="cantidad" type="stackedBar">
+                            <dxo-label [visible]="true" [customizeText]="customizeLabelValue"></dxo-label>
+                        </dxo-common-series-settings>
+                        <dxo-series-template nameField="area"></dxo-series-template>
+
+                        <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+                        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+                        <dxo-argument-axis><dxo-label [visible]="true"></dxo-label></dxo-argument-axis>
+                    </dx-chart>
+                </div>
+            </dxi-item>
+        </dx-box>
+
+        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Desglose de Hallazgos</h3>
+        <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
+            class="charts-box mt-3" wrap="wrap">
+
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #d32f2f;">Motivos "No Contacto"</h3>
+                        <dx-button icon="expand" type="danger" stylingMode="text"
+                            (onClick)="abrirGraficoEnGrande('MOTIVOS', 'Motivos No Contacto')">
+                        </dx-button>
+                    </div>
+                    <dx-pie-chart [dataSource]="dataMotivosNoContacto" type="doughnut" palette="Soft Pastel">
+                        <dxi-series argumentField="motivo" valueField="cantidad">
+                            <dxo-label [visible]="true" position="columns" [customizeText]="customizeText">
+                                <dxo-connector [visible]="true"></dxo-connector>
+                            </dxo-label>
+                        </dxi-series>
+                        <dxo-legend [visible]="false"></dxo-legend>
+                        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+                    </dx-pie-chart>
+                </div>
+            </dxi-item>
+
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #f57c00;">Áreas "No Conforme"</h3>
+                        <dx-button icon="expand" type="default" stylingMode="text"
+                            (onClick)="abrirGraficoEnGrande('AREAS', 'Áreas No Conforme')">
+                        </dx-button>
+                    </div>
+                    <dx-chart [dataSource]="dataAreasNoConforme" [rotated]="true">
+                        <dxi-series argumentField="area" valueField="cantidad" type="bar" color="#ff9800">
+                            <dxo-label [visible]="true" position="outside"
+                                [customizeText]="customizeLabelValue"></dxo-label>
+                        </dxi-series>
+                        <dxo-legend [visible]="false"></dxo-legend>
+                        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+                    </dx-chart>
+                </div>
+            </dxi-item>
+
+            <dxi-item baseSize="33%">
+                <div class="chart-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="color: #7b1fa2;">Distribución Satisfacción</h3>
+                        <dx-button icon="expand" type="default" stylingMode="text"
+                            (onClick)="abrirGraficoEnGrande('SATISFACCION', 'Niveles de Satisfacción')">
+                        </dx-button>
+                    </div>
+                    <dx-chart [dataSource]="dataDistribucionSatisfaccion">
+                        <dxi-series argumentField="nivel" valueField="cantidad" type="bar" color="#9c27b0">
+                            <dxo-label [visible]="true" position="outside"
+                                [customizeText]="customizeLabelValue"></dxo-label>
+                        </dxi-series>
+                        <dxo-legend [visible]="false"></dxo-legend>
+                        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+                    </dx-chart>
+                </div>
+            </dxi-item>
+        </dx-box>
+
+        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Detalle General</h3>
+        <div style="padding: 10px;">
+            <dx-data-grid [dataSource]="dataFiltradaGrid" [showBorders]="true" [rowAlternationEnabled]="true"
+                (onCellPrepared)="onCellPrepared($event)">
+                <dxo-filter-row [visible]="showFilterRow"></dxo-filter-row>
+                <dxo-header-filter [visible]="true"></dxo-header-filter>
+                <dxo-paging [pageSize]="10"></dxo-paging>
+                <dxo-pager [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]"
+                    [showInfo]="true"></dxo-pager>
+                <dxi-column dataField="Timestamp" caption="Fecha / Hora" dataType="string" [width]="150"></dxi-column>
+                <dxi-column dataField="ESTADO DE GESTIÓN" caption="Estado"></dxi-column>
+                <dxi-column dataField="MOTIVO NO CONTACTO" caption="Motivo"></dxi-column>
+                <dxi-column dataField="CONFORMIDAD CLIENTE" caption="Conformidad"></dxi-column>
+                <dxi-column dataField="AREA CORRESPONDIENTE" caption="Área"></dxi-column>
+                <dxi-column dataField="NIVEL SATISFACCIÓN" caption="Sat" alignment="center" [width]="100"></dxi-column>
+                <dxi-column dataField="COMENTARIO" caption="Comentario"></dxi-column>
+            </dx-data-grid>
+        </div>
+    </div>
+
+    <dx-popup [visible]="popupGraficoVisible" [title]="tituloPopup" [showCloseButton]="true" [dragEnabled]="false"
+        [hideOnOutsideClick]="true" [width]="'90%'" [height]="'90%'" [showTitle]="true"
+        (onHiding)="popupGraficoVisible = false">
+
+        <div *dxTemplate="let data of 'content'" class="chart-container"
+            style="height: 100%; width: 100%; box-shadow: none; margin: 0; padding: 10px;">
+
+            <dx-chart *ngIf="graficoSeleccionado === 'MENSUAL_GESTION'" [dataSource]="dataMensual"
+                style="height: 100%;">
+                <dxi-series valueField="contacto" name="Contacto" color="#4caf50"></dxi-series>
+                <dxi-series valueField="noContacto" name="No Contacto" color="#f44336"></dxi-series>
+                <dxo-common-series-settings argumentField="mes" type="stackedBar">
+                    <dxo-label [visible]="true" [customizeText]="customizeLabelValue" backgroundColor="transparent">
+                        <dxo-font color="#ffffff" size="18" weight="700"></dxo-font>
+                    </dxo-label>
+                </dxo-common-series-settings>
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center">
+                    <dxo-font color="#ffffff" size="16"></dxo-font>
+                </dxo-legend>
+                <dxo-title text="Gestión Mensual"><dxo-font color="#ffffff" size="24"
+                        weight="700"></dxo-font></dxo-title>
+                <dxo-argument-axis><dxo-label><dxo-font color="#ffffff"
+                            size="14"></dxo-font></dxo-label></dxo-argument-axis>
+            </dx-chart>
+
+            <dx-chart *ngIf="graficoSeleccionado === 'MENSUAL_CONFORMIDAD'" [dataSource]="dataMensual"
+                style="height: 100%;">
+                <dxi-series valueField="conforme" name="Conforme" color="#2196f3"></dxi-series>
+                <dxi-series valueField="noConforme" name="No Conforme" color="#ff9800"></dxi-series>
+                <dxo-common-series-settings argumentField="mes" type="stackedBar">
+                    <dxo-label [visible]="true" [customizeText]="customizeLabelValue" backgroundColor="transparent">
+                        <dxo-font color="#ffffff" size="18" weight="700"></dxo-font>
+                    </dxo-label>
+                </dxo-common-series-settings>
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center">
+                    <dxo-font color="#ffffff" size="16"></dxo-font>
+                </dxo-legend>
+                <dxo-title text="Conformidad Mensual"><dxo-font color="#ffffff" size="24"
+                        weight="700"></dxo-font></dxo-title>
+                <dxo-argument-axis><dxo-label><dxo-font color="#ffffff"
+                            size="14"></dxo-font></dxo-label></dxo-argument-axis>
+            </dx-chart>
+
+            <dx-chart *ngIf="graficoSeleccionado === 'MENSUAL_AREAS_NC'" [dataSource]="dataNCMensualFlat"
+                palette="Ocean" style="height: 100%;">
+                <dxo-common-series-settings argumentField="mes" valueField="cantidad" type="stackedBar">
+                    <dxo-label [visible]="true" [customizeText]="customizeLabelValue" backgroundColor="transparent">
+                        <dxo-font color="#ffffff" size="18" weight="700"></dxo-font>
+                    </dxo-label>
+                </dxo-common-series-settings>
+                <dxo-series-template nameField="area"></dxo-series-template>
+
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center">
+                    <dxo-font color="#ffffff" size="16"></dxo-font>
+                </dxo-legend>
+                <dxo-title text="Áreas No Conforme (Mensual)"><dxo-font color="#ffffff" size="24"
+                        weight="700"></dxo-font></dxo-title>
+                <dxo-argument-axis><dxo-label><dxo-font color="#ffffff"
+                            size="14"></dxo-font></dxo-label></dxo-argument-axis>
+                <dxo-value-axis><dxo-label><dxo-font color="#ffffff"></dxo-font></dxo-label></dxo-value-axis>
+            </dx-chart>
+
+            <dx-pie-chart *ngIf="graficoSeleccionado === 'MOTIVOS'" [dataSource]="dataMotivosNoContacto" type="doughnut"
+                palette="Soft Pastel" style="height: 100%;">
+                <dxi-series argumentField="motivo" valueField="cantidad">
+                    <dxo-label [visible]="true" position="columns" [customizeText]="customizeText"
+                        backgroundColor="transparent">
+                        <dxo-font color="#ffffff" size="18" weight="700"></dxo-font>
+                        <dxo-connector [visible]="true" color="#ffffff"></dxo-connector>
+                    </dxo-label>
+                </dxi-series>
+                <dxo-legend [visible]="true" verticalAlignment="bottom" horizontalAlignment="center">
+                    <dxo-font color="#ffffff" size="16"></dxo-font>
+                </dxo-legend>
+                <dxo-title text="Motivos No Contacto"><dxo-font color="#ffffff" size="24"
+                        weight="700"></dxo-font></dxo-title>
+            </dx-pie-chart>
+
+            <dx-chart *ngIf="graficoSeleccionado === 'AREAS'" [dataSource]="dataAreasNoConforme" [rotated]="true"
+                style="height: 100%;">
+                <dxi-series argumentField="area" valueField="cantidad" type="bar" color="#ff9800">
+                    <dxo-label [visible]="true" position="outside" [customizeText]="customizeLabelValue"
+                        backgroundColor="transparent">
+                        <dxo-font color="#ffffff" size="18" weight="700"></dxo-font>
+                    </dxo-label>
+                </dxi-series>
+                <dxo-legend [visible]="false"></dxo-legend>
+                <dxo-title text="Total Áreas No Conforme"><dxo-font color="#ffffff" size="24"
+                        weight="700"></dxo-font></dxo-title>
+                <dxo-argument-axis><dxo-label><dxo-font color="#ffffff"
+                            size="14"></dxo-font></dxo-label></dxo-argument-axis>
+            </dx-chart>
+
+            <dx-chart *ngIf="graficoSeleccionado === 'SATISFACCION'" [dataSource]="dataDistribucionSatisfaccion"
+                style="height: 100%;">
+                <dxi-series argumentField="nivel" valueField="cantidad" type="bar" color="#9c27b0">
+                    <dxo-label [visible]="true" position="outside" [customizeText]="customizeLabelValue"
+                        backgroundColor="transparent">
+                        <dxo-font color="#ffffff" size="18" weight="700"></dxo-font>
+                    </dxo-label>
+                </dxi-series>
+                <dxo-legend [visible]="false"></dxo-legend>
+                <dxo-title text="Niveles de Satisfacción"><dxo-font color="#ffffff" size="24"
+                        weight="700"></dxo-font></dxo-title>
+                <dxo-argument-axis><dxo-label><dxo-font color="#ffffff"
+                            size="14"></dxo-font></dxo-label></dxo-argument-axis>
+                <dxo-value-axis><dxo-label><dxo-font color="#ffffff"></dxo-font></dxo-label></dxo-value-axis>
+            </dx-chart>
+        </div>
+    </dx-popup>
+</div>

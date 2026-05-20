@@ -17,8 +17,8 @@ export class AgendamientosComponent {
   protected service = inject(SheetsService);
   protected excelService = inject(ExcelExportService);
 
-  protected showFilterRow: boolean = true;  // Controla si la fila de filtro está visible o no
-  protected currentFilter: string = 'auto'; // Puede ser 'auto' o 'onClick'
+  protected showFilterRow: boolean = true;
+  protected currentFilter: string = 'auto'; 
 
   formAgendamientos: UntypedFormGroup;
   datosFiltrados: any[] = [];

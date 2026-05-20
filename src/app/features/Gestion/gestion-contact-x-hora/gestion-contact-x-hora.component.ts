@@ -4,8 +4,8 @@ import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../../services/service-google.service';
 import { DX_COMMON_MODULES } from '../../dx_common_modules';
 import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
-import { ExcelExportService } from '../../../services/excel/excel.service';
 import { DxDataGridComponent } from 'devextreme-angular';
+import { ExcelExportService } from '../../../services/excel/excel.service';
 
 @Component({
   selector: 'app-gestion-contact-x-hora',
@@ -16,6 +16,7 @@ import { DxDataGridComponent } from 'devextreme-angular';
 export class GestionContactXHoraComponent implements OnInit {
   protected service = inject(SheetsService);
   protected excelService = inject(ExcelExportService);
+  // protected toastr = inject(ToastrService);
 
   formGestion: UntypedFormGroup;
   dataFiltrada: any[] = [];
@@ -26,6 +27,7 @@ export class GestionContactXHoraComponent implements OnInit {
 
   isLoading = false;
   filtroDerivacionActivo: boolean = false;
+  filtroAgendamientoActivo: boolean = false;
 
   asesores = [
     { value: '', viewValue: 'Seleccione Asesor' },
@@ -35,7 +37,9 @@ export class GestionContactXHoraComponent implements OnInit {
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
     { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' }
+    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
+    { value: 'CC10', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
+    { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' }
   ];
 
   // 🔄 Tabla y columnas dinámicas para exportación de Gestión
@@ -113,6 +117,16 @@ export class GestionContactXHoraComponent implements OnInit {
         );
       }
 
+      if (this.filtroAgendamientoActivo) {
+        const motivosValidos = [
+          'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)'
+        ].map(x => x.toUpperCase());
+
+        datosFiltrados = datosFiltrados.filter(item =>
+          motivosValidos.includes((item["MOTIVO INTERÉS"] || '').toString().trim().toUpperCase())
+        );
+      }
+
       this.dataFiltrada = datosFiltrados;
     } catch (error) {
       console.error('Error al aplicar filtros:', error);
@@ -127,6 +141,12 @@ export class GestionContactXHoraComponent implements OnInit {
   }
 
   async onAsesorChanged(event: any): Promise<void> {
+    // const fechaInicio = this.formGestion.value.fechaInicio;
+    // const fechaFin = this.formGestion.value.fechaFin;
+    // if (fechaInicio === null || fechaFin === null) {
+    //   this.toastr.info("Por favor, selecciona un rango de fechas antes de elegir un asesor.");
+    //   return;
+    // }
     this.formGestion.patchValue({ Asesores: event.value });
     this.aplicarFiltros();
   }

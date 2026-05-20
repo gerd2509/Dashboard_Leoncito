@@ -29,6 +29,19 @@ export class VentaXPlazoAvComponent implements OnInit {
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
 
+  listaAsesores = [
+    { value: 'CC1', viewValue: 'PATRICIA' },
+    { value: 'CC3', viewValue: 'FELICITA' },
+    { value: 'CC5', viewValue: 'KAREN' },
+    { value: 'CC6', viewValue: 'MARIA' },
+    { value: 'CC8', viewValue: 'KELLY' },
+    { value: 'CC11', viewValue: 'ARIADNE' },
+    { value: 'CC13', viewValue: 'FRANCIS' },
+    { value: 'CC14', viewValue: 'ANYELA' },
+    { value: 'CC15', viewValue: 'ESMERALDA' },
+    { value: 'CC16', viewValue: 'ROSSMERY' }
+  ];
+
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
@@ -51,17 +64,26 @@ export class VentaXPlazoAvComponent implements OnInit {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-      this.dataVentas = jsonData.map((row: any) => ({
-        AsesorVenta: row['AsesorVenta'] || 'Sin Asesor', // Verifica el nombre exacto en el Excel
-        Cuotas: Number(row['Cuotas']) || 0,
-        FECHAVENTA: this.getFechaJS(row['FECHAVENTA']) // Conversión segura de fecha
-      }));
+      this.dataVentas = jsonData.map((row: any) => {
+        // Obtenemos el código del excel (ej: 'CC1')
+        const codigoExcel = row['AsesorVenta'] || 'Sin Asesor';
 
-      // Opcional: reiniciar filtro al importar
+        return {
+          // Transformamos el código al nombre real aquí:
+          AsesorVenta: this.obtenerNombreAsesor(codigoExcel),
+          Cuotas: Number(row['Cuotas']) || 0,
+          FECHAVENTA: this.getFechaJS(row['FECHAVENTA'])
+        };
+      });
+
       this.filtroVentas = [];
     };
-
     reader.readAsArrayBuffer(file);
+  }
+
+  private obtenerNombreAsesor(codigo: string): string {
+    const asesor = this.listaAsesores.find(a => a.value === codigo.trim());
+    return asesor ? asesor.viewValue : codigo; // Si no lo encuentra, deja el código original
   }
 
   generarTotalesPorAsesor(): void {

@@ -23,11 +23,13 @@ export class ProyeccionFfvvCampoComponent implements OnInit {
 
   asesoresMeta = [
     { id: 'AV1', nombre: 'MONTALVO LUYO ERNESTO ADOLFO', meta: 75000 },
-    { id: 'AV2', nombre: 'NAVARRO CASTAÑEDA MARISA GLADYS', meta: 25000 },
-    { id: 'AV3', nombre: 'PAOLA', meta: 25000 },
-    { id: 'AV4', nombre: 'ORDINOLA LEON SILVANA MARTINA', meta: 25000 },
-    { id: 'AV5', nombre: 'VALERA GAMARRA HERBERT ARMANDO', meta: 25000 },
-    { id: 'AV6', nombre: 'CORDOVA GRANADOS YOHANA', meta: 25000 },
+    { id: 'AV2', nombre: 'ACOSTA JIMENEZ MARIELA NATALY', meta: 50000 },
+    { id: 'AV3', nombre: 'PEREZ TINEO MARICIELO TATIANA', meta: 50000 },
+    { id: 'AV4', nombre: 'NAVARRO CASTAÑEDA MARISA GLADYS', meta: 25000 },
+    { id: 'AV5', nombre: 'SANDOVAL OTINIANO JUANA DEL PILAR', meta: 25000 },
+    { id: 'AV6', nombre: 'ORDINOLA LEON SILVANA MARTINA', meta: 25000 },
+    { id: 'AV8', nombre: 'ARROBAS LOZADA DORA YVONNE', meta: 25000 },
+    { id: 'AV9', nombre: 'SERNAQUE DAVILA JUAN ALBERTO', meta: 25000 }
   ];
 
   tablaBonos = [

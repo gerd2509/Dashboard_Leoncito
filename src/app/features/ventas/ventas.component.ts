@@ -28,6 +28,7 @@ export class VentasComponent implements OnInit {
   popupVisibleNroVentas: boolean = false;
   popupVisibleVentasSemanal: boolean = false;
   popupVisibleVentasPorMes: boolean = false;
+  popupVisibleVentasRealzzaPorMes: boolean = false;
 
   semanas: string[] = [];
   semanaMap = new Map<string, string>();
@@ -44,6 +45,9 @@ export class VentasComponent implements OnInit {
 
   chartMontoMensual: { Mes: string; MontoTotal: number }[] = [];
 
+  // <-- ADICIONADO: nuevo array para la sede REALZZA STORE
+  chartMontoMensualRealzza: { Mes: string; MontoTotal: number }[] = []; // <-- ADICIONADO
+
   totalMontoVentas = 0;
   totalVentas = 0;
   ticket = 0;
@@ -55,11 +59,27 @@ export class VentasComponent implements OnInit {
     { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
-    { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
     { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
-    { value: 'CC10', viewValue: 'RIVAS PURISACA KAREN YUDITH' }
+    { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
+    { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
+    { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
+    { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
+    { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
+    { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' }
   ];
+
+  nombresCortos: Record<string, string> = {
+    'CC1': 'PATRICIA',
+    'CC3': 'FELICITA',
+    'CC5': 'KAREN',
+    'CC6': 'MARIA',
+    'CC8': 'KELLY',
+    'CC13': 'FRANCIS',
+    'CC11': 'ARIADNE',
+    'CC15': 'ESMERALDA',
+    'CC16': 'ROSMERY',
+    'CC19': 'JUANA'
+  };
 
   displayedColumnsOriginales = [
     { HeaderField: 'IDVENTA', HeaderName: 'ID VENTA', Visible: true },
@@ -72,10 +92,11 @@ export class VentasComponent implements OnInit {
     { HeaderField: 'DocIdentidad', HeaderName: 'DNI CLIENTE', Visible: true },
     { HeaderField: 'TipoVenta', HeaderName: 'TIPO VENTA', Visible: true },
     { HeaderField: 'TipoBase', HeaderName: 'TIPO BASE', Visible: true },
+    { HeaderField: 'TipoCliente', HeaderName: 'TIPO CLIENTE', Visible: true },
     { HeaderField: 'AsesorVenta', HeaderName: 'ASESOR CONTACT', Visible: true },
     { HeaderField: 'EstadoVenta', HeaderName: 'ESTADO VENTA', Visible: true },
     { HeaderField: 'Entidad', HeaderName: 'ENTIDAD', Visible: true },
-    { HeaderField: 'TipoProducto', HeaderName: 'TIPO DE PRODUCTO', Visible: true }
+    { HeaderField: 'CONTACTO', HeaderName: 'CONTACTO', Visible: true }
   ];
 
   columnasVisibles: Record<string, boolean> = {
@@ -89,10 +110,11 @@ export class VentasComponent implements OnInit {
     'DocIdentidad': true,
     'TipoVenta': true,
     'TipoBase': true,
+    'TipoCliente': true,
     'AsesorVenta': true,
     'EstadoVenta': true,
     'Entidad': true,
-    'TipoProducto': true
+    'CONTACTO': true
   };
 
   tipoProducto = [
@@ -146,10 +168,11 @@ export class VentasComponent implements OnInit {
         DocIdentidad: row['DocIdentidad'],
         TipoVenta: row['TipoVenta'],
         TipoBase: row['TipoBase'],
+        TipoCliente: row['TipoCliente'],
         AsesorVenta: row['AsesorVenta'],
         EstadoVenta: row['EstadoVenta'],
         Entidad: row['Entidad'],
-        TipoProducto: row['TipoProducto']
+        CONTACTO: row['CONTACTO'],
       }));
 
       this.filtroVentas = [...this.dataVentas];
@@ -204,51 +227,81 @@ export class VentasComponent implements OnInit {
   aplicarFiltros(): void {
     const selectedAsesor = (this.formVentas.value.Asesores || '').toString().trim().toUpperCase();
     const excluirNAS = this.formVentas.value.NAS === true;
-    const selectedTipoProducto = this.formVentas.value.TipoProducto; // 👈 nuevo
+    const selectedTipoProducto = this.formVentas.value.TipoProducto;
 
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);
     const fechaFin = new Date(this.formVentas.value.fechaFin);
+
+    // Normalizamos horas para comparaciones exactas
     fechaInicio.setHours(0, 0, 0, 0);
     fechaFin.setHours(23, 59, 59, 999);
 
     this.filtroVentas = this.dataVentas.filter(venta => {
       const fechaVenta = new Date(venta.FECHAVENTA);
+      // Asegurarse de quitar horas a la fecha de venta para comparar solo días si es necesario, 
+      // pero tu lógica original estaba bien si FECHAVENTA ya viene limpia.
       const cumpleFecha = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
 
       const asesor = (venta.AsesorVenta || '').toString().trim().toUpperCase();
       const cumpleAsesor = !selectedAsesor || asesor === selectedAsesor;
       const noEsNAS = !excluirNAS || asesor !== 'NAS';
 
-      // 👇 Nuevo filtro de TipoProducto
       let cumpleTipoProducto = true;
       if (selectedTipoProducto === '1') {
-        cumpleTipoProducto = venta.TipoProducto === 'ELECTRO' || venta.TipoProducto === 'ELECTRO y LEONCITO';
+        cumpleTipoProducto = venta.TipoProducto !== 'LEO' && venta.TipoProducto !== 'DSK.';
       } else if (selectedTipoProducto === '2') {
-        cumpleTipoProducto = venta.TipoProducto === 'LEONCITO' || venta.TipoProducto === 'ELECTRO y LEONCITO';
+        cumpleTipoProducto = venta.TipoProducto === 'LEO' || venta.TipoProducto === 'DSK.';
       }
 
       return cumpleFecha && cumpleAsesor && noEsNAS && cumpleTipoProducto;
     });
 
-    // Recalcular todo
+    // Recalcular gráficos
     this.generarChartData();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
     this.generarChartMontoSemanal();
     this.generarChartMontoMensual();
+    this.generarChartMontoMensualRealzza();
 
-    const hoy = new Date();
-    const diaHoy = hoy.getDate();
-    const mesHoy = hoy.getMonth();
-    const anioHoy = hoy.getFullYear();
-    const diasMesActual = new Date(anioHoy, mesHoy + 1, 0).getDate();
-    const diasTranscurridos = diaHoy - 1;
-
+    // Cálculos de Totales
     this.totalVentas = this.filtroVentas.length;
     this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
     this.ticket = this.totalVentas ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
-    const ticketDiario = diasTranscurridos > 0 ? this.totalMontoVentas / diasTranscurridos : 0;
-    this.proyeccion = Math.round(ticketDiario * diasMesActual);
+
+    // --- LÓGICA DE PROYECCIÓN CORREGIDA ---
+    const hoy = new Date();
+    const fechaFinFilter = new Date(this.formVentas.value.fechaFin);
+
+    // Obtenemos año y mes actual vs año y mes del filtro
+    const anioActual = hoy.getFullYear();
+    const mesActual = hoy.getMonth();
+
+    const anioFiltro = fechaFinFilter.getFullYear();
+    const mesFiltro = fechaFinFilter.getMonth();
+
+    // Determinamos si el filtro corresponde a un mes que YA PASÓ (cerrado)
+    // Es pasado si el año es menor, O si es el mismo año pero el mes es menor.
+    const esMesPasado = anioFiltro < anioActual || (anioFiltro === anioActual && mesFiltro < mesActual);
+
+    if (esMesPasado) {
+      // CASO 1: Mes Cerrado (ej: Viendo ventas de Diciembre estando en Enero)
+      // La proyección es exactamente lo que se vendió. No se calcula a futuro.
+      this.proyeccion = this.totalMontoVentas;
+    } else {
+      // CASO 2: Mes En Curso (ej: Viendo ventas de Enero estando en Enero)
+      const diasMesActual = new Date(anioActual, mesActual + 1, 0).getDate(); // Total días del mes (28, 30, 31)
+      const diaHoy = hoy.getDate();
+
+      // Validación para evitar errores el día 1 del mes
+      // Nota: Si tu data importada suele ser "hasta el día de ayer", usa (diaHoy - 1). 
+      // Si la data incluye ventas de hoy, usa (diaHoy).
+      // Aquí usamos Math.max(1, ...) para evitar división por cero.
+      const diasTranscurridos = Math.max(1, diaHoy);
+
+      const ticketDiario = this.totalMontoVentas / diasTranscurridos;
+      this.proyeccion = Math.round(ticketDiario * diasMesActual);
+    }
   }
 
   generarChartData(): void {
@@ -256,24 +309,35 @@ export class VentasComponent implements OnInit {
     const agrupado = new Map<string, number>();
 
     for (const venta of this.filtroVentas) {
-      const asesor = (venta.AsesorVenta || '').toString().trim();
-      const asesorUpper = asesor.toUpperCase();
+      // Obtenemos el ID (ej: CC1, CC3)
+      const asesorId = (venta.AsesorVenta || '').toString().trim();
+      const asesorUpper = asesorId.toUpperCase();
 
       if (excluirNAS && asesorUpper === 'NAS') continue;
 
       const monto = venta.MontoConsolidado || 0;
 
-      if (agrupado.has(asesor)) {
-        agrupado.set(asesor, agrupado.get(asesor)! + monto);
+      if (agrupado.has(asesorId)) {
+        agrupado.set(asesorId, agrupado.get(asesorId)! + monto);
       } else {
-        agrupado.set(asesor, monto);
+        agrupado.set(asesorId, monto);
       }
     }
 
+    // Convertimos el Map a Array transformando el ID al Nombre Corto
     this.chartData = Array.from(agrupado, ([id, MontoTotal]) => {
-      const asesor = this.asesores.find(a => a.value === id);
-      const AsesorVenta = asesor ? asesor.viewValue : id;
-      return { AsesorVenta, MontoTotal: Math.round(MontoTotal) };
+
+      // 1. Buscamos si tiene un nombre corto asignado
+      let nombreMostrar = this.nombresCortos[id];
+
+      // 2. Si no tiene nombre corto, buscamos en la lista completa (dropdown)
+      if (!nombreMostrar) {
+        const asesorObj = this.asesores.find(a => a.value === id);
+        // 3. Si tampoco está en la lista completa, mostramos el ID original
+        nombreMostrar = asesorObj ? asesorObj.viewValue : id;
+      }
+
+      return { AsesorVenta: nombreMostrar, MontoTotal: Math.round(MontoTotal) };
     }).sort((a, b) => b.MontoTotal - a.MontoTotal);
   }
 
@@ -432,6 +496,45 @@ export class VentasComponent implements OnInit {
     });
   }
 
+  generarChartMontoMensualRealzza(): void {
+    const sedeObjetivo = 'SEDE REALZZA STORE';
+    const agrupado = new Map<string, number>();
+    const mesesSet = new Set<string>();
+
+    for (const venta of this.filtroVentas) {
+      // Comparación case-insensitive y manejando nulos
+      const sede = (venta.Sede || '').toString().trim().toUpperCase();
+      if (sede !== sedeObjetivo.toUpperCase()) continue; // solo la sede objetivo
+      if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
+
+      // 🚫 Si es NOTA DE CRÉDITO, no la consideramos
+      const estadoVenta = (venta.EstadoVenta || '').toString().trim().toUpperCase();
+      if (estadoVenta === 'NOTA DE CRÉDITO') continue;
+
+      // Procesar fecha
+      const fecha = new Date(venta.FECHAVENTA);
+      const claveMes = `${fecha.getFullYear()}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}`;
+      mesesSet.add(claveMes);
+
+      // Acumular monto
+      agrupado.set(claveMes, (agrupado.get(claveMes) || 0) + venta.MontoConsolidado);
+    }
+
+    // Ordenar meses
+    const mesesOrdenados = Array.from(mesesSet).sort();
+
+    // Mapear a la estructura del gráfico
+    this.chartMontoMensualRealzza = mesesOrdenados.map(claveMes => {
+      const [anio, mes] = claveMes.split('-');
+      const nombreMes = this.getNombreMes(+mes) + ' ' + anio;
+      return {
+        Mes: nombreMes,
+        MontoTotal: agrupado.get(claveMes) || 0
+      };
+    });
+  }
+
+
   getNombreMes(mes: number): string {
     const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -482,7 +585,7 @@ export class VentasComponent implements OnInit {
     console.log(this.displayedColumnsOriginales)
   }
 
-  abrirPopup(tipo: 'asesor' | 'dia' | 'nroVentas' | 'ventasSemanal' | 'ventasPorMes') {
+  abrirPopup(tipo: 'asesor' | 'dia' | 'nroVentas' | 'ventasSemanal' | 'ventasPorMes' | 'ventasRealzzaPorMes'): void {
     if (tipo === 'asesor') {
       this.popupVisibleAsesor = true;
     } else if (tipo === 'dia') {
@@ -493,6 +596,8 @@ export class VentasComponent implements OnInit {
       this.popupVisibleVentasSemanal = true;
     } else if (tipo === 'ventasPorMes') {
       this.popupVisibleVentasPorMes = true;
+    } else if (tipo === 'ventasRealzzaPorMes') {
+      this.popupVisibleVentasRealzzaPorMes = true;
     }
   }
 

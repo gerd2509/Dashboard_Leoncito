@@ -8,9 +8,9 @@
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
         valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
         (onValueChanged)="onAsesorChanged($event)" />
-    <dx-select-box style="width: 300px;" formControlName="TipoProducto" [dataSource]="tipoProducto" displayExpr="viewValue"
-        valueExpr="value" label="Tipo Producto" labelMode="floating" stylingMode="underlined" placeholder=""
-        (onValueChanged)="onTipoProductoChanged($event)" />
+    <dx-select-box style="width: 300px;" formControlName="TipoProducto" [dataSource]="tipoProducto"
+        displayExpr="viewValue" valueExpr="value" label="Tipo Producto" labelMode="floating" stylingMode="underlined"
+        placeholder="" (onValueChanged)="onTipoProductoChanged($event)" />
     <dx-tag-box style="width: 300px;" formControlName="columnas" [dataSource]="displayedColumnsOriginales"
         displayExpr="HeaderName" valueExpr="HeaderField" placeholder="Columnas" label="Columnas" labelMode="floating"
         stylingMode="underlined" [showSelectionControls]="true" (onValueChanged)="onColumnsChange()"
@@ -57,13 +57,13 @@
     <dxi-column alignment="center" caption="TIPO VENTA" dataField="TipoVenta"
         [visible]="columnasVisibles['TipoVenta']" />
     <dxi-column alignment="center" caption="TIPO BASE" dataField="TipoBase" [visible]="columnasVisibles['TipoBase']" />
+    <dxi-column alignment="center" caption="TIPO CLIENTE" dataField="TipoCliente" [visible]="columnasVisibles['TipoCliente']" />
     <dxi-column alignment="center" caption="ASESOR CONTACT" dataField="AsesorVenta"
         [visible]="columnasVisibles['AsesorVenta']" />
     <dxi-column alignment="center" caption="ESTADO VENTA" dataField="EstadoVenta"
         [visible]="columnasVisibles['EstadoVenta']" />
     <dxi-column alignment="center" caption="ENTIDAD" dataField="Entidad" [visible]="columnasVisibles['Entidad']" />
-    <dxi-column alignment="center" caption="TIPO DE PRODUCTO" dataField="TipoProducto"
-        [visible]="columnasVisibles['TipoProducto']" />
+    <dxi-column alignment="center" caption="CONTACTO" dataField="CONTACTO" [visible]="columnasVisibles['CONTACTO']" />
 
     <dxo-summary>
         <dxi-total-item [alignment]="'center'" column="MontoConsolidado" summaryType="sum"
@@ -334,6 +334,53 @@
     <dx-chart class="w-100" [dataSource]="chartMontoMensual" title="Monto Total de Ventas por Mes"
         [palette]="'Material'" type="area">
         <dxi-series argumentField="Mes" valueField="MontoTotal" name="Monto Total de Ventas por Mes" type="area">
+            <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
+            </dxo-label>
+        </dxi-series>
+
+        <dxo-argument-axis>
+            <dxo-label>
+                <dxo-font weight="bold" size="14"></dxo-font>
+            </dxo-label>
+        </dxo-argument-axis>
+
+        <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+    </dx-chart>
+</div>
+
+<div class="d-flex justify-content-between mt-2">
+    <button mat-icon-button (click)="abrirPopup('ventasPorMes')">
+        <mat-icon>zoom_out_map</mat-icon>
+    </button>
+
+    <dx-popup [(visible)]="popupVisibleVentasPorMes" [showTitle]="true" title="VENTAS REALZZA"
+        [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart class="w-100" [dataSource]="chartMontoMensualRealzza"
+            title="MONTO TOTAL VENTAS POR MES — REALZZA STORE" [palette]="'Material'" type="area">
+            <dxi-series argumentField="Mes" valueField="MontoTotal" name="VENTAS — REALZZA STORE" type="area">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
+                    <dxo-format type="fixedPoint" [precision]="1"></dxo-format>
+                </dxo-label>
+            </dxi-series>
+
+            <dxo-argument-axis>
+                <dxo-label>
+                    <dxo-font weight="bold" size="14"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+        </dx-chart>
+    </dx-popup>
+</div>
+
+<div>
+    <dx-chart class="w-100" [dataSource]="chartMontoMensualRealzza"
+        title="Monto Total de Ventas por Mes — REALZZA STORE" [palette]="'Material'" type="area">
+        <dxi-series argumentField="Mes" valueField="MontoTotal" name="Monto Total — REALZZA STORE" type="area">
             <dxo-label [visible]="true" [backgroundColor]="'transparent'"
                 [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
                 <dxo-format type="fixedPoint" [precision]="1"></dxo-format>

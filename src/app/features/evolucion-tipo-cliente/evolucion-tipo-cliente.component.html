@@ -1,0 +1,105 @@
+<form class="form mt-2" [formGroup]="formComparativo">
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <dx-date-box formControlName="fechaInicio" type="date" label="Inicio"
+            [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+        <dx-date-box formControlName="fechaFin" type="date" label="Fin" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+
+        <button mat-flat-button (click)="actualizarFiltros()">
+            <mat-icon>search</mat-icon> Actualizar
+        </button>
+
+        <dx-check-box [(value)]="vistaSeparada" text="Ver gráficos separados por cliente">
+        </dx-check-box>
+
+        <div class="flex-grow-1"></div>
+        <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+        <button mat-flat-button type="button" (click)="fileInput.click()">
+            <mat-icon>upload</mat-icon> Importar Excel
+        </button>
+    </div>
+</form>
+
+<div class="container-fluid mt-4">
+    @if (!vistaSeparada) {
+    <dx-chart id="chartUnificado" title="Comparativo General de Ventas" [dataSource]="chartData">
+
+        <dxo-series-template nameField="tipo"></dxo-series-template>
+
+        <dxo-common-series-settings argumentField="fecha" valueField="monto" type="spline">
+            <dxo-point [visible]="true" [size]="6"></dxo-point>
+        </dxo-common-series-settings>
+
+        <dxo-argument-axis argumentType="datetime">
+            <dxo-tick-interval [months]="1"></dxo-tick-interval>
+            <dxo-label format="MMM yyyy"></dxo-label>
+            <dxo-grid [visible]="true"></dxo-grid>
+        </dxo-argument-axis>
+
+        <dxo-value-axis>
+            <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [customizeText]="formatearMoneda"></dxo-label>
+            <dxo-title text="Monto (S/.)"></dxo-title>
+        </dxo-value-axis>
+
+        <dxo-tooltip [enabled]="true" [shared]="true">
+            <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
+            <dxo-tooltip [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+        </dxo-tooltip>
+
+        <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" [visible]="true"></dxo-legend>
+        <dxo-export [enabled]="true"></dxo-export>
+    </dx-chart>
+    } @else {
+    <div class="d-flex flex-column gap-4">
+        <div *ngFor="let tipo of tiposUnicos; let i = index">
+            <dx-chart [id]="'chart-' + tipo" [title]="'Evolución: ' + tipo" [dataSource]="getDataPorTipo(tipo)">
+
+                <dxo-margin [top]="50"></dxo-margin>
+
+                <dxo-adaptive-layout [keepLabels]="true"></dxo-adaptive-layout>
+
+                <dxo-common-series-settings argumentField="fecha" valueField="monto" type="splineArea">
+                    <dxo-point [visible]="true" [size]="6"></dxo-point>
+                </dxo-common-series-settings>
+
+                <dxi-series name="Ventas" [color]="colores[i % colores.length]">
+
+                    <dxo-area [opacity]="0.5"></dxo-area>
+
+                    <dxo-label [visible]="true" position="outside" resolveLabelOverlapping="none"
+                        [customizeText]="formatearMoneda" backgroundColor="#ffffff"> <dxo-connector
+                            [visible]="true"></dxo-connector>
+                        <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
+                        <dxo-border [visible]="true" color="#dddddd" [width]="1"></dxo-border>
+                        <dxo-font color="#000000" weight="bold" [size]="12"></dxo-font>
+                    </dxo-label>
+
+                </dxi-series>
+
+                <dxo-argument-axis argumentType="datetime">
+                    <dxo-tick-interval [months]="1"></dxo-tick-interval>
+                    <dxo-label format="MMM yyyy"></dxo-label>
+                    <dxo-grid [visible]="true" [opacity]="0.3"></dxo-grid>
+                </dxo-argument-axis>
+
+                <dxo-value-axis>
+                    <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"
+                        [customizeText]="formatearMoneda"></dxo-label>
+                    <dxo-title text="Monto (S/.)"></dxo-title>
+                </dxo-value-axis>
+
+                <dxo-tooltip [enabled]="true" [shared]="true">
+                    <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
+                    <dxo-tooltip [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+                </dxo-tooltip>
+
+                <dxo-legend [visible]="false"></dxo-legend>
+            </dx-chart>
+        </div>
+    </div>
+    }
+
+
+
+
+
+</div>

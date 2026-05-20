@@ -1,0 +1,152 @@
+<form class="form mt-2" [formGroup]="formComparativo">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
+        valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
+        (onValueChanged)="onAsesorChanged($event)" />
+
+    <button mat-flat-button [disabled]="formComparativo.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+
+    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon>
+        Importar
+    </button>
+    <button class="button" mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+</form>
+
+<div class="charts-grid">
+
+    <!-- GRÁFICO 1 (ancho completo): Área suavizada + Línea de crecimiento -->
+    <div class="chart-full">
+        <dx-chart id="chartComparativo" [dataSource]="chartComparativo" palette="Harmony Light"
+            [customizePoint]="customizePoint">
+
+            <dxo-zoom-and-pan argumentAxis="both"></dxo-zoom-and-pan>
+
+            <dxo-crosshair [enabled]="true" dashStyle="dot" color="#90A4AE">
+            </dxo-crosshair>
+
+            <dxo-argument-axis argumentType="string">
+                <dxo-label [overlappingBehavior]="'rotate'"></dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-value-axis>
+                <dxo-title text="Monto (S/)"></dxo-title>
+            </dxo-value-axis>
+
+            <!-- Área suavizada para el Monto: más impacto visual que barras simples -->
+            <dxi-series valueField="Monto" argumentField="Mes" name="Monto (S/)" type="splineArea"
+                color="#1565C0" [opacity]="0.65">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [customizeText]="formatMontoLabel" position="outside">
+                    <dxo-font size="10" weight="700" color="#0D47A1"></dxo-font>
+                </dxo-label>
+                <dxo-point [visible]="true" [size]="9" color="#1565C0" symbol="circle"></dxo-point>
+            </dxi-series>
+
+            <!-- Spline suavizado para Crecimiento %: más legible que línea recta -->
+            <dxi-series valueField="Crecimiento" argumentField="Mes" name="Crecimiento (%)" type="spline"
+                [axis]="1" [width]="3">
+                <dxo-label [visible]="true" [backgroundColor]="'#ffffff'"
+                    [customizeText]="formatCrecimientoLabel" [border]="{ visible: false }">
+                    <dxo-font size="12" weight="700" color="#000000"></dxo-font>
+                </dxo-label>
+                <dxo-point [visible]="true" [size]="12" symbol="circle"></dxo-point>
+            </dxi-series>
+
+            <!-- Serie de proyección: solo aparece en el mes en curso -->
+            <dxi-series valueField="Proyeccion" argumentField="Mes" name="Proyección Mes Actual"
+                type="scatter" color="#E65100">
+                <dxo-label [visible]="true" [backgroundColor]="'#E65100'"
+                    [customizeText]="formatProyeccionLabel"
+                    [border]="{ visible: false }" position="top">
+                    <dxo-font size="12" weight="700" color="#ffffff"></dxo-font>
+                </dxo-label>
+                <dxo-point [visible]="true" [size]="18" symbol="triangleUp" color="#E65100"></dxo-point>
+            </dxi-series>
+
+            <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="customizeTooltip">
+            </dxo-tooltip>
+
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+            <dxo-title text="Evolución de Ventas Mensual"></dxo-title>
+        </dx-chart>
+    </div>
+
+    <!-- GRÁFICO 2 (mitad izquierda): Barras + línea de tendencia -->
+    <div class="chart-half">
+        <dx-chart [dataSource]="chartMontoMensual" palette="Material">
+
+            <dxo-crosshair [enabled]="true" dashStyle="dot" color="#90A4AE">
+            </dxo-crosshair>
+
+            <dxo-argument-axis argumentType="string">
+                <dxo-label [overlappingBehavior]="'rotate'"></dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-value-axis>
+                <dxo-title text="Monto Total (S/)"></dxo-title>
+            </dxo-value-axis>
+
+            <!-- Barras del monto total por mes -->
+            <dxi-series argumentField="Mes" valueField="MontoTotal" name="Monto Total" type="bar"
+                color="#00838F">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'" position="outside"
+                    [customizeText]="formatMontoLabel">
+                    <dxo-font size="10" weight="700" color="#006064"></dxo-font>
+                </dxo-label>
+            </dxi-series>
+
+            <!-- Línea de tendencia superpuesta sobre las barras -->
+            <dxi-series argumentField="Mes" valueField="MontoTotal" name="Tendencia" type="spline"
+                color="#FF8F00" [width]="3" dashStyle="solid">
+                <dxo-point [visible]="true" [size]="7" color="#FF8F00" symbol="triangleUp"></dxo-point>
+            </dxi-series>
+
+            <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+            <dxo-title text="Monto Total por Mes con Tendencia"></dxo-title>
+        </dx-chart>
+    </div>
+
+    <!-- GRÁFICO 3 (mitad derecha): Ranking horizontal de asesores -->
+    <div class="chart-half">
+        <dx-chart [dataSource]="chartRankingAsesores" [rotated]="true"
+            [customizePoint]="customizeRankingPoint">
+
+            <dxo-argument-axis argumentType="string">
+                <dxo-label [wordWrap]="'normal'" [textOverflow]="'none'">
+                    <dxo-font size="11"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-value-axis>
+                <dxo-title text="Monto (S/)"></dxo-title>
+            </dxo-value-axis>
+
+            <dxi-series argumentField="Asesor" valueField="Monto" name="Monto por Asesor" type="bar"
+                [barWidth]="60">
+                <dxo-label [visible]="true" position="outside" [customizeText]="formatMontoLabel">
+                    <dxo-font size="10" weight="700"></dxo-font>
+                </dxo-label>
+            </dxi-series>
+
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+            <dxo-legend [visible]="false"></dxo-legend>
+            <dxo-title text="Ranking de Asesores por Monto"></dxo-title>
+        </dx-chart>
+    </div>
+
+</div>

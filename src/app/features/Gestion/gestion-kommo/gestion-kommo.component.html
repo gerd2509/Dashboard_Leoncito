@@ -1,0 +1,60 @@
+<form class="form mt-2" [formGroup]="formGestion">
+    <dx-select-box style="width: 250px;"
+        [items]="[{value: '', text: 'SELECCIONE'}, {value: 'LEONCITO', text: 'LEONCITO'}, {value: 'REALZZA', text: 'REALZZA'}]"
+        displayExpr="text" valueExpr="value" formControlName="tienda" label="Tienda" labelMode="floating"
+        stylingMode="underlined" (onValueChanged)="onTiendaChanged($event)">
+    </dx-select-box>
+
+    <dx-date-box formControlName="fechaInicio" type="date" label="Fecha Inicio" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <dx-date-box formControlName="fechaFin" type="date" label="Fecha Fin" labelMode="floating" stylingMode="underlined"
+        [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesoresFiltrados"
+        displayExpr="viewValue" valueExpr="value" [label]="labelAsesor" labelMode="floating" stylingMode="underlined"
+        placeholder="">
+    </dx-select-box>
+
+    <button mat-flat-button color="primary" (click)="filtrarPorFecha()">
+        <mat-icon>search</mat-icon> Actualizar
+    </button>
+
+    <button mat-flat-button (click)="exportar()" [disabled]="dataFiltrada.length === 0">
+        <mat-icon>file_download</mat-icon> Exportar
+    </button>
+</form>
+
+<div class="grid-container">
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" [showBorders]="true"
+        [rowAlternationEnabled]="true" [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+        <dxo-paging [pageSize]="15"></dxo-paging>
+        <dxo-filter-row [visible]="true" />
+
+        <dxi-column dataField="Marca temporal" caption="Fecha/Hora"></dxi-column>
+        <dxi-column dataField="TIENDA" caption="Tienda"></dxi-column>
+        <dxi-column dataField="FECHA DE LEAD ASIGNADO" caption="Fecha Lead Asignado"></dxi-column>
+
+        <dxi-column [dataField]="columnaAsesor" [caption]="'Asesor ' + tiendaSeleccionada"></dxi-column>
+        <dxi-column [dataField]="columnaDni" caption="DNI Cliente"></dxi-column>
+        <dxi-column dataField="NOMBRE CLIENTE" caption="Nombre Cliente"></dxi-column>
+        <dxi-column [dataField]="columnaCelular" caption="Celular"></dxi-column>
+        <dxi-column [dataField]="columnaEstado" caption="Estado Gestión"></dxi-column>
+        <dxi-column [dataField]="columnaMotivoNoAtendible" caption="Motivo No Atendible"></dxi-column>
+
+        <dxi-column dataField="RESULTADO DE GESTIÓN" caption="Resultado"></dxi-column>
+        <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto"></dxi-column>
+        <dxi-column dataField="MOTIVO NO INTERÉS" caption="Motivo No Int."></dxi-column>
+
+        <dxo-summary>
+            <dxi-total-item column="Marca temporal" summaryType="count" displayFormat="Total: {0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>

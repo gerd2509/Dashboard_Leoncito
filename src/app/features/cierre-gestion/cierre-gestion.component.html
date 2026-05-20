@@ -14,72 +14,410 @@
     </button>
 </form>
 
-<div>
-    <!-- Spinner superpuesto -->
+<div class="grid-container">
     <div class="grid-overlay" *ngIf="isLoading">
         <mat-spinner diameter="40"></mat-spinner>
     </div>
 
-    <div class="grid-container">
-        <!-- Columna izquierda (gráficos) -->
-        <div class="left-container">
-            <div class="w-100">
-                <dx-chart [dataSource]="dataGrafico" [rotated]="false" (onInitialized)="onChartInit($event)">
-                    <dxo-title [text]="tituloGrafico">
-                        <dxo-font [size]="18" [weight]="600"></dxo-font>
-                    </dxo-title>
-                    <dxi-series argumentField="categoria" valueField="valor" type="bar" name="Totales"
-                        colorField="color">
-                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
-                            [font]="{ color: '#000', size: 18, weight: 600 }" [position]="'outside'">
-                            <dxo-format [precision]="0"></dxo-format>
-                        </dxo-label>
-                    </dxi-series>
-                    <dxo-legend [visible]="false"></dxo-legend>
-                </dx-chart>
-            </div>
+    <div class="contenedorPrincipal mt-3">
 
-            <div class="w-100">
-                <div class="d-flex justify-content-between mt-3 flex-wrap">
-                    <div class="card-resumen">
-                        <div class="titulo">TOTAL MONTO VENTAS</div>
-                        <div class="valor">S/. {{ totalMontoVentas | number:'1.0-0' }}K</div>
+        <!-- KPIs RESUMEN -->
+        <div class="kpi-section mb-4">
+            <div class="kpi-container">
+
+                <!-- CALL: AGENDAMIENTOS -->
+                <div class="kpi-card kpi-team-call"
+                    [class.kpi-success]="porcentajeMetaCall >= 85"
+                    [class.kpi-warning]="porcentajeMetaCall >= 50 && porcentajeMetaCall < 85"
+                    [class.kpi-danger]="porcentajeMetaCall < 50"
+                    [class.kpi-active]="kpiSeleccionado === 'agend-call'"
+                    (click)="toggleKpi('agend-call')">
+                    <div class="kpi-team-badge call-badge">📞 CALL</div>
+                    <div class="kpi-icon">📅</div>
+                    <div class="kpi-title">AGENDAMIENTOS</div>
+                    <div class="kpi-value">{{ totalAgendamientosCall }}</div>
+                    <div class="kpi-meta">Meta: {{ metaAgendamientoEquipo }} &nbsp;|&nbsp; {{ porcentajeMetaCall }}%</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="porcentajeMetaCall"></div>
                     </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'agend-call' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
 
-                    <div class="card-resumen">
-                        <div class="titulo">TOTAL VENTAS</div>
-                        <div class="valor">{{ totalVentas }}</div>
+                <!-- CALL: DERIVACIONES -->
+                <div class="kpi-card kpi-team-call"
+                    [class.kpi-success]="porcentajeMetaDerivacionCall >= 85"
+                    [class.kpi-warning]="porcentajeMetaDerivacionCall >= 50 && porcentajeMetaDerivacionCall < 85"
+                    [class.kpi-danger]="porcentajeMetaDerivacionCall < 50"
+                    [class.kpi-active]="kpiSeleccionado === 'deriv-call'"
+                    (click)="toggleKpi('deriv-call')">
+                    <div class="kpi-team-badge call-badge">📞 CALL</div>
+                    <div class="kpi-icon">🔄</div>
+                    <div class="kpi-title">DERIVACIONES</div>
+                    <div class="kpi-value">{{ totalDerivacionesCall }}</div>
+                    <div class="kpi-meta">Meta: {{ metaDerivacionEquipo }} &nbsp;|&nbsp; {{ porcentajeMetaDerivacionCall }}%</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="porcentajeMetaDerivacionCall"></div>
                     </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'deriv-call' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
 
-                    <div class="card-resumen">
-                        <div class="titulo">TICKET</div>
-                        <div class="valor">S/. {{ ticket | number:'1.0-0' }}K</div>
+                <!-- CONTACTABILIDAD -->
+                <div class="kpi-card kpi-center"
+                    [class.kpi-success]="porcentajeTotalContactabilidad >= 85"
+                    [class.kpi-warning]="porcentajeTotalContactabilidad >= 50 && porcentajeTotalContactabilidad < 85"
+                    [class.kpi-danger]="porcentajeTotalContactabilidad < 50">
+                    <div class="kpi-team-badge contacto-badge">📊 GLOBAL</div>
+                    <div class="kpi-icon">📞</div>
+                    <div class="kpi-title">CONTACTABILIDAD</div>
+                    <div class="kpi-value">{{ porcentajeTotalContactabilidad }}%</div>
+                    <div class="kpi-meta">{{ totalContactados }} contactos / {{ totalGestiones }} gestiones</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="porcentajeTotalContactabilidad"></div>
                     </div>
-
-                    <div class="card-resumen">
-                        <div class="titulo">PROYECCIÓN</div>
-                        <div class="valor">S/. {{ proyeccion | number:'1.0-0' }}K</div>
+                    <div class="kpi-sub">
+                        <span class="text-call">Call: {{ totalContactadosCall }}</span>
+                        <span class="text-realzza">Rz: {{ totalContactadosRealzza }}</span>
                     </div>
                 </div>
+
+                <!-- REALZZA: AGENDAMIENTOS -->
+                <div class="kpi-card kpi-team-realzza"
+                    [class.kpi-success]="porcentajeMetaRealzza >= 85"
+                    [class.kpi-warning]="porcentajeMetaRealzza >= 50 && porcentajeMetaRealzza < 85"
+                    [class.kpi-danger]="porcentajeMetaRealzza < 50"
+                    [class.kpi-active]="kpiSeleccionado === 'agend-realzza'"
+                    (click)="toggleKpi('agend-realzza')">
+                    <div class="kpi-team-badge realzza-badge">🏢 REALZZA</div>
+                    <div class="kpi-icon">📅</div>
+                    <div class="kpi-title">AGENDAMIENTOS</div>
+                    <div class="kpi-value">{{ totalAgendamientosRealzza }}</div>
+                    <div class="kpi-meta">Meta: {{ metaAgendamientoEquipo }} &nbsp;|&nbsp; {{ porcentajeMetaRealzza }}%</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="porcentajeMetaRealzza"></div>
+                    </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'agend-realzza' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
+                <!-- REALZZA: DERIVACIONES -->
+                <div class="kpi-card kpi-team-realzza"
+                    [class.kpi-success]="porcentajeMetaDerivacionRealzza >= 85"
+                    [class.kpi-warning]="porcentajeMetaDerivacionRealzza >= 50 && porcentajeMetaDerivacionRealzza < 85"
+                    [class.kpi-danger]="porcentajeMetaDerivacionRealzza < 50"
+                    [class.kpi-active]="kpiSeleccionado === 'deriv-realzza'"
+                    (click)="toggleKpi('deriv-realzza')">
+                    <div class="kpi-team-badge realzza-badge">🏢 REALZZA</div>
+                    <div class="kpi-icon">🔄</div>
+                    <div class="kpi-title">DERIVACIONES</div>
+                    <div class="kpi-value">{{ totalDerivacionesRealzza }}</div>
+                    <div class="kpi-meta">Meta: {{ metaDerivacionEquipo }} &nbsp;|&nbsp; {{ porcentajeMetaDerivacionRealzza }}%</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="porcentajeMetaDerivacionRealzza"></div>
+                    </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'deriv-realzza' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
+            </div>
+
+            <!-- PANEL DE DETALLE POR ASESOR -->
+            <div class="kpi-detail-panel" *ngIf="kpiSeleccionado">
+                <div class="kpi-detail-header">
+                    <span class="kpi-detail-title">{{ tituloDetalleKpi }}</span>
+                    <button class="kpi-detail-close" (click)="toggleKpi(kpiSeleccionado!)">✕ Cerrar</button>
+                </div>
+                <div class="kpi-detail-list">
+                    <div class="kpi-detail-item" *ngFor="let item of detalleKpiActual">
+                        <span class="kpi-detail-asesor">{{ getNombreParaVoz(item['ASESOR CONTACT']) }}</span>
+                        <span class="kpi-detail-valor" [class.valor-zero]="item[campoValorKpi] === 0">
+                            {{ item[campoValorKpi] }}
+                        </span>
+                        <div class="kpi-detail-bar-wrap">
+                            <div class="kpi-detail-bar">
+                                <div class="kpi-detail-bar-fill"
+                                    [style.width.%]="item['META'] * 100"
+                                    [class.bar-success]="item['META'] >= 0.85"
+                                    [class.bar-warning]="item['META'] >= 0.5 && item['META'] < 0.85"
+                                    [class.bar-danger]="item['META'] < 0.5">
+                                </div>
+                            </div>
+                        </div>
+                        <span class="kpi-detail-pct">{{ (item['META'] * 100) | number:'1.0-0' }}%</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- FIN KPIs -->
+
+        <!-- <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="titulosGrillas">📊 COMPARATIVA: AGENDAMIENTOS</h3>
+        </div>
+
+        <div class="firstContainer mb-4">
+
+            <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
+                <div class="p-2 text-center text-white fw-bold" style="background: #1f2937;">
+                    📞 CALL CENTER
+                </div>
+                <dx-data-grid id="gridCallAgend" [dataSource]="dataAgendamientosCall" [allowColumnReordering]="true"
+                    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+                    [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="AGENDAMIENTO" caption="AGENDAMIENTOS" />
+                    <dxi-column dataField="META" caption="META" [format]="{ type: 'percent', precision: 0 }" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="AGENDAMIENTO" summaryType="sum"
+                            displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="META" displayFormat="{{porcentajeMetaCall}}%" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
+                <div class="p-2 text-center text-white fw-bold" style="background: #1f2937;">
+                    🏢 REALZZA
+                </div>
+                <dx-data-grid id="gridRealzzaAgend" [dataSource]="dataAgendamientosRealzza"
+                    [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+                    [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+                    [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="AGENDAMIENTO" caption="AGENDAMIENTOS" />
+                    <dxi-column dataField="META" caption="META" [format]="{ type: 'percent', precision: 0 }" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="AGENDAMIENTO" summaryType="sum"
+                            displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="META" displayFormat="{{porcentajeMetaRealzza}}%" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="titulosGrillas">🔄 COMPARATIVA: DERIVACIONES</h3>
+        </div>
+
+        <div class="firstContainer mb-4">
+            <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
+                <dx-data-grid id="gridCallDeriv" [dataSource]="dataDerivacionesCall" [showBorders]="true"
+                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="DERIVACION" caption="DERIVACIONES" />
+                    <dxi-column dataField="META" caption="META" [format]="{ type: 'percent', precision: 0 }" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="DERIVACION" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="META"
+                            displayFormat="{{porcentajeMetaDerivacionCall}}%" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
+                <dx-data-grid id="gridRealzzaDeriv" [dataSource]="dataDerivacionesRealzza" [showBorders]="true"
+                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="DERIVACION" caption="DERIVACIONES" />
+                    <dxi-column dataField="META" caption="META" [format]="{ type: 'percent', precision: 0 }" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="DERIVACION" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="META"
+                            displayFormat="{{porcentajeMetaDerivacionRealzza}}%" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+        </div> -->
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="titulosGrillas">🔄 COMPARATIVA: KOMMO</h3>
+        </div>
+
+        <div class="firstContainer mb-4">
+            <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
+                <div class="team-label-bar call-bar">📞 CALL CENTER - KOMMO</div>
+                <dx-data-grid id="gridCallDeriv" [dataSource]="dataContactabilidadKOMMOCall" [showBorders]="true"
+                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
+                    <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
+                        [displayFormat]="'{0}'" />
+                    <dxi-column dataField="TOTAL" caption="TOTAL" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
+                            displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
+                <div class="team-label-bar realzza-bar">🏢 REALZZA - KOMMO</div>
+                <dx-data-grid id="gridRealzzaDeriv" [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
+                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+                    <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
+                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
+                    <dxi-column dataField="TOTAL" caption="TOTAL" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
+                            displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+        </div>
+
+        <h3 class="titulosGrillas mb-2">📞 CONTACTABILIDAD DETALLADA</h3>
+
+        <div class="firstContainer mb-4">
+            <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
+                <div class="team-label-bar call-bar">📞 CALL CENTER</div>
+                <dx-data-grid [dataSource]="dataContactabilidadCall" [showBorders]="true" [columnAutoWidth]="true"
+                    [showRowLines]="true" (onCellPrepared)="onCellPrepared($event)">
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
+                    <dxi-column dataField="TOTAL" caption="TOTAL" />
+                    <dxi-column dataField="PORCENTAJE" caption="%" [format]="{ type: 'percent', precision: 0 }" />
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
+                            [displayFormat]="'{0}'" />
+                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
+                            [displayFormat]="'{0}'" />
+                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
+                        <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
+                <div class="team-label-bar realzza-bar">🏢 REALZZA</div>
+                <dx-data-grid [dataSource]="dataContactabilidadRealzza" [showBorders]="true" [columnAutoWidth]="true"
+                    [showRowLines]="true" (onCellPrepared)="onCellPrepared($event)">
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
+                    <dxi-column dataField="TOTAL" caption="TOTAL" />
+                    <dxi-column dataField="PORCENTAJE" caption="%" [format]="{ type: 'percent', precision: 0 }" />
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
+                            [displayFormat]="'{0}'" />
+                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
+                            [displayFormat]="'{0}'" />
+                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
+                        <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+        </div>
+
+        <div class="card-container">
+            <h3>RESUMEN DE GESTIÓN POR ASESOR Y TIPO DE CLIENTE</h3>
+
+            <dx-data-grid [dataSource]="dataGestionPorAsesorYTipoCliente" [showBorders]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedVA($event)">
+
+                <dxi-column dataField="Asesor" caption="ASESOR" cellTemplate="asesorTemplate" />
+                <dxi-column *ngFor="let tipo of columnasTiposCliente" [dataField]="tipo" [caption]="tipo" />
+                <dxi-column dataField="TOTAL_GENERAL" caption="TOTAL" />
+
+                <div *dxTemplate="let data of 'asesorTemplate'">
+                    <span style="font-size: 0.85em;">{{ data.value }}</span>
+                </div>
+
+                <dxo-summary>
+                    <dxi-total-item alignment="right" column="Asesor" displayFormat="TOTAL" />
+                    <dxi-total-item *ngFor="let tipo of columnasTiposCliente" alignment="center" [column]="tipo"
+                        summaryType="sum" displayFormat="{0}" />
+                    <dxi-total-item alignment="center" column="TOTAL_GENERAL" summaryType="sum" displayFormat="{0}" />
+                </dxo-summary>
+
+            </dx-data-grid>
+        </div>
+
+        <!-- <div class="secondContainer">
+            <div class="cabecera">
+                <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
+                    class="dashboard-box mt-3">
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">TOTAL MONTO VENTAS</div>
+                            <div class="metric-content">S/. {{ totalMontoVentas | number:'1.0-0' }}K</div>
+                        </div>
+                    </dxi-item>
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">TOTAL VENTAS</div>
+                            <div class="metric-content">{{ totalVentas }}</div>
+                        </div>
+                    </dxi-item>
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">TICKET</div>
+                            <div class="metric-content">S/. {{ ticket | number:'1.0-0' }}K</div>
+                        </div>
+                    </dxi-item>
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">PROYECCIÓN</div>
+                            <div class="metric-content">S/. {{ proyeccion | number:'1.0-0' }}K</div>
+                        </div>
+                    </dxi-item>
+                </dx-box>
+            </div>
+
+            <div class="graficos">
                 <dx-chart class="w-100" [dataSource]="chartData" [palette]="'Material'" [rotated]="false">
                     <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" name="Monto Consolidado" type="bar">
                         <dxo-label [visible]="true" [backgroundColor]="'transparent'"
-                            [font]="{ color: '#000', size: 18, weight: 600 }" [position]="'outside'">
+                            [font]="{ color: '#000', size: 12, weight: 600 }" [position]="'outside'">
                             <dxo-format [precision]="0"></dxo-format>
                         </dxo-label>
                     </dxi-series>
-
                     <dxo-argument-axis>
-                        <dxo-label>
-                            <dxo-font weight="bold" size="14"></dxo-font>
-                        </dxo-label>
+                        <dxo-label><dxo-font weight="bold" size="12"></dxo-font></dxo-label>
                     </dxo-argument-axis>
-
                     <dxo-legend [visible]="false"></dxo-legend>
                 </dx-chart>
-            </div>
 
-            <div class="w-100 mt-4">
                 <dx-chart class="w-100" [dataSource]="chartPorDia" [palette]="'Material'">
                     <dxo-title [text]="tituloGraficoVentasDiarias">
                         <dxo-font [size]="18" [weight]="600"></dxo-font>
@@ -91,199 +429,238 @@
                             <dxo-format [precision]="0"></dxo-format>
                         </dxo-label>
                     </dxi-series>
+                    <dxo-argument-axis>
+                        <dxo-label><dxo-font weight="bold" size="14"></dxo-font></dxo-label>
+                    </dxo-argument-axis>
+                    <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+                </dx-chart>
+            </div>
+        </div> -->
+
+        <div class="secondContainer">
+            <div class="cabecera">
+                <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
+                    class="dashboard-box mt-3">
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">TOTAL MONTO VENTAS</div>
+                            <!-- <div class="metric-content">S/. {{ totalMontoVentas | number:'1.0-0' }}K</div> -->
+                            <div class="metric-content">
+                                <span class="text-call">Call: {{ montoCall | number:'1.0-0' }}K</span> |
+                                <span class="text-realzza">Rz: {{ montoRealzza | number:'1.0-0' }}K</span>
+                            </div>
+                        </div>
+                    </dxi-item>
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">TOTAL VENTAS</div>
+                            <!-- <div class="metric-content">{{ totalVentas }} Und.</div> -->
+                            <div class="metric-content">
+                                <span class="text-call">Call: {{ ventasCallCount }}</span> |
+                                <span class="text-realzza">Rz: {{ ventasRealzzaCount }}</span>
+                            </div>
+                        </div>
+                    </dxi-item>
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">TICKET PROMEDIO</div>
+                            <!-- <div class="metric-content">S/. {{ ticket | number:'1.0-0' }}</div> -->
+                            <div class=metric-content>
+                                <span class="text-call">Call: {{ ticketCall | number:'1.0-0' }}</span> |
+                                <span class="text-realzza">Rz: {{ ticketRealzza | number:'1.0-0' }}</span>
+                            </div>
+                        </div>
+                    </dxi-item>
+
+                    <dxi-item baseSize="25%">
+                        <div class="metric-card">
+                            <div class="metric-title">PROYECCIÓN MES</div>
+                            <!-- <div class="metric-content">S/. {{ proyeccion | number:'1.0-0' }}K</div> -->
+                            <div class="metric-content">
+                                <span class="text-call">Call: {{ proyeccionCall | number:'1.0-0' }}K</span> |
+                                <span class="text-realzza">Rz: {{ proyeccionRealzza | number:'1.0-0' }}K</span>
+                            </div>
+                        </div>
+                    </dxi-item>
+                </dx-box>
+            </div>
+
+            <div class="graficos">
+                <!-- <dx-chart class="w-100" [dataSource]="chartData" [rotated]="false">
+                    <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" type="bar" name="Ventas">
+                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                            [font]="{ color: '#000', size: 11, weight: 600 }" [position]="'outside'">
+                            <dxo-format [precision]="0"></dxo-format>
+                        </dxo-label>
+                    </dxi-series>
 
                     <dxo-argument-axis>
-                        <dxo-label>
-                            <dxo-font weight="bold" size="14"></dxo-font>
+                        <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45">
+                            <dxo-font weight="bold" size="11"></dxo-font>
                         </dxo-label>
                     </dxo-argument-axis>
 
-                    <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+                    <dxo-legend [visible]="false"></dxo-legend>
+                    <dxo-title text="RANKING DE VENTAS (Call vs Realzza)"></dxo-title>
+                </dx-chart> -->
+                <dx-chart class="w-100" [dataSource]="chartData" [rotated]="true"
+                    (onInitialized)="onChartRankingInit($event)" title="Ranking de Ventas por Asesor">
+
+                    <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" type="bar" name="Ventas">
+
+                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                            [font]="{ color: '#000', size: 12, weight: 700 }" position="outside">
+                            <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
+                        </dxo-label>
+                    </dxi-series>
+
+                    <dxo-argument-axis>
+                        <dxo-label [overlappingBehavior]="'none'">
+                            <dxo-font weight="bold" size="11"></dxo-font>
+                        </dxo-label>
+                    </dxo-argument-axis>
+
+                    <dxo-value-axis [visible]="true"></dxo-value-axis>
+
+                    <dxo-scroll-bar [visible]="true"></dxo-scroll-bar>
+                    <dxo-zoom-and-pan argumentAxis="both"></dxo-zoom-and-pan>
+
+                    <dxo-legend [visible]="false"></dxo-legend>
+
+                    <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipRanking"></dxo-tooltip>
+                </dx-chart>
+
+                <dx-chart class="w-100" [dataSource]="chartPorDia" [palette]="['#1e3a8a', '#f59e0b']">
+                    <dxo-title [text]="tituloGraficoVentasDiarias">
+                        <dxo-font [size]="18" [weight]="600"></dxo-font>
+                    </dxo-title>
+
+                    <dxi-series valueField="MontoCall" name="Call Center" argumentField="Dia" type="stackedBar">
+                    </dxi-series>
+
+                    <dxi-series valueField="MontoRealzza" name="Realzza" argumentField="Dia" type="stackedBar">
+                    </dxi-series>
+
+                    <dxo-common-series-settings>
+                        <dxo-label [visible]="true" position="inside" backgroundColor="transparent"
+                            [customizeText]="customizeLabelVentas">
+
+                            <dxo-font color="#ffffff" weight="bold" size="11"></dxo-font>
+                            <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
+                        </dxo-label>
+                    </dxo-common-series-settings>
+
+                    <dxo-argument-axis>
+                        <dxo-label><dxo-font weight="bold" size="12"></dxo-font></dxo-label>
+                    </dxo-argument-axis>
+
+                    <dxo-legend [visible]="false" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+                    <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipVentas"></dxo-tooltip>
                 </dx-chart>
             </div>
         </div>
 
-        <!-- Columna derecha (grillas) -->
-        <div class="right-container">
-            <!-- Fila superior: Contactabilidad + Sedes -->
-            <div class="top-grids">
-                <div class="contactabilidad">
-                    <h3 class="titulosGrillas">CONTACTABILIDAD POR ASESOR</h3>
-                    <dx-data-grid id="dataGrid" class="focqus-elevation" [dataSource]="dataContactabilidad"
-                        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
-                        [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
-                        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
-                        [selection]="{mode: 'single'}">
-                        <dxi-column dataField="ASESOR CONTACT" caption="Asesor"></dxi-column>
-                        <dxi-column dataField="CONTACTO" caption="CONTACTO"></dxi-column>
-                        <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO"></dxi-column>
-                        <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA"></dxi-column>
-                        <dxi-column dataField="TOTAL" caption="TOTAL GENERAL"></dxi-column>
-                        <dxi-column dataField="PORCENTAJE" caption="TOTAL %"
-                            [format]="{ type: 'percent', precision: 0 }"></dxi-column>
-                        <dxo-summary>
-                            <dxi-total-item alignment="right" column="ASESOR CONTACT"
-                                [displayFormat]="'TOTAL'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="TOTAL" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="PORCENTAJE" summaryType="sum"
-                                displayFormat="{{porcentajeTotalContactabilidad}}%"></dxi-total-item>
-                        </dxo-summary>
-                    </dx-data-grid>
-                </div>  
-            </div>
+        <div class="thirdContainer">
+            <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
+                class="dashboard-box mt-3">
 
-            <!-- Fila inferior: Agendamientos + Derivaciones -->
-            <div class="bottom-grids">
-                <div class="w-100">
-                    <h3 class="titulosGrillas">AGENDAMIENTOS POR ASESOR</h3>
-                    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataAgendamientos"
-                        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
-                        [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
-                        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
-                        [selection]="{mode: 'single'}">
-                        <dxi-column dataField="ASESOR CONTACT" caption="Asesor"></dxi-column>
-                        <dxi-column dataField="AGENDAMIENTO" caption="AGENDAMIENTO"></dxi-column>
-                        <dxi-column dataField="META" caption="META"
-                            [format]="{ type: 'percent', precision: 0 }"></dxi-column>
-                        <dxo-summary>
-                            <dxi-total-item alignment="right" column="ASESOR CONTACT"
-                                [displayFormat]="'TOTAL'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="AGENDAMIENTO" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="META"
-                                displayFormat="{{porcentajeMetaAgendamiento}}%"></dxi-total-item>
-                        </dxo-summary>
-                    </dx-data-grid>
-                </div>
+                <dxi-item baseSize="25%">
+                    <div class="metric-card">
+                        <div class="metric-title">CONTACTOS</div>
+                        <div class="metric-content">
+                            ✅ <span class="ok">{{ dataResumen[0]?.contacto }}</span> /
+                            ❌ <span class="error">{{ dataResumen[0]?.noContacto }}</span>
+                        </div>
+                    </div>
+                </dxi-item>
 
-                <div class="w-100">
-                    <h3 class="titulosGrillas">DERIVACIONES POR ASESOR</h3>
-                    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataDerivaciones"
-                        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
-                        [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
-                        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
-                        [selection]="{mode: 'single'}">
-                        <dxi-column dataField="ASESOR CONTACT" caption="Asesor"></dxi-column>
-                        <dxi-column dataField="DERIVACION" caption="DERIVACION"></dxi-column>
-                        <dxi-column dataField="META" caption="META"
-                            [format]="{ type: 'percent', precision: 0 }"></dxi-column>
-                        <dxo-summary>
-                            <dxi-total-item alignment="right" column="ASESOR CONTACT"
-                                [displayFormat]="'TOTAL'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="DERIVACION" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="META"
-                                displayFormat="{{porcentajeMetaDerivacion}}%"></dxi-total-item>
-                        </dxo-summary>
-                    </dx-data-grid>
-                </div>
-            </div>
+                <dxi-item baseSize="25%">
+                    <div class="metric-card">
+                        <div class="metric-title">CONFORMIDAD</div>
+                        <div class="metric-content">
+                            👍 <span class="ok">{{ dataResumen[0]?.conforme }}</span> /
+                            👎 <span class="error">{{ dataResumen[0]?.noConforme }}</span>
+                        </div>
+                    </div>
+                </dxi-item>
 
-            <div class="sedes">
-                <h3 class="titulosGrillas">SEDES</h3>
-                <!-- <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataGestionPorAsesor"
-                        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
-                        [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
-                        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
-                        [selection]="{mode: 'single'}">
-                        <dxi-column dataField="SEDE" caption="SEDE"></dxi-column>
-                        <dxi-column dataField="GESTION" caption="GESTION"></dxi-column>
-                        <dxo-summary>
-                            <dxi-total-item alignment="right" column="SEDE" [displayFormat]="'TOTAL'"></dxi-total-item>
-                            <dxi-total-item alignment="center" column="GESTION" summaryType="sum"
-                                [displayFormat]="'{0}'"></dxi-total-item>
-                        </dxo-summary>
-                    </dx-data-grid> -->
+                <dxi-item baseSize="25%">
+                    <div class="metric-card">
+                        <div class="metric-title">ÁREAS</div>
+                        <div class="metric-content">
+                            🏢 <span class="area">{{ dataResumen[0]?.area }}</span> /
+                            <span class="highlight">{{ dataResumen[0]?.porcentajeArea }}%</span>
+                        </div>
+                    </div>
+                </dxi-item>
 
-                <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataGestionPorSedeYCliente"
-                    [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
-                    [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
-                    [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
-                    <dxi-column dataField="SEDE" caption="SEDE"></dxi-column>
-                    <dxi-column dataField="VIGENTE" caption="Vigente"></dxi-column>
-                    <dxi-column dataField="NO VIGENTE" caption="No Vigente"></dxi-column>
-                    <dxi-column dataField="BRILLA" caption="Brilla"></dxi-column>
-                    <dxi-column dataField="EFECTIVA" caption="Efectiva"></dxi-column>
-                    <dxi-column dataField="DORMIDO" caption="Dormido"></dxi-column>
-                    <dxi-column dataField="NUEVO" caption="Nuevo"></dxi-column>
-                    <dxi-column dataField="CANCELADO" caption="Cancelado"></dxi-column>
-                    <dxi-column dataField="LOVER A" caption="Lover A"></dxi-column>
-                    <dxi-column dataField="LOVER B" caption="Lover B"></dxi-column>
-                    <dxi-column dataField="REENGANCHE" caption="Reenganche"></dxi-column>
-                    <dxi-column dataField="TOTAL" caption="Total"></dxi-column>
+                <dxi-item baseSize="25%">
+                    <div class="metric-card">
+                        <div class="metric-title">SATISFACCIÓN</div>
+                        <div class="metric-content">
+                            ⭐ <span class="highlight">{{ dataResumen[0]?.satisfaccion }}</span> / 10
+                        </div>
+                    </div>
+                </dxi-item>
+            </dx-box>
+        </div>
 
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="SEDE" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="VIGENTE" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="NO VIGENTE" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="BRILLA" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="EFECTIVA" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="DORMIDO" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="NUEVO" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="CANCELADO" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="LOVER A" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="LOVER B" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="REENGANCHE" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-            <div class="sedes">
-                <h3 class="titulosGrillas">GESTIONES POR ASESOR Y TIPO DE CLIENTE</h3>
-                <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataGestionPorAsesorYCliente"
-                    [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
-                    [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
-                    [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+        <div class="fourthContainer">
+            <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
+                class="charts-box mt-3" wrap="wrap">
 
-                    <!-- 👉 Ahora mostramos el asesor -->
-                    <dxi-column dataField="ASESOR" caption="Asesor"></dxi-column>
-                    <dxi-column dataField="VIGENTE" caption="Vigente"></dxi-column>
-                    <dxi-column dataField="NO VIGENTE" caption="No Vigente"></dxi-column>
-                    <dxi-column dataField="BRILLA" caption="Brilla"></dxi-column>
-                    <dxi-column dataField="EFECTIVA" caption="Efectiva"></dxi-column>
-                    <dxi-column dataField="DORMIDO" caption="Dormido"></dxi-column>
-                    <dxi-column dataField="NUEVO" caption="Nuevo"></dxi-column>
-                    <dxi-column dataField="CANCELADO" caption="Cancelado"></dxi-column>
-                    <dxi-column dataField="LOVER A" caption="Lover A"></dxi-column>
-                    <dxi-column dataField="LOVER B" caption="Lover B"></dxi-column>
-                    <dxi-column dataField="REENGANCHE" caption="Reenganche"></dxi-column>
-                    <dxi-column dataField="TOTAL" caption="Total"></dxi-column>
+                <dxi-item baseSize="33%">
+                    <div class="chart-container">
+                        <h3>Estado de Gestión</h3>
+                        <dx-chart [dataSource]="chartEstadoGestion" palette="Pastel">
+                            <dxi-series argumentField="tipo" valueField="cantidad" name="Gestión" type="bar" />
+                            <dxo-legend [visible]="false" />
+                            <dxo-value-axis [title]="{ text: 'Cantidad' }" />
+                        </dx-chart>
+                    </div>
+                </dxi-item>
 
-                    <dxo-summary>
-                        <!-- 👉 ahora el label fijo en ASESOR -->
-                        <dxi-total-item alignment="right" column="ASESOR" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="VIGENTE" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="NO VIGENTE" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="BRILLA" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="EFECTIVA" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="DORMIDO" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="NUEVO" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="CANCELADO" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="LOVER A" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="LOVER B" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="REENGANCHE" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                    </dxo-summary>
-                </dx-data-grid>
+                <dxi-item baseSize="33%">
+                    <div class="chart-container">
+                        <h3>Conformidad Cliente</h3>
+                        <dx-chart [dataSource]="chartConformidad" palette="Material">
+                            <dxi-series argumentField="tipo" valueField="cantidad" name="Gestión" type="bar" />
+                            <dxo-legend [visible]="false" />
+                            <dxo-value-axis [title]="{ text: 'Cantidad' }" />
+                        </dx-chart>
+                    </div>
+                </dxi-item>
 
-            </div>
+                <dxi-item baseSize="33%">
+                    <div class="chart-container">
+                        <h3>Distribución por Áreas</h3>
+                        <dx-pie-chart [dataSource]="chartAreas" palette="Soft"
+                            [legend]="{ visible: true, horizontalAlignment: 'center', verticalAlignment: 'bottom' }">
+                            <dxi-series argumentField="area" valueField="cantidad" type="doughnut">
+                                <dxo-label [visible]="true" [connector]="{ visible: true }" format="fixedPoint">
+                                </dxo-label>
+                            </dxi-series>
+                            <dxo-legend [visible]="false" />
+                            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+                        </dx-pie-chart>
+                    </div>
+                </dxi-item>
+
+                <dxi-item baseSize="33%">
+                    <div class="chart-container">
+                        <h3>Nivel de Satisfacción</h3>
+                        <dx-chart [dataSource]="chartSatisfaccion" palette="Violet">
+                            <dxi-series argumentField="indice" valueField="nivel" type="line" name="Satisfacción" />
+                            <dxo-legend [visible]="false" />
+                            <dxo-tooltip [enabled]="true" format="#.##" />
+                            <dxo-value-axis [title]="{ text: 'Score' }" />
+                        </dx-chart>
+                    </div>
+                </dxi-item>
+            </dx-box>
         </div>
     </div>
-
-
 </div>

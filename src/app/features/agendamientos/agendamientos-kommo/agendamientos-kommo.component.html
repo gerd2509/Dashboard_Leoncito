@@ -1,0 +1,50 @@
+<form class="form mt-2" [formGroup]="formAgendamientos"
+    style="display: flex; gap: 10px; align-items: center; padding: 10px;">
+
+    <dx-select-box formControlName="empresa" [items]="['LEONCITO', 'REALZZA']" label="Seleccionar Empresa"
+        labelMode="floating" stylingMode="underlined" [width]="200" (onValueChanged)="onEmpresaChanged()">
+    </dx-select-box>
+
+    <dx-date-box formControlName="fechaGestion" type="date" label="Fecha de Interés" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" [width]="200">
+    </dx-date-box>
+
+    <button class="button" mat-flat-button color="primary" (click)="actualizar()">
+        <mat-icon>search</mat-icon> Actualizar
+    </button>
+
+    <button class="button" mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon> Exportar
+    </button>
+</form>
+
+<div class="grid-container" style="position: relative;">
+    <div class="grid-overlay" *ngIf="isLoading"
+        style="position: absolute; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:5; display:flex; justify-content:center; align-items:center;">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <dx-data-grid id="dataGrid" [dataSource]="datosFiltrados" [showBorders]="true" [rowAlternationEnabled]="true"
+        (onCellPrepared)="onCellPrepared($event)" [wordWrapEnabled]="true" [columnAutoWidth]="true">
+
+        <dxo-paging [pageSize]="15"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[15, 30, 50, 100]" />
+        <dxo-filter-row [visible]="true" />
+
+        <dxi-column dataField="Marca temporal" [calculateCellValue]="soloFecha" caption="Fecha Gestión"></dxi-column>
+
+        <dxi-column caption="Asesor" [calculateCellValue]="obtenerAsesor"></dxi-column>
+        <dxi-column dataField="TIPO DE CLIENTE" caption="Tipo de Cliente"></dxi-column>
+        <dxi-column caption="DNI Cliente" [calculateCellValue]="obtenerDni"></dxi-column>
+        <dxi-column caption="Celular" [calculateCellValue]="obtenerCelular"></dxi-column>
+
+        <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto Interés"></dxi-column>
+        <dxi-column dataField="FECHA DE INTERÉS AGENDAMIENTO" caption="Fecha de Interés"></dxi-column>
+        <dxi-column dataField="HORA APROXIMADA INTERÉS AGENDAMIENTO" caption="Hora" [sortOrder]="'asc'"></dxi-column>
+        <dxi-column dataField="SEDE" caption="Sede"></dxi-column>
+
+        <dxi-column caption="Comentarios Adicionales" [calculateCellValue]="getComentarioAdicionalUnido"></dxi-column>
+        <dxi-column dataField="estadoAgendamiento" caption="Estado Agendamiento" [fixed]="true"
+            fixedPosition="right"></dxi-column>
+    </dx-data-grid>
+</div>

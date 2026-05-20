@@ -1,0 +1,56 @@
+<form class="form mt-2" [formGroup]="formGestion">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <button mat-flat-button (click)="filtrarPorFecha()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+    <button mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+</form>
+
+<div class="grid-container">
+    <!-- Spinner superpuesto -->
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" [allowColumnReordering]="true"
+        [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+        (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+        [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+        <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+        <dxi-column dataField="Timestamp" caption="Marca temporal"></dxi-column>
+        <dxi-column dataField="ASESOR CONTACT" caption="Asesor Contact"></dxi-column>
+        <dxi-column dataField="DNI CLIENTE" caption="DNI Cliente"></dxi-column>
+        <dxi-column dataField="CODIGO CV" caption="Codigo CV"></dxi-column>
+        <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
+        <dxi-column dataField="SEDE" caption="Sede"></dxi-column>
+        <dxi-column dataField="PRODUCTO ADQUIRIDO" caption="Producto Adquirido"></dxi-column>
+        <dxi-column dataField="ESTADO DE GESTIÓN" caption="Estado de Gestión"></dxi-column>
+        <dxi-column dataField="MEDIO DE CONTACTO" caption="Medio de Contacto"></dxi-column>        
+        <dxi-column dataField="CONFORMIDAD CLIENTE" caption="Conformidad Cliente"></dxi-column>
+        <dxi-column dataField="MOTIVO NO CONTACTO" caption="Motivo no Contacto"></dxi-column>
+        <dxi-column dataField="INCONFORMIDAD" caption="Inconformidad"></dxi-column>
+        <dxi-column dataField="AREA CORRESPONDIENTE" caption="Area Correspondiente"></dxi-column>
+        <dxi-column dataField="COMENTARIO" caption="Comentario"></dxi-column>
+        <dxi-column dataField="NIVEL SATISFACCIÓN" caption="Nivel de Satisfacción"></dxi-column>
+        <dxi-column dataField="COMENTARIO SATISFACCIÓN" caption="Comentario Satisfacción"></dxi-column>
+        
+
+        <dxo-summary>
+            <dxi-total-item [alignment]="'right'" column="Marca temporal" summaryType="count"
+                displayFormat="Registros: {0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>

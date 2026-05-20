@@ -7,36 +7,36 @@
 }
 
 /* Columna izquierda con gráficos (40%) */
-.left-container {
-  flex: 0.9; /* ~40% */
+/* .left-container {
+  flex: 0.9;
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
+} */
 
-.left-container > div {
+/* .left-container > div {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
+} */
 
 /* Columna derecha con grillas (60%) */
-.right-container {
-  flex: 1.1; /* ~60% */
+/* .right-container {
+  flex: 1.1; 
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
+} */
 
 /* Fila superior: Contactabilidad + Sedes */
-.top-grids {
-  flex: 0.3; /* menos altura que la inferior */
+/* .top-grids {
+  flex: 0.3; 
   display: flex;
   flex-direction: row;
   gap: 20px;
-}
+} */
 
-.top-grids > .contactabilidad {
+/* .top-grids > .contactabilidad {
   flex: 7;
   display: flex;
   flex-direction: column;
@@ -46,21 +46,21 @@
   flex: 3;
   display: flex;
   flex-direction: column;
-}
+} */
 
 /* Fila inferior: Agendamientos + Derivaciones */
-.bottom-grids {
-  flex: 0.4; /* más altura que la superior */
+/* .bottom-grids {
+  flex: 0.4; 
   display: flex;
   flex-direction: row;
   gap: 20px;
-}
+} */
 
-.bottom-grids > div {
+/* .bottom-grids > div {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
+} */
 
 /* Tarjetas internas */
 .focqus-elevation {
@@ -91,11 +91,15 @@
   z-index: 10;
 }
 
+.grid-container {
+  position: relative;
+}
+
 .titulosGrillas {
   margin: 0;
 }
 
-.card-resumen {
+/* .card-resumen {
   background: #f8f8f8;
   border-radius: 20px;
   box-shadow: 0 0 10px rgba(151, 255, 165, 0.3);
@@ -116,4 +120,456 @@
   font-size: 24px;
   font-weight: bold;
   color: #000;
+}
+
+::ng-deep .dx-scheduler-appointment {
+  background-color: transparent !important; 
+  box-shadow: none !important;
+} */
+
+
+.contenedorPrincipal {
+  display: flex;
+  flex-direction: column;
+}
+
+.firstContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+}
+
+.graficos {
+  display: flex;
+  flex-direction: row;
+  gap: 30px;
+}
+
+/* Caja principal del dashboard */
+.dashboard-box {
+  background-color: #1f2937;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-around;
+  border: 1px solid #555;
+  width: 100%;
+}
+
+/* Tarjetas internas de métricas */
+.metric-card {
+  text-align: center;
+  border-right: 1px solid #666;
+  padding: 10px 15px;
+}
+
+.metric-card:last-child {
+  border-right: none;
+}
+
+/* Título de cada métrica */
+.metric-title {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #ddd;
+  margin-bottom: 5px;
+}
+
+/* Valor o contenido de la métrica */
+.metric-content {
+  font-size: 1.1rem;
+}
+
+.ok {
+  color: limegreen;
+  font-weight: bold;
+}
+
+.error {
+  color: deeppink;
+  font-weight: bold;
+}
+
+.area {
+  color: lightblue;
+  font-weight: 500;
+}
+
+.highlight {
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+/* Contenedor general de gráficos */
+.charts-box {
+  margin-top: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px; /* Espacio entre CONTACTOS y CONFORMIDAD */
+}
+
+/* Cada bloque individual de gráfico */
+.chart-container {
+  flex: 1;
+  background-color: #1f2937;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #444;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Efecto sutil al pasar el mouse */
+.chart-container:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.chart-container h3 {
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 1.1rem;
+  color: #ffcc00;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-sub {
+    font-size: 0.85rem;
+    margin-top: 5px;
+    font-weight: 500;
+}
+.text-call { color: #60a5fa; } /* Azul claro */
+.text-realzza { color: #fbbf24; } /* Amarillo/Naranja */
+
+/* ===================================================
+   SECCIÓN: HEADERS DE SECCIÓN / TÍTULOS DE GRILLAS
+   =================================================== */
+.titulosGrillas {
+  margin: 0;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: #e2e8f0;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  border-left: 4px solid #60a5fa;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Etiqueta de equipo en la cabecera de cada grilla */
+.team-label-bar {
+  padding: 7px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.call-bar {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+
+.realzza-bar {
+  background: #92400e;
+  color: #fde68a;
+}
+
+/* ===================================================
+   SECCIÓN: KPI CARDS
+   =================================================== */
+.kpi-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kpi-container {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  flex-wrap: nowrap;
+}
+
+/* Card base */
+.kpi-card {
+  flex: 1;
+  min-width: 160px;
+  background: #111827;
+  border-radius: 12px;
+  padding: 16px 18px;
+  color: white;
+  border-top: 5px solid #374151;
+  border-left: 1px solid #1f2937;
+  border-right: 1px solid #1f2937;
+  border-bottom: 1px solid #1f2937;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-top-color 0.3s;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+/* Cards clicables (Call y Realzza) */
+.kpi-team-call,
+.kpi-team-realzza {
+  cursor: pointer;
+}
+
+.kpi-team-call {
+  border-left: 3px solid #1e3a8a;
+}
+
+.kpi-team-realzza {
+  border-left: 3px solid #92400e;
+}
+
+.kpi-center {
+  border-left: 3px solid #374151;
+}
+
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+
+.kpi-card.kpi-active {
+  box-shadow: 0 0 0 2px #60a5fa, 0 8px 22px rgba(0, 0, 0, 0.5);
+}
+
+/* Colores por estado */
+.kpi-card.kpi-success { border-top-color: #22c55e; }
+.kpi-card.kpi-warning { border-top-color: #eab308; }
+.kpi-card.kpi-danger  { border-top-color: #ef4444; }
+
+/* Badge de equipo */
+.kpi-team-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.call-badge {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+
+.realzza-badge {
+  background: #78350f;
+  color: #fde68a;
+}
+
+.contacto-badge {
+  background: #374151;
+  color: #9ca3af;
+}
+
+/* Ícono */
+.kpi-icon {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+  display: block;
+}
+
+/* Título */
+.kpi-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* Valor principal */
+.kpi-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #facc15;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+
+/* Texto meta */
+.kpi-meta {
+  font-size: 0.75rem;
+  color: #d1d5db;
+  margin-bottom: 8px;
+}
+
+/* Barra de progreso */
+.kpi-progress {
+  background: #1f2937;
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.kpi-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.6s ease;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.kpi-card.kpi-success .kpi-progress-fill { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.kpi-card.kpi-warning .kpi-progress-fill { background: linear-gradient(90deg, #ca8a04, #fde047); }
+.kpi-card.kpi-danger  .kpi-progress-fill { background: linear-gradient(90deg, #dc2626, #f87171); }
+
+/* Sub-info (Call / Realzza) */
+.kpi-sub {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+/* Texto acción (ver / ocultar) */
+.kpi-action {
+  font-size: 0.72rem;
+  color: #6b7280;
+  text-align: right;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+
+.kpi-card:hover .kpi-action {
+  color: #93c5fd;
+}
+
+.kpi-card.kpi-active .kpi-action {
+  color: #60a5fa;
+}
+
+/* ===================================================
+   SECCIÓN: PANEL DE DETALLE POR ASESOR
+   =================================================== */
+.kpi-detail-panel {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: #1e3a8a;
+  border-bottom: 1px solid #1e40af;
+}
+
+.kpi-detail-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.5px;
+}
+
+.kpi-detail-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.kpi-detail-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.kpi-detail-list {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 8px 12px;
+}
+
+.kpi-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #1f2937;
+  flex: 1 1 280px;
+  min-width: 240px;
+}
+
+.kpi-detail-item:last-child {
+  border-bottom: none;
+}
+
+.kpi-detail-asesor {
+  flex: 0 0 90px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-detail-valor {
+  flex: 0 0 32px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #facc15;
+}
+
+.kpi-detail-valor.valor-zero {
+  color: #6b7280;
+}
+
+.kpi-detail-bar-wrap {
+  flex: 1;
+}
+
+.kpi-detail-bar {
+  background: #1f2937;
+  border-radius: 99px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.kpi-detail-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.bar-success { background: linear-gradient(90deg, #16a34a, #4ade80) !important; }
+.bar-warning { background: linear-gradient(90deg, #ca8a04, #fde047) !important; }
+.bar-danger  { background: linear-gradient(90deg, #dc2626, #f87171) !important; }
+
+.kpi-detail-pct {
+  flex: 0 0 38px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #9ca3af;
 }

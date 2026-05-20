@@ -19,7 +19,7 @@
 <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="filtroVentas" [allowColumnReordering]="true"
     [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
     (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
-    [columnAutoWidth]="true" [selection]="{ mode: 'single' }" >
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
 
     <dxi-column caption="NOMBRE ASESOR" dataField="ASESOR" dataType="string" />
     <dxi-column caption="VENTAS" dataField="VENTAS" dataType="number" alignment="right" [sortOrder]="'desc'"
@@ -66,6 +66,26 @@
     </dxo-summary>
 </dx-data-grid>
 
+<dx-data-grid class="mt-2" [dataSource]="tablaAsesorTipoCliente" [allowColumnReordering]="true" [showBorders]="true"
+    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+    <!-- Columna fija -->
+    <dxi-column dataField="ASESOR" caption="ASESOR"></dxi-column>
+
+    <!-- Columnas dinámicas -->
+    <dxi-column *ngFor="let col of columnasAsesorTipoCliente" [dataField]="col" [caption]="col" dataType="number"
+        [customizeText]="customizeCurrencyText" [sortOrder]="col === 'TOTAL' ? 'desc' : null">
+    </dxi-column>
+
+    <dxo-summary>
+        <dxi-total-item alignment="center" column="ASESOR" summaryType="count" displayFormat="TOTAL" />
+        <dxi-total-item alignment="center" *ngFor="let col of columnasAsesorTipoCliente" [column]="col"
+            summaryType="sum" [showInColumn]="col" [customizeText]="customizeCurrencyText" displayFormat="{0}" />
+    </dxo-summary>
+</dx-data-grid>
+
 <div class="detalleGrillas">
     <dx-data-grid id="dataGrid" class="focqus-elevation mt-3" [dataSource]="resumenPorSede"
         [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
@@ -101,3 +121,89 @@
         </dxo-summary>
     </dx-data-grid>
 </div>
+
+<dx-data-grid class="mt-2" [dataSource]="tablaSedeBase" [allowColumnReordering]="true" [showBorders]="true"
+    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+    <!-- Columna fija -->
+    <dxi-column dataField="SEDE" caption="Sede"></dxi-column>
+
+    <!-- Columnas dinámicas -->
+    <dxi-column *ngFor="let col of columnasDinamicas" [dataField]="col" [caption]="col" dataType="number"
+        [customizeText]="customizeCurrencyText" [sortOrder]="col === 'TOTAL' ? 'desc' : null">
+    </dxi-column>
+
+    <dxo-summary>
+        <dxi-total-item alignment="center" column="SEDE" summaryType="sum" displayFormat="TOTAL" />
+        <dxi-total-item alignment="center" *ngFor="let col of columnasDinamicas" [column]="col" summaryType="sum"
+            [showInColumn]="col" [customizeText]="customizeCurrencyText" displayFormat="{0}" />
+    </dxo-summary>
+</dx-data-grid>
+
+<dx-data-grid class="mt-2" [dataSource]="tablaResumen" [allowColumnReordering]="true" [showBorders]="true"
+    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+    <!-- Columnas dinámicas (CARTERA CALL y VIGENTE) -->
+    <dxi-column *ngFor="let col of columnasResumen" [dataField]="col" [caption]="col" dataType="number"
+        alignment="right" [customizeText]="customizeCurrencyText">
+    </dxi-column>
+</dx-data-grid>
+
+<h3 class="mt-4">Seguimiento Diario por Zona</h3>
+
+<dx-data-grid class="focqus-elevation mt-2" [dataSource]="tablaDiariaSedes" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [wordWrapEnabled]="true" [columnAutoWidth]="true">
+
+    <dxo-paging [pageSize]="10"></dxo-paging>
+    <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+    <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+    <dxi-column dataField="DIA" caption="DIA" [fixed]="true"></dxi-column>
+
+    <dxi-column caption="ZONA 1" alignment="center">
+        <dxi-column *ngFor="let sede of sedesZona1" [dataField]="sede" [caption]="sede" dataType="number"
+            [customizeText]="customizeCurrencyText">
+        </dxi-column>
+    </dxi-column>
+
+    <dxi-column caption="ZONA 2" alignment="center">
+        <dxi-column *ngFor="let sede of sedesZona2" [dataField]="sede" [caption]="sede" dataType="number"
+            [customizeText]="customizeCurrencyText">
+        </dxi-column>
+    </dxi-column>
+
+    <dxi-column [dataField]="sedeRealzza" caption="REALZZA" dataType="number" [customizeText]="customizeCurrencyText">
+    </dxi-column>
+
+    <dxo-summary>
+        <dxi-total-item alignment="center" column="DIA" displayFormat="TOTAL"></dxi-total-item>
+
+        <dxi-total-item alignment="center" *ngFor="let sede of sedesZona1" [column]="sede" summaryType="sum"
+            [customizeText]="customizeCurrencyText" displayFormat="{0}">
+        </dxi-total-item>
+
+        <dxi-total-item alignment="center" *ngFor="let sede of sedesZona2" [column]="sede" summaryType="sum"
+            [customizeText]="customizeCurrencyText" displayFormat="{0}">
+        </dxi-total-item>
+
+        <dxi-total-item alignment="center" [column]="sedeRealzza" summaryType="sum"
+            [customizeText]="customizeCurrencyText" displayFormat="{0}">
+        </dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
+<dx-data-grid class="mt-2 focqus-elevation" [dataSource]="tablaResumenZonas" [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+    [columnAutoWidth]="true" [selection]="{ mode: 'single' }">
+
+    <dxi-column *ngFor="let col of columnasResumenZonas" [dataField]="col" [caption]="col" dataType="number"
+        alignment="center" [customizeText]="customizeCurrencyText">
+    </dxi-column>
+
+</dx-data-grid>

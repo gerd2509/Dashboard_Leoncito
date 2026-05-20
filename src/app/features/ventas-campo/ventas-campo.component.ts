@@ -23,59 +23,103 @@ export class VentasCampoComponent implements OnInit {
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
 
+  // Popups
   popupVisibleAsesor: boolean = false;
   popupVisibleDia: boolean = false;
   popupVisibleNroVentas: boolean = false;
   popupVisibleVentasSemanal: boolean = false;
   popupVisibleVentasPorMes: boolean = false;
 
+  // KPIs
   totalMontoVentas = 0;
   totalVentas = 0;
   ticket = 0;
   proyeccion = 0;
+  totalNotasCredito = 0;
+  montoRealVentas = 0;
 
-  semanas: string[] = [];
-  semanaMap = new Map<string, string>();
+  // Notas de Crédito
+  dataNotasCredito: any[] = [];
+  filtroNotasCredito: any[] = [];
 
-  chartData: { AsesorVenta: string, MontoTotal: number }[] = [];
-  chartPorDia: { Dia: string, MontoTotal: number }[] = [];
+  // Global GO
+  dataGlobalGo: any[] = [];
+  filtroGlobalGo: any[] = [];
+  mesesGlobalGo: { label: string; value: string }[] = [];
+  mesSeleccionadoGlobalGo = '';
 
-  chartNumeroVentasPorDia: VentasPorDia[] = [];
-  semanasCantidad: string[] = [];
-
+  // Data Gráficos
+  chartData: ChartData[] = [];
+  chartPorDia: { Dia: string, [key: string]: any }[] = [];
+  chartNumeroVentasPorDia: any[] = [];
   chartMontoSemanal: any[] = [];
-  seriesMeses: string[] = [];
-  semanasMontoTotal: string[] = [];
-
   chartMontoMensual: { Mes: string; MontoTotal: number }[] = [];
 
-  ventasPorDiaMesActual: any[] = [];
-  columnasDiasMes: string[] = [];
+  // En la sección de variables de la clase
+  chartTipoCredito: { Tipo: string, Cantidad: number }[] = [];
 
+  // Data Tablas
+  ventasPorDiaMesActual: any[] = [];
   operacionesPorDiaMesActual: any[] = [];
 
+  semanas: string[] = [];
+  seriesMeses: string[] = [];
+  columnasDiasMes: string[] = [];
+
+  resumenTipoCredito: any[] = [];
+
+
+  private readonly grupoBrilla = new Set([
+    'PAIVA ROJAS ANTHONNY RAY AMERICO',
+    'SANDOVAL CHAFLOQUE BRISA ALEXANDRA',
+    'CASTILLO AGUILAR ANYELA VANESSA'
+  ]);
+
+
+
+  // Lista para el filtro manual (Dropdown)
   asesores = [
     { value: '', viewValue: 'SELECCIONE ASESOR' },
-    { value: 'AV1', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'AV2', viewValue: 'NAVARRO CASTAÑEDA MARISA GLADYS' },
-    { value: 'AV3', viewValue: 'PEREZ VILCHEZ YESI JAQUELINE' },
-    { value: 'AV4', viewValue: 'MURIEL CAHUAZA GREDIEL MERY' }, // quitar
-    { value: 'AV5', viewValue: 'ORDINOLA LEON SILVANA MARTINA' },
-    { value: 'AV6', viewValue: 'VALERA GAMARRA HERBERT ARMANDO' },
-    { value: 'AV7', viewValue: 'CORDOVA GRANADOS YOHANA' },
-    { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
-    { value: 'CC10', viewValue: 'RIVAS PURISACA KAREN YUDITH' }
+    { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
+    { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
+    { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
+    { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
+    { value: 'AV5', viewValue: 'SAMAME HUAMAN ARIADNE' },
+    { value: 'AV6', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
+    { value: 'AV7', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
+    { value: 'AV8', viewValue: 'SERNAQUE DAVILA JUAN ALBERTO' },
+    { value: 'AV9', viewValue: 'CARRANZA ALARCON TREYCI JOHANA' },
+    { value: 'AV10', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
+    { value: 'AV11', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
+    { value: 'AV12', viewValue: 'UCHOFEN VIGO FELICITA' },
   ];
 
+  nombresCortos: Record<string, string> = {
+    'MONTALVO LUYO ERNESTO ADOLFO': 'ERNESTO',
+    'PEREZ TINEO MARICIELO TATIANA': 'TATIANA',
+    'RIVAS PURISACA KAREN YUDITH': 'YUDITH',
+    'ACOSTA JIMENEZ MARIELA NATALY': 'NATALY',
+    'BERNAL BAZAN BRENDA NICOLL': 'BRENDA',
+    'SERNAQUE DAVILA JUAN ALBERTO': 'JUAN',
+    'CARRANZA ALARCON TREYCI JOHANA': 'TREYCI',
+    'SANDOVAL OTINIANO JUANA DEL PILAR': 'JUANA',
+    'SANTAMARIA GUZMAN MERLY BRIGHITE': 'MERLY',
+    'MIÑOPE GONZALES ANYELA ESTHEFANY': 'ANYELA',
+    'SAMAME HUAMAN ARIADNE': 'ARIADNE',
+    'UCHOFEN VIGO FELICITA': 'FELICITA',
+  };
+
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
+  @ViewChild('gridGlobalGo', { static: false }) gridGlobalGo!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+
     this.formVentas = this.fb.group({
-      fechaInicio: [null, Validators.required],
-      fechaFin: [null, Validators.required],
-      Asesores: [''],
-      NAS: [{ value: false, disabled: true }]
+      fechaInicio: [firstDay, Validators.required],
+      fechaFin: [today, Validators.required],
+      Asesores: ['']
     });
   }
 
@@ -95,56 +139,74 @@ export class VentasCampoComponent implements OnInit {
       const worksheet = workbook.Sheets[firstSheet];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
 
-      // 👉 asesores válidos (solo los viewValue)
-      const asesoresValidos = this.asesores
-        .map(a => (a.viewValue || '').trim().toUpperCase())
-        .filter(x => x !== 'SELECCIONE ASESOR');
+      this.dataVentas = [];
+      this.dataNotasCredito = [];
+      this.dataGlobalGo = [];
 
-      this.dataVentas = jsonData
-        .map((row: any) => ({
-          IDVENTA: row['IDVENTA'],
-          FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
-          Sede: row['Sede'],
-          MontoConsolidado: this.parseNumber(row['MontoConsolidado']),
-          CuotaInicial: this.parseNumber(row['CuotaInicial']),
-          Productos: row['Productos'],
-          Cuotas: row['Cuotas'],
-          DocIdentidad: row['DocIdentidad'],
-          Vendedor: (row['Vendedor'] || '').toString().trim(),
-          EstadoVenta: row['EstadoVenta'],
-          EstadoTipoProducto: row['EstadoTipoProducto'],
-          AsesorVenta: (row['AsesorVenta'] || '').toString().trim()
-        }))
-        // 👉 solo quedarnos con vendedores válidos
-        .filter(venta =>
-          asesoresValidos.includes((venta.Vendedor || '').trim().toUpperCase())
-        );
+      jsonData.forEach((row: any) => {
+        const sede = (row['Sede'] || '').toString().trim().toUpperCase();
+        const estadoVenta = (row['EstadoVenta'] || '').toString().trim().toUpperCase();
+        const entidad = (row['Entidad'] || '').toString().trim().toUpperCase();
+        const monto = this.parseNumber(row['MontoConsolidado']);
+        const esNC = estadoVenta === 'NOTA DE CRÉDITO' || estadoVenta === 'NOTA DE CREDITO';
 
-      console.log("✅ Importados totales:", this.dataVentas.length);
+        if (sede === 'SEDE REALZZA STORE' && !esNC && monto > 0) {
+          this.dataVentas.push({
+            IDVENTA: row['IDVENTA'],
+            FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
+            Sede: row['Sede'],
+            MontoConsolidado: monto,
+            CuotaInicial: this.parseNumber(row['CuotaInicial']),
+            Productos: row['Productos'],
+            Cuotas: row['Cuotas'],
+            DocIdentidad: row['DocIdentidad'],
+            ClienteVenta: row['ClienteVenta'],
+            Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+            EstadoVenta: row['EstadoVenta'],
+            Entidad: row['Entidad'],
+            AsesorVenta: row['AsesorVenta'],
+            TipoCredito: row['TipoCredito'],
+            TipoProducto: row['EstadoTipoProducto']
+          });
+        }
 
-      this.aplicarFiltros();
+        // Capturar Notas de Crédito con las 3 columnas AF
+        if (sede === 'SEDE REALZZA STORE' && esNC) {
+          this.dataNotasCredito.push({
+            IDVENTA: row['IDVENTA'],
+            FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
+            MontoConsolidado: Math.abs(monto),
+            Productos: row['Productos'],
+            ClienteVenta: row['ClienteVenta'],
+            Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+            EstadoVenta: row['EstadoVenta'],
+            AsesorVenta: row['AsesorVenta'],
+            Entidad: row['Entidad'],
+            TipoCredito: row['TipoCredito'],
+            DiaAF: this.parseNumber(row['DiaAF']),
+            MesAF: this.parseNumber(row['MesAF']),
+            AñoAF: this.parseNumber(row['AñoAF'])
+          });
+        }
+
+        // Capturar ventas Global GO solo de SEDE REALZZA STORE
+        if (sede === 'SEDE REALZZA STORE' && entidad === 'GLOBAL GO' && !esNC && monto > 0) {
+          this.dataGlobalGo.push({
+            ClienteVenta: row['ClienteVenta'],
+            DocIdentidad: row['DocIdentidad'],
+            FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
+            MontoConsolidado: monto,
+            Productos: row['Productos'],
+            Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase()
+          });
+        }
+      });
+      console.log("✅ Ventas válidas:", this.dataVentas.length, "| Global GO:", this.dataGlobalGo.length);
+      this.generarMesesGlobalGo();
+      this.actualizarFiltros();
     };
-
     reader.readAsArrayBuffer(file);
-  }
-
-
-  getFechaJS(excelDate: any): Date {
-    if (typeof excelDate === 'number') {
-      const utc_days = Math.floor(excelDate - 25569);
-      const utc_value = utc_days * 86400 * 1000;
-      const date_info = new Date(utc_value);
-      return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate());
-    }
-
-    const parsed = new Date(excelDate);
-    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-  }
-
-  parseNumber(value: any): number {
-    return typeof value === 'string'
-      ? Number(value.replace(',', '').replace(/[^0-9.]/g, '')) || 0
-      : value || 0;
+    input.value = '';
   }
 
   actualizarFiltros(): void {
@@ -159,542 +221,470 @@ export class VentasCampoComponent implements OnInit {
     fechaInicio.setHours(0, 0, 0, 0);
     fechaFin.setHours(23, 59, 59, 999);
 
-    const selectedCode = (this.formVentas.value.Asesores || '').toString().trim().toUpperCase();
-    const selectedNombre = (this.asesores.find(a => a.value === selectedCode)?.viewValue || '').toUpperCase();
-
-    const isSeleccionado = !!selectedCode;
-    const isMontalvo = selectedNombre === 'MONTALVO LUYO ERNESTO ADOLFO';
-    const isCC = selectedCode === 'CC7' || selectedCode === 'CC9';
+    const asesorSeleccionadoCode = this.formVentas.value.Asesores;
+    const asesorObj = this.asesores.find(a => a.value === asesorSeleccionadoCode);
+    const nombreFiltro = asesorObj && asesorObj.viewValue !== 'SELECCIONE ASESOR' ? asesorObj.viewValue.toUpperCase() : '';
 
     this.filtroVentas = this.dataVentas.filter(venta => {
-      // ---- filtro por fecha ----
       const fechaVenta = new Date(venta.FECHAVENTA);
-      const cumpleFecha = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
-      if (!cumpleFecha) return false;
-
-      const sedeUpper = (venta.Sede || '').toUpperCase();
-      const vendedorUpper = (venta.Vendedor || '').toUpperCase();
-      const asesorUpper = (venta.AsesorVenta || '').toUpperCase();
-
-      // 🔴 condición global: solo sede REALZZA
-      if (sedeUpper !== 'SEDE REALZZA STORE') return false;
-
-      // ---- caso especial: MONTALVO seleccionado en el combo ----
-      if (isMontalvo) {
-        return (
-          vendedorUpper === 'MONTALVO LUYO ERNESTO ADOLFO' &&
-          asesorUpper !== 'CC7' &&
-          asesorUpper !== 'CC9'
-        );
+      if (fechaVenta < fechaInicio || fechaVenta > fechaFin) return false;
+      if (nombreFiltro) {
+        return venta.Vendedor.includes(nombreFiltro);
       }
-
-      // ---- caso especial: CC7 o CC9 seleccionados en el combo ----
-      if (isCC) {
-        return asesorUpper === selectedCode;
-      }
-
-      // ---- caso general: otros asesores seleccionados ----
-      if (isSeleccionado && selectedNombre && selectedNombre !== 'SELECCIONE ASESOR') {
-        return vendedorUpper === selectedNombre;
-      }
-
-      // ---- sin asesor seleccionado: mostrar todos los válidos en rango de fecha ----
       return true;
     });
 
+    this.filtrarNotasCredito();
+    this.calcularKPIs();
     this.generarChartData();
+    this.generarResumenTipoCredito();
+    this.generarTablaResumenTipoCredito();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
     this.generarChartMontoSemanal();
-    this.calcularTotales();
     this.generarChartMontoMensual();
     this.generarTablaVentasPorDiaMesActual();
     this.generarTablaOperacionesPorDiaMesActual();
   }
 
-  generarChartData(): void {
-    const agrupado = new Map<string, number>();
+  filtrarNotasCredito(): void {
+    const hoy = new Date();
+    const anioActual = hoy.getFullYear();
+    const mesActual = hoy.getMonth() + 1;
 
-    for (const venta of this.filtroVentas) {
-      let clave = (venta.Vendedor || '').trim(); // por defecto nombre del vendedor
+    const asesorSeleccionadoCode = this.formVentas.value.Asesores;
+    const asesorObj = this.asesores.find(a => a.value === asesorSeleccionadoCode);
+    const nombreFiltro = asesorObj && asesorObj.viewValue !== 'SELECCIONE ASESOR'
+      ? asesorObj.viewValue.toUpperCase() : '';
 
-      // Si es CC7 o CC9 → usar código del asesor
-      if (venta.AsesorVenta?.toUpperCase() === 'CC7' || venta.AsesorVenta?.toUpperCase() === 'CC9') {
-        clave = venta.AsesorVenta.trim();
-      }
+    this.filtroNotasCredito = this.dataNotasCredito.filter(nc => {
+      const cumpleAnio = nc.AñoAF === anioActual;
+      const cumpleMes = nc.MesAF === mesActual;
+      const cumpleAsesor = !nombreFiltro || nc.Vendedor.includes(nombreFiltro);
+      return cumpleAnio && cumpleMes && cumpleAsesor;
+    });
+  }
 
-      const monto = venta.MontoConsolidado || 0;
-      agrupado.set(clave, (agrupado.get(clave) || 0) + monto);
+  calcularKPIs(): void {
+    this.totalVentas = this.filtroVentas.length;
+    this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
+    this.totalNotasCredito = Math.round(this.filtroNotasCredito.reduce((sum, nc) => sum + nc.MontoConsolidado, 0));
+    this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito;
+    this.ticket = this.totalVentas > 0 ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
+
+    // 2. Lógica de Proyección
+    const hoy = new Date();
+    const fechaFinFiltro = new Date(this.formVentas.value.fechaFin);
+
+    // Extraemos año y mes para comparar periodos, no milisegundos
+    const anioActual = hoy.getFullYear();
+    const mesActual = hoy.getMonth();
+    const anioFiltro = fechaFinFiltro.getFullYear();
+    const mesFiltro = fechaFinFiltro.getMonth();
+
+    // Verificamos si el mes seleccionado ya terminó
+    const esMesPasado = anioFiltro < anioActual || (anioFiltro === anioActual && mesFiltro < mesActual);
+
+    if (esMesPasado) {
+      // Si el mes ya cerró, la proyección es simplemente el total vendido
+      this.proyeccion = this.totalMontoVentas;
+    } else {
+      // Si es el mes en curso (o futuro, aunque usualmente es el actual)
+      const ultimoDiaMes = new Date(anioActual, mesActual + 1, 0).getDate();
+      const diaHoy = hoy.getDate();
+
+      // Importante: Si tus datos llegan hasta ayer, usa Math.max(1, diaHoy - 1)
+      // Si incluyen ventas de hoy, usa diaHoy.
+      const diasTranscurridos = Math.max(1, diaHoy);
+
+      const promedioDiario = this.totalMontoVentas / diasTranscurridos;
+      this.proyeccion = Math.round(promedioDiario * ultimoDiaMes);
     }
+  }
 
-    this.chartData = Array.from(agrupado, ([id, MontoTotal]) => {
-      // Si es un código (CC7/CC9), obtener el nombre desde this.asesores
-      const asesor = this.asesores.find(a => a.value === id || a.viewValue.toUpperCase() === id.toUpperCase());
-      const AsesorVenta = asesor ? asesor.viewValue : id;
-      return { AsesorVenta, MontoTotal: Math.round(MontoTotal) };
-    }).sort((a, b) => b.MontoTotal - a.MontoTotal);
+  private resolverNombreVendedor(vendedorOriginal: string, asesorVenta: string = ''): string {
+    const av = (asesorVenta || '').toString().trim().toUpperCase();
+    if (av && av !== 'NAS') return 'CALL';
+    if (this.grupoBrilla.has(vendedorOriginal)) return 'BRILLA';
+    return this.nombresCortos[vendedorOriginal] || vendedorOriginal;
+  }
+
+  generarChartData(): void {
+    const map = new Map<string, number>();
+
+    this.filtroVentas.forEach(v => {
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+      map.set(nombre, (map.get(nombre) || 0) + (v.MontoConsolidado || 0));
+    });
+
+    // Restar NCs por vendedor (mismo agrupamiento)
+    this.filtroNotasCredito.forEach(nc => {
+      const nombre = this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta);
+      map.set(nombre, (map.get(nombre) || 0) - (nc.MontoConsolidado || 0));
+    });
+
+    this.chartData = Array.from(map, ([name, total]) => ({
+      Vendedor: name,
+      MontoTotal: Math.max(0, Math.round(total))
+    })).sort((a, b) => b.MontoTotal - a.MontoTotal);
+  }
+
+  // 5. Formateador para las etiquetas del gráfico
+  customizeMontoTexto = (arg: any) => {
+    return `S/ ${arg.valueText}`;
   }
 
   generarChartMontoPorDia(): void {
-    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const agrupado = new Map<string, Map<string, number>>();
-    const semanasSet = new Set<string>();
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const mapSemana = new Map<string, Map<string, number>>();
+    const allSemanas = new Set<string>();
 
-    for (const venta of this.filtroVentas) {
-      const fecha = new Date(venta.FECHAVENTA);
-      const diaTexto = diasSemana[fecha.getDay()];
-      const semanaIso = this.getSemanaISO(fecha);
-      const monto = venta.MontoConsolidado || 0;
-
-      semanasSet.add(semanaIso);
-
-      if (!agrupado.has(diaTexto)) {
-        agrupado.set(diaTexto, new Map());
-      }
-
-      const semanaMap = agrupado.get(diaTexto)!;
-      semanaMap.set(semanaIso, Math.round((semanaMap.get(semanaIso) || 0) + monto));
-    }
-
-    // Ordenar semanas y generar alias: Semana 1, Semana 2, ...
-    const semanasOrdenadas = Array.from(semanasSet).sort();
-    this.semanas = semanasOrdenadas.map((semanaIso, index) => {
-      const nombre = `Semana ${index + 1}`;
-      this.semanaMap.set(semanaIso, nombre);
-      return nombre;
+    this.filtroVentas.forEach(v => {
+      const f = v.FECHAVENTA;
+      const diaNom = dias[f.getDay()];
+      const semana = this.getSemanaISO(f);
+      allSemanas.add(semana);
+      if (!mapSemana.has(diaNom)) mapSemana.set(diaNom, new Map());
+      const inner = mapSemana.get(diaNom)!;
+      inner.set(semana, (inner.get(semana) || 0) + v.MontoConsolidado);
     });
 
-    // Construir chartPorDia con nombres amigables
-    this.chartPorDia = diasSemana.map(dia => {
-      const semanaMap = agrupado.get(dia) || new Map();
-      const result: any = { Dia: dia };
+    const semanasOrdenadas = Array.from(allSemanas).sort();
+    this.semanas = semanasOrdenadas.map((s, i) => `Semana ${i + 1}`);
+    const mapAlias = new Map<string, string>();
+    semanasOrdenadas.forEach((s, i) => mapAlias.set(s, `Semana ${i + 1}`));
 
-      for (const [semanaIso, monto] of semanaMap.entries()) {
-        const semanaNombre = this.semanaMap.get(semanaIso);
-        if (monto !== undefined && monto !== 0 && semanaNombre) {
-          result[semanaNombre] = monto;
-        }
+    this.chartPorDia = dias.map(dia => {
+      const item: any = { Dia: dia };
+      const inner = mapSemana.get(dia);
+      if (inner) {
+        inner.forEach((val, keySemana) => {
+          item[mapAlias.get(keySemana)!] = Math.round(val);
+        });
       }
-
-      return result;
+      return item;
     });
   }
 
   generarChartNroVentasPorDia(): void {
-    const diasSemanaBase = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sabado'];
-    const semanasMap = new Map<number, Map<string, number>>();
-    const semanasSet = new Set<number>();
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sabado'];
+    const mapSemana = new Map<string, Map<string, number>>();
+    const allSemanas = new Set<string>();
 
-    for (const venta of this.filtroVentas) {
-      if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
+    this.filtroVentas.forEach(v => {
+      const f = v.FECHAVENTA;
+      const diaNom = dias[f.getDay()];
+      const semana = this.getSemanaISO(f);
+      allSemanas.add(semana);
+      if (!mapSemana.has(diaNom)) mapSemana.set(diaNom, new Map());
+      const inner = mapSemana.get(diaNom)!;
+      inner.set(semana, (inner.get(semana) || 0) + 1);
+    });
 
-      const fecha = new Date(venta.FECHAVENTA);
-      const semana = this.getSemanaDelMes(fecha); // Semana 1, 2, etc.
-      const diaTexto = diasSemanaBase[fecha.getDay()];
+    const semanasOrdenadas = Array.from(allSemanas).sort();
+    this.semanas = semanasOrdenadas.map((s, i) => `Semana ${i + 1}`);
+    const mapAlias = new Map<string, string>();
+    semanasOrdenadas.forEach((s, i) => mapAlias.set(s, `Semana ${i + 1}`));
 
-      semanasSet.add(semana);
-
-      if (!semanasMap.has(semana)) {
-        semanasMap.set(semana, new Map<string, number>());
+    this.chartNumeroVentasPorDia = dias.map(dia => {
+      const item: any = { Dia: dia };
+      const inner = mapSemana.get(dia);
+      if (inner) {
+        inner.forEach((val, keySemana) => {
+          item[mapAlias.get(keySemana)!] = val;
+        });
       }
-
-      const conteoSemana = semanasMap.get(semana)!;
-      conteoSemana.set(diaTexto, (conteoSemana.get(diaTexto) || 0) + 1);
-    }
-
-    // Mapear: Semana 1 -> "Semana 1", etc.
-    const semanasOrdenadas = Array.from(semanasSet).sort((a, b) => a - b);
-    this.semanas = semanasOrdenadas.map(n => `Semana ${n}`);
-
-    // Estructura final para dx-chart
-    this.chartNumeroVentasPorDia = diasSemanaBase.map(dia => {
-      const fila: any = { Dia: dia };
-      for (const semana of semanasOrdenadas) {
-        const nombre = `Semana ${semana}`;
-        const valor = semanasMap.get(semana)?.get(dia) || 0;
-        fila[nombre] = valor;
-      }
-      return fila;
+      return item;
     });
   }
 
   generarChartMontoSemanal(): void {
-    const datosPorMesSemana = new Map<string, Map<string, number>>();
-    const semanasSet = new Set<string>();
-    const mesesSet = new Set<string>();
+    const map = new Map<string, Map<string, number>>();
+    const allMeses = new Set<string>();
+    const allSemanas = new Set<string>();
 
-    for (const venta of this.filtroVentas) {
-      if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
-
-      const fecha = new Date(venta.FECHAVENTA);
-      const anio = fecha.getFullYear();
-      const mes = fecha.getMonth() + 1;
-      const nombreMes = `${this.getNombreMes(mes)} ${anio}`;
-      const semana = `Semana ${this.getSemanaDelMes(fecha)}`;
-
-      semanasSet.add(semana);
-      mesesSet.add(nombreMes);
-
-      if (!datosPorMesSemana.has(semana)) {
-        datosPorMesSemana.set(semana, new Map());
-      }
-
-      const mapMes = datosPorMesSemana.get(semana)!;
-      mapMes.set(nombreMes, Math.round((mapMes.get(nombreMes) || 0) + venta.MontoConsolidado));
-    }
-
-    const semanasOrdenadas = Array.from(semanasSet).sort((a, b) => {
-      return +a.split(' ')[1] - +b.split(' ')[1];
+    this.filtroVentas.forEach(v => {
+      const f = v.FECHAVENTA;
+      const mes = this.getNombreMes(f.getMonth() + 1) + ' ' + f.getFullYear();
+      const semana = `Semana ${this.getSemanaDelMes(f)}`;
+      allMeses.add(mes);
+      allSemanas.add(semana);
+      if (!map.has(semana)) map.set(semana, new Map());
+      const inner = map.get(semana)!;
+      inner.set(mes, (inner.get(mes) || 0) + v.MontoConsolidado);
     });
 
-    const mesesOrdenados = Array.from(mesesSet);
+    this.seriesMeses = Array.from(allMeses);
+    const semanasOrd = Array.from(allSemanas).sort((a, b) => +a.split(' ')[1] - +b.split(' ')[1]);
 
-    this.chartMontoSemanal = semanasOrdenadas.map(semana => {
-      const fila: any = { Semana: semana };
-      const mapMes = datosPorMesSemana.get(semana)!;
-      for (const mes of mesesOrdenados) {
-        fila[mes] = mapMes.get(mes) || 0;
-      }
-      return fila;
+    this.chartMontoSemanal = semanasOrd.map(sem => {
+      const item: any = { Semana: sem };
+      this.seriesMeses.forEach(m => {
+        item[m] = Math.round(map.get(sem)?.get(m) || 0);
+      });
+      return item;
     });
-
-    this.seriesMeses = mesesOrdenados;
   }
 
   generarChartMontoMensual(): void {
-    const agrupado = new Map<string, number>();
-    const mesesSet = new Set<string>();
+    const map = new Map<string, number>();
+    this.filtroVentas.forEach(v => {
+      const f = v.FECHAVENTA;
+      const key = `${f.getFullYear()}-${(f.getMonth() + 1).toString().padStart(2, '0')}`;
+      map.set(key, (map.get(key) || 0) + v.MontoConsolidado);
+    });
 
-    for (const venta of this.filtroVentas) {
-      // 👇 Filtrar SOLO las ventas de la sede REALZZA STORE
-      if (!venta.Sede || venta.Sede.trim().toUpperCase() !== 'SEDE REALZZA STORE') continue;
-
-      // Validar que exista monto válido
-      if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
-
-      const fecha = new Date(venta.FECHAVENTA);
-      const claveMes = `${fecha.getFullYear()}-${(fecha.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}`; // Ej: "2025-07"
-      mesesSet.add(claveMes);
-
-      agrupado.set(
-        claveMes,
-        (agrupado.get(claveMes) || 0) + venta.MontoConsolidado
-      );
+    // Restar NCs del mes en curso (usando AñoAF/MesAF)
+    if (this.totalNotasCredito > 0) {
+      const hoy = new Date();
+      const mesActualKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+      if (map.has(mesActualKey)) {
+        map.set(mesActualKey, Math.max(0, (map.get(mesActualKey) || 0) - this.totalNotasCredito));
+      }
     }
 
-    // Ordenar meses de forma cronológica
-    const mesesOrdenados = Array.from(mesesSet).sort();
-
-    this.chartMontoMensual = mesesOrdenados.map(claveMes => {
-      const [anio, mes] = claveMes.split('-');
-      const nombreMes = this.getNombreMes(+mes) + ' ' + anio;
-      return {
-        Mes: nombreMes,
-        MontoTotal: agrupado.get(claveMes) || 0
-      };
+    const keysOrd = Array.from(map.keys()).sort();
+    this.chartMontoMensual = keysOrd.map(k => {
+      const [anio, mes] = k.split('-');
+      return { Mes: `${this.getNombreMes(+mes)} ${anio}`, MontoTotal: map.get(k) || 0 };
     });
   }
 
-  // generarTablaVentasPorDiaMesActual(): void {
-  //   const hoy = new Date();
-  //   const mesActual = hoy.getMonth(); // 0 = enero
-  //   const anioActual = hoy.getFullYear();
-
-  //   // 👉 Días del mes actual
-  //   const diasMes = new Date(anioActual, mesActual + 1, 0).getDate();
-  //   this.columnasDiasMes = Array.from({ length: diasMes }, (_, i) => (i + 1).toString());
-
-  //   // 👉 Agrupamos las ventas por asesor y día
-  //   const agrupado = new Map<string, Map<number, number>>();
-
-  //   for (const venta of this.filtroVentas) {
-  //     const fecha = new Date(venta.FECHAVENTA);
-  //     if (fecha.getMonth() !== mesActual || fecha.getFullYear() !== anioActual) continue;
-
-  //     const dia = fecha.getDate();
-  //     const asesor = (venta.Vendedor || '').trim().toUpperCase();
-  //     const monto = venta.MontoConsolidado || 0;
-
-  //     if (!agrupado.has(asesor)) {
-  //       agrupado.set(asesor, new Map());
-  //     }
-  //     const mapDias = agrupado.get(asesor)!;
-  //     mapDias.set(dia, (mapDias.get(dia) || 0) + monto);
-  //   }
-
-  //   // 👉 Construimos estructura final (una fila por asesor)
-  //   this.ventasPorDiaMesActual = [];
-  //   for (const asesor of agrupado.keys()) {
-  //     const fila: any = { Asesor: asesor };
-
-  //     this.columnasDiasMes.forEach(diaStr => {
-  //       const dia = +diaStr;
-  //       fila[diaStr] = agrupado.get(asesor)?.get(dia) || '';
-  //     });
-
-  //     this.ventasPorDiaMesActual.push(fila);
-  //   }
-  // }
-
   generarTablaVentasPorDiaMesActual(): void {
-    if (!this.formVentas?.value?.fechaInicio || !this.formVentas?.value?.fechaFin) {
-      return; // no hay rango seleccionado
+    const inicio = new Date(this.formVentas.value.fechaInicio);
+    const fin = new Date(this.formVentas.value.fechaFin);
+    this.columnasDiasMes = [];
+    for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) {
+      this.columnasDiasMes.push(d.getDate().toString());
     }
-
-    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
-    const fechaFin = new Date(this.formVentas.value.fechaFin);
-
-    // normalizamos horas
-    fechaInicio.setHours(0, 0, 0, 0);
-    fechaFin.setHours(23, 59, 59, 999);
-
-    // 👉 Generamos los días del rango
-    const dias: string[] = [];
-    let cursor = new Date(fechaInicio);
-    while (cursor <= fechaFin) {
-      dias.push(cursor.getDate().toString()); // solo número del día
-      cursor.setDate(cursor.getDate() + 1);
-    }
-    this.columnasDiasMes = dias;
-
-    // 👉 Agrupamos ventas por asesor y día dentro del rango
-    const agrupado = new Map<string, Map<number, number>>();
-
-    for (const venta of this.filtroVentas) {
-      const fecha = new Date(venta.FECHAVENTA);
-      if (fecha < fechaInicio || fecha > fechaFin) continue; // fuera de rango
-
-      const dia = fecha.getDate();
-      const asesor = (venta.Vendedor || '').trim().toUpperCase();
-      const monto = venta.MontoConsolidado || 0;
-
-      if (!agrupado.has(asesor)) {
-        agrupado.set(asesor, new Map());
-      }
-      const mapDias = agrupado.get(asesor)!;
-      mapDias.set(dia, (mapDias.get(dia) || 0) + monto);
-    }
-
-    // 👉 Construimos estructura final (una fila por asesor)
-    this.ventasPorDiaMesActual = [];
-    for (const asesor of agrupado.keys()) {
-      const fila: any = { Asesor: asesor };
-
-      this.columnasDiasMes.forEach(diaStr => {
-        const dia = +diaStr;
-        fila[diaStr] = agrupado.get(asesor)?.get(dia) || '';
-      });
-
-      this.ventasPorDiaMesActual.push(fila);
-    }
+    const map = new Map<string, Map<string, number>>();
+    this.filtroVentas.forEach(v => {
+      const dStr = v.FECHAVENTA.getDate().toString();
+      const vendedor = v.Vendedor;
+      if (!map.has(vendedor)) map.set(vendedor, new Map());
+      const inner = map.get(vendedor)!;
+      inner.set(dStr, (inner.get(dStr) || 0) + v.MontoConsolidado);
+    });
+    this.ventasPorDiaMesActual = Array.from(map.keys()).map(vend => {
+      const row: any = { Asesor: vend };
+      this.columnasDiasMes.forEach(dia => { row[dia] = map.get(vend)?.get(dia) || 0; });
+      return row;
+    });
   }
 
   generarTablaOperacionesPorDiaMesActual(): void {
-  if (!this.formVentas?.value?.fechaInicio || !this.formVentas?.value?.fechaFin) {
-    return; // no hay rango seleccionado
+    const map = new Map<string, Map<string, number>>();
+    this.filtroVentas.forEach(v => {
+      const dStr = v.FECHAVENTA.getDate().toString();
+      const vendedor = v.Vendedor;
+      if (!map.has(vendedor)) map.set(vendedor, new Map());
+      const inner = map.get(vendedor)!;
+      inner.set(dStr, (inner.get(dStr) || 0) + 1);
+    });
+    this.operacionesPorDiaMesActual = Array.from(map.keys()).map(vend => {
+      const row: any = { Asesor: vend };
+      this.columnasDiasMes.forEach(dia => { row[dia] = map.get(vend)?.get(dia) || 0; });
+      return row;
+    });
   }
 
-  const fechaInicio = new Date(this.formVentas.value.fechaInicio);
-  const fechaFin = new Date(this.formVentas.value.fechaFin);
+  generarResumenTipoCredito(): void {
+    let contadorCredito = 0;
+    let contadorContado = 0;
 
-  // normalizamos horas
-  fechaInicio.setHours(0, 0, 0, 0);
-  fechaFin.setHours(23, 59, 59, 999);
+    this.filtroVentas.forEach(v => {
+      // Convertimos a número por seguridad para comparar
+      const numCuotas = this.parseNumber(v.Cuotas);
 
-  // 👉 Generamos los días del rango
-  const dias: string[] = [];
-  let cursor = new Date(fechaInicio);
-  while (cursor <= fechaFin) {
-    dias.push(cursor.getDate().toString());
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  this.columnasDiasMes = dias;
-
-  // 👉 Agrupamos operaciones por asesor y día
-  const agrupado = new Map<string, Map<number, number>>();
-
-  for (const venta of this.filtroVentas) {
-    const fecha = new Date(venta.FECHAVENTA);
-    if (fecha < fechaInicio || fecha > fechaFin) continue;
-
-    const dia = fecha.getDate();
-    const asesor = (venta.Vendedor || '').trim().toUpperCase();
-
-    if (!agrupado.has(asesor)) {
-      agrupado.set(asesor, new Map());
-    }
-    const mapDias = agrupado.get(asesor)!;
-    mapDias.set(dia, (mapDias.get(dia) || 0) + 1); // 👉 aquí contamos operaciones
-  }
-
-  // 👉 Construimos estructura final (una fila por asesor)
-  this.operacionesPorDiaMesActual = [];
-  for (const asesor of agrupado.keys()) {
-    const fila: any = { Asesor: asesor };
-
-    this.columnasDiasMes.forEach(diaStr => {
-      const dia = +diaStr;
-      fila[diaStr] = agrupado.get(asesor)?.get(dia) || 0;
+      if (numCuotas > 0) {
+        contadorCredito++;
+      } else {
+        contadorContado++;
+      }
     });
 
-    this.operacionesPorDiaMesActual.push(fila);
-  }
-}
-
-  onAsesorChanged(event: any) {
-    if (this.formVentas.valid) {
-      this.aplicarFiltros();
-    }
+    this.chartTipoCredito = [
+      { Tipo: 'CRÉDITO', Cantidad: contadorCredito },
+      { Tipo: 'CONTADO', Cantidad: contadorContado }
+    ];
   }
 
-  calcularTotales(): void {
+  generarTablaResumenTipoCredito(): void {
+    const map = new Map<string, any>();
+
+    this.filtroVentas.forEach(v => {
+      const vendedor = v.Vendedor;
+      const monto = v.MontoConsolidado || 0;
+      const numCuotas = this.parseNumber(v.Cuotas);
+      const esCredito = numCuotas >= 1; // Lógica: >= 1 es Crédito, < 1 es Contado
+
+      if (!map.has(vendedor)) {
+        map.set(vendedor, {
+          Asesor: vendedor,
+          ContadoNro: 0,
+          ContadoMonto: 0,
+          CreditoNro: 0,
+          CreditoMonto: 0,
+          TotalNro: 0,
+          TotalMonto: 0
+        });
+      }
+
+      const item = map.get(vendedor)!;
+
+      if (esCredito) {
+        item.CreditoNro += 1;
+        item.CreditoMonto += monto;
+      } else {
+        item.ContadoNro += 1;
+        item.ContadoMonto += monto;
+      }
+
+      item.TotalNro += 1;
+      item.TotalMonto += monto;
+    });
+
+    // Convertir el mapa a array y redondear montos
+    this.resumenTipoCredito = Array.from(map.values()).map(item => ({
+      ...item,
+      ContadoMonto: Math.round(item.ContadoMonto),
+      CreditoMonto: Math.round(item.CreditoMonto),
+      TotalMonto: Math.round(item.TotalMonto)
+    })).sort((a, b) => a.Asesor.localeCompare(b.Asesor));
+  }
+
+  generarMesesGlobalGo(): void {
+    const mesesSet = new Set<string>();
+    this.dataGlobalGo.forEach(v => {
+      const f: Date = v.FECHAVENTA;
+      const key = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
+      mesesSet.add(key);
+    });
+    this.mesesGlobalGo = Array.from(mesesSet).sort().map(k => {
+      const [y, m] = k.split('-');
+      return { value: k, label: `${this.getNombreMes(+m)} ${y}` };
+    });
     const hoy = new Date();
-    const diaHoy = hoy.getDate();
-    const mesHoy = hoy.getMonth();
-    const anioHoy = hoy.getFullYear();
-    const diasMesActual = new Date(anioHoy, mesHoy + 1, 0).getDate();
-    const diasTranscurridos = diaHoy - 1;
-
-    this.totalVentas = this.filtroVentas.length;
-    this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
-    this.ticket = this.totalVentas ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
-    const ticketDiario = diasTranscurridos > 0 ? this.totalMontoVentas / diasTranscurridos : 0;
-    this.proyeccion = Math.round(ticketDiario * diasMesActual);
+    const curKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+    this.mesSeleccionadoGlobalGo = mesesSet.has(curKey) ? curKey : (this.mesesGlobalGo[0]?.value || '');
+    this.filtrarGlobalGo();
   }
 
-  customizeCurrencyText = function (cell: any): string {
-    if (typeof cell.value === 'number') {
-      return `S/. ${cell.value.toLocaleString('es-PE', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      })}`;
+  filtrarGlobalGo(): void {
+    if (!this.mesSeleccionadoGlobalGo) {
+      this.filtroGlobalGo = [...this.dataGlobalGo];
+      return;
     }
-    return '';
-  };
-
-  exportar(): void {
-    if (this.dataGrid) {
-      this.excelService.exportarDesdeGrid("dataAgendamientos", this.dataGrid);
-    }
+    this.filtroGlobalGo = this.dataGlobalGo.filter(v => {
+      const f: Date = v.FECHAVENTA;
+      const key = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
+      return key === this.mesSeleccionadoGlobalGo;
+    });
   }
 
-  abrirPopup(tipo: 'asesor' | 'dia' | 'nroVentas' | 'ventasSemanal' | 'ventasPorMes') {
-    if (tipo === 'asesor') {
-      this.popupVisibleAsesor = true;
-    } else if (tipo === 'dia') {
-      this.popupVisibleDia = true;
-    } else if (tipo === 'nroVentas') {
-      this.popupVisibleNroVentas = true;
-    } else if (tipo === 'ventasSemanal') {
-      this.popupVisibleVentasSemanal = true;
-    } else if (tipo === 'ventasPorMes') {
-      this.popupVisibleVentasPorMes = true;
+  onAsesorChanged(e: any) { this.actualizarFiltros(); }
+
+  getFechaJS(excelDate: any): Date {
+    if (typeof excelDate === 'number') {
+      const utc_days = Math.floor(excelDate - 25569);
+      const utc_value = utc_days * 86400 * 1000;
+      const date_info = new Date(utc_value);
+      return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate());
     }
+    const parsed = new Date(excelDate);
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
 
-  customizeTooltip = (info: any): any => {
-    if (info.points?.length) {
-      let html = `<b>${info.argumentText}</b><br/>`;
-
-      info.points.forEach((point: any) => {
-        html += `
-        <span style="color:${point.color}">\u25A0</span>
-        ${point.seriesName}: <b>${Math.round(point.originalValue).toLocaleString('es-PE')}</b><br/>
-      `;
-      });
-
-      return { html };
+  parseNumber(value: any): number {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      return Number(value.replace(/,/g, '').replace(/[^0-9.-]+/g, '')) || 0;
     }
-
-    return {
-      text: `${info.seriesName}: ${info.valueText}`
-    };
+    return 0;
   }
-
-  customizeMontoTexto = (pointInfo: any): string => {
-    if (pointInfo.value === 0) return ''; // Oculta ceros
-    return `S/ ${Math.round(pointInfo.value).toLocaleString('es-PE')}`;
-  };
 
   getNombreMes(mes: number): string {
-    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     return meses[mes - 1] || '';
   }
 
   getSemanaDelMes(date: Date): number {
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     const dayOfMonth = date.getDate();
-    const adjustedDay = dayOfMonth + firstDay.getDay(); // para considerar inicio en lunes/domingo
-    return Math.ceil(adjustedDay / 7);
+    return Math.ceil((dayOfMonth + firstDay.getDay()) / 7);
   }
 
   getSemanaISO(date: Date): string {
     const tmp = new Date(date.getTime());
     tmp.setHours(0, 0, 0, 0);
-
     tmp.setDate(tmp.getDate() + 3 - ((tmp.getDay() + 6) % 7));
-
     const firstThursday = new Date(tmp.getFullYear(), 0, 4);
     firstThursday.setDate(firstThursday.getDate() + 3 - ((firstThursday.getDay() + 6) % 7));
-
     const weekNumber = 1 + Math.round(((tmp.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getDay() + 6) % 7)) / 7);
-
     return `${tmp.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
   }
 
+  exportar(): void {
+    if (this.dataGrid) this.excelService.exportarDesdeGrid("ReporteVentasRealzza", this.dataGrid);
+  }
+
+  exportarGlobalGo(): void {
+    if (this.gridGlobalGo) this.excelService.exportarDesdeGrid("DetalleGlobalGO", this.gridGlobalGo);
+  }
+
+  abrirPopup(tipo: string) {
+    if (tipo === 'asesor') this.popupVisibleAsesor = true;
+    if (tipo === 'dia') this.popupVisibleDia = true;
+    if (tipo === 'nroVentas') this.popupVisibleNroVentas = true;
+    if (tipo === 'ventasSemanal') this.popupVisibleVentasSemanal = true;
+    if (tipo === 'ventasPorMes') this.popupVisibleVentasPorMes = true;
+  }
+
+  customizeCurrencyText(cellInfo: any) {
+    return `S/. ${(cellInfo.value || 0).toLocaleString('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  }
+
+  // customizeMontoTexto = (pointInfo: any): string => {
+  //   if (!pointInfo.value) return '';
+  //   return Math.round(pointInfo.value).toLocaleString('en-US');
+  // };
+
   onCellPrepared(e: any) {
-    if (e.rowType != 'header' || e.cellElement.classList.contains('dx-editor-cell')) return;
-    e.cellElement.style.padding = "8px";
-    e.cellElement.style.backgroundColor = "#293964";
-    e.cellElement.style.color = "white";
-    e.cellElement.style.textAlign = "center";
-    e.cellElement.style.fontWeight = "bold !important";
-    e.cellElement.style.textWrap = "wrap !important";
-    e.cellElement.style.height = "auto !important";
-    e.cellElement.style.borderWidth = "1.5px !important";
-    e.cellElement.style.borderColor = "black !important";
+    if (e.rowType === 'header') {
+      e.cellElement.style.backgroundColor = "#293964";
+      e.cellElement.style.color = "white";
+      e.cellElement.style.fontWeight = "bold";
+    }
+  }
+
+  onCellPreparedNC(e: any) {
+    if (e.rowType === 'header') {
+      e.cellElement.style.backgroundColor = "#b71c1c";
+      e.cellElement.style.color = "white";
+      e.cellElement.style.fontWeight = "bold";
+      e.cellElement.style.textAlign = "center";
+    }
+    if (e.rowType === 'totalFooter') {
+      e.cellElement.style.backgroundColor = "#ffebee";
+      e.cellElement.style.fontWeight = "bold";
+      e.cellElement.style.color = "#b71c1c";
+    }
   }
 
   onCellPreparedVA(e: any) {
-    // Encabezados
     if (e.rowType === 'header') {
-      e.cellElement.style.padding = "8px";
       e.cellElement.style.backgroundColor = "#293964";
       e.cellElement.style.color = "white";
-      e.cellElement.style.textAlign = "center";
       e.cellElement.style.fontWeight = "bold";
-      e.cellElement.style.height = "auto";
-      e.cellElement.style.borderWidth = "1.5px";
-      e.cellElement.style.borderColor = "black";
     }
-
-    // Filas de datos
-    if (e.rowType === 'data') {
-      e.cellElement.style.border = '1px solid #ccc';
-      e.cellElement.style.textAlign = 'center';
-      e.cellElement.style.fontWeight = 'bold';
-
-      // Validación de columna por día
-      if (e.column?.dataField !== 'Asesor') {
-        const valor = e.value;
-
-        if (valor && valor > 0) {
-          e.cellElement.style.backgroundColor = '#7dd17fff'; // verde
-          e.cellElement.style.color = 'black';
-        } else {
-          e.cellElement.style.backgroundColor = '#e66a6aff'; // rojo
-          e.cellElement.style.color = 'black';
-        }
-      }
+    if (e.rowType === 'data' && e.column.dataField !== 'Asesor') {
+      if (e.value > 0) e.cellElement.style.backgroundColor = '#7dd17fff';
+      else e.cellElement.style.backgroundColor = '#e66a6aff';
     }
   }
-
 }
 
-interface VentasPorDia {
-  Dia: string;
-  [semana: string]: number | string;
+interface ChartData {
+  Vendedor: string;
+  MontoTotal: number;
 }

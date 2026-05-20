@@ -1,0 +1,24 @@
+.form {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.chart-full {
+    grid-column: 1 / -1;
+}
+
+.chart-full dx-chart {
+    height: 420px;
+}
+
+.chart-half dx-chart {
+    height: 380px;
+}

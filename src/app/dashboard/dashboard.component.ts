@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
-import { AgendamientosComponent } from "../features/agendamientos/agendamientos.component";
-import { DerivacionesComponent } from "../features/derivaciones/derivaciones.component";
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { AgendamientosComponent } from "../features/agendamientos/agendamientos.component";
 import { GestionContactXHoraComponent } from "../features/Gestion/gestion-contact-x-hora/gestion-contact-x-hora.component";
 import { CierreGestionComponent } from "../features/cierre-gestion/cierre-gestion.component";
 import { AnalisisGestionMensualComponent } from "../features/analisis-gestion-mensual/analisis-gestion-mensual.component";
@@ -15,39 +15,113 @@ import { VentaXPlazoAvComponent } from "../features/venta-x-plazo-av/venta-x-pla
 import { VentasCampoComponent } from "../features/ventas-campo/ventas-campo.component";
 import { ProyeccionFfvvCampoComponent } from "../features/proyeccion-ffvv-campo/proyeccion-ffvv-campo.component";
 import { GestionCobranzasComponent } from "../features/gestion-cobranzas/gestion-cobranzas.component";
+import { GestionCampoRealzzaComponent } from "../features/Gestion/gestion-campo-realzza/gestion-campo-realzza.component";
+import { AgendamientosCampoComponent } from "../features/agendamientos/agendamientos-campo/agendamientos-campo.component";
+import { ComparativoVentasComponent } from "../features/comparativo-ventas/comparativo-ventas.component";
+import { PostVentaComponent } from "../features/post-venta/post-venta.component";
+import { GestionPostVentaComponent } from "../features/Gestion/gestion-post-venta/gestion-post-venta.component";
+import { EvolucionTipoClienteComponent } from "../features/evolucion-tipo-cliente/evolucion-tipo-cliente.component";
+import { GestionKommoComponent } from "../features/Gestion/gestion-kommo/gestion-kommo.component";
+import { AgendamientosKommoComponent } from "../features/agendamientos/agendamientos-kommo/agendamientos-kommo.component";
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, AgendamientosComponent, DerivacionesComponent, GestionContactXHoraComponent, CierreGestionComponent, AnalisisGestionMensualComponent, VentasComponent, ProyeccionComparativoComponent, ConvertidorExcelCsvComponent, TercerosComponent, VentasCuotasTipoVentaComponent, VentasBrillaRealzzaComponent, VentaXPlazoAvComponent, VentasCampoComponent, ProyeccionFfvvCampoComponent, GestionCobranzasComponent],
+  imports: [
+    CommonModule,
+    MatIconModule,
+    AgendamientosComponent,
+    GestionContactXHoraComponent,
+    CierreGestionComponent,
+    AnalisisGestionMensualComponent,
+    VentasComponent,
+    ProyeccionComparativoComponent,
+    ConvertidorExcelCsvComponent,
+    TercerosComponent,
+    VentasCuotasTipoVentaComponent,
+    VentasBrillaRealzzaComponent,
+    VentaXPlazoAvComponent,
+    VentasCampoComponent,
+    ProyeccionFfvvCampoComponent,
+    GestionCobranzasComponent,
+    GestionCampoRealzzaComponent,
+    AgendamientosCampoComponent,
+    ComparativoVentasComponent,
+    PostVentaComponent,
+    GestionPostVentaComponent,
+    EvolucionTipoClienteComponent,
+    GestionKommoComponent,
+    AgendamientosKommoComponent
+],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.css',
+  styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent {
-  moduloSeleccionado: string = '';;
+  sidebarVisible = true;
+  moduloSeleccionado: string = '';
+  submenuAbierto: string | null = null;
 
-  selectModule(modulo: string): void {
-    this.moduloSeleccionado = modulo;
+  // 🔹 Estructura dinámica del menú
+  menuItems = [
+    {
+      icon: 'event',
+      label: 'Agendamientos',
+      submenu: [
+        { label: 'Call Center', icon: 'call', modulo: 'agendamientos' },
+        { label: 'Campo', icon: 'storefront', modulo: 'agendamientos-campo' },
+        { label: 'KOMMO', icon: 'public', modulo: 'agendamientos-kommo' }
+      ]
+    },
+    { icon: 'people', label: 'Terceros', modulo: 'terceros' },
+    {
+      icon: 'bar_chart',
+      label: 'Gestión',
+      submenu: [
+        { label: 'Call Center', icon: 'call', modulo: 'gestion' },
+        { label: 'Campo', icon: 'storefront', modulo: 'gestion-campo' },
+        { label: 'Post_venta', icon: 'storefront', modulo: 'gestion-post-venta' },
+        { label: 'KOMMO', icon: 'public', modulo: 'gestion-kommo' }
+      ]
+    },
+    { icon: 'done_all', label: 'Cierre Gestión', modulo: 'cierre' },
+    { icon: 'analytics', label: 'Análisis Mensual', modulo: 'analisis' },
+    {
+      icon: 'shopping_cart',
+      label: 'Ventas',
+      submenu: [
+        { label: 'Call Center', icon: 'call', modulo: 'ventas' },
+        { label: 'Campo', icon: 'storefront', modulo: 'ventas-campo' },
+        { label: 'Comparativo', icon: 'balance', modulo: 'ventas-comparativo' },
+        { label: 'Evolucion', icon: 'balance', modulo: 'evolucion-tipo-cliente' },
+      ]
+    },
+    { icon: 'storefront', label: 'Ventas Brilla Realzza', modulo: 'ventas-brilla-realzza' },
+    { icon: 'storefront', label: 'Ventas - Cuotas - Tipo Venta', modulo: 'ventas-cuotas-tipoVenta' },
+    { icon: 'storefront', label: 'Ventas - Plazo AV', modulo: 'ventas-plazo-av' },
+    { icon: 'storefront', label: 'Proyección Call', modulo: 'proyeccion-comparativo' },
+    { icon: 'storefront', label: 'Proyección Campo', modulo: 'proyeccion-comparativo-campo' },
+    { icon: 'payments', label: 'Cobranzas', modulo: 'cobranzas' },
+    { icon: 'sync_alt', label: 'Conversor CSV', modulo: 'conversor-csv' },
+    { icon: 'post_add', label: 'Post Venta', modulo: 'post-venta' }
+  ];
+
+  toggleSidebar() {
+    this.sidebarVisible = !this.sidebarVisible;
+  }
+
+  toggleSubmenu(menu?: string): void {
+    this.submenuAbierto = this.submenuAbierto === menu ? null : menu ?? null;
+  }
+
+  selectModule(modulo?: string) {
+    this.moduloSeleccionado = modulo ?? '';
   }
 
   getTituloModulo(): string {
-    switch (this.moduloSeleccionado) {
-      case 'derivaciones': return 'Derivaciones';
-      case 'agendamientos': return 'Agendamientos';
-      case 'terceros': return 'Terceros';
-      case 'gestion': return 'Gestión';
-      case 'cierre': return 'Gestión Contact Center'.toUpperCase();
-      case 'ventas': return 'Ventas';
-      case 'ventas-campo': return 'ventas-campo';
-      case 'ventas-brilla-realzza': return 'ventas-brilla-realzza';
-      case 'ventas-cuotas-tipoVenta': return 'ventas-cuotas-tipoVenta';
-      case 'ventas-plazo-av': return 'ventas-plazo-av';
-      case 'analisis': return 'analisis';
-      case 'proyeccion-comparativo': return 'proyeccion-comparativo';
-      case 'proyeccion-comparativo-campo': return 'proyeccion-comparativo-campo';
-      case 'cobranzas': return 'cobranzas';
-      case 'conversor-csv': return 'conversor-csvo';
-      default: return 'Seleccione un módulo';
-    }
+    const found = this.menuItems
+      .flatMap(m => m.submenu ? m.submenu : [m])
+      .find(item => item.modulo === this.moduloSeleccionado);
+    return found ? found.label : 'Seleccione un módulo';
   }
 }
+
