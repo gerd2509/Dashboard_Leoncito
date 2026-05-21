@@ -36,6 +36,7 @@ export class VentasCampoComponent implements OnInit {
   ticket = 0;
   proyeccion = 0;
   totalNotasCredito = 0;
+  totalMontoRefacturacion = 0;
   montoRealVentas = 0;
 
   // Notas de Crédito
@@ -67,6 +68,17 @@ export class VentasCampoComponent implements OnInit {
   columnasDiasMes: string[] = [];
 
   resumenTipoCredito: any[] = [];
+  resumenPorVendedor: any[] = [];
+  ventasPorSemana: any[] = [];
+  ventasPorEntidad: any[] = [];
+  motosPorEntidad: any[] = [];
+  motosPorTipoProducto: any[] = [];
+  ventasPorTipoCredito: any[] = [];
+  maxMontoTipoCredito = 1;
+  maxMontoVendedor = 1;
+  maxMontoEntidad = 1;
+  maxMontoMotoEntidad = 1;
+  maxMontoMotoTipo = 1;
 
 
   private readonly grupoBrilla = new Set([
@@ -92,6 +104,7 @@ export class VentasCampoComponent implements OnInit {
     { value: 'AV10', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
     { value: 'AV11', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
     { value: 'AV12', viewValue: 'UCHOFEN VIGO FELICITA' },
+    { value: 'AV12', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' }
   ];
 
   nombresCortos: Record<string, string> = {
@@ -107,6 +120,7 @@ export class VentasCampoComponent implements OnInit {
     'MIÑOPE GONZALES ANYELA ESTHEFANY': 'ANYELA',
     'SAMAME HUAMAN ARIADNE': 'ARIADNE',
     'UCHOFEN VIGO FELICITA': 'FELICITA',
+    'RIQUERO ULCO CESAR JEFFERSON': 'CESAR'
   };
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
@@ -159,7 +173,7 @@ export class VentasCampoComponent implements OnInit {
             CuotaInicial: this.parseNumber(row['CuotaInicial']),
             Productos: row['Productos'],
             Cuotas: row['Cuotas'],
-            DocIdentidad: row['DocIdentidad'],
+            DocIdentidad: (row['DocIdentidad'] || '').toString().trim(),
             ClienteVenta: row['ClienteVenta'],
             Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase(),
             EstadoVenta: row['EstadoVenta'],
@@ -178,6 +192,7 @@ export class VentasCampoComponent implements OnInit {
             MontoConsolidado: Math.abs(monto),
             Productos: row['Productos'],
             ClienteVenta: row['ClienteVenta'],
+            DocIdentidad: (row['DocIdentidad'] || '').toString().trim(),
             Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase(),
             EstadoVenta: row['EstadoVenta'],
             AsesorVenta: row['AsesorVenta'],
@@ -235,10 +250,17 @@ export class VentasCampoComponent implements OnInit {
     });
 
     this.filtrarNotasCredito();
+
     this.calcularKPIs();
     this.generarChartData();
+    this.generarResumenPorVendedor();
+    this.generarVentasPorSemana();
+    this.generarVentasPorEntidad();
+    this.generarMotosPorEntidad();
+    this.generarMotosPorTipoProducto();
     this.generarResumenTipoCredito();
     this.generarTablaResumenTipoCredito();
+    this.generarVentasPorTipoCredito();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
     this.generarChartMontoSemanal();
@@ -257,19 +279,33 @@ export class VentasCampoComponent implements OnInit {
     const nombreFiltro = asesorObj && asesorObj.viewValue !== 'SELECCIONE ASESOR'
       ? asesorObj.viewValue.toUpperCase() : '';
 
-    this.filtroNotasCredito = this.dataNotasCredito.filter(nc => {
-      const cumpleAnio = nc.AñoAF === anioActual;
-      const cumpleMes = nc.MesAF === mesActual;
-      const cumpleAsesor = !nombreFiltro || nc.Vendedor.includes(nombreFiltro);
-      return cumpleAnio && cumpleMes && cumpleAsesor;
-    });
+    this.filtroNotasCredito = this.dataNotasCredito
+      .filter(nc => {
+        const cumpleAnio = nc.AñoAF === anioActual;
+        const cumpleMes = nc.MesAF === mesActual;
+        const cumpleAsesor = !nombreFiltro || nc.Vendedor.includes(nombreFiltro);
+        return cumpleAnio && cumpleMes && cumpleAsesor;
+      })
+      .map(nc => {
+        // Refacturación: existe una venta posterior (no NC) con el mismo DocIdentidad
+        const esRefacturacion = !!nc.DocIdentidad && this.dataVentas.some(v =>
+          v.DocIdentidad === nc.DocIdentidad &&
+          v.FECHAVENTA > nc.FECHAVENTA
+        );
+        return {
+          ...nc,
+          esRefacturacion,
+          MontoRefacturacion: esRefacturacion ? nc.MontoConsolidado : 0
+        };
+      });
   }
 
   calcularKPIs(): void {
     this.totalVentas = this.filtroVentas.length;
     this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
     this.totalNotasCredito = Math.round(this.filtroNotasCredito.reduce((sum, nc) => sum + nc.MontoConsolidado, 0));
-    this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito;
+    this.totalMontoRefacturacion = Math.round(this.filtroNotasCredito.reduce((sum, nc) => sum + (nc.MontoRefacturacion || 0), 0));
+    this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito + this.totalMontoRefacturacion;
     this.ticket = this.totalVentas > 0 ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
 
     // 2. Lógica de Proyección
@@ -317,8 +353,10 @@ export class VentasCampoComponent implements OnInit {
       map.set(nombre, (map.get(nombre) || 0) + (v.MontoConsolidado || 0));
     });
 
-    // Restar NCs por vendedor (mismo agrupamiento)
+    // Restar solo las NCs puras (sin refacturación) por vendedor.
+    // Las refacturadas no restan porque la nueva venta ya está sumada en filtroVentas.
     this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
       const nombre = this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta);
       map.set(nombre, (map.get(nombre) || 0) - (nc.MontoConsolidado || 0));
     });
@@ -434,12 +472,13 @@ export class VentasCampoComponent implements OnInit {
       map.set(key, (map.get(key) || 0) + v.MontoConsolidado);
     });
 
-    // Restar NCs del mes en curso (usando AñoAF/MesAF)
-    if (this.totalNotasCredito > 0) {
+    // Ajuste neto del mes en curso: restar solo las NCs puras (sin refacturación).
+    const ncNeta = this.totalNotasCredito - this.totalMontoRefacturacion;
+    if (ncNeta > 0) {
       const hoy = new Date();
       const mesActualKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
       if (map.has(mesActualKey)) {
-        map.set(mesActualKey, Math.max(0, (map.get(mesActualKey) || 0) - this.totalNotasCredito));
+        map.set(mesActualKey, Math.max(0, (map.get(mesActualKey) || 0) - ncNeta));
       }
     }
 
@@ -486,6 +525,200 @@ export class VentasCampoComponent implements OnInit {
       this.columnasDiasMes.forEach(dia => { row[dia] = map.get(vend)?.get(dia) || 0; });
       return row;
     });
+  }
+
+  generarResumenPorVendedor(): void {
+    const mapVentas = new Map<string, { monto: number; ops: number }>();
+    this.filtroVentas.forEach(v => {
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+      const cur = mapVentas.get(nombre) || { monto: 0, ops: 0 };
+      mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+
+    const mapNC = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      const nombre = this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta);
+      mapNC.set(nombre, (mapNC.get(nombre) || 0) + (nc.MontoConsolidado || 0));
+    });
+
+    const rows: any[] = [];
+    mapVentas.forEach((data, nombre) => {
+      const montoNC = mapNC.get(nombre) || 0;
+      const montoNeto = Math.max(0, data.monto - montoNC);
+      rows.push({
+        Vendedor: nombre,
+        MontoVentas: Math.round(data.monto),
+        MontoNC: Math.round(montoNC),
+        MontoNeto: Math.round(montoNeto),
+        NroOps: data.ops,
+        TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
+        Participacion: 0
+      });
+    });
+
+    const totalNeto = rows.reduce((sum, r) => sum + r.MontoNeto, 0);
+    rows.forEach(r => {
+      r.Participacion = totalNeto > 0 ? Math.round((r.MontoNeto / totalNeto) * 1000) / 10 : 0;
+    });
+
+    this.resumenPorVendedor = rows.sort((a, b) => b.MontoNeto - a.MontoNeto);
+    this.maxMontoVendedor = this.resumenPorVendedor.length > 0 ? this.resumenPorVendedor[0].MontoVentas : 1;
+  }
+
+  private entidadDisplay(e: string): string {
+    const u = (e || '').toString().trim().toUpperCase();
+    if (u === 'LEONCITO') return 'REALZZA';
+    return e || 'SIN ENTIDAD';
+  }
+
+  generarVentasPorSemana(): void {
+    const config = [
+      { label: 'Semana 1 (1-7)',   min: 1,  max: 7  },
+      { label: 'Semana 2 (8-14)',  min: 8,  max: 14 },
+      { label: 'Semana 3 (15-21)', min: 15, max: 21 },
+      { label: 'Semana 4 (22-28)', min: 22, max: 28 },
+      { label: 'Semana 5 (29-31)', min: 29, max: 31 },
+    ];
+    // Usar DiaAF (día del mes en curso en que se aplica la NC) para asignar semana.
+    // Así evitamos que NCs de ventas antiguas caigan en semanas futuras.
+    const semanaDeNCAF = (diaAF: number): string => {
+      if (diaAF <= 7)  return 'Semana 1 (1-7)';
+      if (diaAF <= 14) return 'Semana 2 (8-14)';
+      if (diaAF <= 21) return 'Semana 3 (15-21)';
+      if (diaAF <= 28) return 'Semana 4 (22-28)';
+      return 'Semana 5 (29-31)';
+    };
+    const ncPorSemana = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      const s = semanaDeNCAF(nc.DiaAF || 0);
+      ncPorSemana.set(s, (ncPorSemana.get(s) || 0) + (nc.MontoConsolidado || 0));
+    });
+    this.ventasPorSemana = config.map(s => {
+      const ventas = this.filtroVentas.filter(v => {
+        const dia = (v.FECHAVENTA as Date).getDate();
+        return dia >= s.min && dia <= s.max;
+      });
+      const montoVentas = Math.round(ventas.reduce((sum, v) => sum + (v.MontoConsolidado || 0), 0));
+      const montoNC = Math.round(ncPorSemana.get(s.label) || 0);
+      const ops = ventas.length;
+      return {
+        Semana: s.label,
+        MontoVentas: montoVentas,
+        MontoNC: montoNC,
+        MontoNeto: Math.max(0, montoVentas - montoNC),
+        NroOps: ops,
+        TicketPromedio: ops > 0 ? Math.round(montoVentas / ops) : 0
+      };
+    });
+  }
+
+  generarVentasPorEntidad(): void {
+    const mapVentas = new Map<string, { monto: number; ops: number }>();
+    this.filtroVentas.forEach(v => {
+      const ent = this.entidadDisplay(v.Entidad);
+      const cur = mapVentas.get(ent) || { monto: 0, ops: 0 };
+      mapVentas.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+    const mapNC = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      const ent = this.entidadDisplay(nc.Entidad);
+      mapNC.set(ent, (mapNC.get(ent) || 0) + (nc.MontoConsolidado || 0));
+    });
+    const rows: any[] = [];
+    mapVentas.forEach((data, ent) => {
+      const montoNC = Math.round(mapNC.get(ent) || 0);
+      const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
+      rows.push({ Entidad: ent, MontoVentas: Math.round(data.monto), MontoNC: montoNC,
+        MontoNeto: montoNeto, NroOps: data.ops,
+        TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0, Participacion: 0 });
+    });
+    const totalNeto = rows.reduce((sum, r) => sum + r.MontoNeto, 0);
+    rows.forEach(r => { r.Participacion = totalNeto > 0 ? Math.round((r.MontoNeto / totalNeto) * 1000) / 10 : 0; });
+    this.ventasPorEntidad = rows.sort((a, b) => b.MontoNeto - a.MontoNeto);
+    this.maxMontoEntidad = this.ventasPorEntidad.length > 0 ? this.ventasPorEntidad[0].MontoVentas : 1;
+  }
+
+  generarMotosPorEntidad(): void {
+    const motos = this.filtroVentas.filter(v =>
+      (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
+    const allEnts = new Set(this.filtroVentas.map(v => this.entidadDisplay(v.Entidad)));
+    const map = new Map<string, { monto: number; ops: number }>();
+    allEnts.forEach(e => map.set(e, { monto: 0, ops: 0 }));
+    motos.forEach(v => {
+      const ent = this.entidadDisplay(v.Entidad);
+      const cur = map.get(ent) || { monto: 0, ops: 0 };
+      map.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+    this.motosPorEntidad = Array.from(map, ([Entidad, d]) => ({
+      Entidad, Monto: Math.round(d.monto), NroOps: d.ops
+    })).sort((a, b) => b.Monto - a.Monto);
+    this.maxMontoMotoEntidad = this.motosPorEntidad.length > 0 ? this.motosPorEntidad[0].Monto : 1;
+  }
+
+  generarMotosPorTipoProducto(): void {
+    const motos = this.filtroVentas.filter(v =>
+      (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
+    const map = new Map<string, { monto: number; ops: number }>();
+    motos.forEach(v => {
+      const tipo = v.TipoProducto || 'SIN TIPO';
+      const cur = map.get(tipo) || { monto: 0, ops: 0 };
+      map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+    this.motosPorTipoProducto = Array.from(map, ([TipoProducto, d]) => ({
+      TipoProducto, Monto: Math.round(d.monto), NroOps: d.ops
+    })).sort((a, b) => b.Monto - a.Monto);
+    this.maxMontoMotoTipo = this.motosPorTipoProducto.length > 0 ? this.motosPorTipoProducto[0].Monto : 1;
+  }
+
+  generarVentasPorTipoCredito(): void {
+    const tipoKey = (v: any): string => {
+      const entidad = (v.Entidad || '').toString().trim().toUpperCase();
+      return entidad === 'GLOBAL GO'
+        ? 'CONTADO'
+        : (v.TipoCredito || 'SIN TIPO').toString().trim().toUpperCase();
+    };
+
+    const mapVentas = new Map<string, { monto: number; ops: number }>();
+    this.filtroVentas.forEach(v => {
+      const tipo = tipoKey(v);
+      const cur = mapVentas.get(tipo) || { monto: 0, ops: 0 };
+      mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+
+    // NCs puras por TipoCredito (GLOBAL GO → CONTADO)
+    const mapNC = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      const tipo = tipoKey(nc);
+      mapNC.set(tipo, (mapNC.get(tipo) || 0) + (nc.MontoConsolidado || 0));
+    });
+
+    const rows: any[] = [];
+    mapVentas.forEach((data, tipo) => {
+      const montoNC = Math.round(mapNC.get(tipo) || 0);
+      const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
+      rows.push({
+        TipoCredito: tipo,
+        MontoVentas: Math.round(data.monto),
+        MontoNC: montoNC,
+        MontoNeto: montoNeto,
+        NroOps: data.ops,
+        TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
+        Participacion: 0
+      });
+    });
+
+    const totalMonto = rows.reduce((sum, r) => sum + r.MontoVentas, 0);
+    rows.forEach(r => {
+      r.Participacion = totalMonto > 0 ? Math.round((r.MontoVentas / totalMonto) * 1000) / 10 : 0;
+    });
+
+    rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
+    this.maxMontoTipoCredito = rows.length > 0 ? rows[0].MontoVentas : 1;
+    this.ventasPorTipoCredito = rows;
   }
 
   generarResumenTipoCredito(): void {
@@ -654,6 +887,42 @@ export class VentasCampoComponent implements OnInit {
       e.cellElement.style.backgroundColor = "#293964";
       e.cellElement.style.color = "white";
       e.cellElement.style.fontWeight = "bold";
+    }
+  }
+
+  onCellPreparedResumen(e: any) {
+    if (e.rowType === 'header') {
+      e.cellElement.style.backgroundColor = '#293964';
+      e.cellElement.style.color = 'white';
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.textAlign = 'center';
+    }
+    if (e.rowType === 'data') {
+      if (e.column.dataField === 'MontoNC' && e.data.MontoNC > 0) {
+        e.cellElement.style.color = '#b71c1c';
+        e.cellElement.style.fontWeight = '600';
+      }
+      if (e.column.dataField === 'MontoNeto') {
+        e.cellElement.style.color = '#2E7D32';
+        e.cellElement.style.fontWeight = '700';
+      }
+    }
+    if (e.rowType === 'totalFooter') {
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.backgroundColor = '#f0f3fa';
+    }
+  }
+
+  onCellPreparedMoto(e: any) {
+    if (e.rowType === 'header') {
+      e.cellElement.style.backgroundColor = '#E65100';
+      e.cellElement.style.color = 'white';
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.textAlign = 'center';
+    }
+    if (e.rowType === 'totalFooter') {
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.backgroundColor = '#fff3e0';
     }
   }
 
