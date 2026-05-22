@@ -29,6 +29,7 @@ export class VentasCampoComponent implements OnInit {
   popupVisibleNroVentas: boolean = false;
   popupVisibleVentasSemanal: boolean = false;
   popupVisibleVentasPorMes: boolean = false;
+  popupVisibleEvolutivo: boolean = false;
 
   // KPIs
   totalMontoVentas = 0;
@@ -79,6 +80,34 @@ export class VentasCampoComponent implements OnInit {
   maxMontoEntidad = 1;
   maxMontoMotoEntidad = 1;
   maxMontoMotoTipo = 1;
+  ventasPorTipoBase: any[] = [];
+  maxMontoTipoBase = 1;
+  metasPorTipoBase: Record<string, number> = {};
+  showDetailGrid = false;
+  showNCGrid = false;
+  totalPctMargenCredito = 0;
+  customizePctMargenTotal = (_: any) => `${this.totalPctMargenCredito.toFixed(1)}%`;
+  dataMargen: any[] = [];
+  dataEvolutivo: any[] = [];
+  seriesEvolutivo: string[] = [];
+  seriesEvolutivoMain: string[] = [];
+  seriesEvolutivoTrend: string[] = [];
+  ventasPorLineaReal: any[] = [];
+  maxValorVentaLineaReal = 1;
+  totalPctMargenLineaReal = 0;
+  customizePctMargenLineaTotal = (_: any) => `${this.totalPctMargenLineaReal.toFixed(1)}%`;
+
+  // Color distinto por barra (gráfico vendedor)
+  customizeVendedorPoint = (pointInfo: any) => {
+    const colors = ['#1565C0', '#2E7D32', '#b71c1c', '#E65100', '#6A1B9A',
+                    '#00695C', '#4E342E', '#37474F', '#AD1457', '#558B2F', '#0277BD'];
+    return { color: colors[pointInfo.index % colors.length] };
+  };
+
+  // Tooltip con formato S/ sin decimales
+  customizeMontoTooltip = (arg: any) => ({
+    text: `${arg.seriesName ? arg.seriesName + '\n' : ''}S/ ${Math.round(arg.value).toLocaleString('es-PE')}`
+  });
 
 
   private readonly grupoBrilla = new Set([
@@ -153,6 +182,35 @@ export class VentasCampoComponent implements OnInit {
       const worksheet = workbook.Sheets[firstSheet];
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
 
+      // Leer hoja MARGEN: mapa Codigo→[{linea,valorVenta}] (puede haber varios productos por venta)
+      const margenMap = new Map<string, { linea: string; valorVenta: number }[]>();
+      this.dataMargen = [];
+      const mSheetName = workbook.SheetNames.find(n => n.trim().toUpperCase() === 'MARGEN');
+      if (mSheetName) {
+        (XLSX.utils.sheet_to_json(workbook.Sheets[mSheetName], { raw: true }) as any[])
+          .forEach((mr: any) => {
+            const codigo = (mr['Codigo'] || '').toString().trim();
+            const sede = (mr['SEDE'] || '').toString().trim().toUpperCase();
+            const linea = (mr['LINEA REAL'] || 'SIN LÍNEA').toString().trim().toUpperCase();
+            const valorVenta = this.parseNumber(mr['VALOR VENTA']);
+            const margenTotal = this.parseNumber(mr['MARGEN TOTAL']);
+            if (codigo) {
+              const existing = margenMap.get(codigo) || [];
+              existing.push({ linea, valorVenta });
+              margenMap.set(codigo, existing);
+            }
+            if (sede === 'REALZZA') {
+              this.dataMargen.push({
+                Codigo: codigo,
+                LineaReal: linea,
+                ValorVenta: valorVenta,
+                MargenTotal: margenTotal,
+                FECHAVENTA: this.getFechaJS(mr['Fecha'])
+              });
+            }
+          });
+      }
+
       this.dataVentas = [];
       this.dataNotasCredito = [];
       this.dataGlobalGo = [];
@@ -163,8 +221,14 @@ export class VentasCampoComponent implements OnInit {
         const entidad = (row['Entidad'] || '').toString().trim().toUpperCase();
         const monto = this.parseNumber(row['MontoConsolidado']);
         const esNC = estadoVenta === 'NOTA DE CRÉDITO' || estadoVenta === 'NOTA DE CREDITO';
+        const idventa = (row['IDVENTA'] || '').toString().trim();
 
         if (sede === 'SEDE REALZZA STORE' && !esNC && monto > 0) {
+          // Línea principal: la de mayor ValorVenta en MARGEN para este IDVENTA
+          const margenItems = margenMap.get(idventa) || [];
+          const primaryLinea = margenItems.length > 0
+            ? margenItems.reduce((max, i) => i.valorVenta > max.valorVenta ? i : max, margenItems[0]).linea
+            : 'SIN LÍNEA';
           this.dataVentas.push({
             IDVENTA: row['IDVENTA'],
             FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
@@ -180,12 +244,25 @@ export class VentasCampoComponent implements OnInit {
             Entidad: row['Entidad'],
             AsesorVenta: row['AsesorVenta'],
             TipoCredito: row['TipoCredito'],
-            TipoProducto: row['EstadoTipoProducto']
+            TipoProducto: row['TipoProducto'],
+            TipoBase: (row['TipoBase'] || '').toString().trim().toUpperCase(),
+            Margen: this.parseNumber(row['MargenTotal']),
+            ValorVenta: this.parseNumber(row['ValorVenta']),
+            LineaReal: primaryLinea
           });
         }
 
         // Capturar Notas de Crédito con las 3 columnas AF
         if (sede === 'SEDE REALZZA STORE' && esNC) {
+          // Distribución proporcional del NC entre las líneas reales del IDVENTA
+          const ncItems = margenMap.get(idventa) || [];
+          const ncTotalVV = ncItems.reduce((s, i) => s + i.valorVenta, 0);
+          const lineaRealItems = ncItems.length > 0
+            ? ncItems.map(i => ({
+                linea: i.linea,
+                proporcion: ncTotalVV > 0 ? i.valorVenta / ncTotalVV : 1 / ncItems.length
+              }))
+            : [{ linea: 'SIN LÍNEA', proporcion: 1 }];
           this.dataNotasCredito.push({
             IDVENTA: row['IDVENTA'],
             FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
@@ -198,6 +275,8 @@ export class VentasCampoComponent implements OnInit {
             AsesorVenta: row['AsesorVenta'],
             Entidad: row['Entidad'],
             TipoCredito: row['TipoCredito'],
+            TipoBase: (row['TipoBase'] || '').toString().trim().toUpperCase(),
+            LineaRealItems: lineaRealItems,
             DiaAF: this.parseNumber(row['DiaAF']),
             MesAF: this.parseNumber(row['MesAF']),
             AñoAF: this.parseNumber(row['AñoAF'])
@@ -216,7 +295,60 @@ export class VentasCampoComponent implements OnInit {
           });
         }
       });
-      console.log("✅ Ventas válidas:", this.dataVentas.length, "| Global GO:", this.dataGlobalGo.length);
+      // Leer hoja METAS para TipoBase
+      this.metasPorTipoBase = {};
+      const metasSheetName = workbook.SheetNames.find(n => n.trim().toUpperCase() === 'METAS');
+      if (metasSheetName) {
+        const metasSheet = workbook.Sheets[metasSheetName];
+        const metasData = XLSX.utils.sheet_to_json(metasSheet, { raw: false }) as any[];
+        const hoy = new Date();
+        const mesKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+        metasData.forEach((metaRow: any) => {
+          const keys = Object.keys(metaRow);
+          if (keys.length === 0) return;
+          const tipoBase = (metaRow[keys[0]] || '').toString().trim().toUpperCase();
+          const meta = this.parseNumber(metaRow[mesKey] || '0');
+          if (tipoBase) this.metasPorTipoBase[tipoBase] = meta;
+        });
+      }
+      // Leer hoja EVOLUTIVO: FECHAVENTA + MontoConsolidado → agrupar por mes
+      this.dataEvolutivo = [];
+      this.seriesEvolutivoMain = ['Ventas'];
+      this.seriesEvolutivoTrend = [];
+      console.log('📊 Hojas en workbook:', workbook.SheetNames);
+      const evoSheetName = workbook.SheetNames.find(n => n.trim().toUpperCase() === 'EVOLUTIVO');
+      console.log('📊 Hoja EVOLUTIVO encontrada:', evoSheetName);
+      if (evoSheetName) {
+        const evoRows = XLSX.utils.sheet_to_json(workbook.Sheets[evoSheetName], { raw: true }) as any[];
+        console.log('📊 Filas EVOLUTIVO:', evoRows.length);
+        if (evoRows.length > 0) {
+          console.log('📊 Columnas EVOLUTIVO:', Object.keys(evoRows[0]));
+          console.log('📊 Primera fila EVOLUTIVO:', JSON.stringify(evoRows[0]));
+        }
+        const mapEvo = new Map<string, number>();
+        let skippedDate = 0, skippedMonto = 0, processed = 0;
+        evoRows.forEach((r: any) => {
+          const keys = Object.keys(r);
+          const fechaKey = keys.find(k => k.trim().toUpperCase().replace(/\s+/g, '') === 'FECHAVENTA') || 'FECHAVENTA';
+          const montoKey = keys.find(k => k.trim().toUpperCase().replace(/\s+/g, '') === 'MONTOCONSOLIDADO') || 'MontoConsolidado';
+          const fecha = this.getFechaJS(r[fechaKey] ?? '');
+          const monto = this.parseNumber(r[montoKey] ?? 0);
+          if (!fecha || isNaN(fecha.getTime())) { skippedDate++; return; }
+          if (monto <= 0) { skippedMonto++; return; }
+          const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+          mapEvo.set(key, (mapEvo.get(key) || 0) + monto);
+          processed++;
+        });
+        console.log(`📊 EVOLUTIVO → procesadas: ${processed}, saltadas fecha: ${skippedDate}, saltadas monto: ${skippedMonto}`);
+        console.log('📊 Meses generados:', Array.from(mapEvo.keys()));
+        this.dataEvolutivo = Array.from(mapEvo.keys()).sort().map(k => {
+          const [anio, mes] = k.split('-');
+          return { Periodo: `${this.getNombreMes(+mes).substring(0, 3).toUpperCase()} ${anio}`, Ventas: Math.round(mapEvo.get(k) || 0) };
+        });
+        console.log('📊 dataEvolutivo final:', this.dataEvolutivo.length, 'meses', this.dataEvolutivo);
+      }
+
+      console.log(`✅ Ventas: ${this.dataVentas.length} | GO: ${this.dataGlobalGo.length} | Margen: ${this.dataMargen.length} | Evolutivo: ${this.dataEvolutivo.length}`);
       this.generarMesesGlobalGo();
       this.actualizarFiltros();
     };
@@ -261,6 +393,8 @@ export class VentasCampoComponent implements OnInit {
     this.generarResumenTipoCredito();
     this.generarTablaResumenTipoCredito();
     this.generarVentasPorTipoCredito();
+    this.generarVentasPorTipoBase();
+    this.generarVentasPorLineaReal();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
     this.generarChartMontoSemanal();
@@ -322,18 +456,11 @@ export class VentasCampoComponent implements OnInit {
     const esMesPasado = anioFiltro < anioActual || (anioFiltro === anioActual && mesFiltro < mesActual);
 
     if (esMesPasado) {
-      // Si el mes ya cerró, la proyección es simplemente el total vendido
-      this.proyeccion = this.totalMontoVentas;
+      this.proyeccion = this.montoRealVentas;
     } else {
-      // Si es el mes en curso (o futuro, aunque usualmente es el actual)
       const ultimoDiaMes = new Date(anioActual, mesActual + 1, 0).getDate();
-      const diaHoy = hoy.getDate();
-
-      // Importante: Si tus datos llegan hasta ayer, usa Math.max(1, diaHoy - 1)
-      // Si incluyen ventas de hoy, usa diaHoy.
-      const diasTranscurridos = Math.max(1, diaHoy);
-
-      const promedioDiario = this.totalMontoVentas / diasTranscurridos;
+      const diasTranscurridos = Math.max(1, hoy.getDate());
+      const promedioDiario = this.montoRealVentas / diasTranscurridos;
       this.proyeccion = Math.round(promedioDiario * ultimoDiaMes);
     }
   }
@@ -485,7 +612,7 @@ export class VentasCampoComponent implements OnInit {
     const keysOrd = Array.from(map.keys()).sort();
     this.chartMontoMensual = keysOrd.map(k => {
       const [anio, mes] = k.split('-');
-      return { Mes: `${this.getNombreMes(+mes)} ${anio}`, MontoTotal: map.get(k) || 0 };
+      return { Mes: `${this.getNombreMes(+mes)} ${anio}`, MontoTotal: Math.round(map.get(k) || 0) };
     });
   }
 
@@ -674,6 +801,11 @@ export class VentasCampoComponent implements OnInit {
   }
 
   generarVentasPorTipoCredito(): void {
+    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+    const fechaFin = new Date(this.formVentas.value.fechaFin);
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
+
     const tipoKey = (v: any): string => {
       const entidad = (v.Entidad || '').toString().trim().toUpperCase();
       return entidad === 'GLOBAL GO'
@@ -688,23 +820,22 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    // NCs puras por TipoCredito (GLOBAL GO → CONTADO)
     const mapNC = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const tipo = tipoKey(nc);
-      mapNC.set(tipo, (mapNC.get(tipo) || 0) + (nc.MontoConsolidado || 0));
-    });
+    this.dataNotasCredito
+      .filter(nc => { const f = nc.FECHAVENTA as Date; return f >= fechaInicio && f <= fechaFin; })
+      .forEach(nc => {
+        const tipo = tipoKey(nc);
+        mapNC.set(tipo, (mapNC.get(tipo) || 0) + (nc.MontoConsolidado || 0));
+      });
 
     const rows: any[] = [];
     mapVentas.forEach((data, tipo) => {
       const montoNC = Math.round(mapNC.get(tipo) || 0);
-      const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
       rows.push({
         TipoCredito: tipo,
         MontoVentas: Math.round(data.monto),
         MontoNC: montoNC,
-        MontoNeto: montoNeto,
+        MontoNeto: Math.max(0, Math.round(data.monto) - montoNC),
         NroOps: data.ops,
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0
@@ -715,10 +846,143 @@ export class VentasCampoComponent implements OnInit {
     rows.forEach(r => {
       r.Participacion = totalMonto > 0 ? Math.round((r.MontoVentas / totalMonto) * 1000) / 10 : 0;
     });
-
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
     this.maxMontoTipoCredito = rows.length > 0 ? rows[0].MontoVentas : 1;
     this.ventasPorTipoCredito = rows;
+  }
+
+  generarVentasPorTipoBase(): void {
+    const mapVentas = new Map<string, { monto: number; ops: number }>();
+    this.filtroVentas.forEach(v => {
+      const tipo = (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase();
+      const cur = mapVentas.get(tipo) || { monto: 0, ops: 0 };
+      mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+
+    const mapNC = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      const tipo = (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase();
+      mapNC.set(tipo, (mapNC.get(tipo) || 0) + (nc.MontoConsolidado || 0));
+    });
+
+    const rows: any[] = [];
+    mapVentas.forEach((data, tipo) => {
+      const montoNC = Math.round(mapNC.get(tipo) || 0);
+      const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
+      const meta = this.metasPorTipoBase[tipo] || 0;
+      rows.push({
+        TipoBase: tipo,
+        MontoVentas: Math.round(data.monto),
+        MontoNeto: montoNeto,
+        NroOps: data.ops,
+        TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
+        Participacion: 0,
+        Meta: meta,
+        PorcentajeAvance: meta > 0 ? Math.round((Math.round(data.monto) / meta) * 1000) / 10 : 0
+      });
+    });
+
+    const totalMonto = rows.reduce((sum, r) => sum + r.MontoVentas, 0);
+    rows.forEach(r => {
+      r.Participacion = totalMonto > 0 ? Math.round((r.MontoVentas / totalMonto) * 1000) / 10 : 0;
+    });
+
+    rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
+    this.maxMontoTipoBase = rows.length > 0 ? rows[0].MontoVentas : 1;
+    this.ventasPorTipoBase = rows;
+  }
+
+  generarChartEvolutivo(): void {
+    const map = new Map<string, number>();
+    this.dataVentas.forEach(v => {
+      const f = v.FECHAVENTA as Date;
+      const key = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
+      map.set(key, (map.get(key) || 0) + (v.MontoConsolidado || 0));
+    });
+    const keysOrd = Array.from(map.keys()).sort();
+    this.dataEvolutivo = keysOrd.map(k => {
+      const [anio, mes] = k.split('-');
+      return {
+        Periodo: `${this.getNombreMes(+mes).substring(0, 3).toUpperCase()} ${anio}`,
+        Ventas: Math.round(map.get(k) || 0)
+      };
+    });
+    this.seriesEvolutivoMain = ['Ventas'];
+    this.seriesEvolutivoTrend = [];
+  }
+
+  generarVentasPorLineaReal(): void {
+    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+    const fechaFin = new Date(this.formVentas.value.fechaFin);
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
+
+    const map = new Map<string, { valorVenta: number; margen: number; ops: number }>();
+
+    this.dataMargen.forEach(mr => {
+      const fecha = mr.FECHAVENTA as Date;
+      if (fecha < fechaInicio || fecha > fechaFin) return;
+      const linea = mr.LineaReal;
+      const cur = map.get(linea) || { valorVenta: 0, margen: 0, ops: 0 };
+      map.set(linea, {
+        valorVenta: cur.valorVenta + (mr.ValorVenta || 0),
+        margen: cur.margen + (mr.MargenTotal || 0),
+        ops: cur.ops + 1
+      });
+    });
+
+    const rows: any[] = [];
+    map.forEach((data, linea) => {
+      rows.push({
+        LineaReal: linea,
+        ValorVenta: Math.round(data.valorVenta),
+        NroOps: data.ops,
+        MargenTotal: Math.round(data.margen),
+        PorcentajeMargen: data.valorVenta > 0
+          ? Math.round((data.margen / data.valorVenta) * 1000) / 10 : 0,
+        TicketPromedio: data.ops > 0 ? Math.round(data.valorVenta / data.ops) : 0,
+        Participacion: 0
+      });
+    });
+
+    const totalVV = rows.reduce((s, r) => s + r.ValorVenta, 0);
+    const totalMg = rows.reduce((s, r) => s + r.MargenTotal, 0);
+    rows.forEach(r => {
+      r.Participacion = totalVV > 0 ? Math.round((r.ValorVenta / totalVV) * 1000) / 10 : 0;
+    });
+
+    rows.sort((a, b) => b.ValorVenta - a.ValorVenta);
+    this.maxValorVentaLineaReal = rows.length > 0 ? rows[0].ValorVenta : 1;
+    this.ventasPorLineaReal = rows;
+    this.totalPctMargenLineaReal = totalVV > 0
+      ? Math.round((totalMg / totalVV) * 1000) / 10 : 0;
+  }
+
+  onCellPreparedTipoBase(e: any): void {
+    if (e.rowType === 'header') {
+      const esMetaCol = e.column.dataField === 'Meta' || e.column.dataField === 'PorcentajeAvance';
+      e.cellElement.style.backgroundColor = esMetaCol ? '#1565C0' : '#293964';
+      e.cellElement.style.color = 'white';
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.textAlign = 'center';
+    }
+    if (e.rowType === 'data') {
+      if (e.column.dataField === 'Meta' || e.column.dataField === 'PorcentajeAvance') {
+        e.cellElement.style.backgroundColor = '#e3f2fd';
+      }
+      if (e.column.dataField === 'PorcentajeAvance') {
+        const pct = e.data.PorcentajeAvance || 0;
+        if (pct >= 80) e.cellElement.style.color = '#2E7D32';
+        else if (pct >= 50) e.cellElement.style.color = '#E65100';
+        else e.cellElement.style.color = '#b71c1c';
+        e.cellElement.style.fontWeight = '700';
+      }
+    }
+    if (e.rowType === 'totalFooter') {
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.backgroundColor = '#f0f3fa';
+    }
   }
 
   generarResumenTipoCredito(): void {
@@ -818,13 +1082,17 @@ export class VentasCampoComponent implements OnInit {
   onAsesorChanged(e: any) { this.actualizarFiltros(); }
 
   getFechaJS(excelDate: any): Date {
-    if (typeof excelDate === 'number') {
+    if (typeof excelDate === 'number' && excelDate > 0) {
       const utc_days = Math.floor(excelDate - 25569);
       const utc_value = utc_days * 86400 * 1000;
       const date_info = new Date(utc_value);
       return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate());
     }
-    const parsed = new Date(excelDate);
+    const str = (excelDate || '').toString().trim();
+    // Handle Peruvian DD/MM/YYYY format (not parseable by native Date constructor)
+    const dmy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmy) return new Date(+dmy[3], +dmy[2] - 1, +dmy[1]);
+    const parsed = new Date(str);
     return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
 

@@ -139,14 +139,62 @@
     flex-wrap: wrap;
 }
 
-.graficosVentas dx-chart {
+/* =========================================================
+   GRÁFICO EVOLUTIVO
+   ========================================================= */
+.evolutivo-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 6px 28px rgba(26, 58, 107, 0.13);
+    border: 1px solid #dde3f0;
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.evolutivo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #1a3a6b 0%, #2a5298 100%);
+    color: #fff;
+    padding: 13px 20px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.evolutivo-header mat-icon {
+    font-size: 22px;
+    width: 22px;
+    height: 22px;
+}
+
+/* Tarjeta de gráfico individual */
+.grafico-card {
     flex: 1;
     min-width: 420px;
     background: #fff;
-    padding: 20px;
     border-radius: 14px;
     box-shadow: 0 4px 18px rgba(41, 57, 100, 0.08);
     border: 1px solid #eef0f6;
+    overflow: hidden;
+}
+
+.grafico-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 6px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #293964;
+    border-bottom: 1px solid #eef0f6;
+}
+
+.grafico-card dx-chart {
+    display: block;
+    height: 300px;
+    padding: 10px;
 }
 
 /* =========================================================
