@@ -141,7 +141,7 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ8', viewValue: 'UCHOFEN VIGO FELICITA' },
     // { value: 'RZ9', viewValue: 'CARRANZA ALARCON TREYCI JOHANA' },
     { value: 'RZ10', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'RZ11', viewValue: 'CESAR JEFFERSON RIQUERO ULCO' },
+    { value: 'RZ11', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' }
   ];
 
   asesores1 = this.asesoresCall;

@@ -4,18 +4,24 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class SheetsService {
-  private apiUrlCall = 'http://localhost:3000/data/call';
-  private apiUrlCampo = 'http://localhost:3000/data/campo';
-  private apiUrlPostVenta = 'http://localhost:3000/data/postVenta';
-  private apiUrlpvCobranza = 'http://localhost:3000/data/pvCobranza';
-  private apiUrlpvControlInterno = 'http://localhost:3000/data/pvControlInterno';
-  private apiUrlpvCreditos = 'http://localhost:3000/data/pvCreditos';
-  private apiUrlpvLogistica = 'http://localhost:3000/data/pvLogistica';
-  private apiUrlpvOperaciones = 'http://localhost:3000/data/pvOperaciones';
-  private apiUrlpvServicioTecnico = 'http://localhost:3000/data/pvServicioTecnico';
-  private apiUrlpvVentas = 'http://localhost:3000/data/pvVentas';
-  private apiUrlKOMMO = 'http://localhost:3000/data/kommo';
-  // private apiUrl = 'https://api-leoncito.onrender.com/data'; 
+  // 1. Defines la ruta base de tu API en Render (descomentas y usas tu línea 18)
+  private baseUrl = 'https://api-leoncito.onrender.com/data';
+
+  // Si algún día quieres probar en local otra vez, solo comentas la de arriba y descomentas esta:
+  // private baseUrl = 'http://localhost:3000/data';
+
+  // 2. Armas las rutas concatenando la base con el endpoint específico
+  private apiUrlCall = `${this.baseUrl}/call`;
+  private apiUrlCampo = `${this.baseUrl}/campo`;
+  private apiUrlPostVenta = `${this.baseUrl}/postVenta`;
+  private apiUrlpvCobranza = `${this.baseUrl}/pvCobranza`;
+  private apiUrlpvControlInterno = `${this.baseUrl}/pvControlInterno`;
+  private apiUrlpvCreditos = `${this.baseUrl}/pvCreditos`;
+  private apiUrlpvLogistica = `${this.baseUrl}/pvLogistica`;
+  private apiUrlpvOperaciones = `${this.baseUrl}/pvOperaciones`;
+  private apiUrlpvServicioTecnico = `${this.baseUrl}/pvServicioTecnico`;
+  private apiUrlpvVentas = `${this.baseUrl}/pvVentas`;
+  private apiUrlKOMMO = `${this.baseUrl}/kommo`;
 
   constructor(private http: HttpClient) { }
 
@@ -26,7 +32,7 @@ export class SheetsService {
   getSheetDataCampo(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlCampo);
   }
-  
+
   getSheetDataPostVenta(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlPostVenta);
   }
