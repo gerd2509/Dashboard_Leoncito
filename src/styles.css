@@ -1,23 +1,246 @@
 /* You can add global styles to this file, and also import other style files */
 
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  background: #EEF2F8;
+  color: #1E3A5F;
+}
 
+/* ============================================================
+   DEVEXTREME — LEONCITO LIGHT THEME
+   ============================================================ */
 
-.dx-datagrid-pager.dx-pager{
+/* Wrapper */
+.dx-datagrid {
+  background: #FFFFFF !important;
+  color: #1E3A5F !important;
+  border: 1px solid #CCDAEE !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  box-shadow: 0 2px 10px rgba(26,95,173,0.07) !important;
+}
+
+/* Headers */
+.dx-datagrid-headers,
+.dx-datagrid-headers .dx-datagrid-table {
+  background: #1A5FAD !important;
+  border-bottom: 2px solid #1554A0 !important;
+}
+
+.dx-datagrid-headers td,
+.dx-header-row td {
+  background: #1A5FAD !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  font-size: 10.5px !important;
+  letter-spacing: 0.7px !important;
+  text-transform: uppercase !important;
+  border-right: 1px solid rgba(255,255,255,0.12) !important;
+  border-bottom: none !important;
+  padding: 11px 8px !important;
+}
+
+/* Rows */
+.dx-datagrid-rowsview .dx-row td {
+  background: #FFFFFF !important;
+  color: #2D4A6A !important;
+  border-bottom: 1px solid #E8F0FA !important;
+  border-right: 1px solid #EEF4FA !important;
+  padding: 8px !important;
+}
+
+.dx-datagrid-rowsview .dx-row-alt td {
+  background: #F4F9FF !important;
+}
+
+/* ── ROW HOVER — solid, unmistakably visible ── */
+.dx-datagrid .dx-datagrid-rowsview .dx-row:hover,
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-state-hover,
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row:hover,
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row.dx-state-hover {
+  background: #D6E8FF !important;
+}
+.dx-datagrid .dx-datagrid-rowsview .dx-row:hover td,
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-state-hover td,
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row:hover td,
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row.dx-state-hover td {
+  background: #D6E8FF !important;
+  color: #1A3A6A !important;
+  border-bottom: 1px solid rgba(26,95,173,0.25) !important;
+  transition: background 0.12s ease !important;
+}
+.dx-datagrid .dx-datagrid-rowsview .dx-row:hover td:first-child,
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-state-hover td:first-child,
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row:hover td:first-child,
+.dx-datagrid .dx-datagrid-rowsview .dx-data-row.dx-state-hover td:first-child {
+  box-shadow: inset 3px 0 0 #1A5FAD !important;
+}
+
+/* Pivot grid hover */
+.dx-pivotgrid .dx-row:hover td,
+.dx-pivotgrid .dx-row.dx-state-hover td {
+  background: #D6E8FF !important;
+  color: #1A3A6A !important;
+}
+
+/* Selected */
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-selection,
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-alt {
+  background: #BAD5FA !important;
+}
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-selection td,
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-alt td {
+  background: #BAD5FA !important;
+  color: #0D2E5A !important;
+  border-bottom: 1px solid rgba(26,95,173,0.3) !important;
+}
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-selection td:first-child,
+.dx-datagrid .dx-datagrid-rowsview .dx-row.dx-selection.dx-row-alt td:first-child {
+  box-shadow: inset 3px 0 0 #F07420 !important;
+}
+
+/* ── SUMMARY / FOOTER — brand blue, high contrast ── */
+.dx-datagrid-total-footer,
+.dx-datagrid-total-footer > .dx-datagrid-content {
+  background: #EBF3FF !important;
+  border-top: 2px solid rgba(26,95,173,0.35) !important;
+}
+.dx-datagrid-total-footer td {
+  background: #EBF3FF !important;
+  color: #1A5FAD !important;
+  font-weight: 800 !important;
+  font-size: 12.5px !important;
+  letter-spacing: 0.3px !important;
+  border-right: 1px solid #CCDAEE !important;
+  border-bottom: none !important;
+  padding: 10px 8px !important;
+}
+.dx-datagrid-summary-item {
+  color: #1A5FAD !important;
+  font-weight: 800 !important;
+  font-size: 12.5px !important;
+}
+
+/* Pager */
+.dx-datagrid-pager.dx-pager {
+  background: #F4F9FF !important;
+  color: #4A6A88 !important;
+  border-top: 1px solid #CCDAEE !important;
   padding-left: 8px;
   padding-right: 8px;
 }
-
-.dx-datagrid-content .dx-datagrid-table .dx-row > td{
-  vertical-align: middle;  
+.dx-pager .dx-page,
+.dx-pager .dx-page-size {
+  color: #4A6A88 !important;
+}
+.dx-pager .dx-page.dx-selection,
+.dx-pager .dx-page-size.dx-selection {
+  background: #1A5FAD !important;
+  color: #FFFFFF !important;
+  border-radius: 5px !important;
 }
 
-.dx-license-banner {
-  display: none !important;
+/* Filter row */
+.dx-datagrid-filter-row td {
+  background: #F4F9FF !important;
+  border-bottom: 1px solid #CCDAEE !important;
 }
+.dx-datagrid-filter-row .dx-texteditor-input {
+  background: #FFFFFF !important;
+  color: #1E3A5F !important;
+}
+
+/* Scrollbar */
+.dx-scrollbar-vertical .dx-scrollable-scroll-content {
+  background: #1A5FAD !important;
+  border-radius: 3px !important;
+}
+
+/* Inputs DevExtreme */
+.dx-texteditor,
+.dx-texteditor.dx-editor-underlined {
+  background: transparent !important;
+  color: #1E3A5F !important;
+}
+.dx-texteditor-input {
+  color: #1E3A5F !important;
+  background: transparent !important;
+}
+.dx-texteditor-label .dx-label span {
+  color: #1A5FAD !important;
+}
+.dx-texteditor.dx-editor-underlined::after {
+  border-bottom-color: #1A5FAD !important;
+}
+
+/* Dropdown */
+.dx-overlay-wrapper .dx-popup-wrapper .dx-popup-content {
+  background: #FFFFFF !important;
+  color: #1E3A5F !important;
+  border: 1px solid #CCDAEE !important;
+  box-shadow: 0 8px 32px rgba(26,95,173,0.15) !important;
+}
+.dx-list-item { color: #2D4A6A !important; }
+.dx-list-item.dx-state-hover {
+  background: #EBF3FF !important;
+  color: #1A5FAD !important;
+}
+.dx-list-item.dx-list-item-selected {
+  background: #D6E8FF !important;
+  color: #1A5FAD !important;
+}
+
+/* Checkbox */
+.dx-checkbox-icon {
+  border-color: #1A5FAD !important;
+  background: #FFFFFF !important;
+}
+.dx-checkbox-checked .dx-checkbox-icon {
+  background: #1A5FAD !important;
+}
+
+/* Popup */
+.dx-popup-wrapper .dx-popup-normal {
+  background: #FFFFFF !important;
+  border: 1px solid #CCDAEE !important;
+  border-radius: 12px !important;
+  box-shadow: 0 24px 64px rgba(26,95,173,0.18) !important;
+}
+.dx-popup-title {
+  background: #1A5FAD !important;
+  color: #FFFFFF !important;
+  border-bottom: none !important;
+}
+.dx-toolbar-button .dx-button-content {
+  color: rgba(255,255,255,0.8) !important;
+}
+
+/* Chart */
+.dx-chart { background: transparent !important; }
+
+/* Angular Material */
+.mat-mdc-form-field .mdc-text-field {
+  background: rgba(26,95,173,0.04) !important;
+  border-radius: 8px !important;
+}
+.mat-mdc-select-value,
+.mat-mdc-option { color: #1E3A5F !important; }
+.mdc-list-item__primary-text { color: #2D4A6A !important; }
+
+/* Cell alignment */
+.dx-datagrid-content .dx-datagrid-table .dx-row > td {
+  vertical-align: middle;
+}
+
+.dx-license-banner { display: none !important; }
 
 .toast-container .ngx-toastr {
   width: 320px !important;
-  font-size:14px !important;
+  font-size: 14px !important;
+  background: #FFFFFF !important;
+  border: 1px solid #CCDAEE !important;
+  color: #1E3A5F !important;
+  box-shadow: 0 8px 24px rgba(26,95,173,0.14) !important;
 }

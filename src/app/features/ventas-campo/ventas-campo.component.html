@@ -56,7 +56,7 @@
 <!-- ===== NOTAS DE CRÉDITO ===== -->
 <div style="margin: 10px 0 4px 0;" *ngIf="filtroNotasCredito.length > 0">
     <button mat-stroked-button (click)="showNCGrid = !showNCGrid"
-        style="border-color:#b71c1c; color:#b71c1c; font-weight:600; border-radius:8px;">
+        style="border-color:rgba(244,63,94,0.5); color:#FB7185; font-weight:600; border-radius:8px; background:rgba(244,63,94,0.07);">
         <mat-icon>{{ showNCGrid ? 'expand_less' : 'expand_more' }}</mat-icon>
         {{ showNCGrid ? 'Ocultar Notas de Crédito' : 'Ver Notas de Crédito (' + filtroNotasCredito.length + ' registros)' }}
     </button>
@@ -102,7 +102,7 @@
 <!-- ===== TOGGLE TABLA DE DETALLE ===== -->
 <div style="margin: 12px 0 4px 0;">
     <button mat-stroked-button (click)="showDetailGrid = !showDetailGrid"
-        style="border-color:#293964; color:#293964; font-weight:600; border-radius:8px;">
+        style="border-color:rgba(26,95,173,0.4); color:#1A5FAD; font-weight:600; border-radius:8px; background:rgba(26,95,173,0.07);">
         <mat-icon>{{ showDetailGrid ? 'expand_less' : 'expand_more' }}</mat-icon>
         {{ showDetailGrid ? 'Ocultar tabla de detalle' : 'Ver tabla de detalle completa' }}
     </button>
@@ -165,7 +165,7 @@
             <div *dxTemplate="let cell of 'montoTipoBarTemplate'"
                 style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
                 <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-                    background:linear-gradient(90deg, rgba(183,28,28,0.10), rgba(183,28,28,0.28));"
+                    background:linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.32));"
                     [style.width.%]="cell.data.MontoVentas / maxMontoTipoCredito * 100"></div>
                 <span style="position:relative; font-weight:600; font-size:13px;">
                     S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
@@ -213,7 +213,7 @@
             <div *dxTemplate="let cell of 'montoTipoBaseBarTemplate'"
                 style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
                 <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-                    background:linear-gradient(90deg, rgba(46,125,50,0.12), rgba(46,125,50,0.32));"
+                    background:linear-gradient(90deg, rgba(16,185,129,0.15), rgba(16,185,129,0.35));"
                     [style.width.%]="cell.data.MontoVentas / maxMontoTipoBase * 100"></div>
                 <span style="position:relative; font-weight:600; font-size:13px;">
                     S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
@@ -263,7 +263,7 @@
     <div *dxTemplate="let cell of 'valorVentaLineaBarTemplate'"
         style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
         <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-            background:linear-gradient(90deg, rgba(21,101,192,0.10), rgba(21,101,192,0.30));"
+            background:linear-gradient(90deg, rgba(56,189,248,0.15), rgba(56,189,248,0.32));"
             [style.width.%]="cell.data.ValorVenta / maxValorVentaLineaReal * 100"></div>
         <span style="position:relative; font-weight:600; font-size:13px;">
             S/. {{ cell.data.ValorVenta | number:'1.0-0' }}
@@ -314,7 +314,7 @@
             <div *dxTemplate="let cell of 'montoVendedorBarTemplate'"
                 style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
                 <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-                    background:linear-gradient(90deg, rgba(41,57,100,0.10), rgba(41,57,100,0.30));"
+                    background:linear-gradient(90deg, rgba(124,58,237,0.15), rgba(124,58,237,0.35));"
                     [style.width.%]="cell.data.MontoVentas / maxMontoVendedor * 100"></div>
                 <span style="position:relative; font-weight:600; font-size:13px;">
                     S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
@@ -435,7 +435,7 @@
             <div *dxTemplate="let cell of 'montoEntidadBarTemplate'"
                 style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
                 <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-                    background:linear-gradient(90deg, rgba(41,57,100,0.10), rgba(41,57,100,0.30));"
+                    background:linear-gradient(90deg, rgba(124,58,237,0.15), rgba(124,58,237,0.35));"
                     [style.width.%]="cell.data.MontoVentas / maxMontoEntidad * 100"></div>
                 <span style="position:relative; font-weight:600; font-size:13px;">
                     S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
@@ -475,7 +475,7 @@
             <div *dxTemplate="let cell of 'montoMotoEntBarTemplate'"
                 style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
                 <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-                    background:linear-gradient(90deg, rgba(230,81,0,0.10), rgba(230,81,0,0.32));"
+                    background:linear-gradient(90deg, rgba(249,115,22,0.15), rgba(249,115,22,0.35));"
                     [style.width.%]="cell.data.Monto / maxMontoMotoEntidad * 100"></div>
                 <span style="position:relative; font-weight:600; font-size:13px;">
                     S/. {{ cell.data.Monto | number:'1.0-0' }}
@@ -505,7 +505,7 @@
             <div *dxTemplate="let cell of 'montoMotoTipoBarTemplate'"
                 style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
                 <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
-                    background:linear-gradient(90deg, rgba(230,81,0,0.10), rgba(230,81,0,0.32));"
+                    background:linear-gradient(90deg, rgba(249,115,22,0.15), rgba(249,115,22,0.35));"
                     [style.width.%]="cell.data.Monto / maxMontoMotoTipo * 100"></div>
                 <span style="position:relative; font-weight:600; font-size:13px;">
                     S/. {{ cell.data.Monto | number:'1.0-0' }}
@@ -541,14 +541,14 @@
     <dx-chart [dataSource]="dataEvolutivo" style="height:400px;" palette="Office" [margin]="{ left: 20, top: 18 }">
         <dxi-series *ngFor="let s of seriesEvolutivoMain"
             [valueField]="s" [name]="s" argumentField="Periodo"
-            type="splineArea" color="#1a3a6b" [opacity]="0.18"
-            [border]="{ visible: true, width: 3, color: '#1a3a6b' }"
-            [point]="{ visible: true, size: 12, color: '#ffffff', border: { visible: true, width: 3, color: '#1a3a6b' } }"
+            type="splineArea" color="#1A5FAD" [opacity]="0.14"
+            [border]="{ visible: true, width: 2, color: '#1A5FAD' }"
+            [point]="{ visible: true, size: 12, color: '#FFFFFF', border: { visible: true, width: 2, color: '#1A5FAD' } }"
             [label]="{ visible: true, customizeText: customizeMontoTexto,
-                        font: { size: 11, weight: 700, color: '#1a3a6b' },
-                        backgroundColor: 'rgba(255,255,255,0.85)',
+                        font: { size: 11, weight: 700, color: '#1E3A5F' },
+                        backgroundColor: 'rgba(255,255,255,0.95)',
                         border: { visible: false },
-                        connector: { visible: true, width: 1, color: '#1a3a6b' } }">
+                        connector: { visible: true, width: 1, color: '#1A5FAD' } }">
         </dxi-series>
         <dxi-series *ngFor="let s of seriesEvolutivoTrend"
             [valueField]="s" [name]="s" argumentField="Periodo"
@@ -556,16 +556,16 @@
             [point]="{ visible: false }" [label]="{ visible: false }">
         </dxi-series>
         <dxo-argument-axis>
-            <dxo-label [rotationAngle]="-30" [font]="{ size: 11, color: '#555' }"></dxo-label>
-            <dxo-grid [visible]="true" color="#e8ecf4"></dxo-grid>
+            <dxo-label [rotationAngle]="-30" [font]="{ size: 11, color: '#4A6A88' }"></dxo-label>
+            <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
         </dxo-argument-axis>
         <dxo-value-axis>
-            <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [font]="{ size: 11, color: '#555' }"></dxo-label>
-            <dxo-grid [visible]="true" color="#e8ecf4"></dxo-grid>
+            <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [font]="{ size: 11, color: '#4A6A88' }"></dxo-label>
+            <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
         </dxo-value-axis>
         <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right" [font]="{ size: 12 }"></dxo-legend>
-        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip" [border]="{ color: '#1a3a6b' }" [font]="{ size: 13 }"></dxo-tooltip>
-        <dxo-crosshair [enabled]="true" color="#1a3a6b" [width]="1" dashStyle="dot">
+        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip" [border]="{ color: '#1A5FAD' }" [font]="{ size: 13, color: '#FFFFFF' }"></dxo-tooltip>
+        <dxo-crosshair [enabled]="true" color="#1A5FAD" [width]="1" dashStyle="dot">
             <dxo-horizontal-line [visible]="true"></dxo-horizontal-line>
         </dxo-crosshair>
     </dx-chart>
@@ -578,14 +578,14 @@
     <dx-chart [dataSource]="dataEvolutivo" palette="Office" style="height:calc(90vh - 130px);" [margin]="{ left: 20, top: 18 }">
         <dxi-series *ngFor="let s of seriesEvolutivoMain"
             [valueField]="s" [name]="s" argumentField="Periodo"
-            type="splineArea" color="#1a3a6b" [opacity]="0.18"
-            [border]="{ visible: true, width: 3, color: '#1a3a6b' }"
-            [point]="{ visible: true, size: 14, color: '#ffffff', border: { visible: true, width: 3, color: '#1a3a6b' } }"
+            type="splineArea" color="#1A5FAD" [opacity]="0.14"
+            [border]="{ visible: true, width: 2, color: '#1A5FAD' }"
+            [point]="{ visible: true, size: 14, color: '#FFFFFF', border: { visible: true, width: 2, color: '#1A5FAD' } }"
             [label]="{ visible: true, customizeText: customizeMontoTexto,
-                        font: { size: 12, weight: 700, color: '#1a3a6b' },
-                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        font: { size: 12, weight: 700, color: '#1E3A5F' },
+                        backgroundColor: 'rgba(255,255,255,0.95)',
                         border: { visible: false },
-                        connector: { visible: true, width: 1, color: '#1a3a6b' } }">
+                        connector: { visible: true, width: 1, color: '#1A5FAD' } }">
         </dxi-series>
         <dxi-series *ngFor="let s of seriesEvolutivoTrend"
             [valueField]="s" [name]="s" argumentField="Periodo"
@@ -593,16 +593,16 @@
             [point]="{ visible: false }" [label]="{ visible: false }">
         </dxi-series>
         <dxo-argument-axis>
-            <dxo-label [rotationAngle]="-30" [font]="{ size: 12, color: '#555' }"></dxo-label>
-            <dxo-grid [visible]="true" color="#e8ecf4"></dxo-grid>
+            <dxo-label [rotationAngle]="-30" [font]="{ size: 12, color: '#4A6A88' }"></dxo-label>
+            <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
         </dxo-argument-axis>
         <dxo-value-axis>
-            <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [font]="{ size: 12, color: '#555' }"></dxo-label>
-            <dxo-grid [visible]="true" color="#e8ecf4"></dxo-grid>
+            <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [font]="{ size: 12, color: '#4A6A88' }"></dxo-label>
+            <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
         </dxo-value-axis>
         <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right" [font]="{ size: 13 }"></dxo-legend>
-        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip" [border]="{ color: '#1a3a6b' }" [font]="{ size: 14 }"></dxo-tooltip>
-        <dxo-crosshair [enabled]="true" color="#1a3a6b" [width]="1" dashStyle="dot">
+        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip" [border]="{ color: '#1A5FAD' }" [font]="{ size: 14, color: '#FFFFFF' }"></dxo-tooltip>
+        <dxo-crosshair [enabled]="true" color="#1A5FAD" [width]="1" dashStyle="dot">
             <dxo-horizontal-line [visible]="true"></dxo-horizontal-line>
         </dxo-crosshair>
     </dx-chart>
@@ -844,7 +844,7 @@
         </mat-select>
     </mat-form-field>
     <button mat-stroked-button (click)="exportarGlobalGo()"
-        style="border-color:#293964; color:#293964; font-weight:600; border-radius:8px;">
+        style="border-color:rgba(26,95,173,0.4); color:#1A5FAD; font-weight:600; border-radius:8px; background:rgba(26,95,173,0.07);">
         <mat-icon>file_download</mat-icon> Exportar Global GO
     </button>
 </div>

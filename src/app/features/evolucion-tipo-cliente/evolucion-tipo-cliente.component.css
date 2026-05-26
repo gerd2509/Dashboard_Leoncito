@@ -1,5 +1,27 @@
-.form { 
+.form {
     display: flex;
     flex-direction: row;
-    gap: 15px;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    margin-bottom: 18px;
+}
+
+.focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }
+
+.grid-container { position: relative; }
+
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(238,242,248,0.88);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 10px;
 }

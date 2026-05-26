@@ -1,24 +1,40 @@
 .form {
     display: flex;
     flex-direction: row;
-    gap: 15px;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    margin-bottom: 18px;
 }
 
 .charts-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-top: 20px;
+    gap: 16px;
+    margin-top: 16px;
 }
 
 .chart-full {
     grid-column: 1 / -1;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(26,95,173,0.07);
 }
 
-.chart-full dx-chart {
-    height: 420px;
+.chart-full dx-chart { height: 400px; }
+
+.chart-half {
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    padding: 14px;
+    box-shadow: 0 2px 8px rgba(26,95,173,0.07);
 }
 
-.chart-half dx-chart {
-    height: 380px;
-}
+.chart-half dx-chart { height: 360px; }

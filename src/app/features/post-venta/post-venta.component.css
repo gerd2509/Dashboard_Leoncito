@@ -1,114 +1,84 @@
-.form { 
-  display: flex;
-  flex-direction: row;
-  gap: 15px;
+.form {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    margin-bottom: 18px;
 }
 
-/* Caja principal del dashboard */
+.focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }
+
 .dashboard-box {
-  background-color: #1f2937;
-  color: white;
-  padding: 10px;
-  border-radius: 10px;
-  display: flex;
-  justify-content: space-around;
-  border: 1px solid #555;
-  width: 100%;
+    background: #FFFFFF;
+    color: #1E3A5F;
+    padding: 10px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-around;
+    border: 1px solid #CCDAEE;
+    width: 100%;
+    box-shadow: 0 1px 6px rgba(26,95,173,0.06);
 }
 
-/* Tarjetas internas de métricas */
 .metric-card {
-  text-align: center;
-  border-right: 1px solid #666;
-  padding: 10px 15px;
+    text-align: center;
+    border-right: 1px solid #CCDAEE;
+    padding: 10px 15px;
 }
+.metric-card:last-child { border-right: none; }
 
-.metric-card:last-child {
-  border-right: none;
-}
+.metric-title { font-weight: 700; font-size: 0.85rem; color: #7A9BB8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+.metric-content { font-size: 1.1rem; color: #1E3A5F; }
 
-/* Título de cada métrica */
-.metric-title {
-  font-weight: bold;
-  font-size: 1rem;
-  color: #ddd;
-  margin-bottom: 5px;
-}
+.ok        { color: #3D9B2F; font-weight: bold; }
+.error     { color: #DC2626; font-weight: bold; }
+.area      { color: #1A5FAD; font-weight: 500; }
+.highlight { color: #F07420; font-weight: bold; }
 
-/* Valor o contenido de la métrica */
-.metric-content {
-  font-size: 1.1rem;
-}
-
-.ok {
-  color: limegreen;
-  font-weight: bold;
-}
-
-.error {
-  color: deeppink;
-  font-weight: bold;
-}
-
-.area {
-  color: lightblue;
-  font-weight: 500;
-}
-
-.highlight {
-  color: #ffcc00;
-  font-weight: bold;
-}
-
-/* Contenedor general de gráficos */
 .charts-box {
-  margin-top: 25px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px; /* Espacio entre CONTACTOS y CONFORMIDAD */
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
 }
 
-/* Cada bloque individual de gráfico */
 .chart-container {
-  flex: 1;
-  background-color: #1f2937;
-  padding: 20px;
-  border-radius: 10px;
-  border: 1px solid #444;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+    flex: 1;
+    background: #FFFFFF;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    color: #1E3A5F;
+    box-shadow: 0 2px 8px rgba(26,95,173,0.07);
+    transition: box-shadow 0.2s;
 }
 
-/* Efecto sutil al pasar el mouse */
-.chart-container:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
+.chart-container:hover { box-shadow: 0 6px 22px rgba(26,95,173,0.12); }
 
 .chart-container h3 {
-  margin-bottom: 15px;
-  text-align: center;
-  font-size: 1.1rem;
-  color: #ffcc00;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    text-align: center;
+    font-size: 1rem;
+    color: #1A5FAD;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.grid-container {
-  position: relative;
-}
+.grid-container { position: relative; }
 
 .grid-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
+    position: absolute;
+    inset: 0;
+    background: rgba(238,242,248,0.88);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 10px;
 }

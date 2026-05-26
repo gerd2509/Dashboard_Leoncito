@@ -1,10 +1,14 @@
-.form { 
+.form {
     display: flex;
     flex-direction: row;
-    gap: 15px;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    margin-bottom: 18px;
 }
 
-.focqus-elevation {
-  box-shadow: 0px 5px 5px -3px rgba(0, 0, 0, 0.2),
-    0px 8px 10px 1px rgba(0, 0, 0, 0.14), 0px 3px 14px 2px rgba(0, 0, 0, 0.12);
-}
+.focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }

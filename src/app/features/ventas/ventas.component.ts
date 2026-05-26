@@ -163,8 +163,7 @@ export class VentasComponent implements OnInit {
       fechaFin:    [today,    Validators.required],
       Asesores:    [''],
       TipoProducto: [''],
-      columnas:    [],
-      NAS:         [{ value: false, disabled: true }]
+      columnas:    []
     });
   }
 
@@ -239,19 +238,15 @@ export class VentasComponent implements OnInit {
 
   onAsesorChanged(_e: any)       { if (this.formVentas.valid) this.aplicarFiltros(); }
   onTipoProductoChanged(_e: any) { if (this.formVentas.valid) this.aplicarFiltros(); }
-  filtrarNAS()                   { if (this.formVentas.valid) this.aplicarFiltros(); }
 
   actualizarFiltros(): void {
     if (!this.formVentas.valid) return;
-    const nas = this.formVentas.get('NAS');
-    if (nas?.disabled) nas.enable();
     this.aplicarFiltros();
   }
 
   aplicarFiltros(): void {
-    const selectedAsesor    = (this.formVentas.value.Asesores || '').toString().trim().toUpperCase();
-    const excluirNAS        = this.formVentas.value.NAS === true;
-    const selectedTipoProd  = this.formVentas.value.TipoProducto;
+    const selectedAsesor   = (this.formVentas.value.Asesores || '').toString().trim().toUpperCase();
+    const selectedTipoProd = this.formVentas.value.TipoProducto;
 
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);
     const fechaFin    = new Date(this.formVentas.value.fechaFin);
@@ -263,7 +258,6 @@ export class VentasComponent implements OnInit {
       if (fv < fechaInicio || fv > fechaFin) return false;
       const asesor = (v.AsesorVenta || '').toString().trim().toUpperCase();
       if (selectedAsesor && asesor !== selectedAsesor) return false;
-      if (excluirNAS && asesor === 'NAS') return false;
       if (selectedTipoProd === '1') return v.TipoProducto !== 'LEO' && v.TipoProducto !== 'DSK.';
       if (selectedTipoProd === '2') return v.TipoProducto === 'LEO' || v.TipoProducto === 'DSK.';
       return true;
@@ -284,7 +278,8 @@ export class VentasComponent implements OnInit {
 
   calcularKPIs(): void {
     this.totalVentas      = this.filtroVentas.length;
-    this.totalMontoVentas = Math.round(this.filtroVentas.reduce((s, v) => s + v.MontoConsolidado, 0));
+    const rawTotal        = this.filtroVentas.reduce((s, v) => s + v.MontoConsolidado, 0);
+    this.totalMontoVentas = Math.round(rawTotal);
     this.ticket           = this.totalVentas ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
 
     const hoy      = new Date();
@@ -294,20 +289,29 @@ export class VentasComponent implements OnInit {
     if (esPasado) {
       this.proyeccion = this.totalMontoVentas;
     } else {
-      const diasMes        = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+      const diasMes           = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
       const diasTranscurridos = Math.max(1, hoy.getDate());
-      this.proyeccion      = Math.round((this.totalMontoVentas / diasTranscurridos) * diasMes);
+      this.proyeccion         = Math.round((rawTotal / diasTranscurridos) * diasMes);
     }
+  }
+
+  getProyeccionCierre(monto: number): number {
+    const hoy = new Date();
+    const fechaFin = new Date(this.formVentas.value.fechaFin);
+    const esPasado = fechaFin.getFullYear() < hoy.getFullYear() ||
+                     (fechaFin.getFullYear() === hoy.getFullYear() && fechaFin.getMonth() < hoy.getMonth());
+    if (esPasado) return monto;
+    const diasMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    const diasTranscurridos = Math.max(1, hoy.getDate());
+    return (monto / diasTranscurridos) * diasMes;
   }
 
   // ─── GRÁFICOS ────────────────────────────────────────────────────────────────
 
   generarChartData(): void {
-    const excluirNAS = this.formVentas.value.NAS === true;
     const map = new Map<string, number>();
     for (const v of this.filtroVentas) {
       const id = (v.AsesorVenta || '').toString().trim();
-      if (excluirNAS && id.toUpperCase() === 'NAS') continue;
       map.set(id, (map.get(id) || 0) + (v.MontoConsolidado || 0));
     }
     this.chartData = Array.from(map, ([id, total]) => ({
@@ -423,10 +427,11 @@ export class VentasComponent implements OnInit {
       MontoVentas: Math.round(d.monto),
       NroOps: d.ops,
       TicketPromedio: d.ops > 0 ? Math.round(d.monto / d.ops) : 0,
-      Participacion: 0
+      Participacion: 0,
+      ProyeccionCierre: this.getProyeccionCierre(d.monto)
     }));
     const total = rows.reduce((acc, r) => acc + r.MontoVentas, 0);
-    rows.forEach(r => { r.Participacion = total > 0 ? Math.round((r.MontoVentas / total) * 1000) / 10 : 0; });
+    rows.forEach(r => { r.Participacion = total > 0 ? (r.MontoVentas / total) * 100 : 0; });
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
     this.maxMontoContacto = rows.length > 0 ? rows[0].MontoVentas : 1;
     this.ventasPorContacto = rows;
@@ -468,10 +473,11 @@ export class VentasComponent implements OnInit {
       MontoVentas: Math.round(d.monto),
       NroOps: d.ops,
       TicketPromedio: d.ops > 0 ? Math.round(d.monto / d.ops) : 0,
-      Participacion: 0
+      Participacion: 0,
+      ProyeccionCierre: this.getProyeccionCierre(d.monto)
     }));
     const total = rows.reduce((acc, r) => acc + r.MontoVentas, 0);
-    rows.forEach(r => { r.Participacion = total > 0 ? Math.round((r.MontoVentas / total) * 1000) / 10 : 0; });
+    rows.forEach(r => { r.Participacion = total > 0 ? (r.MontoVentas / total) * 100 : 0; });
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
     this.maxMontoTipoCliente = rows.length > 0 ? rows[0].MontoVentas : 1;
     this.ventasPorTipoCliente = rows;
@@ -490,10 +496,11 @@ export class VentasComponent implements OnInit {
       MontoVentas: Math.round(d.monto),
       NroOps: d.ops,
       TicketPromedio: d.ops > 0 ? Math.round(d.monto / d.ops) : 0,
-      Participacion: 0
+      Participacion: 0,
+      ProyeccionCierre: this.getProyeccionCierre(d.monto)
     }));
     const total = rows.reduce((acc, r) => acc + r.MontoVentas, 0);
-    rows.forEach(r => { r.Participacion = total > 0 ? Math.round((r.MontoVentas / total) * 1000) / 10 : 0; });
+    rows.forEach(r => { r.Participacion = total > 0 ? (r.MontoVentas / total) * 100 : 0; });
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
     this.maxMontoSede = rows.length > 0 ? rows[0].MontoVentas : 1;
     this.ventasPorSede = rows;
@@ -524,12 +531,15 @@ export class VentasComponent implements OnInit {
     map.forEach((tiposMap, nombre) => {
       const row: any = { Asesor: nombre };
       let total = 0;
+      let rawTotal = 0;
       this.tiposBaseUnicos.forEach(tipo => {
-        const val = Math.round(tiposMap.get(tipo) || 0);
-        row[tipo] = val;
-        total += val;
+        const raw = tiposMap.get(tipo) || 0;
+        row[tipo] = Math.round(raw);
+        total += Math.round(raw);
+        rawTotal += raw;
       });
       row['Total'] = total;
+      row['ProyeccionCierre'] = this.getProyeccionCierre(rawTotal);
       rows.push(row);
     });
 

@@ -1,257 +1,370 @@
-/* ==== CONTENEDOR PRINCIPAL ==== */
+/* =====================================================
+   LAYOUT PRINCIPAL
+   ===================================================== */
 .dashboard-container {
   display: flex;
   height: 100vh;
   width: 100%;
   overflow: hidden;
-  font-family: 'Segoe UI', sans-serif;
-  transition: all 0.3s ease-in-out;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  background: #EEF2F8;
+  transition: all 0.25s ease;
 }
 
-/* ==== SIDEBAR ==== */
+/* =====================================================
+   SIDEBAR — Leoncito Blue
+   ===================================================== */
 .sidebar {
-  width: 300px;
-  background-color: #2E7D32;
-  color: white;
-  padding: 1rem 0.5rem;
+  width: 260px;
+  min-width: 260px;
+  background: #1A5FAD;
+  border-right: none;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease-in-out;
-  z-index: 2;
+  transition: all 0.28s ease;
+  z-index: 100;
+  overflow: hidden;
+  box-shadow: 3px 0 18px rgba(26,95,173,0.22);
 }
 
 .sidebar.collapsed {
-  width: 70px;
+  width: 64px;
+  min-width: 64px;
+}
+
+/* Encabezado del sidebar — branding con color naranja */
+.sidebar::before {
+  content: "LEONCITO";
+  display: block;
+  padding: 20px 20px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: #F07420;
+  border-bottom: 1px solid rgba(255,255,255,0.14);
+  background: linear-gradient(135deg, #154D94, #1A5FAD);
+  white-space: nowrap;
+  overflow: hidden;
+  text-shadow: 0 2px 8px rgba(240,116,32,0.4);
+}
+
+.sidebar.collapsed::before {
+  content: "L";
+  padding: 18px 0 16px;
+  text-align: center;
+  font-size: 17px;
 }
 
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 2px;
+  padding: 12px 8px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
 
-.sidebar-content button {
+.sidebar-content::-webkit-scrollbar { width: 4px; }
+.sidebar-content::-webkit-scrollbar-track { background: transparent; }
+.sidebar-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+/* Botones del menú */
+.sidebar-content button,
+.menu-main {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 11px;
   background: transparent;
-  color: white;
+  color: rgba(255,255,255,0.78);
   border: none;
-  padding: 0.7rem 1rem;
+  padding: 10px 13px;
   border-radius: 8px;
-  transition: background 0.2s ease, padding 0.3s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.18s ease, letter-spacing 0.18s ease;
   font-weight: 500;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
   text-align: left;
+  width: 100%;
+  position: relative;
 }
 
-.sidebar-content button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+.sidebar-content button:hover,
+.menu-main:hover {
+  background: rgba(255,255,255,0.14);
+  color: #FFFFFF;
+  transform: translateX(5px);
+  letter-spacing: 0.2px;
 }
 
-.sidebar-content button mat-icon {
-  font-size: 22px;
+.sidebar-content button mat-icon,
+.menu-main mat-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: rgba(255,255,255,0.45);
+  transition: color 0.18s, transform 0.18s;
 }
 
-/* Oculta el texto cuando el sidebar está colapsado */
-.sidebar.collapsed button span {
+.sidebar-content button:hover mat-icon,
+.menu-main:hover mat-icon {
+  color: #F07420;
+  transform: scale(1.15);
+}
+
+/* Sidebar colapsado */
+.sidebar.collapsed .sidebar-content { padding: 10px 4px; }
+
+.sidebar.collapsed button span,
+.sidebar.collapsed .menu-main span,
+.sidebar.collapsed .menu-main .arrow {
   display: none;
 }
 
-/* Centra los íconos cuando está colapsado */
-.sidebar.collapsed button {
+.sidebar.collapsed button,
+.sidebar.collapsed .menu-main {
   justify-content: center;
-  padding: 0.7rem;
+  padding: 10px 0;
 }
 
-/* ==== PANEL DEL BOTÓN ==== */
+/* Tooltip colapsado */
+.sidebar.collapsed button:hover::after,
+.sidebar.collapsed .menu-main:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: 68px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1E3A5F;
+  border: 1px solid rgba(26,95,173,0.4);
+  color: #FFFFFF;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 999;
+  box-shadow: 0 4px 20px rgba(26,95,173,0.25);
+  pointer-events: none;
+}
+
+/* =====================================================
+   PANEL TOGGLE
+   ===================================================== */
 .toggle-panel {
-  width: 40px;
-  background-color: #1B5E20;
+  width: 0;
+  overflow: visible;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease-in-out;
-  z-index: 3;
-  cursor: pointer;
+  align-items: flex-start;
+  padding-top: 70px;
+  z-index: 101;
+  position: relative;
+}
+
+.toggle-panel.hidden {
+  display: flex;
 }
 
 .toggle-sidebar-btn {
-  border: none;
-  background: none;
-  color: white;
+  position: absolute;
+  left: -12px;
+  background: #FFFFFF;
+  border: 1px solid #CCDAEE;
+  color: #1A5FAD;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.2s;
+  box-shadow: 0 2px 10px rgba(26,95,173,0.18);
+  padding: 0;
 }
 
 .toggle-sidebar-btn:hover {
-  transform: scale(1.1);
+  background: #1A5FAD;
+  color: #FFFFFF;
+  transform: scale(1.15);
+  border-color: #1A5FAD;
 }
 
 .toggle-sidebar-btn mat-icon {
-  font-size: 26px;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
 }
 
-/* ==== CONTENIDO PRINCIPAL ==== */
+/* =====================================================
+   CONTENIDO PRINCIPAL
+   ===================================================== */
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #f5f5f5;
-  transition: all 0.3s ease-in-out;
+  background: #EEF2F8;
+  overflow: hidden;
+  min-width: 0;
 }
 
-/* ✅ Cuando el sidebar está colapsado, el contenido se expande totalmente */
-.dashboard-container.sidebar-collapsed .main-content {
-  width: calc(100% - 70px);
-}
-
-.dashboard-container:not(.sidebar-collapsed) .main-content {
-  width: calc(100% - 300px);
-}
-
-/* ==== TOPBAR ==== */
+/* =====================================================
+   TOPBAR
+   ===================================================== */
 .topbar {
-  background-color: #2E7D32;
-  color: white;
-  padding: 1rem 2rem;
-  font-size: 1.3rem;
-  font-weight: bold;
+  background: #FFFFFF;
+  border-bottom: 1px solid #CCDAEE;
+  padding: 0 28px;
+  height: 56px;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 6px rgba(26,95,173,0.07);
 }
 
-/* ==== CONTENIDO ==== */
-.contenido {
-  flex: 1;
-  padding: 1rem 2rem;
-  overflow-y: auto;
-}
-
-/* ==== TOOLTIP AUTOMÁTICO ==== */
-.sidebar.collapsed button {
+.titulo-modulo {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E3A5F;
+  letter-spacing: 0.3px;
   position: relative;
 }
 
-.sidebar.collapsed button:hover::after {
-  content: attr(title);
-  position: absolute;
-  left: 70px;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  white-space: nowrap;
-  z-index: 10;
+.titulo-modulo::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #F07420;
+  border-radius: 50%;
+  margin-left: 10px;
+  vertical-align: middle;
+  box-shadow: 0 0 8px rgba(240,116,32,0.7);
+  animation: pulse 2s infinite;
 }
 
-/* ==== ANIMACIÓN FLUIDA ==== */
-.sidebar, .main-content, .toggle-panel {
-  transition: all 0.3s ease-in-out;
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(240,116,32,0.7); }
+  50%       { opacity: 0.5; box-shadow: 0 0 4px rgba(240,116,32,0.3); }
 }
 
-/* ============================================================= */
-/* 🔽 SUBMENÚ DENTRO DEL SIDEBAR (OCULTO POR DEFECTO Y ANIMADO) */
-/* ============================================================= */
+/* =====================================================
+   ÁREA DE CONTENIDO
+   ===================================================== */
+.contenido {
+  flex: 1;
+  padding: 20px 28px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #CCDAEE #EEF2F8;
+}
 
-/* Contenedor del grupo de menú */
+.contenido::-webkit-scrollbar { width: 6px; }
+.contenido::-webkit-scrollbar-track { background: #EEF2F8; }
+.contenido::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 3px; }
+.contenido::-webkit-scrollbar-thumb:hover { background: #1A5FAD; }
+
+/* =====================================================
+   SUBMENÚ
+   ===================================================== */
 .menu-group {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
-/* Botón principal (con flechita al final y texto a la izquierda) */
 .menu-main {
   display: flex;
   align-items: center;
   background: transparent;
   border: none;
-  color: white;
-  padding: 0.7rem 1rem;
+  color: rgba(255,255,255,0.78);
+  padding: 10px 13px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.18s ease;
+  font-size: 13px;
+  font-weight: 500;
   position: relative;
 }
 
-/* Ícono + texto alineados a la izquierda */
-.menu-main mat-icon {
-  flex-shrink: 0;
-}
-
-.menu-main span {
-  margin-left: 0.8rem;
-}
-
-/* Flecha al final del botón */
 .menu-main .arrow {
-  margin-left: auto; /* empuja la flecha al extremo derecho */
-  transition: transform 0.3s ease;
+  margin-left: auto;
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: rgba(255,255,255,0.35);
+  transition: transform 0.25s ease, color 0.18s;
 }
 
-.menu-main:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
+.menu-main:hover .arrow { color: rgba(255,255,255,0.8); }
 
 .menu-main .arrow.open {
   transform: rotate(180deg);
 }
 
-/* Submenú oculto inicialmente */
 .submenu {
   max-height: 0;
   overflow: hidden;
   opacity: 0;
   visibility: hidden;
-  background-color: #1B5E20;
-  border-radius: 6px;
-  margin-left: 10px;
-  transition: all 0.3s ease;
+  margin: 2px 0 2px 8px;
+  border-left: 2px solid rgba(255,255,255,0.18);
+  padding-left: 4px;
+  transition: all 0.25s ease;
 }
 
-/* Submenú visible cuando está abierto */
 .submenu.open {
-  max-height: 300px;
+  max-height: 500px;
   opacity: 1;
   visibility: visible;
 }
 
-/* Botones dentro del submenú */
 .submenu button {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 10px;
   width: 100%;
-  text-align: left;
   background: transparent;
   border: none;
-  color: #d0d0d0;
-  padding: 0.6rem 1.8rem;
+  color: rgba(255,255,255,0.65);
+  padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
 .submenu button:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: white;
+  background: rgba(255,255,255,0.14);
+  color: #FFFFFF;
+  transform: translateX(4px);
 }
 
-/* ============================================================= */
-/* ✅ CORRECCIÓN: Botón "Ventas" colapsado se ve igual que los demás */
-/* ============================================================= */
-.sidebar.collapsed .menu-group .menu-main {
-  justify-content: center;
-  padding: 0.7rem;
+.submenu button mat-icon {
+  font-size: 17px;
+  width: 17px;
+  height: 17px;
+  color: rgba(255,255,255,0.38);
+  transition: color 0.18s, transform 0.18s;
 }
 
+.submenu button:hover mat-icon {
+  color: #F07420;
+  transform: scale(1.12);
+}
+
+/* Colapsado - submenú oculto */
 .sidebar.collapsed .menu-group .menu-main span,
 .sidebar.collapsed .menu-group .menu-main .arrow {
   display: none;
 }
 
-.sidebar.collapsed .menu-group .menu-main mat-icon {
-  font-size: 22px;
+.sidebar.collapsed .menu-group .menu-main {
+  justify-content: center;
+  padding: 10px 0;
 }
