@@ -53,6 +53,41 @@
     </div>
 </div>
 
+<!-- ===== TABLA BONOS POR ASESOR ===== -->
+<div *ngIf="tablaBonosAsesor.length > 0" style="margin: 16px 0;">
+    <div class="section-header">
+        <mat-icon>emoji_events</mat-icon>
+        Proyección de Bonos por Vendedor
+    </div>
+    <dx-data-grid [dataSource]="tablaBonosAsesor" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="false" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedBonos($event)" [hoverStateEnabled]="true">
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxi-column dataField="ASESOR" caption="VENDEDOR" alignment="left" [minWidth]="160" />
+        <dxi-column dataField="VENTAS" caption="VENTAS" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="NC" caption="NOTAS CRÉD." alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="NETO" caption="NETO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="TICKET" caption="TICKET" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="TICKETDIARIO" caption="TICKET DIARIO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="PROYECCION" caption="PROYECCIÓN" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="BONO" caption="BONO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" [width]="110" />
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="ASESOR" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="VENTAS" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="NC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="NETO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="BONO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>
+
 <!-- ===== NOTAS DE CRÉDITO ===== -->
 <div style="margin: 10px 0 4px 0;" *ngIf="filtroNotasCredito.length > 0">
     <button mat-stroked-button (click)="showNCGrid = !showNCGrid"

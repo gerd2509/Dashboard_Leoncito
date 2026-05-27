@@ -125,7 +125,8 @@ export class CierreGestionComponent implements OnInit {
     { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
     // { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
-    { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' }
+    { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
+    { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' }
   ];
 
   // LISTA ASESORES REALZZA

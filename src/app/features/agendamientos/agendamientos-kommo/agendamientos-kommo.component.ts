@@ -174,10 +174,12 @@ export class AgendamientosKommoComponent {
     }
 
     if (e.rowType === 'data' && e.column.dataField === 'estadoAgendamiento') {
-      const colores: any = { 'ATENDIDO': '#c8e6c9', 'REAGENDADO': '#fff9c4', 'VIGENTE': '#ffcdd2' };
-      if (colores[e.value]) {
-        e.cellElement.style.backgroundColor = colores[e.value];
+      const colores: Record<string, string> = { 'ATENDIDO': '#c8e6c9', 'REAGENDADO': '#fff9c4', 'VIGENTE': '#ffcdd2' };
+      const color = colores[e.value];
+      if (color) {
+        e.cellElement.style.setProperty('background-color', color, 'important');
         e.cellElement.style.fontWeight = 'bold';
+        e.cellElement.style.textAlign = 'center';
       }
     }
   }

@@ -53,6 +53,19 @@ export class VentasComponent implements OnInit {
   seriesEvolutivoMain: string[] = [];
   seriesEvolutivoTrend: string[] = [];
 
+  // Tabla bonos por asesor
+  tablaBonosAsesor: any[] = [];
+
+  readonly tablaBonos = [
+    { monto: 115000, bono: 1800 }, { monto: 110000, bono: 1700 }, { monto: 105000, bono: 1600 },
+    { monto: 100000, bono: 1500 }, { monto:  95000, bono: 1400 }, { monto:  90000, bono: 1300 },
+    { monto:  85000, bono: 1200 }, { monto:  80000, bono: 1100 }, { monto:  75000, bono: 1000 },
+    { monto:  70000, bono:  900 }, { monto:  65000, bono:  800 }, { monto:  60000, bono:  700 },
+    { monto:  55000, bono:  600 }, { monto:  50000, bono:  500 }, { monto:  45000, bono:  400 },
+    { monto:  40000, bono:  300 }, { monto:  35000, bono:  200 }, { monto:  30000, bono:  150 },
+    { monto:  25000, bono:  100 }, { monto:  20000, bono:   75 }, { monto:  15000, bono:   50 }
+  ];
+
   // Tablas analíticas
   ventasPorContacto: any[] = [];
   ventasPorSemana: any[] = [];
@@ -274,6 +287,7 @@ export class VentasComponent implements OnInit {
     this.generarVentasPorTipoCliente();
     this.generarVentasPorSede();
     this.generarVentasPorAsesorTipoBase();
+    this.generarResumenBonosAsesor();
   }
 
   calcularKPIs(): void {
@@ -657,6 +671,95 @@ export class VentasComponent implements OnInit {
     if (e.rowType === 'totalFooter') {
       e.cellElement.style.fontWeight = 'bold';
       e.cellElement.style.backgroundColor = '#f0f3fa';
+    }
+  }
+
+  // ─── BONOS ───────────────────────────────────────────────────────────────────
+
+  calcularBonoVentas(proyeccion: number): number {
+    if (!proyeccion || proyeccion < 15000) return 0;
+    for (const item of this.tablaBonos) {
+      if (proyeccion >= item.monto) return item.bono;
+    }
+    return 0;
+  }
+
+  generarResumenBonosAsesor(): void {
+    const hoy = new Date();
+    const diaHoy = hoy.getDate();
+    const diasMesActual = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    const diasTranscurridos = Math.max(1, diaHoy - 1);
+
+    const fechaFin = new Date(this.formVentas.value.fechaFin);
+    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+    const esPasado = fechaFin.getFullYear() < hoy.getFullYear() ||
+                     (fechaFin.getFullYear() === hoy.getFullYear() && fechaFin.getMonth() < hoy.getMonth());
+    const diasMesSeleccionado = new Date(fechaFin.getFullYear(), fechaFin.getMonth() + 1, 0).getDate();
+    const seleccionaMesCompleto =
+      fechaInicio.getDate() === 1 &&
+      fechaFin.getDate() === diasMesSeleccionado &&
+      fechaInicio.getMonth() === fechaFin.getMonth() &&
+      fechaInicio.getFullYear() === fechaFin.getFullYear();
+
+    const map = new Map<string, { ventas: number; ops: number }>();
+    for (const v of this.filtroVentas) {
+      const id = (v.AsesorVenta || '').toString().trim();
+      if (!id) continue;
+      const cur = map.get(id) || { ventas: 0, ops: 0 };
+      map.set(id, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    }
+
+    this.tablaBonosAsesor = Array.from(map.entries()).map(([id, data]) => {
+      const nombre = this.asesores.find(a => a.value === id)?.viewValue ?? id;
+      const ventas = Math.round(data.ventas);
+      const ticket = data.ops > 0 ? Math.round(data.ventas / data.ops) : 0;
+      let ticketDiario = 0;
+      let proyeccion = 0;
+
+      if (esPasado || seleccionaMesCompleto) {
+        ticketDiario = diasMesSeleccionado > 0 ? ventas / diasMesSeleccionado : 0;
+        proyeccion = ventas;
+      } else {
+        ticketDiario = diasTranscurridos > 0 ? ventas / diasTranscurridos : 0;
+        proyeccion = Math.round(ticketDiario * diasMesActual);
+      }
+
+      return {
+        ASESOR: nombre,
+        VENTAS: ventas,
+        TICKET: ticket,
+        TICKETDIARIO: ticketDiario,
+        PROYECCION: proyeccion,
+        BONO: this.calcularBonoVentas(proyeccion)
+      };
+    }).sort((a, b) => b.VENTAS - a.VENTAS);
+  }
+
+  onCellPreparedBonos(e: any) {
+    if (e.rowType === 'header') {
+      e.cellElement.style.padding = '8px';
+      e.cellElement.style.backgroundColor = '#293964';
+      e.cellElement.style.color = 'white';
+      e.cellElement.style.textAlign = 'center';
+      e.cellElement.style.fontWeight = 'bold';
+    }
+    if (e.rowType === 'data') {
+      e.cellElement.style.border = '1px solid #ccc';
+      e.cellElement.style.textAlign = 'center';
+      e.cellElement.style.fontWeight = 'bold';
+      if (e.column?.dataField === 'BONO') {
+        const valor = e.value;
+        if (valor >= 700) {
+          e.cellElement.style.setProperty('background-color', '#4CAF50', 'important');
+          e.cellElement.style.color = 'black';
+        } else if (valor >= 300) {
+          e.cellElement.style.setProperty('background-color', '#63C967', 'important');
+          e.cellElement.style.color = 'black';
+        } else if (valor > 0) {
+          e.cellElement.style.setProperty('background-color', '#7BD17F', 'important');
+          e.cellElement.style.color = 'black';
+        }
+      }
     }
   }
 }

@@ -5,10 +5,10 @@ import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class SheetsService {
   // 1. Defines la ruta base de tu API en Render (descomentas y usas tu línea 18)
-  private baseUrl = 'https://api-leoncito.onrender.com/data';
+  // private baseUrl = 'https://api-leoncito.onrender.com/data';
 
   // Si algún día quieres probar en local otra vez, solo comentas la de arriba y descomentas esta:
-  // private baseUrl = 'http://localhost:3000/data';
+  private baseUrl = 'http://localhost:3000/data';
   //cambios
 
   // 2. Armas las rutas concatenando la base con el endpoint específico

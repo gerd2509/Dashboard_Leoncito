@@ -169,20 +169,16 @@ export class AgendamientosComponent {
 
     // Estilos por estado en la columna "estadoAgendamiento"
     if (e.rowType === 'data' && e.column.dataField === 'estadoAgendamiento') {
-      const estado = e.value;
-      switch (estado) {
-        case 'ATENDIDO':
-          e.cellElement.style.backgroundColor = '#c8e6c9'; // verde claro
-          break;
-        case 'REAGENDADO':
-          e.cellElement.style.backgroundColor = '#fff9c4'; // amarillo claro
-          break;
-        case 'VIGENTE':
-          e.cellElement.style.backgroundColor = '#ffcdd2'; // rojo claro
-          break;
+      const colores: Record<string, string> = {
+        'ATENDIDO':  '#c8e6c9',
+        'REAGENDADO': '#fff9c4',
+        'VIGENTE':   '#ffcdd2'
+      };
+      const color = colores[e.value];
+      if (color) {
+        // setProperty con 'important' para ganar sobre el !important global del styles.css
+        e.cellElement.style.setProperty('background-color', color, 'important');
       }
-
-      // Estilo común para celdas con estado
       e.cellElement.style.fontWeight = 'bold';
       e.cellElement.style.textAlign = 'center';
     }

@@ -48,6 +48,35 @@
     </div>
 </div>
 
+<!-- ===== TABLA BONOS POR ASESOR ===== -->
+<div *ngIf="tablaBonosAsesor.length > 0" style="margin: 16px 0;">
+    <div class="section-header">
+        <mat-icon>emoji_events</mat-icon>
+        Proyección de Bonos por Asesor
+    </div>
+    <dx-data-grid [dataSource]="tablaBonosAsesor" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="false" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedBonos($event)" [hoverStateEnabled]="true">
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxi-column dataField="ASESOR" caption="ASESOR" alignment="left" [minWidth]="200" />
+        <dxi-column dataField="VENTAS" caption="VENTAS" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="TICKET" caption="TICKET" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="TICKETDIARIO" caption="TICKET DIARIO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="PROYECCION" caption="PROYECCIÓN" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="BONO" caption="BONO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" [width]="110" />
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="ASESOR" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="VENTAS" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="BONO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>
+
 <!-- ===== TOGGLE TABLA DETALLE ===== -->
 <div style="margin: 12px 0 4px 0;">
     <button mat-stroked-button (click)="showDetailGrid = !showDetailGrid"
