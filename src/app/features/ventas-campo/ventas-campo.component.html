@@ -373,47 +373,26 @@
 
     <div>
         <div class="section-header">
-            <mat-icon>credit_card</mat-icon>
-            Resumen por Tipo de Pago
+            <mat-icon>two_wheeler</mat-icon>
+            Ventas Motos / Mototaxis — Global GO
         </div>
-        <dx-data-grid [dataSource]="chartTipoCredito" [showBorders]="true"
-            (onCellPrepared)="onCellPrepared($event)">
-            <dxi-column dataField="Tipo" caption="Tipo de Pago" alignment="left"></dxi-column>
-            <dxi-column dataField="Cantidad" caption="Nro. Operaciones" alignment="center"></dxi-column>
+        <dx-data-grid [dataSource]="detalleMotosGlobalGo" [showBorders]="true" [showColumnLines]="true"
+            [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+            (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+            <dxo-paging [enabled]="false"></dxo-paging>
+            <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [minWidth]="110" />
+            <dxi-column *ngFor="let tipo of tiposProductoGlobalGo"
+                [dataField]="tipo" [caption]="tipo" alignment="center"
+                dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="TotalOps" caption="N° OPS" alignment="center"
+                dataType="number" [width]="80" />
+            <dxi-column dataField="Total" caption="TOTAL" alignment="center"
+                dataType="number" [format]="'S/ #,##0'" />
             <dxo-summary>
-                <dxi-total-item column="Cantidad" summaryType="sum" displayFormat="Total: {0}"></dxi-total-item>
-            </dxo-summary>
-        </dx-data-grid>
-
-        <div class="section-header" style="margin-top:16px;">
-            <mat-icon>table_chart</mat-icon>
-            Detalle Contado / Crédito por Vendedor
-        </div>
-        <dx-data-grid [dataSource]="resumenTipoCredito" [showBorders]="true" [columnAutoWidth]="true"
-            (onCellPrepared)="onCellPrepared($event)">
-            <dxo-sorting mode="multiple"></dxo-sorting>
-            <dxi-column dataField="Asesor" caption="ASESORES" [fixed]="true"></dxi-column>
-            <dxi-column alignment="center" caption="CONTADO">
-                <dxi-column dataField="ContadoNro" caption="NRO. OP" alignment="center"></dxi-column>
-                <dxi-column dataField="ContadoMonto" caption="MONTO" alignment="center"
-                    [customizeText]="customizeCurrencyText"></dxi-column>
-            </dxi-column>
-            <dxi-column alignment="center" caption="CREDITO">
-                <dxi-column dataField="CreditoNro" caption="NRO. OP" alignment="center"></dxi-column>
-                <dxi-column dataField="CreditoMonto" caption="MONTO" alignment="center"
-                    [customizeText]="customizeCurrencyText"></dxi-column>
-            </dxi-column>
-            <dxi-column dataField="TotalNro" caption="Total NRO." alignment="center"></dxi-column>
-            <dxi-column dataField="TotalMonto" caption="Total MONTO" alignment="center"
-                [customizeText]="customizeCurrencyText"></dxi-column>
-            <dxo-summary>
-                <dxi-total-item alignment="right" column="Asesor" displayFormat="TOTAL"></dxi-total-item>
-                <dxi-total-item column="ContadoNro" summaryType="sum" displayFormat="{0}"></dxi-total-item>
-                <dxi-total-item column="ContadoMonto" summaryType="sum" displayFormat="{0}" [valueFormat]="'S/ #,##0'"></dxi-total-item>
-                <dxi-total-item column="CreditoNro" summaryType="sum" displayFormat="{0}"></dxi-total-item>
-                <dxi-total-item column="CreditoMonto" summaryType="sum" displayFormat="{0}" [valueFormat]="'S/ #,##0'"></dxi-total-item>
-                <dxi-total-item column="TotalNro" summaryType="sum" displayFormat="{0}"></dxi-total-item>
-                <dxi-total-item column="TotalMonto" summaryType="sum" displayFormat="{0}" [valueFormat]="'S/ #,##0'"></dxi-total-item>
+                <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+                <dxi-total-item column="Total" summaryType="sum" displayFormat="S/ {0}"
+                    [valueFormat]="'#,##0'"></dxi-total-item>
+                <dxi-total-item column="TotalOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
             </dxo-summary>
         </dx-data-grid>
     </div>

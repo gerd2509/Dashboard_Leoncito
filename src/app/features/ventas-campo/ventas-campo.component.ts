@@ -57,8 +57,9 @@ export class VentasCampoComponent implements OnInit {
   chartMontoSemanal: any[] = [];
   chartMontoMensual: { Mes: string; MontoTotal: number }[] = [];
 
-  // En la sección de variables de la clase
-  chartTipoCredito: { Tipo: string, Cantidad: number }[] = [];
+  // Global GO motos detalle
+  detalleMotosGlobalGo: any[] = [];
+  tiposProductoGlobalGo: string[] = [];
 
   // Data Tablas
   ventasPorDiaMesActual: any[] = [];
@@ -68,7 +69,6 @@ export class VentasCampoComponent implements OnInit {
   seriesMeses: string[] = [];
   columnasDiasMes: string[] = [];
 
-  resumenTipoCredito: any[] = [];
   resumenPorVendedor: any[] = [];
   ventasPorSemana: any[] = [];
   ventasPorEntidad: any[] = [];
@@ -311,7 +311,9 @@ export class VentasCampoComponent implements OnInit {
             FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
             MontoConsolidado: monto,
             Productos: row['Productos'],
-            Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase()
+            TipoProducto: (row['TipoProducto'] || 'SIN TIPO').toString().trim().toUpperCase(),
+            Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+            AsesorVenta: (row['AsesorVenta'] || '').toString().trim()
           });
         }
       });
@@ -411,8 +413,7 @@ export class VentasCampoComponent implements OnInit {
     this.generarVentasPorEntidad();
     this.generarMotosPorEntidad();
     this.generarMotosPorTipoProducto();
-    this.generarResumenTipoCredito();
-    this.generarTablaResumenTipoCredito();
+    this.generarDetalleMotosGlobalGo();
     this.generarVentasPorTipoCredito();
     this.generarVentasPorTipoBase();
     this.generarVentasPorLineaReal();
@@ -430,6 +431,11 @@ export class VentasCampoComponent implements OnInit {
     const anioActual = hoy.getFullYear();
     const mesActual = hoy.getMonth() + 1;
 
+    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+    const fechaFin    = new Date(this.formVentas.value.fechaFin);
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
+
     const asesorSeleccionadoCode = this.formVentas.value.Asesores;
     const asesorObj = this.asesores.find(a => a.value === asesorSeleccionadoCode);
     const nombreFiltro = asesorObj && asesorObj.viewValue !== 'SELECCIONE ASESOR'
@@ -437,10 +443,17 @@ export class VentasCampoComponent implements OnInit {
 
     this.filtroNotasCredito = this.dataNotasCredito
       .filter(nc => {
-        const cumpleAnio = nc.AñoAF === anioActual;
-        const cumpleMes = nc.MesAF === mesActual;
         const cumpleAsesor = !nombreFiltro || nc.Vendedor.includes(nombreFiltro);
-        return cumpleAnio && cumpleMes && cumpleAsesor;
+        if (!cumpleAsesor) return false;
+
+        const tieneAF = nc.AñoAF > 0 && nc.MesAF > 0;
+        if (tieneAF) {
+          // Ruta principal: AF indica explícitamente a qué mes pertenece la NC
+          return nc.AñoAF === anioActual && nc.MesAF === mesActual;
+        }
+        // Fallback: sin AF → usar FECHAVENTA contra el rango seleccionado
+        const fechaNC = nc.FECHAVENTA as Date;
+        return fechaNC >= fechaInicio && fechaNC <= fechaFin;
       })
       .map(nc => {
         // Refacturación: existe una venta posterior (no NC) con el mismo DocIdentidad
@@ -1032,69 +1045,40 @@ export class VentasCampoComponent implements OnInit {
     }
   }
 
-  generarResumenTipoCredito(): void {
-    let contadorCredito = 0;
-    let contadorContado = 0;
+  generarDetalleMotosGlobalGo(): void {
+    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+    const fechaFin    = new Date(this.formVentas.value.fechaFin);
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
 
-    this.filtroVentas.forEach(v => {
-      // Convertimos a número por seguridad para comparar
-      const numCuotas = this.parseNumber(v.Cuotas);
+    const tiposSet = new Set<string>();
+    const mapVendedor = new Map<string, Map<string, { monto: number; ops: number }>>();
 
-      if (numCuotas > 0) {
-        contadorCredito++;
-      } else {
-        contadorContado++;
-      }
-    });
+    this.dataGlobalGo
+      .filter(v => { const f = v.FECHAVENTA as Date; return f >= fechaInicio && f <= fechaFin; })
+      .forEach(v => {
+        const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+        const tipo   = (v.TipoProducto || 'SIN TIPO').toString().trim().toUpperCase();
+        tiposSet.add(tipo);
+        if (!mapVendedor.has(nombre)) mapVendedor.set(nombre, new Map());
+        const inner = mapVendedor.get(nombre)!;
+        const cur   = inner.get(tipo) || { monto: 0, ops: 0 };
+        inner.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      });
 
-    this.chartTipoCredito = [
-      { Tipo: 'CRÉDITO', Cantidad: contadorCredito },
-      { Tipo: 'CONTADO', Cantidad: contadorContado }
-    ];
-  }
+    this.tiposProductoGlobalGo = Array.from(tiposSet).sort();
 
-  generarTablaResumenTipoCredito(): void {
-    const map = new Map<string, any>();
-
-    this.filtroVentas.forEach(v => {
-      const vendedor = v.Vendedor;
-      const monto = v.MontoConsolidado || 0;
-      const numCuotas = this.parseNumber(v.Cuotas);
-      const esCredito = numCuotas >= 1; // Lógica: >= 1 es Crédito, < 1 es Contado
-
-      if (!map.has(vendedor)) {
-        map.set(vendedor, {
-          Asesor: vendedor,
-          ContadoNro: 0,
-          ContadoMonto: 0,
-          CreditoNro: 0,
-          CreditoMonto: 0,
-          TotalNro: 0,
-          TotalMonto: 0
-        });
-      }
-
-      const item = map.get(vendedor)!;
-
-      if (esCredito) {
-        item.CreditoNro += 1;
-        item.CreditoMonto += monto;
-      } else {
-        item.ContadoNro += 1;
-        item.ContadoMonto += monto;
-      }
-
-      item.TotalNro += 1;
-      item.TotalMonto += monto;
-    });
-
-    // Convertir el mapa a array y redondear montos
-    this.resumenTipoCredito = Array.from(map.values()).map(item => ({
-      ...item,
-      ContadoMonto: Math.round(item.ContadoMonto),
-      CreditoMonto: Math.round(item.CreditoMonto),
-      TotalMonto: Math.round(item.TotalMonto)
-    })).sort((a, b) => a.Asesor.localeCompare(b.Asesor));
+    this.detalleMotosGlobalGo = Array.from(mapVendedor.entries()).map(([nombre, tiposMap]) => {
+      const row: any = { Vendedor: nombre, Total: 0, TotalOps: 0 };
+      this.tiposProductoGlobalGo.forEach(tipo => {
+        const data = tiposMap.get(tipo) || { monto: 0, ops: 0 };
+        row[tipo]    = Math.round(data.monto);
+        row.Total   += data.monto;
+        row.TotalOps += data.ops;
+      });
+      row.Total = Math.round(row.Total);
+      return row;
+    }).sort((a, b) => b.Total - a.Total);
   }
 
   generarMesesGlobalGo(): void {
@@ -1255,17 +1239,7 @@ export class VentasCampoComponent implements OnInit {
     }
   }
 
-  onCellPreparedVA(e: any) {
-    if (e.rowType === 'header') {
-      e.cellElement.style.backgroundColor = "#293964";
-      e.cellElement.style.color = "white";
-      e.cellElement.style.fontWeight = "bold";
-    }
-    if (e.rowType === 'data' && e.column.dataField !== 'Asesor') {
-      if (e.value > 0) e.cellElement.style.backgroundColor = '#7dd17fff';
-      else e.cellElement.style.backgroundColor = '#e66a6aff';
-    }
-  }
+
 
   // ─── BONOS ───────────────────────────────────────────────────────────────────
 
