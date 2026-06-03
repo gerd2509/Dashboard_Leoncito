@@ -4,8 +4,8 @@
   <aside class="sidebar" [class.collapsed]="!sidebarVisible">
     <div class="sidebar-content">
 
-      <!-- 🔹 Menú generado dinámicamente -->
-      <ng-container *ngFor="let item of menuItems">
+      <!-- Menú filtrado por sede/rol -->
+      <ng-container *ngFor="let item of menuItemsVisibles">
         <div *ngIf="item.submenu; else simpleItem" class="menu-group">
           <button class="menu-main" (click)="toggleSubmenu(item.label)">
             <mat-icon>{{ item.icon }}</mat-icon>
@@ -43,31 +43,44 @@
   <div class="main-content">
     <header class="topbar">
       <div class="titulo-modulo">{{ getTituloModulo() }}</div>
+      <div class="topbar-user">
+        <mat-icon>account_circle</mat-icon>
+        <span class="user-nombre">{{ usuario?.nombre }}</span>
+        <span class="user-sede" *ngIf="usuario?.sede !== 'todas'">{{ usuario?.sede | uppercase }}</span>
+        <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </div>
     </header>
 
     <section class="contenido">
-      <app-agendamientos *ngIf="moduloSeleccionado === 'agendamientos'"></app-agendamientos>
-      <app-agendamientos-campo *ngIf="moduloSeleccionado === 'agendamientos-campo'"></app-agendamientos-campo>
-      <app-agendamientos-kommo *ngIf="moduloSeleccionado === 'agendamientos-kommo'"></app-agendamientos-kommo>
-      <app-terceros *ngIf="moduloSeleccionado === 'terceros'"></app-terceros>
-      <app-gestion-contact-x-hora *ngIf="moduloSeleccionado === 'gestion'"></app-gestion-contact-x-hora>
-      <app-gestion-campo-realzza *ngIf="moduloSeleccionado === 'gestion-campo'"></app-gestion-campo-realzza>
-      <app-gestion-post-venta *ngIf="moduloSeleccionado === 'gestion-post-venta'"></app-gestion-post-venta>
-      <app-gestion-kommo *ngIf="moduloSeleccionado === 'gestion-kommo'"></app-gestion-kommo>
-      <app-cierre-gestion *ngIf="moduloSeleccionado === 'cierre'"></app-cierre-gestion>
-      <app-analisis-gestion-mensual *ngIf="moduloSeleccionado === 'analisis'"></app-analisis-gestion-mensual>
-      <app-ventas *ngIf="moduloSeleccionado === 'ventas'"></app-ventas>
-      <app-ventas-campo *ngIf="moduloSeleccionado === 'ventas-campo'"></app-ventas-campo>
-      <app-comparativo-ventas *ngIf="moduloSeleccionado === 'ventas-comparativo'"></app-comparativo-ventas>
-      <app-evolucion-tipo-cliente *ngIf="moduloSeleccionado === 'evolucion-tipo-cliente'"></app-evolucion-tipo-cliente>
-      <app-ventas-brilla-realzza *ngIf="moduloSeleccionado === 'ventas-brilla-realzza'"></app-ventas-brilla-realzza>
-      <app-ventas-cuotas-tipo-venta *ngIf="moduloSeleccionado === 'ventas-cuotas-tipoVenta'"></app-ventas-cuotas-tipo-venta>
-      <app-venta-x-plazo-av *ngIf="moduloSeleccionado === 'ventas-plazo-av'"></app-venta-x-plazo-av>
-      <app-proyeccion-comparativo *ngIf="moduloSeleccionado === 'proyeccion-comparativo'"></app-proyeccion-comparativo>
-      <app-proyeccion-ffvv-campo *ngIf="moduloSeleccionado === 'proyeccion-comparativo-campo'"></app-proyeccion-ffvv-campo>
-      <app-gestion-cobranzas *ngIf="moduloSeleccionado === 'cobranzas'"></app-gestion-cobranzas>
-      <app-convertidor-excel-csv *ngIf="moduloSeleccionado === 'conversor-csv'"></app-convertidor-excel-csv>
-      <app-post-venta *ngIf="moduloSeleccionado === 'post-venta'"></app-post-venta>
+      <ng-container [ngSwitch]="moduloSeleccionado">
+        <app-agendamientos               *ngSwitchCase="'agendamientos'"></app-agendamientos>
+        <app-agendamientos-campo         *ngSwitchCase="'agendamientos-campo'"></app-agendamientos-campo>
+        <app-agendamientos-kommo         *ngSwitchCase="'agendamientos-kommo'"></app-agendamientos-kommo>
+        <app-terceros                    *ngSwitchCase="'terceros'"></app-terceros>
+        <app-gestion-contact-x-hora      *ngSwitchCase="'gestion'"></app-gestion-contact-x-hora>
+        <app-gestion-campo-realzza       *ngSwitchCase="'gestion-campo'"></app-gestion-campo-realzza>
+        <app-gestion-post-venta          *ngSwitchCase="'gestion-post-venta'"></app-gestion-post-venta>
+        <app-gestion-kommo               *ngSwitchCase="'gestion-kommo'"></app-gestion-kommo>
+        <app-gestion-ferrenafe           *ngSwitchCase="'gestion-sede'"></app-gestion-ferrenafe>
+        <app-cierre-gestion              *ngSwitchCase="'cierre'"></app-cierre-gestion>
+        <app-analisis-gestion-mensual    *ngSwitchCase="'analisis'"></app-analisis-gestion-mensual>
+        <app-ventas                      *ngSwitchCase="'ventas'"></app-ventas>
+        <app-ventas-campo                *ngSwitchCase="'ventas-campo'"></app-ventas-campo>
+        <app-comparativo-ventas          *ngSwitchCase="'ventas-comparativo'"></app-comparativo-ventas>
+        <app-evolucion-tipo-cliente      *ngSwitchCase="'evolucion-tipo-cliente'"></app-evolucion-tipo-cliente>
+        <app-ventas-brilla-realzza       *ngSwitchCase="'ventas-brilla-realzza'"></app-ventas-brilla-realzza>
+        <app-ventas-cuotas-tipo-venta    *ngSwitchCase="'ventas-cuotas-tipoVenta'"></app-ventas-cuotas-tipo-venta>
+        <app-venta-x-plazo-av            *ngSwitchCase="'ventas-plazo-av'"></app-venta-x-plazo-av>
+        <app-proyeccion-comparativo      *ngSwitchCase="'proyeccion-comparativo'"></app-proyeccion-comparativo>
+        <app-proyeccion-ffvv-campo       *ngSwitchCase="'proyeccion-comparativo-campo'"></app-proyeccion-ffvv-campo>
+        <app-gestion-cobranzas           *ngSwitchCase="'cobranzas'"></app-gestion-cobranzas>
+        <app-convertidor-excel-csv       *ngSwitchCase="'conversor-csv'"></app-convertidor-excel-csv>
+        <app-post-venta                  *ngSwitchCase="'post-venta'"></app-post-venta>
+        <app-control-gestion-ferrenafe   *ngSwitchCase="'control-gestion-sede'"></app-control-gestion-ferrenafe>
+        <app-seguridad                   *ngSwitchCase="'seguridad'"></app-seguridad>
+      </ng-container>
     </section>
   </div>
 </div>

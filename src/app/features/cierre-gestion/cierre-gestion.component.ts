@@ -4,6 +4,7 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
+import { AuthService } from '../../services/auth.service';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
 
@@ -15,6 +16,29 @@ import { DxSchedulerComponent } from 'devextreme-angular';
 })
 export class CierreGestionComponent implements OnInit {
   protected service = inject(SheetsService);
+  protected auth    = inject(AuthService);
+
+  // true cuando el usuario es gerente/supervisor de Realzza
+  get soloRealzza(): boolean {
+    const u = this.auth.getUsuario();
+    if (!u || u.rol === 'admin') return false;
+    return u.sede.toLowerCase().includes('realzza');
+  }
+
+  // Contactabilidad calculada solo para Realzza
+  get pctContactabilidadRealzza(): number {
+    const c = this.dataContactabilidadRealzza.reduce((s, r) => s + (r['CONTACTO'] || 0), 0);
+    const t = this.dataContactabilidadRealzza.reduce((s, r) => s + (r['TOTAL']    || 0), 0);
+    return t > 0 ? Math.round((c / t) * 100) : 0;
+  }
+
+  get totalContactosRz(): number {
+    return this.dataContactabilidadRealzza.reduce((s, r) => s + (r['CONTACTO'] || 0), 0);
+  }
+
+  get totalGestionesRz(): number {
+    return this.dataContactabilidadRealzza.reduce((s, r) => s + (r['TOTAL'] || 0), 0);
+  }
 
   formCierreGestion: UntypedFormGroup;
 

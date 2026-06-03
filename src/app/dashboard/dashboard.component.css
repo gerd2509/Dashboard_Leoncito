@@ -358,6 +358,69 @@
   transform: scale(1.12);
 }
 
+/* =====================================================
+   TOPBAR — USUARIO
+   ===================================================== */
+.topbar {
+  justify-content: space-between;
+}
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-user mat-icon {
+  font-size: 22px;
+  width: 22px;
+  height: 22px;
+  color: #1A5FAD;
+}
+
+.user-nombre {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2a3a50;
+}
+
+.user-sede {
+  background: #e8f0fe;
+  color: #1a5fad;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1.5px solid #CCDAEE;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 5px 8px;
+  color: #8a9ab0;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  margin-left: 4px;
+}
+
+.btn-logout:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.btn-logout mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: inherit;
+}
+
 /* Colapsado - submenú oculto */
 .sidebar.collapsed .menu-group .menu-main span,
 .sidebar.collapsed .menu-group .menu-main .arrow {

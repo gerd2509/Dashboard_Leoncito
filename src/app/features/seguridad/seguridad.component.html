@@ -1,0 +1,124 @@
+<div class="seg-container">
+
+  <!-- HEADER -->
+  <div class="seg-header">
+    <div class="seg-header-left">
+      <div class="seg-icon">
+        <mat-icon>admin_panel_settings</mat-icon>
+      </div>
+      <div>
+        <h2>Módulo de Seguridad</h2>
+        <p>Configura qué módulos puede ver cada combinación Rol + Sede</p>
+      </div>
+    </div>
+    <div class="seg-header-actions">
+      <button class="btn-restablecer" (click)="restablecer()">
+        <mat-icon>restart_alt</mat-icon> Restablecer defaults
+      </button>
+      <button class="btn-guardar" (click)="guardar()">
+        <mat-icon>{{ guardado ? 'check_circle' : 'save' }}</mat-icon>
+        {{ guardado ? '¡Guardado!' : 'Guardar cambios' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- BADGE CONTADORES -->
+  <div class="seg-counters">
+    <div class="counter-badge admin">
+      <mat-icon>shield</mat-icon>
+      <span>ADMIN — Acceso total (no configurable)</span>
+    </div>
+    <div class="counter-badge" *ngFor="let combo of combinaciones">
+      <mat-icon>person</mat-icon>
+      <span>{{ combo.label }} — {{ countActivos(combo.key) }} módulos activos</span>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="seg-table-wrap">
+    <table class="seg-table">
+      <thead>
+        <tr>
+          <th class="col-modulo">Módulo</th>
+          <th class="col-admin">
+            <div class="th-content">
+              <mat-icon>shield</mat-icon>
+              ADMIN
+            </div>
+          </th>
+          <th class="col-rol" *ngFor="let combo of combinaciones">
+            <div class="th-content th-combo">
+              <mat-icon>person</mat-icon>
+              <span class="combo-label">
+                <span class="combo-rol">{{ combo.rol | uppercase }}</span>
+                <span class="combo-sede">{{ combo.label.split('—')[1] || '' }}</span>
+              </span>
+            </div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <ng-container *ngFor="let grupo of grupos">
+          <tr class="row-grupo">
+            <td [attr.colspan]="2 + combinaciones.length">
+              <mat-icon>folder_open</mat-icon> {{ grupo }}
+            </td>
+          </tr>
+          <tr *ngFor="let fila of getModulosPorGrupo(grupo)" class="row-modulo">
+            <td class="col-modulo">
+              <span class="modulo-label">{{ fila.modulo.label }}</span>
+              <span class="sede-badge" *ngIf="fila.modulo.sedeScoped">
+                <mat-icon>place</mat-icon> por sede
+              </span>
+            </td>
+            <td class="col-admin">
+              <div class="toggle always-on">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </div>
+            </td>
+            <td *ngFor="let combo of combinaciones" class="col-toggle">
+              <div class="toggle" [class.active]="fila.combos[combo.key]"
+                   (click)="togglePermiso(fila, combo.key)">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
+
+        <tr class="row-grupo">
+          <td [attr.colspan]="2 + combinaciones.length">
+            <mat-icon>apps</mat-icon> Generales
+          </td>
+        </tr>
+        <tr *ngFor="let fila of getModulosSinGrupo()" class="row-modulo">
+          <td class="col-modulo">
+            <span class="modulo-label">{{ fila.modulo.label }}</span>
+            <span class="sede-badge" *ngIf="fila.modulo.sedeScoped">
+              <mat-icon>place</mat-icon> por sede
+            </span>
+          </td>
+          <td class="col-admin">
+            <div class="toggle always-on">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </div>
+          </td>
+          <td *ngFor="let combo of combinaciones" class="col-toggle">
+            <div class="toggle" [class.active]="fila.combos[combo.key]"
+                 (click)="togglePermiso(fila, combo.key)">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <div class="seg-nota">
+    <mat-icon>info_outline</mat-icon>
+    Los módulos con badge "por sede" solo son visibles al usuario si tiene una sede específica asignada.
+    Los permisos se aplican por combinación Rol + Sede.
+  </div>
+
+</div>

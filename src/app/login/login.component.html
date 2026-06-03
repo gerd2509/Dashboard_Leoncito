@@ -1,0 +1,115 @@
+<div class="login-page">
+
+  <!-- Partículas flotantes -->
+  <div class="particle" *ngFor="let p of particles" [ngStyle]="p"></div>
+
+  <!-- PANEL IZQUIERDO — Branding Leoncito -->
+  <div class="brand-side">
+    <div class="brand-content">
+
+      <!-- Anillos animados + León -->
+      <div class="lion-stage">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <div class="lion-circle">
+          <span class="lion-emoji">🦁</span>
+        </div>
+        <!-- Estrellas orbitales -->
+        <span class="orbit-star s1">✦</span>
+        <span class="orbit-star s2">✦</span>
+        <span class="orbit-star s3">✦</span>
+        <span class="orbit-star s4">✦</span>
+      </div>
+
+      <!-- Nombre de la empresa -->
+      <div class="brand-name">
+        <span class="brand-letter" *ngFor="let letra of 'LEONCITO'.split(''); let i = index"
+              [style.animation-delay]="(i * 0.1) + 's'">{{ letra }}</span>
+      </div>
+
+      <p class="brand-tagline">Sistema de Gestión Integral</p>
+
+      <div class="brand-divider">
+        <span></span><span class="dot">◆</span><span></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PANEL DERECHO — Formulario -->
+  <div class="form-side">
+    <div class="form-card">
+
+      <div class="form-header">
+        <div class="form-icon">
+          <mat-icon>lock_person</mat-icon>
+        </div>
+        <h2>Bienvenido</h2>
+        <p>Ingresa tus credenciales para continuar</p>
+      </div>
+
+      <form (ngSubmit)="onLogin()" #loginForm="ngForm" autocomplete="off">
+
+        <div class="field-group">
+          <label>Usuario</label>
+          <div class="input-wrap" [class.focused]="usuarioRef.value">
+            <mat-icon>person_outline</mat-icon>
+            <input
+              #usuarioRef
+              type="text"
+              [(ngModel)]="usuario"
+              name="usuario"
+              placeholder="Ingresa tu usuario"
+              [disabled]="cargando"
+              autocomplete="username"
+            />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Contraseña</label>
+          <div class="input-wrap" [class.focused]="passwordRef.value">
+            <mat-icon>lock_outline</mat-icon>
+            <input
+              #passwordRef
+              [type]="mostrarPassword ? 'text' : 'password'"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="Ingresa tu contraseña"
+              [disabled]="cargando"
+              autocomplete="current-password"
+            />
+            <button type="button" class="eye-btn" (click)="mostrarPassword = !mostrarPassword" tabindex="-1">
+              <mat-icon>{{ mostrarPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="error-box" *ngIf="error">
+          <mat-icon>warning_amber</mat-icon>
+          <span>{{ error }}</span>
+        </div>
+
+        <button type="submit" class="btn-ingresar" [class.loading]="cargando" [disabled]="cargando">
+          <span class="btn-content" *ngIf="!cargando">
+            <mat-icon>login</mat-icon>
+            Ingresar
+          </span>
+          <span class="btn-content" *ngIf="cargando">
+            <span class="spinner"></span>
+            Verificando...
+          </span>
+        </button>
+
+      </form>
+
+      <div class="form-footer">
+        <mat-icon>shield</mat-icon>
+        Acceso seguro · Leoncito &copy; 2025
+      </div>
+
+    </div>
+  </div>
+
+</div>

@@ -427,14 +427,14 @@ export class VentasCampoComponent implements OnInit {
   }
 
   filtrarNotasCredito(): void {
-    const hoy = new Date();
-    const anioActual = hoy.getFullYear();
-    const mesActual = hoy.getMonth() + 1;
-
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);
     const fechaFin    = new Date(this.formVentas.value.fechaFin);
     fechaInicio.setHours(0, 0, 0, 0);
     fechaFin.setHours(23, 59, 59, 999);
+
+    // Mes/año del rango seleccionado (no el mes actual del sistema)
+    const anioSeleccionado = fechaFin.getFullYear();
+    const mesSeleccionado  = fechaFin.getMonth() + 1;
 
     const asesorSeleccionadoCode = this.formVentas.value.Asesores;
     const asesorObj = this.asesores.find(a => a.value === asesorSeleccionadoCode);
@@ -448,8 +448,8 @@ export class VentasCampoComponent implements OnInit {
 
         const tieneAF = nc.AñoAF > 0 && nc.MesAF > 0;
         if (tieneAF) {
-          // Ruta principal: AF indica explícitamente a qué mes pertenece la NC
-          return nc.AñoAF === anioActual && nc.MesAF === mesActual;
+          // Ruta principal: AF indica a qué mes pertenece la NC → comparar vs mes seleccionado
+          return nc.AñoAF === anioSeleccionado && nc.MesAF === mesSeleccionado;
         }
         // Fallback: sin AF → usar FECHAVENTA contra el rango seleccionado
         const fechaNC = nc.FECHAVENTA as Date;

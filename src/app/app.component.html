@@ -1,4 +1,2 @@
-<!-- <app-gestion-contact-x-hora /> -->
-<!-- <app-derivaciones /> -->
-<!-- <app-agendamientos /> -->
-<app-dashboard />
+<app-login *ngIf="!auth.isLoggedIn()"></app-login>
+<app-dashboard *ngIf="auth.isLoggedIn()"></app-dashboard>

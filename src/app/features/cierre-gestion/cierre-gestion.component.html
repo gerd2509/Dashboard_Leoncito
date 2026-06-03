@@ -25,8 +25,8 @@
         <div class="kpi-section mb-4">
             <div class="kpi-container">
 
-                <!-- CALL: AGENDAMIENTOS -->
-                <div class="kpi-card kpi-team-call"
+                <!-- CALL: AGENDAMIENTOS — solo admin/call -->
+                <div class="kpi-card kpi-team-call" *ngIf="!soloRealzza"
                     [class.kpi-success]="porcentajeMetaCall >= 85"
                     [class.kpi-warning]="porcentajeMetaCall >= 50 && porcentajeMetaCall < 85"
                     [class.kpi-danger]="porcentajeMetaCall < 50"
@@ -43,8 +43,8 @@
                     <div class="kpi-action">{{ kpiSeleccionado === 'agend-call' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
                 </div>
 
-                <!-- CALL: DERIVACIONES -->
-                <div class="kpi-card kpi-team-call"
+                <!-- CALL: DERIVACIONES — solo admin/call -->
+                <div class="kpi-card kpi-team-call" *ngIf="!soloRealzza"
                     [class.kpi-success]="porcentajeMetaDerivacionCall >= 85"
                     [class.kpi-warning]="porcentajeMetaDerivacionCall >= 50 && porcentajeMetaDerivacionCall < 85"
                     [class.kpi-danger]="porcentajeMetaDerivacionCall < 50"
@@ -61,8 +61,8 @@
                     <div class="kpi-action">{{ kpiSeleccionado === 'deriv-call' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
                 </div>
 
-                <!-- CONTACTABILIDAD -->
-                <div class="kpi-card kpi-center"
+                <!-- CONTACTABILIDAD GLOBAL — solo admin -->
+                <div class="kpi-card kpi-center" *ngIf="!soloRealzza"
                     [class.kpi-success]="porcentajeTotalContactabilidad >= 85"
                     [class.kpi-warning]="porcentajeTotalContactabilidad >= 50 && porcentajeTotalContactabilidad < 85"
                     [class.kpi-danger]="porcentajeTotalContactabilidad < 50">
@@ -114,6 +114,21 @@
                         <div class="kpi-progress-fill" [style.width.%]="porcentajeMetaDerivacionRealzza"></div>
                     </div>
                     <div class="kpi-action">{{ kpiSeleccionado === 'deriv-realzza' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
+                <!-- REALZZA: CONTACTABILIDAD — solo para gerente/supervisor Realzza -->
+                <div class="kpi-card kpi-center" *ngIf="soloRealzza"
+                    [class.kpi-success]="pctContactabilidadRealzza >= 85"
+                    [class.kpi-warning]="pctContactabilidadRealzza >= 50 && pctContactabilidadRealzza < 85"
+                    [class.kpi-danger]="pctContactabilidadRealzza < 50">
+                    <div class="kpi-team-badge realzza-badge">🏢 REALZZA</div>
+                    <div class="kpi-icon">📞</div>
+                    <div class="kpi-title">CONTACTABILIDAD</div>
+                    <div class="kpi-value">{{ pctContactabilidadRealzza }}%</div>
+                    <div class="kpi-meta">{{ totalContactosRz }} contactos / {{ totalGestionesRz }} gestiones</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="pctContactabilidadRealzza"></div>
+                    </div>
                 </div>
 
             </div>
@@ -241,11 +256,64 @@
             </div>
         </div> -->
 
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        <!-- ════════════ VISTA REALZZA: Contactabilidad + KOMMO lado a lado ════════════ -->
+        <div *ngIf="soloRealzza">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h3 class="titulosGrillas">📞 GESTIÓN DE LLAMADAS — REALZZA</h3>
+            </div>
+
+            <div class="firstContainer mb-4">
+                <!-- IZQUIERDA: KOMMO -->
+                <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
+                    <div class="team-label-bar realzza-bar">🏢 REALZZA - KOMMO</div>
+                    <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
+                        [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                        [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+                        <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
+                        <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                        <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                        <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
+                        <dxi-column dataField="TOTAL" caption="TOTAL" />
+                        <dxo-summary>
+                            <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
+                        </dxo-summary>
+                    </dx-data-grid>
+                </div>
+
+                <!-- DERECHA: CONTACTABILIDAD -->
+                <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
+                    <div class="team-label-bar realzza-bar">🏢 REALZZA - CONTACTABILIDAD</div>
+                    <dx-data-grid [dataSource]="dataContactabilidadRealzza" [showBorders]="true" [columnAutoWidth]="true"
+                        [showRowLines]="true" (onCellPrepared)="onCellPrepared($event)">
+                        <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                        <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                        <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                        <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
+                        <dxi-column dataField="TOTAL" caption="TOTAL" />
+                        <dxi-column dataField="PORCENTAJE" caption="%" [format]="{ type: 'percent', precision: 0 }" />
+                        <dxo-summary>
+                            <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum" [displayFormat]="'{0}'" />
+                            <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" [displayFormat]="'{0}'" />
+                            <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
+                            <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
+                        </dxo-summary>
+                    </dx-data-grid>
+                </div>
+            </div>
+        </div>
+        <!-- ════════════ FIN VISTA REALZZA ════════════ -->
+
+        <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="!soloRealzza">
             <h3 class="titulosGrillas">🔄 COMPARATIVA: KOMMO</h3>
         </div>
 
-        <div class="firstContainer mb-4">
+        <div class="firstContainer mb-4" *ngIf="!soloRealzza">
             <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
                 <div class="team-label-bar call-bar">📞 CALL CENTER - KOMMO</div>
                 <dx-data-grid id="gridCallDeriv" [dataSource]="dataContactabilidadKOMMOCall" [showBorders]="true"
@@ -295,9 +363,9 @@
             </div>
         </div>
 
-        <h3 class="titulosGrillas mb-2">📞 CONTACTABILIDAD DETALLADA</h3>
+        <h3 class="titulosGrillas mb-2" *ngIf="!soloRealzza">📞 CONTACTABILIDAD DETALLADA</h3>
 
-        <div class="firstContainer mb-4">
+        <div class="firstContainer mb-4" *ngIf="!soloRealzza">
             <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
                 <div class="team-label-bar call-bar">📞 CALL CENTER</div>
                 <dx-data-grid [dataSource]="dataContactabilidadCall" [showBorders]="true" [columnAutoWidth]="true"
@@ -345,7 +413,7 @@
             </div>
         </div>
 
-        <div class="card-container">
+        <div class="card-container" *ngIf="!soloRealzza">
             <h3>RESUMEN DE GESTIÓN POR ASESOR Y TIPO DE CLIENTE</h3>
 
             <dx-data-grid [dataSource]="dataGestionPorAsesorYTipoCliente" [showBorders]="true" [columnAutoWidth]="true"
@@ -437,7 +505,7 @@
             </div>
         </div> -->
 
-        <div class="secondContainer">
+        <div class="secondContainer" *ngIf="!soloRealzza">
             <div class="cabecera">
                 <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
                     class="dashboard-box mt-3">
@@ -563,7 +631,7 @@
             </div>
         </div>
 
-        <div class="thirdContainer">
+        <div class="thirdContainer" *ngIf="!soloRealzza">
             <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
                 class="dashboard-box mt-3">
 
@@ -608,7 +676,7 @@
             </dx-box>
         </div>
 
-        <div class="fourthContainer">
+        <div class="fourthContainer" *ngIf="!soloRealzza">
             <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
                 class="charts-box mt-3" wrap="wrap">
 

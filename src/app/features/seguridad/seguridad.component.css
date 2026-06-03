@@ -1,0 +1,335 @@
+.seg-container {
+  padding: 24px;
+  background: #f0f4f8;
+  min-height: 100%;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* HEADER */
+.seg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #1a2a4a, #0d1628);
+  border-radius: 14px;
+  padding: 20px 28px;
+  color: #fff;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.seg-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.seg-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f07420, #d05a10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(240,116,32,0.4);
+}
+
+.seg-icon mat-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: #fff;
+}
+
+.seg-header-left h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.seg-header-left p {
+  margin: 0;
+  color: #7a8fa8;
+  font-size: 13px;
+}
+
+.seg-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-restablecer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.2);
+  color: #a0b4d0;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-restablecer:hover { background: rgba(255,255,255,0.14); }
+
+.btn-guardar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #f07420, #d05a10);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 4px 14px rgba(240,116,32,0.4);
+}
+
+.btn-guardar:hover { transform: translateY(-1px); box-shadow: 0 7px 20px rgba(240,116,32,0.5); }
+.btn-guardar mat-icon, .btn-restablecer mat-icon {
+  font-size: 18px; width: 18px; height: 18px;
+}
+
+/* COUNTERS */
+.seg-counters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.counter-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  border-left: 3px solid #1a5fad;
+}
+
+.counter-badge mat-icon {
+  font-size: 16px; width: 16px; height: 16px;
+  color: #1a5fad;
+}
+
+.counter-badge.admin {
+  border-left-color: #f07420;
+  color: #d05a10;
+}
+
+.counter-badge.admin mat-icon { color: #f07420; }
+
+/* TABLA */
+.seg-table-wrap {
+  background: #fff;
+  border-radius: 14px;
+  overflow: auto;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  margin-bottom: 14px;
+}
+
+.seg-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.seg-table thead th {
+  background: #0d1628;
+  color: #a0b4d0;
+  padding: 14px 18px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.seg-table thead th:first-child {
+  text-align: left;
+  border-radius: 14px 0 0 0;
+}
+
+.seg-table thead th:last-child {
+  border-radius: 0 14px 0 0;
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.th-content mat-icon {
+  font-size: 15px; width: 15px; height: 15px;
+}
+
+.th-combo { flex-direction: column; gap: 2px; }
+
+.combo-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.combo-rol {
+  font-size: 11px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.combo-sede {
+  font-size: 10px;
+  font-weight: 500;
+  color: #f07420;
+  letter-spacing: 0.3px;
+}
+
+.col-modulo { min-width: 260px; max-width: 360px; text-align: left; }
+.col-admin, .col-rol, .col-toggle { width: 120px; min-width: 100px; text-align: center; }
+
+/* FILAS DE GRUPO */
+.row-grupo td {
+  background: #f0f4f8;
+  padding: 10px 18px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #4a6080;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  vertical-align: middle;
+}
+
+.row-grupo td mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: #1a5fad;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* FILAS DE MÓDULO */
+.row-modulo {
+  border-bottom: 1px solid #f0f4f8;
+  transition: background 0.15s;
+}
+
+.row-modulo:hover { background: #fafcff; }
+
+.row-modulo td {
+  padding: 12px 18px;
+  vertical-align: middle;
+}
+
+td.col-modulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 260px;
+  max-width: 360px;
+}
+
+.modulo-label {
+  font-size: 13px;
+  color: #2a3a50;
+  font-weight: 500;
+}
+
+.sede-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: #e8f0fe;
+  color: #1a5fad;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.sede-badge mat-icon {
+  font-size: 12px; width: 12px; height: 12px;
+}
+
+/* TOGGLE SWITCH */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  justify-content: center;
+}
+
+.toggle-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: #dde6f0;
+  display: block;
+  transition: background 0.25s;
+}
+
+.toggle.active .toggle-track {
+  background: #1a5fad;
+}
+
+.toggle.always-on .toggle-track {
+  background: linear-gradient(135deg, #f07420, #d05a10);
+  cursor: default;
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toggle.active .toggle-thumb,
+.toggle.always-on .toggle-thumb {
+  transform: translateX(18px);
+}
+
+/* NOTA */
+.seg-nota {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #795548;
+}
+
+.seg-nota mat-icon {
+  font-size: 18px; width: 18px; height: 18px;
+  color: #f57f17;
+  flex-shrink: 0;
+}

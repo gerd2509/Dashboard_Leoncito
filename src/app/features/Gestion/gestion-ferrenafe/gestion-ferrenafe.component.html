@@ -1,0 +1,61 @@
+<form class="form mt-2" [formGroup]="formGestion">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-select-box style="width: 280px;" formControlName="Asesores" [dataSource]="asesores"
+        displayExpr="viewValue" valueExpr="value" label="Asesor Ferreñafe" labelMode="floating"
+        stylingMode="underlined" placeholder="" (onValueChanged)="onAsesorChanged($event)" />
+    <dx-check-box text="Derivación" [(value)]="filtroDerivacionActivo" [disabled]="!formGestion.valid"
+        (onValueChanged)="aplicarFiltros()" stylingMode="outlined" />
+    <dx-check-box text="Agendamiento" [(value)]="filtroAgendamientoActivo" [disabled]="!formGestion.valid"
+        (onValueChanged)="aplicarFiltros()" stylingMode="outlined" />
+    <button mat-flat-button (click)="filtrarPorFecha()">
+        <mat-icon>search</mat-icon>
+        Actualizar
+    </button>
+    <button mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+</form>
+
+<div class="grid-container">
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada"
+        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
+        [selection]="{ mode: 'single' }">
+
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+        <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+        <dxi-column dataField="Marca temporal"                          caption="Marca Temporal" />
+        <dxi-column dataField="ASESOR CONTACT"                          caption="Asesor" />
+        <dxi-column dataField="DNI CLIENTE"                             caption="DNI Cliente" />
+        <dxi-column dataField="TIPO DE CLIENTE"                         caption="Tipo de Cliente" />
+        <dxi-column dataField="ESTADO DE GESTIÓN"                       caption="Estado de Gestión" />
+        <dxi-column dataField="MEDIO DE PRIMER CONTACTO"                caption="Medio de Contacto" />
+        <dxi-column dataField="CELULAR GESTIONADO"                      caption="Celular Gestionado" />
+        <dxi-column dataField="RESULTADO DE GESTIÓN"                    caption="Resultado de Gestión" />
+        <dxi-column dataField="PRODUCTO INTERÉS"                        caption="Producto de Interés" />
+        <dxi-column dataField="MOTIVO INTERÉS"                          caption="Motivo de Interés" />
+        <dxi-column dataField="MOTIVO NO INTERÉS"                       caption="Motivo No Interés" />
+        <dxi-column dataField="FECHA DE INTERÉS AGENDAMIENTO"           caption="Fecha de Interés" />
+        <dxi-column dataField="HORA APROXIMADA INTERÉS AGENDAMIENTO"    caption="Hora Aproximada" />
+        <dxi-column dataField="SEDE"                                    caption="Sede" />
+
+        <dxo-summary>
+            <dxi-total-item alignment="right" column="Marca temporal" summaryType="count"
+                displayFormat="Registros: {0}" />
+        </dxo-summary>
+
+    </dx-data-grid>
+</div>
