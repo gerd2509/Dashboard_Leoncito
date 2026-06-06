@@ -17,6 +17,10 @@ export interface RolSedeCombinacion {
 }
 
 export const COMBINACIONES: RolSedeCombinacion[] = [
+  // Rol que supervisa TODAS las sedes (sede = 'todas' en el sheet de usuarios)
+  { key: 'gerente-todas',        label: 'Gerente — Todas',        rol: 'gerente',    sede: 'todas' },
+  { key: 'supervisor-todas',     label: 'Supervisor — Todas',     rol: 'supervisor', sede: 'todas' },
+
   { key: 'gerente-ferrenafe',    label: 'Gerente — Ferreñafe',    rol: 'gerente',    sede: 'ferrenafe' },
   { key: 'supervisor-ferrenafe', label: 'Supervisor — Ferreñafe', rol: 'supervisor', sede: 'ferrenafe' },
   { key: 'gerente-realzza',      label: 'Gerente — Realzza',      rol: 'gerente',    sede: 'realzza' },
@@ -54,13 +58,19 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'post-venta',                   label: 'Post Venta' },
   { key: 'gestion-sede',                 label: 'Gestión Sede',          grupo: 'Gestión', sedeScoped: true },
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',                    sedeScoped: true },
+  { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',    grupo: 'Gestión', sedeScoped: true },
+  { key: 'control-call-sedes',           label: 'Control Call Sedes',                      sedeScoped: true },
 ];
 
 // ─── Permisos por defecto: clave = rol-sede ───────────────────────────────────
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
+  // Supervisión global (sede = 'todas') → ve la gestión consolidada de TODAS las sedes
+  'gerente-todas':        ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
+  'supervisor-todas':     ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
+
   // Ferreñafe
-  'gerente-ferrenafe':    ['gestion-sede', 'control-gestion-sede'],
-  'supervisor-ferrenafe': ['gestion-sede', 'control-gestion-sede'],
+  'gerente-ferrenafe':    ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
+  'supervisor-ferrenafe': ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
 
   // Realzza — módulos disponibles en el sistema
   'gerente-realzza': [
@@ -76,7 +86,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   // 'gerente-olmos':      ['gestion-sede', 'control-gestion-sede'],
 };
 
-const STORAGE_KEY = 'gd_permissions_v2';
+const STORAGE_KEY = 'gd_permissions_v4';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
@@ -125,7 +135,9 @@ export class PermissionsService {
 
     const mod = ALL_MODULES.find(m => m.key === moduleKey);
     if (mod?.sedeScoped) {
-      return !!sede && sede.toLowerCase() !== 'todas';
+      // Requiere tener una sede asignada — vale tanto una sede específica
+      // (ve solo esa) como 'todas' (ve todas las sedes en el componente)
+      return !!sede;
     }
     return true;
   }

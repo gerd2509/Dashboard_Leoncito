@@ -1,0 +1,149 @@
+<form class="form mt-2" [formGroup]="formCtrl">
+    <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true"
+        label="Fecha de Gestión" labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <button mat-flat-button type="button" (click)="actualizar()" [disabled]="isLoading">
+        <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
+        {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+</form>
+
+<div class="grid-container">
+
+    <!-- ── TABLA RESUMEN POR SEDE ── -->
+    <div class="resumen-bloque">
+        <div class="resumen-header" (click)="toggleResumen()">
+            <div class="sede-header-left">
+                <mat-icon class="chevron" [class.open]="resumenVisible">expand_more</mat-icon>
+                <mat-icon class="sede-ico">summarize</mat-icon>
+                <span class="sede-nombre">RESUMEN POR SEDE</span>
+            </div>
+            <span class="resumen-fecha">{{ formCtrl.value.fechaGestion | date:'dd MMM' }}</span>
+        </div>
+
+        <div class="resumen-body" *ngIf="resumenVisible">
+            <!-- Skeleton mientras carga -->
+            <div *ngIf="isLoading; else resumenListo">
+                <div class="skeleton skeleton-row" *ngFor="let r of [1,2,3,4]"></div>
+            </div>
+
+            <ng-template #resumenListo>
+                <table class="resumen-tabla">
+                    <thead>
+                        <tr>
+                            <th class="th-sede">SEDE</th>
+                            <th>LLAMADAS</th>
+                            <th>CARTAS</th>
+                            <th>TOTAL</th>
+                            <th>% LLAMADAS</th>
+                            <th>% CARTAS</th>
+                        </tr>
+                    </thead>
+
+                    <tbody *ngFor="let g of resumenGrupos">
+                        <!-- Cabecera de zona -->
+                        <tr class="fila-zona">
+                            <td class="td-sede">{{ g.zona }}</td>
+                            <td>{{ g.llamadas }}</td>
+                            <td>{{ g.cartas }}</td>
+                            <td class="td-total">{{ g.gestiones }}</td>
+                            <td class="td-pct" [style.background]="colorLlamadas(g.pctLlamadas)" [style.color]="textoLlamadas(g.pctLlamadas)">{{ g.pctLlamadas }}%</td>
+                            <td class="td-pct" [style.background]="colorCartas(g.pctCartas)"     [style.color]="textoCartas(g.pctCartas)">{{ g.pctCartas }}%</td>
+                        </tr>
+                        <!-- Sedes de la zona -->
+                        <tr *ngFor="let b of g.sedes">
+                            <td class="td-sede td-sede-hijo">{{ b.nombre }}</td>
+                            <td>{{ b.totalLlamadas }}</td>
+                            <td>{{ b.totalCartas }}</td>
+                            <td class="td-total">{{ b.totalGestiones }}</td>
+                            <td class="td-pct" [style.background]="colorLlamadas(b.pctLlamadas)" [style.color]="textoLlamadas(b.pctLlamadas)">{{ b.pctLlamadas }}%</td>
+                            <td class="td-pct" [style.background]="colorCartas(b.pctCartas)"     [style.color]="textoCartas(b.pctCartas)">{{ b.pctCartas }}%</td>
+                        </tr>
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <td class="td-sede">TOTAL GENERAL</td>
+                            <td>{{ resumenTotalGen.llamadas }}</td>
+                            <td>{{ resumenTotalGen.cartas }}</td>
+                            <td class="td-total">{{ resumenTotalGen.gestiones }}</td>
+                            <td class="td-pct" [style.background]="colorLlamadas(resumenTotalGen.pctLlamadas)" [style.color]="textoLlamadas(resumenTotalGen.pctLlamadas)">{{ resumenTotalGen.pctLlamadas }}%</td>
+                            <td class="td-pct" [style.background]="colorCartas(resumenTotalGen.pctCartas)"     [style.color]="textoCartas(resumenTotalGen.pctCartas)">{{ resumenTotalGen.pctCartas }}%</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </ng-template>
+        </div>
+    </div>
+
+    <div class="sedes-wrap mt-3">
+
+        <div class="sede-bloque" *ngFor="let bloque of sedesBloques">
+
+            <!-- Cabecera del acordeón -->
+            <div class="sede-header" (click)="toggleSede(bloque)">
+                <div class="sede-header-left">
+                    <mat-icon class="chevron" [class.open]="bloque.expandida">expand_more</mat-icon>
+                    <mat-icon class="sede-ico">location_city</mat-icon>
+                    <span class="sede-nombre">{{ bloque.nombre }}</span>
+                </div>
+                <div class="sede-header-right">
+                    <!-- Mientras carga: shimmer -->
+                    <ng-container *ngIf="isLoading; else datosListos">
+                        <span class="skeleton skeleton-resumen"></span>
+                        <span class="skeleton skeleton-pct"></span>
+                    </ng-container>
+                    <ng-template #datosListos>
+                        <span class="sede-resumen">{{ bloque.totalContactos }} contactos / {{ bloque.totalGestiones }} gestiones</span>
+                        <span class="sede-pct" [style.background]="colorPct(bloque.porcentaje)">{{ bloque.porcentaje }}%</span>
+                    </ng-template>
+                </div>
+            </div>
+
+            <!-- Contenido -->
+            <div class="sede-body" *ngIf="bloque.expandida && !isLoading">
+                <dx-data-grid [dataSource]="bloque.filas" [showBorders]="true" [showColumnLines]="true"
+                    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                    (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true">
+
+                    <dxi-column dataField="asesor" caption="ASESOR" [minWidth]="220" [allowSorting]="true" />
+
+                    <dxi-column caption="📞 LLAMADA TELEFÓNICA" alignment="center">
+                        <dxi-column dataField="llamadaContacto"   caption="Contacto"    alignment="center" [width]="100" />
+                        <dxi-column dataField="llamadaNoContacto" caption="No Contacto" alignment="center" [width]="110" />
+                    </dxi-column>
+
+                    <dxi-column caption="✉️ ENTREGA DE CARTA" alignment="center">
+                        <dxi-column dataField="cartaContacto"   caption="Contacto"    alignment="center" [width]="100" />
+                        <dxi-column dataField="cartaNoContacto" caption="No Contacto" alignment="center" [width]="110" />
+                    </dxi-column>
+
+                    <dxi-column dataField="total"      caption="TOTAL" alignment="center" [width]="80" />
+                    <dxi-column dataField="porcentaje" caption="%"     alignment="center" [width]="80"
+                        [format]="{ type: 'percent', precision: 0 }" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right"  column="asesor"            [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="llamadaContacto"   summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="llamadaNoContacto" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="cartaContacto"     summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="cartaNoContacto"   summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="total"             summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="porcentaje"        [displayFormat]="bloque.porcentaje + '%'" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <!-- Skeleton del body mientras carga (sede expandida) -->
+            <div class="sede-body" *ngIf="bloque.expandida && isLoading">
+                <div class="skeleton skeleton-row" *ngFor="let r of [1,2,3,4,5]"></div>
+            </div>
+        </div>
+
+        <div class="sin-sedes" *ngIf="!isLoading && sedesBloques.length === 0">
+            <mat-icon>info_outline</mat-icon>
+            No hay sedes disponibles para tu usuario.
+        </div>
+
+    </div>
+</div>

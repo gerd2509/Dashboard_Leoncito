@@ -1,8 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { Subject, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
+import { BrandService, Brand } from '../services/brand.service';
 
 @Component({
   selector: 'app-login',
@@ -11,12 +14,16 @@ import { AuthService } from '../services/auth.service';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   usuario = '';
   password = '';
   mostrarPassword = false;
   cargando = false;
   error = '';
+
+  // Marca mostrada en el panel izquierdo (cambia según el usuario que se escribe)
+  brand: Brand;
+  private usuario$ = new Subject<string>();
 
   particles = Array.from({ length: 35 }, () => ({
     left: `${Math.random() * 100}%`,
@@ -28,7 +35,38 @@ export class LoginComponent {
     opacity: `${0.15 + Math.random() * 0.6}`,
   }));
 
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService, private brandSvc: BrandService) {
+    this.brand = this.brandSvc.default;
+  }
+
+  ngOnInit(): void {
+    // Detecta la marca según el usuario escrito (con debounce). Si el backend
+    // aún no expone /auth/marca, hace fallback silencioso a la marca por defecto.
+    this.usuario$
+      .pipe(
+        debounceTime(450),
+        distinctUntilChanged(),
+        switchMap(u => {
+          const nombre = u.trim();
+          if (!nombre) return of(null);
+          return this.auth.getMarca(nombre).pipe(catchError(() => of(null)));
+        })
+      )
+      .subscribe(res => {
+        this.brand = res
+          ? this.brandSvc.fromValor(res.marca ?? res.sede)
+          : this.brandSvc.default;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.usuario$.complete();
+  }
+
+  /** Disparado en cada cambio del campo usuario. */
+  onUsuarioChange(valor: string): void {
+    this.usuario$.next(valor);
+  }
 
   onLogin() {
     if (!this.usuario.trim() || !this.password.trim()) {

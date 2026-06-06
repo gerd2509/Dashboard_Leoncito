@@ -3,28 +3,30 @@
   <!-- Partículas flotantes -->
   <div class="particle" *ngFor="let p of particles" [ngStyle]="p"></div>
 
-  <!-- PANEL IZQUIERDO — Branding Leoncito -->
-  <div class="brand-side">
+  <!-- PANEL IZQUIERDO — Branding dinámico (Leoncito / Realzza según el usuario) -->
+  <div class="brand-side" [style.--brand-rgb]="brand.rgb">
     <div class="brand-content">
 
-      <!-- Anillos animados + León -->
+      <!-- Anillos animados + mascota -->
       <div class="lion-stage">
         <div class="ring ring-1"></div>
         <div class="ring ring-2"></div>
         <div class="ring ring-3"></div>
         <div class="lion-circle">
-          <span class="lion-emoji">🦁</span>
+          <span class="lion-emoji">{{ brand.emoji }}</span>
         </div>
         <!-- Estrellas orbitales -->
         <span class="orbit-star s1">✦</span>
         <span class="orbit-star s2">✦</span>
         <span class="orbit-star s3">✦</span>
-        <span class="orbit-star s4">✦</span>
+        <span class="orbit-star s4" *ngIf="brand.id !== 'realzza'">✦</span>
+        <!-- R orbitando (solo marca Realzza) -->
+        <span class="orbiter" *ngIf="brand.id === 'realzza'"><span class="orbit-r">R</span></span>
       </div>
 
-      <!-- Nombre de la empresa -->
+      <!-- Nombre de la empresa (cambia según marca) -->
       <div class="brand-name">
-        <span class="brand-letter" *ngFor="let letra of 'LEONCITO'.split(''); let i = index"
+        <span class="brand-letter" *ngFor="let letra of brand.nombre.split(''); let i = index"
               [style.animation-delay]="(i * 0.1) + 's'">{{ letra }}</span>
       </div>
 
@@ -59,6 +61,7 @@
               #usuarioRef
               type="text"
               [(ngModel)]="usuario"
+              (ngModelChange)="onUsuarioChange($event)"
               name="usuario"
               placeholder="Ingresa tu usuario"
               [disabled]="cargando"

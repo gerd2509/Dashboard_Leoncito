@@ -1,0 +1,154 @@
+<form class="form mt-2" [formGroup]="formCtrl">
+    <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true"
+        label="Fecha de Gestión" labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <button mat-flat-button type="button" (click)="actualizar()" [disabled]="isLoading">
+        <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
+        {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+    <span class="sede-chip">📍 {{ sedeNombre }}</span>
+</form>
+
+<div class="grid-container">
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <div class="contenedorPrincipal mt-3">
+
+        <!-- KPIs RESUMEN -->
+        <div class="kpi-section mb-4">
+            <div class="kpi-container">
+
+                <!-- CONTACTABILIDAD GLOBAL -->
+                <div class="kpi-card kpi-center"
+                    [class.kpi-success]="pctContactabilidad >= 80"
+                    [class.kpi-warning]="pctContactabilidad >= 50 && pctContactabilidad < 80"
+                    [class.kpi-danger]="pctContactabilidad < 50">
+                    <div class="kpi-team-badge contacto-badge">📊 GLOBAL</div>
+                    <div class="kpi-icon">📞</div>
+                    <div class="kpi-title">CONTACTABILIDAD</div>
+                    <div class="kpi-value">{{ pctContactabilidad }}%</div>
+                    <div class="kpi-meta">{{ totalContactos }} contactos / {{ totalGestiones }} gestiones</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="pctContactabilidad"></div>
+                    </div>
+                </div>
+
+                <!-- CONTACTOS -->
+                <div class="kpi-card kpi-team-contacto"
+                    [class.kpi-active]="kpiSeleccionado === 'contactos'"
+                    (click)="toggleKpi('contactos')">
+                    <div class="kpi-team-badge ok-badge">✅ CONTACTO</div>
+                    <div class="kpi-icon">✅</div>
+                    <div class="kpi-title">CONTACTOS</div>
+                    <div class="kpi-value">{{ totalContactos }}</div>
+                    <div class="kpi-meta">de {{ totalGestiones }} gestiones</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill" [style.width.%]="pctContactabilidad"></div>
+                    </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'contactos' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
+                <!-- NO CONTACTOS -->
+                <div class="kpi-card kpi-team-nocontacto"
+                    [class.kpi-active]="kpiSeleccionado === 'no-contactos'"
+                    (click)="toggleKpi('no-contactos')">
+                    <div class="kpi-team-badge no-badge">❌ NO CONTACTO</div>
+                    <div class="kpi-icon">❌</div>
+                    <div class="kpi-title">NO CONTACTOS</div>
+                    <div class="kpi-value">{{ totalNoContactos }}</div>
+                    <div class="kpi-meta">de {{ totalGestiones }} gestiones</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill bar-nocontacto"
+                            [style.width.%]="totalGestiones > 0 ? (totalNoContactos / totalGestiones) * 100 : 0"></div>
+                    </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'no-contactos' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
+            </div>
+
+            <!-- PANEL DE DETALLE POR ASESOR -->
+            <div class="kpi-detail-panel" *ngIf="kpiSeleccionado">
+                <div class="kpi-detail-header">
+                    <span class="kpi-detail-title">{{ tituloDetalleKpi }}</span>
+                    <button class="kpi-detail-close" (click)="toggleKpi(kpiSeleccionado!)">✕ Cerrar</button>
+                </div>
+                <div class="kpi-detail-list">
+                    <div class="kpi-detail-item" *ngFor="let item of detalleKpiActual">
+                        <span class="kpi-detail-asesor">{{ getNombreCorto(item.asesor) }}</span>
+                        <span class="kpi-detail-valor" [class.valor-zero]="item.valor === 0">{{ item.valor }}</span>
+                        <div class="kpi-detail-bar-wrap">
+                            <div class="kpi-detail-bar">
+                                <div class="kpi-detail-bar-fill"
+                                    [style.width.%]="item.meta * 100"
+                                    [class.bar-success]="item.meta >= 0.8"
+                                    [class.bar-warning]="item.meta >= 0.5 && item.meta < 0.8"
+                                    [class.bar-danger]="item.meta < 0.5">
+                                </div>
+                            </div>
+                        </div>
+                        <span class="kpi-detail-pct">{{ (item.meta * 100) | number:'1.0-0' }}%</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- FIN KPIs -->
+
+        <!-- FILA: TABLA + DONUT -->
+        <div class="panel-row">
+
+            <!-- TABLA GENERAL DE ASESORES (estilo cierre-gestión, sin corta llamada) -->
+            <div class="panel-tabla">
+                <h3 class="titulosGrillas mb-2">📋 CONTACTABILIDAD POR ASESOR — {{ sedeNombre }}</h3>
+
+                <div class="focqus-elevation">
+                    <dx-data-grid [dataSource]="asesoresData" [showBorders]="true" [showColumnLines]="true"
+                        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                        (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true">
+
+                        <dxi-column dataField="asesor"     caption="ASESOR" [minWidth]="200" [allowSorting]="true" />
+                        <dxi-column dataField="contacto"   caption="CONTACTO"    alignment="center" [width]="110" />
+                        <dxi-column dataField="noContacto" caption="NO CONTACTO" alignment="center" [width]="120" />
+                        <dxi-column dataField="total"      caption="TOTAL"       alignment="center" [width]="90" />
+                        <dxi-column dataField="porcentaje" caption="%"           alignment="center" [width]="90"
+                            [format]="{ type: 'percent', precision: 0 }" />
+
+                        <dxo-summary>
+                            <dxi-total-item alignment="right"  column="asesor"     [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="center" column="contacto"   summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="noContacto" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="total"      summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="porcentaje" [displayFormat]="pctContactabilidad + '%'" />
+                        </dxo-summary>
+                    </dx-data-grid>
+                </div>
+            </div>
+
+            <!-- DONUT CONTACTO vs NO CONTACTO -->
+            <div class="panel-chart">
+                <h3 class="titulosGrillas mb-2">📊 DISTRIBUCIÓN DEL DÍA</h3>
+
+                <div class="chart-card">
+                    <dx-pie-chart [dataSource]="chartContacto" type="doughnut" [innerRadius]="0.65"
+                        [palette]="['#2E9B2F', '#DC2626']" [resolveLabelOverlapping]="'shift'">
+                        <dxi-series argumentField="tipo" valueField="cantidad">
+                            <dxo-label [visible]="true" [customizeText]="customizeLabelDonut">
+                                <dxo-connector [visible]="true" [width]="1"></dxo-connector>
+                            </dxo-label>
+                        </dxi-series>
+                        <dxo-legend horizontalAlignment="center" verticalAlignment="bottom"></dxo-legend>
+                        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipDonut"></dxo-tooltip>
+                    </dx-pie-chart>
+
+                    <div class="chart-stat">
+                        <span class="chart-stat-pct">{{ pctContactabilidad }}%</span>
+                        <span class="chart-stat-label">Contactabilidad</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

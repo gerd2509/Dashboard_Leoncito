@@ -150,7 +150,8 @@ export class CierreGestionComponent implements OnInit {
     // { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
     { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
-    { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' }
+    { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
+    { value: 'CC21', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' }
   ];
 
   // LISTA ASESORES REALZZA
@@ -269,7 +270,10 @@ export class CierreGestionComponent implements OnInit {
 
   // LOGICA CONTACTABILIDAD
   calcularContactabilidadCall() {
-    this.dataContactabilidadCall = this.procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT');
+    // Call Center: solo asesores con gestión/data (TOTAL > 0)
+    this.dataContactabilidadCall = this
+      .procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT')
+      .filter(r => (r['TOTAL'] || 0) > 0);
   }
 
   calcularContactabilidadRealzza() {
@@ -277,7 +281,10 @@ export class CierreGestionComponent implements OnInit {
   }
 
   calcularContactabilidadKOMMOCall() {
-    this.dataContactabilidadKOMMOCall = this.procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN');
+    // Call Center KOMMO: solo asesores con gestión/data (TOTAL > 0)
+    this.dataContactabilidadKOMMOCall = this
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN')
+      .filter(r => (r['TOTAL'] || 0) > 0);
   }
 
   calcularContactabilidadKOMMORealzza() {

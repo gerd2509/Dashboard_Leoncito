@@ -11,7 +11,7 @@ export interface Usuario {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly baseUrl = 'https://api-leoncito.onrender.com';
-  
+
   // private readonly baseUrl = 'http://localhost:3000';
   private readonly SESSION_KEY = 'gd_usuario';
 
@@ -19,6 +19,17 @@ export class AuthService {
 
   login(usuario: string, password: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/auth/login`, { usuario, password });
+  }
+
+  /**
+   * Consulta la marca/sede de un usuario por su nombre de usuario (sin contraseña),
+   * para personalizar el branding del login mientras se escribe.
+   * Endpoint esperado en el backend: GET /auth/marca?usuario=... → { sede?, marca? }
+   */
+  getMarca(usuario: string): Observable<{ sede?: string; marca?: string }> {
+    return this.http.get<{ sede?: string; marca?: string }>(
+      `${this.baseUrl}/auth/marca`, { params: { usuario } }
+    );
   }
 
   guardarSesion(usuario: Usuario): void {

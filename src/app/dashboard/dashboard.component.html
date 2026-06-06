@@ -2,6 +2,16 @@
 
   <!-- Sidebar -->
   <aside class="sidebar" [class.collapsed]="!sidebarVisible">
+
+    <!-- Encabezado: marca animada (Leoncito / Realzza según el usuario) -->
+    <div class="sidebar-brand" [style.--brand-rgb]="brand.rgb">
+      <span class="sb-emoji">{{ brand.emoji }}</span>
+      <span class="sb-name" *ngIf="sidebarVisible">
+        <span class="sb-letter" *ngFor="let l of brand.nombre.split(''); let i = index"
+              [style.animation-delay]="(i * 0.07) + 's'">{{ l }}</span>
+      </span>
+    </div>
+
     <div class="sidebar-content">
 
       <!-- Menú filtrado por sede/rol -->
@@ -29,6 +39,42 @@
         </ng-template>
       </ng-container>
 
+    </div>
+
+    <!-- 🦁 Mascota Leoncito: escenario animado (anillos + resplandor + estrellas + R + confeti) -->
+    <div class="sidebar-mascota" *ngIf="sidebarVisible">
+      <div class="lion-stage" [class.celebrando]="celebrando" [style.--leon-rgb]="brand.rgb">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+
+        <!-- chispas titilantes -->
+        <span class="spark sp1"></span>
+        <span class="spark sp2"></span>
+        <span class="spark sp3"></span>
+        <span class="spark sp4"></span>
+
+        <!-- círculo + mascota de la marca + inicial del usuario -->
+        <div class="lion-circle">
+          <span class="lion-emoji">{{ brand.emoji }}</span>
+          <span class="lion-inicial">{{ inicial }}</span>
+        </div>
+
+        <!-- estrellas + R (solo marca Realzza) orbitando -->
+        <span class="orbit-star s1">✦</span>
+        <span class="orbit-star s2">✦</span>
+        <span class="orbit-star s3">✦</span>
+        <span class="orbiter" *ngIf="brand.id === 'realzza'"><span class="orbit-r">R</span></span>
+
+        <!-- confeti (solo visible al celebrar) -->
+        <span class="confetti c1"></span>
+        <span class="confetti c2"></span>
+        <span class="confetti c3"></span>
+        <span class="confetti c4"></span>
+        <span class="confetti c5"></span>
+        <span class="confetti c6"></span>
+      </div>
+      <div class="mascota-frase">{{ frase }}</div>
     </div>
   </aside>
 
@@ -63,7 +109,8 @@
         <app-gestion-campo-realzza       *ngSwitchCase="'gestion-campo'"></app-gestion-campo-realzza>
         <app-gestion-post-venta          *ngSwitchCase="'gestion-post-venta'"></app-gestion-post-venta>
         <app-gestion-kommo               *ngSwitchCase="'gestion-kommo'"></app-gestion-kommo>
-        <app-gestion-ferrenafe           *ngSwitchCase="'gestion-sede'"></app-gestion-ferrenafe>
+        <app-gestion-sede                *ngSwitchCase="'gestion-sede'"></app-gestion-sede>
+        <app-gestion-call-sedes          *ngSwitchCase="'gestion-call-sedes'"></app-gestion-call-sedes>
         <app-cierre-gestion              *ngSwitchCase="'cierre'"></app-cierre-gestion>
         <app-analisis-gestion-mensual    *ngSwitchCase="'analisis'"></app-analisis-gestion-mensual>
         <app-ventas                      *ngSwitchCase="'ventas'"></app-ventas>
@@ -78,7 +125,8 @@
         <app-gestion-cobranzas           *ngSwitchCase="'cobranzas'"></app-gestion-cobranzas>
         <app-convertidor-excel-csv       *ngSwitchCase="'conversor-csv'"></app-convertidor-excel-csv>
         <app-post-venta                  *ngSwitchCase="'post-venta'"></app-post-venta>
-        <app-control-gestion-ferrenafe   *ngSwitchCase="'control-gestion-sede'"></app-control-gestion-ferrenafe>
+        <app-control-gestion-sede        *ngSwitchCase="'control-gestion-sede'"></app-control-gestion-sede>
+        <app-control-call-sedes          *ngSwitchCase="'control-call-sedes'"></app-control-call-sedes>
         <app-seguridad                   *ngSwitchCase="'seguridad'"></app-seguridad>
       </ng-container>
     </section>

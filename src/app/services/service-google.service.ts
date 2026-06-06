@@ -23,7 +23,8 @@ export class SheetsService {
   private apiUrlpvServicioTecnico = `${this.baseUrl}/pvServicioTecnico`;
   private apiUrlpvVentas = `${this.baseUrl}/pvVentas`;
   private apiUrlKOMMO = `${this.baseUrl}/kommo`;
-  private apiUrlFerre = `${this.baseUrl}/ferre`;
+  private apiUrlFerre = `${this.baseUrl}/ferre`; // formulario de gestión de Ferreñafe
+  private apiUrlSedes = `${this.baseUrl}/sedes`;
 
   constructor(private http: HttpClient) { }
 
@@ -71,11 +72,17 @@ export class SheetsService {
     return this.http.get<any[]>(this.apiUrlKOMMO);
   }
 
-  getSheetDataFerre(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlFerre);
-  }
-
   getSheetDataBySede(endpointKey: string): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/${endpointKey}`);
+  }
+
+  // 🏬 Sheet unificado de gestión de todas las sedes
+  getSheetDataSedes(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrlSedes);
+  }
+
+  // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)
+  getSheetDataFerre(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrlFerre);
   }
 }

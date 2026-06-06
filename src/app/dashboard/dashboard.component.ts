@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { AgendamientosComponent } from "../features/agendamientos/agendamientos.component";
@@ -23,12 +23,15 @@ import { GestionPostVentaComponent } from "../features/Gestion/gestion-post-vent
 import { EvolucionTipoClienteComponent } from "../features/evolucion-tipo-cliente/evolucion-tipo-cliente.component";
 import { GestionKommoComponent } from "../features/Gestion/gestion-kommo/gestion-kommo.component";
 import { AgendamientosKommoComponent } from "../features/agendamientos/agendamientos-kommo/agendamientos-kommo.component";
-import { ControlGestionFerrenafeComponent } from "../features/control-gestion-ferrenafe/control-gestion-ferrenafe.component";
-import { GestionFerrenafeComponent } from "../features/Gestion/gestion-ferrenafe/gestion-ferrenafe.component";
+import { ControlGestionSedeComponent } from "../features/control-gestion-sede/control-gestion-sede.component";
+import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
+import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
+import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
 import { SeguridadComponent } from "../features/seguridad/seguridad.component";
 import { AuthService } from '../services/auth.service';
 import { PermissionsService } from '../services/permissions.service';
 import { SedeConfigService } from '../services/sede-config.service';
+import { BrandService, Brand } from '../services/brand.service';
 
 interface SubItem { label: string; icon: string; modulo: string; }
 interface MenuItem {
@@ -66,18 +69,33 @@ interface MenuItem {
     EvolucionTipoClienteComponent,
     GestionKommoComponent,
     AgendamientosKommoComponent,
-    ControlGestionFerrenafeComponent,
-    GestionFerrenafeComponent,
+    ControlGestionSedeComponent,
+    GestionSedeComponent,
+    GestionCallSedesComponent,
+    ControlCallSedesComponent,
     SeguridadComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   sidebarVisible = true;
   moduloSeleccionado = '';
   submenuAbierto: string | null = null;
   menuItemsVisibles: MenuItem[] = [];
+
+  // ── 🦁 Mascota Leoncito ──
+  readonly frases = [
+    '¡Vamos, equipo! 🦁',
+    '¡A vender! 🚀',
+    '¡Tú puedes! 💪',
+    'Leoncito contigo 🦁',
+    '¡Hoy es un gran día! ☀️',
+  ];
+  fraseIndex = 0;
+  celebrando = false;
+  private fraseTimer?: ReturnType<typeof setInterval>;
+  private celebrarTimer?: ReturnType<typeof setTimeout>;
 
   readonly menuItems: MenuItem[] = [
     {
@@ -96,7 +114,8 @@ export class DashboardComponent implements OnInit {
         { label: 'REALZZA',     icon: 'storefront', modulo: 'gestion-campo' },
         { label: 'Post Venta',  icon: 'storefront', modulo: 'gestion-post-venta' },
         { label: 'KOMMO',       icon: 'public',        modulo: 'gestion-kommo' },
-        { label: 'FERREÑAFE',   icon: 'location_city', modulo: 'gestion-sede' }
+        { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
+        { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' }
       ]
     },
     { icon: 'done_all',    label: 'Cierre Gestión',      modulo: 'cierre' },
@@ -119,6 +138,7 @@ export class DashboardComponent implements OnInit {
     { icon: 'sync_alt',    label: 'Conversor CSV',                modulo: 'conversor-csv' },
     { icon: 'post_add',    label: 'Post Venta',                   modulo: 'post-venta' },
     { icon: 'location_city', label: 'Control Gestión Sede',       modulo: 'control-gestion-sede' },
+    { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 
@@ -126,6 +146,7 @@ export class DashboardComponent implements OnInit {
     public auth: AuthService,
     private permissions: PermissionsService,
     private sedeConfig: SedeConfigService,
+    private brandSvc: BrandService,
   ) {}
 
   ngOnInit(): void {
@@ -147,6 +168,39 @@ export class DashboardComponent implements OnInit {
         }
       }
     }
+
+    // Frases rotativas del leoncito
+    this.fraseTimer = setInterval(() => {
+      this.fraseIndex = (this.fraseIndex + 1) % this.frases.length;
+    }, 4500);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.fraseTimer);
+    clearTimeout(this.celebrarTimer);
+  }
+
+  /** Frase actual del leoncito. */
+  get frase(): string {
+    return this.frases[this.fraseIndex];
+  }
+
+  /** Inicial del usuario para el badge del leoncito (fallback: L de Leoncito). */
+  get inicial(): string {
+    const n = this.auth.getUsuario()?.nombre?.trim() ?? '';
+    return n ? n.charAt(0).toUpperCase() : 'L';
+  }
+
+  /** Marca (Leoncito / Realzza) según la sede del usuario. */
+  get brand(): Brand {
+    return this.brandSvc.fromSede(this.auth.getUsuario()?.sede);
+  }
+
+  /** Dispara la animación de celebración (confeti + festejo) por un instante. */
+  celebrar(): void {
+    this.celebrando = true;
+    clearTimeout(this.celebrarTimer);
+    this.celebrarTimer = setTimeout(() => (this.celebrando = false), 1300);
   }
 
   private calcularMenuVisible(): MenuItem[] {
@@ -154,7 +208,8 @@ export class DashboardComponent implements OnInit {
     if (!u) return [];
     if (u.rol === 'admin') return this.menuItems;
 
-    const nombreSede = this.sedeConfig.getConfig(u.sede)?.nombre ?? u.sede;
+    const esGlobal = u.sede.toLowerCase() === 'todas';
+    const nombreSede = esGlobal ? 'Sedes' : (this.sedeConfig.getConfig(u.sede)?.nombre ?? u.sede);
 
     return this.menuItems
       .map(item => {
@@ -196,7 +251,10 @@ export class DashboardComponent implements OnInit {
     this.submenuAbierto = this.submenuAbierto === label ? null : label;
   }
 
-  selectModule(modulo?: string) { this.moduloSeleccionado = modulo ?? ''; }
+  selectModule(modulo?: string) {
+    this.moduloSeleccionado = modulo ?? '';
+    this.celebrar();
+  }
 
   logout() { this.auth.logout(); }
 
