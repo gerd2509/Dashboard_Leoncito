@@ -24,6 +24,14 @@ export class ComparativoVentasComponent implements OnInit {
   chartMontoMensual: { Mes: string; MontoTotal: number }[] = [];
   chartRankingAsesores: { Asesor: string; Monto: number }[] = [];
 
+  // Comparativo por CONTACTO (KOMMO, BD, etc.) — eje X = Contacto
+  chartContacto: any[] = [];          // default: [{ Contacto, MontoGen }] | comparación: [{ Contacto, MontoA, MontoB }]
+  comparandoContacto = false;         // modo: false = rango general; true = Rango A vs Rango B
+  serieGenLabel = 'Rango general';
+  serieALabel = 'Rango A';
+  serieBLabel = 'Rango B';
+  formContacto: UntypedFormGroup;     // 2 rangos de fecha solo para este gráfico
+
   keepAssesorsUnique = () => 0;
 
   protected showFilterRow: boolean = true;
@@ -52,6 +60,12 @@ export class ComparativoVentasComponent implements OnInit {
       fechaInicio: [null, Validators.required],
       fechaFin: [null, Validators.required],
       Asesores: ['']
+    });
+
+    // Rangos de fecha exclusivos del gráfico por contacto
+    this.formContacto = this.fb.group({
+      aInicio: [null], aFin: [null],
+      bInicio: [null], bFin: [null],
     });
   }
 
@@ -87,7 +101,9 @@ export class ComparativoVentasComponent implements OnInit {
         EstadoVenta: row['EstadoVenta'],
         Entidad: row['Entidad'],
         LineaReal: row['LineaReal'],
-        TipoProducto: row['TipoProducto']
+        TipoProducto: row['TipoProducto'],
+        Contacto: (row['CONTACTO'] ?? row['Contacto'] ?? row['contacto'] ?? '')
+          .toString().trim().toUpperCase() || 'SIN CONTACTO'
       }));
 
       this.filtroVentas = [...this.dataVentas];
@@ -148,6 +164,10 @@ export class ComparativoVentasComponent implements OnInit {
     this.generarComparativo();
     this.generarChartMontoMensual();
     this.generarRankingAsesores();
+
+    // Al aplicar filtros generales volvemos al modo "rango general" del gráfico por contacto
+    this.comparandoContacto = false;
+    this.generarChartContacto();
   }
 
   calcularVentasPorAsesorYRango(fechaInicio: Date, fechaFin: Date): any[] {
@@ -323,6 +343,93 @@ export class ComparativoVentasComponent implements OnInit {
       };
     });
   }
+
+  /** Normaliza el valor de la columna CONTACTO. */
+  private normContacto(v: any): string {
+    return (v || 'SIN CONTACTO').toString().trim().toUpperCase() || 'SIN CONTACTO';
+  }
+
+  /** Suma montos por contacto dentro de un rango de fechas, respetando el asesor seleccionado. */
+  private montosPorContacto(fechaInicio: any, fechaFin: any): Map<string, number> {
+    const di = new Date(fechaInicio); di.setHours(0, 0, 0, 0);
+    const df = new Date(fechaFin);    df.setHours(23, 59, 59, 999);
+    const asesor = (this.formComparativo.value.Asesores || '').toString().trim().toUpperCase();
+
+    const map = new Map<string, number>();
+    for (const v of this.dataVentas) {
+      const monto = Number(v.MontoConsolidado || 0);
+      if (monto <= 0) continue;
+
+      const fv = new Date(v.FECHAVENTA);
+      if (fv < di || fv > df) continue;
+
+      const a = (v.AsesorVenta || '').toString().trim().toUpperCase();
+      if (asesor && a !== asesor) continue;
+
+      const c = this.normContacto(v.Contacto);
+      map.set(c, (map.get(c) || 0) + monto);
+    }
+    return map;
+  }
+
+  /** Modo por defecto: monto por contacto en el rango GENERAL (usa filtroVentas ya filtrado). */
+  generarChartContacto(): void {
+    const agrupado = new Map<string, number>();
+    for (const v of this.filtroVentas) {
+      const monto = Number(v.MontoConsolidado || 0);
+      if (monto <= 0) continue;
+      const c = this.normContacto(v.Contacto);
+      agrupado.set(c, (agrupado.get(c) || 0) + monto);
+    }
+
+    const ini = this.formComparativo.value.fechaInicio;
+    const fin = this.formComparativo.value.fechaFin;
+    this.serieGenLabel = `Rango general (${this.fmtFecha(ini)} – ${this.fmtFecha(fin)})`;
+
+    this.chartContacto = Array.from(agrupado, ([Contacto, MontoGen]) => ({
+      Contacto, MontoGen: parseFloat(MontoGen.toFixed(2))
+    })).sort((a, b) => b.MontoGen - a.MontoGen);
+  }
+
+  /** Modo comparación: Rango A vs Rango B por contacto (2 barras por contacto). */
+  compararRangosContacto(): void {
+    const f = this.formContacto.value;
+    if (!f.aInicio || !f.aFin || !f.bInicio || !f.bFin) {
+      return; // se requieren los 4 campos de fecha
+    }
+
+    const mapA = this.montosPorContacto(f.aInicio, f.aFin);
+    const mapB = this.montosPorContacto(f.bInicio, f.bFin);
+    const contactos = Array.from(new Set([...mapA.keys(), ...mapB.keys()])).sort();
+
+    this.serieALabel = `A: ${this.fmtFecha(f.aInicio)} – ${this.fmtFecha(f.aFin)}`;
+    this.serieBLabel = `B: ${this.fmtFecha(f.bInicio)} – ${this.fmtFecha(f.bFin)}`;
+
+    this.chartContacto = contactos.map(c => ({
+      Contacto: c,
+      MontoA: parseFloat((mapA.get(c) || 0).toFixed(2)),
+      MontoB: parseFloat((mapB.get(c) || 0).toFixed(2)),
+    }));
+    this.comparandoContacto = true;
+  }
+
+  /** Quita la comparación y vuelve al monto por contacto del rango general. */
+  limpiarComparacionContacto(): void {
+    this.formContacto.reset();
+    this.comparandoContacto = false;
+    this.generarChartContacto();
+  }
+
+  private fmtFecha(d: any): string {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  customizeContactoTooltip = (pointInfo: any) => {
+    return {
+      text: `${pointInfo.seriesName}\n${pointInfo.argument}: S/ ${Number(pointInfo.value).toLocaleString('es-PE', { maximumFractionDigits: 0 })}`
+    };
+  };
 
   getNombreMes(mes: number): string {
     const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',

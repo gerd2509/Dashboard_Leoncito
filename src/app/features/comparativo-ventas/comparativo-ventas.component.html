@@ -149,4 +149,75 @@
         </dx-chart>
     </div>
 
+    <!-- GRÁFICO 4 (ancho completo): Ventas por CONTACTO — con comparación de 2 rangos -->
+    <div class="chart-full chart-contacto" *ngIf="chartContacto.length">
+
+        <!-- Panel propio: comparar Rango A vs Rango B (solo para este gráfico) -->
+        <div class="contacto-toolbar" [formGroup]="formContacto">
+            <span class="ct-titulo">Comparar 2 rangos:</span>
+            <dx-date-box formControlName="aInicio" type="date" [openOnFieldClick]="true"
+                label="A · Inicio" labelMode="floating" stylingMode="underlined"
+                [displayFormat]="'dd/MM/yyyy'" width="135"></dx-date-box>
+            <dx-date-box formControlName="aFin" type="date" [openOnFieldClick]="true"
+                label="A · Fin" labelMode="floating" stylingMode="underlined"
+                [displayFormat]="'dd/MM/yyyy'" width="135"></dx-date-box>
+            <span class="ct-vs">vs</span>
+            <dx-date-box formControlName="bInicio" type="date" [openOnFieldClick]="true"
+                label="B · Inicio" labelMode="floating" stylingMode="underlined"
+                [displayFormat]="'dd/MM/yyyy'" width="135"></dx-date-box>
+            <dx-date-box formControlName="bFin" type="date" [openOnFieldClick]="true"
+                label="B · Fin" labelMode="floating" stylingMode="underlined"
+                [displayFormat]="'dd/MM/yyyy'" width="135"></dx-date-box>
+
+            <button mat-flat-button color="primary" (click)="compararRangosContacto()"
+                [disabled]="formContacto.invalid || !formContacto.value.aInicio || !formContacto.value.aFin || !formContacto.value.bInicio || !formContacto.value.bFin">
+                <mat-icon>compare_arrows</mat-icon> Comparar
+            </button>
+            <button mat-stroked-button *ngIf="comparandoContacto" (click)="limpiarComparacionContacto()">
+                <mat-icon>close</mat-icon> Quitar
+            </button>
+        </div>
+
+        <dx-chart [dataSource]="chartContacto" palette="Soft Pastel">
+
+            <!-- Eje X = Contacto; barras anchas con monto SIEMPRE visible -->
+            <dxo-common-series-settings argumentField="Contacto" type="bar">
+                <dxo-label [visible]="true" [backgroundColor]="'transparent'"
+                    [customizeText]="formatMontoLabel" position="outside">
+                    <dxo-font size="12" weight="700" color="#1E3A5F"></dxo-font>
+                </dxo-label>
+            </dxo-common-series-settings>
+
+            <!-- Modo rango general: 1 barra por contacto -->
+            <dxi-series *ngIf="!comparandoContacto" valueField="MontoGen"
+                [name]="serieGenLabel" color="#1565C0"></dxi-series>
+
+            <!-- Modo comparación: 2 barras por contacto (A vs B) -->
+            <dxi-series *ngIf="comparandoContacto" valueField="MontoA"
+                [name]="serieALabel" color="#1565C0"></dxi-series>
+            <dxi-series *ngIf="comparandoContacto" valueField="MontoB"
+                [name]="serieBLabel" color="#E65100"></dxi-series>
+
+            <dxo-argument-axis argumentType="string">
+                <dxo-label [overlappingBehavior]="'rotate'">
+                    <dxo-font size="12" weight="600"></dxo-font>
+                </dxo-label>
+            </dxo-argument-axis>
+
+            <dxo-value-axis>
+                <dxo-title text="Monto (S/)"></dxo-title>
+            </dxo-value-axis>
+
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeContactoTooltip">
+            </dxo-tooltip>
+
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" [markerSize]="14">
+                <dxo-font size="13" weight="600"></dxo-font>
+            </dxo-legend>
+            <dxo-title text="Ventas por Contacto (KOMMO / BD / …)"
+                [subtitle]="comparandoContacto ? 'Comparación Rango A vs Rango B — se ajusta al asesor seleccionado' : 'Monto por contacto en el rango general — usa los 2 rangos de arriba para comparar'">
+            </dxo-title>
+        </dx-chart>
+    </div>
+
 </div>

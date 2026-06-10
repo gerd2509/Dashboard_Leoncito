@@ -29,6 +29,32 @@
 
 .chart-full dx-chart { height: 400px; }
 
+/* El comparativo por contacto necesita más alto por las barras + etiquetas */
+.chart-contacto dx-chart { height: 470px; }
+
+/* Panel de 2 rangos exclusivo del gráfico por contacto */
+.contacto-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: #F4F8FF;
+    border: 1px dashed #9DBCE6;
+    border-radius: 10px;
+}
+.contacto-toolbar .ct-titulo {
+    font-weight: 700;
+    color: #1A5FAD;
+    font-size: 13px;
+}
+.contacto-toolbar .ct-vs {
+    font-weight: 800;
+    color: #E65100;
+    padding: 0 2px;
+}
+
 .chart-half {
     background: #FFFFFF;
     border-radius: 12px;
