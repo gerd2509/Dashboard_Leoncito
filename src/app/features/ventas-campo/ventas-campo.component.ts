@@ -456,10 +456,15 @@ export class VentasCampoComponent implements OnInit {
         return fechaNC >= fechaInicio && fechaNC <= fechaFin;
       })
       .map(nc => {
-        // Refacturación: existe una venta posterior (no NC) con el mismo DocIdentidad
+        // Refacturación: existe una venta nueva (no NC) con el mismo DocIdentidad,
+        // en la misma fecha o posterior. Se usa >= (no >) para detectar la
+        // refacturación que ocurre el mismo día que la NC. Se excluye la venta
+        // original anulada comparando IDVENTA: la refacturación es una venta nueva
+        // con IDVENTA distinto al de la NC.
         const esRefacturacion = !!nc.DocIdentidad && this.dataVentas.some(v =>
           v.DocIdentidad === nc.DocIdentidad &&
-          v.FECHAVENTA > nc.FECHAVENTA
+          v.IDVENTA !== nc.IDVENTA &&
+          v.FECHAVENTA >= nc.FECHAVENTA
         );
         return {
           ...nc,

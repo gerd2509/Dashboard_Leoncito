@@ -120,7 +120,7 @@ export class VentasComponent implements OnInit {
     { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
     { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
     { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
-    { value: 'CC21', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' }
+    { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' }
   ];
 
   nombresCortos: Record<string, string> = {
@@ -135,7 +135,8 @@ export class VentasComponent implements OnInit {
     'CC15': 'ESMERALDA',
     'CC16': 'ROSMERY',
     'CC19': 'JUANA',
-    'CC21': 'ANITA'
+    'CC21': 'ANITA',
+    'CC22': 'FABRICIO'
   };
 
   displayedColumnsOriginales = [
