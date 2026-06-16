@@ -8,7 +8,7 @@
       </div>
       <div>
         <h2>Módulo de Seguridad</h2>
-        <p>Configura qué módulos puede ver cada combinación Rol + Sede</p>
+        <p>Configura qué módulos ve cada <strong>Rol + Perfil</strong>. La <strong>sede</strong> sale del login: no se configura aquí.</p>
       </div>
     </div>
     <div class="seg-header-actions">
@@ -22,15 +22,27 @@
     </div>
   </div>
 
-  <!-- BADGE CONTADORES -->
-  <div class="seg-counters">
-    <div class="counter-badge admin">
-      <mat-icon>shield</mat-icon>
-      <span>ADMIN — Acceso total (no configurable)</span>
+  <!-- MAPEO SEDES → PERFIL (solo lectura) -->
+  <div class="seg-perfiles">
+    <div class="perfil-card admin-card">
+      <div class="perfil-head"><mat-icon>shield</mat-icon> ADMIN</div>
+      <div class="perfil-detalle">Acceso total · todas las sedes</div>
     </div>
-    <div class="counter-badge" *ngFor="let combo of combinaciones">
-      <mat-icon>person</mat-icon>
-      <span>{{ combo.label }} — {{ countActivos(combo.key) }} módulos activos</span>
+    <div class="perfil-card" *ngFor="let sp of sedesPorPerfil">
+      <div class="perfil-head"><mat-icon>workspaces</mat-icon> {{ sp.perfil.label }}</div>
+      <div class="perfil-detalle">{{ sp.perfil.detalle }}</div>
+      <div class="perfil-sedes">
+        <span class="sede-tag" *ngFor="let s of sp.sedes">{{ s }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR: buscador -->
+  <div class="seg-toolbar">
+    <div class="seg-search">
+      <mat-icon>search</mat-icon>
+      <input type="text" [(ngModel)]="filtro" placeholder="Buscar módulo…" />
+      <mat-icon class="clear" *ngIf="filtro" (click)="filtro = ''">close</mat-icon>
     </div>
   </div>
 
@@ -48,18 +60,21 @@
           </th>
           <th class="col-rol" *ngFor="let combo of combinaciones">
             <div class="th-content th-combo">
-              <mat-icon>person</mat-icon>
               <span class="combo-label">
                 <span class="combo-rol">{{ combo.rol | uppercase }}</span>
-                <span class="combo-sede">{{ combo.label.split('—')[1] || '' }}</span>
+                <span class="combo-sede">{{ combo.perfil | uppercase }}</span>
               </span>
+              <span class="combo-count">{{ countActivos(combo.key) }}</span>
+              <button class="btn-col-toggle" (click)="toggleColumna(combo.key)" title="Activar/desactivar todo">
+                <mat-icon>checklist</mat-icon>
+              </button>
             </div>
           </th>
         </tr>
       </thead>
       <tbody>
 
-        <ng-container *ngFor="let grupo of grupos">
+        <ng-container *ngFor="let grupo of gruposVisibles()">
           <tr class="row-grupo">
             <td [attr.colspan]="2 + combinaciones.length">
               <mat-icon>folder_open</mat-icon> {{ grupo }}
@@ -86,30 +101,32 @@
           </tr>
         </ng-container>
 
-        <tr class="row-grupo">
-          <td [attr.colspan]="2 + combinaciones.length">
-            <mat-icon>apps</mat-icon> Generales
-          </td>
-        </tr>
-        <tr *ngFor="let fila of getModulosSinGrupo()" class="row-modulo">
-          <td class="col-modulo">
-            <span class="modulo-label">{{ fila.modulo.label }}</span>
-            <span class="sede-badge" *ngIf="fila.modulo.sedeScoped">
-              <mat-icon>place</mat-icon> por sede
-            </span>
-          </td>
-          <td class="col-admin">
-            <div class="toggle always-on">
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </div>
-          </td>
-          <td *ngFor="let combo of combinaciones" class="col-toggle">
-            <div class="toggle" [class.active]="fila.combos[combo.key]"
-                 (click)="togglePermiso(fila, combo.key)">
-              <span class="toggle-track"><span class="toggle-thumb"></span></span>
-            </div>
-          </td>
-        </tr>
+        <ng-container *ngIf="getModulosSinGrupo().length">
+          <tr class="row-grupo">
+            <td [attr.colspan]="2 + combinaciones.length">
+              <mat-icon>apps</mat-icon> Generales
+            </td>
+          </tr>
+          <tr *ngFor="let fila of getModulosSinGrupo()" class="row-modulo">
+            <td class="col-modulo">
+              <span class="modulo-label">{{ fila.modulo.label }}</span>
+              <span class="sede-badge" *ngIf="fila.modulo.sedeScoped">
+                <mat-icon>place</mat-icon> por sede
+              </span>
+            </td>
+            <td class="col-admin">
+              <div class="toggle always-on">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </div>
+            </td>
+            <td *ngFor="let combo of combinaciones" class="col-toggle">
+              <div class="toggle" [class.active]="fila.combos[combo.key]"
+                   (click)="togglePermiso(fila, combo.key)">
+                <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              </div>
+            </td>
+          </tr>
+        </ng-container>
 
       </tbody>
     </table>
@@ -117,8 +134,9 @@
 
   <div class="seg-nota">
     <mat-icon>info_outline</mat-icon>
-    Los módulos con badge "por sede" solo son visibles al usuario si tiene una sede específica asignada.
-    Los permisos se aplican por combinación Rol + Sede.
+    Los permisos se definen por <strong>Rol + Perfil</strong>, no por sede. Un usuario ve los módulos de su perfil
+    y, para los módulos con badge <strong>"por sede"</strong>, solo los datos de la sede con la que inicia sesión
+    (o todas, si su sede es <strong>"todas"</strong>). Agregar una sede Call nueva no requiere tocar esta pantalla.
   </div>
 
 </div>

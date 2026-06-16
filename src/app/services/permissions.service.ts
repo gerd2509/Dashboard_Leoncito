@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { SedeConfigService } from './sede-config.service';
 
 export interface ModuleConfig {
   key: string;
@@ -7,36 +8,50 @@ export interface ModuleConfig {
   sedeScoped?: boolean;
 }
 
-// ─── Combinaciones Rol+Sede configurables ────────────────────────────────────
-// Para agregar nueva sede: descomentar/agregar la entrada correspondiente
-export interface RolSedeCombinacion {
-  key: string;    // clave de permisos: 'gerente-ferrenafe'
-  label: string;  // etiqueta en UI:   'Gerente — Ferreñafe'
-  rol: string;    // 'gerente'
-  sede: string;   // sede normalizada: 'ferrenafe'
+// ─── Perfiles de acceso ───────────────────────────────────────────────────────
+// Un PERFIL agrupa sedes del mismo tipo/canal. La sede concreta sale del LOGIN
+// (usuario.sede) y se mapea a un perfil; los permisos se definen por rol+perfil,
+// NO por rol+sede. Así, agregar una sede Call nueva NO toca Seguridad.
+export interface Perfil {
+  key: string;     // 'call' | 'realzza'
+  label: string;   // 'Sedes Call'
+  detalle: string; // ayuda para la UI
 }
 
-export const COMBINACIONES: RolSedeCombinacion[] = [
-  // Rol que supervisa TODAS las sedes (sede = 'todas' en el sheet de usuarios)
-  { key: 'gerente-todas',        label: 'Gerente — Todas',        rol: 'gerente',    sede: 'todas' },
-  { key: 'supervisor-todas',     label: 'Supervisor — Todas',     rol: 'supervisor', sede: 'todas' },
-
-  { key: 'gerente-ferrenafe',    label: 'Gerente — Ferreñafe',    rol: 'gerente',    sede: 'ferrenafe' },
-  { key: 'supervisor-ferrenafe', label: 'Supervisor — Ferreñafe', rol: 'supervisor', sede: 'ferrenafe' },
-  { key: 'gerente-realzza',      label: 'Gerente — Realzza',      rol: 'gerente',    sede: 'realzza' },
-
-  // Descomentar cuando se implemente la sede:
-  // { key: 'supervisor-realzza',   label: 'Supervisor — Realzza',   rol: 'supervisor', sede: 'realzza' },
-  // { key: 'gerente-olmos',        label: 'Gerente — Olmos',        rol: 'gerente',    sede: 'olmos' },
-  // { key: 'gerente-motupe',       label: 'Gerente — Motupe',       rol: 'gerente',    sede: 'motupe' },
-  // { key: 'gerente-lambayeque',   label: 'Gerente — Lambayeque',   rol: 'gerente',    sede: 'lambayeque' },
+export const PERFILES: Perfil[] = [
+  { key: 'call',    label: 'Sedes Call', detalle: 'Ferreñafe, Olmos, Motupe… (+ supervisión "Todas")' },
+  { key: 'realzza', label: 'Realzza',    detalle: 'Campo / Tienda Realzza' },
 ];
+
+// Roles configurables en la matriz (admin es acceso total, no configurable).
+export const ROLES_CONFIGURABLES = ['gerente', 'supervisor'];
+
+// ─── Combinaciones Rol + Perfil (columnas de la matriz de Seguridad) ──────────
+// Set FIJO y chico: NO crece al agregar sedes.
+export interface RolPerfilCombinacion {
+  key: string;    // 'gerente-call'
+  label: string;  // 'Gerente — Sedes Call'
+  rol: string;    // 'gerente'
+  perfil: string; // 'call'
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export const COMBINACIONES: RolPerfilCombinacion[] = PERFILES.flatMap(p =>
+  ROLES_CONFIGURABLES.map(rol => ({
+    key: `${rol}-${p.key}`,
+    label: `${cap(rol)} — ${p.label}`,
+    rol,
+    perfil: p.key,
+  }))
+);
 
 // ─── Todos los módulos del sistema ───────────────────────────────────────────
 export const ALL_MODULES: ModuleConfig[] = [
   { key: 'agendamientos',                label: 'Agendamientos — Call Center',  grupo: 'Agendamientos' },
   { key: 'agendamientos-campo',          label: 'Agendamientos — Realzza',      grupo: 'Agendamientos' },
   { key: 'agendamientos-kommo',          label: 'Agendamientos — Kommo',        grupo: 'Agendamientos' },
+  { key: 'agendamientos-sedes',          label: 'Agendamientos — Sedes',        grupo: 'Agendamientos', sedeScoped: true },
   { key: 'terceros',                     label: 'Terceros' },
   { key: 'gestion',                      label: 'Gestión — Call Center',        grupo: 'Gestión' },
   { key: 'gestion-campo',                label: 'Gestión — Realzza',            grupo: 'Gestión' },
@@ -51,10 +66,9 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'ventas-brilla-realzza',        label: 'Ventas Brilla Realzza' },
   { key: 'ventas-cuotas-tipoVenta',      label: 'Ventas Cuotas Tipo Venta' },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV' },
-  { key: 'proyeccion-comparativo',       label: 'Proyección Call' },
-  { key: 'proyeccion-comparativo-campo', label: 'Proyección Campo' },
   { key: 'cobranzas',                    label: 'Cobranzas' },
   { key: 'conversor-csv',                label: 'Conversor CSV' },
+  { key: 'limpieza-bbdd',                label: 'Limpieza BBDD' },
   { key: 'post-venta',                   label: 'Post Venta' },
   { key: 'gestion-sede',                 label: 'Gestión Sede',          grupo: 'Gestión', sedeScoped: true },
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',                    sedeScoped: true },
@@ -62,36 +76,30 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'control-call-sedes',           label: 'Control Call Sedes',                      sedeScoped: true },
 ];
 
-// ─── Permisos por defecto: clave = rol-sede ───────────────────────────────────
+// ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
+const CALL_MODULES = [
+  'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
+];
+const REALZZA_MODULES = [
+  'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'ventas-brilla-realzza',
+];
+
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
-  // Supervisión global (sede = 'todas') → ve la gestión consolidada de TODAS las sedes
-  'gerente-todas':        ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
-  'supervisor-todas':     ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
-
-  // Ferreñafe
-  'gerente-ferrenafe':    ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
-  'supervisor-ferrenafe': ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes'],
-
-  // Realzza — módulos disponibles en el sistema
-  'gerente-realzza': [
-    'agendamientos-campo',
-    'gestion-campo',
-    'ventas-campo',
-    'ventas-brilla-realzza',
-    'proyeccion-comparativo-campo',
-  ],
-
-  // Descomentar y ajustar cuando se implementen:
-  // 'supervisor-realzza': ['agendamientos-campo', 'gestion-campo'],
-  // 'gerente-olmos':      ['gestion-sede', 'control-gestion-sede'],
+  'gerente-call':       [...CALL_MODULES],
+  'supervisor-call':    [...CALL_MODULES],
+  'gerente-realzza':    [...REALZZA_MODULES],
+  'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v4';
+const STORAGE_KEY = 'gd_permissions_v7';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
 
-  readonly modules      = ALL_MODULES;
+  private sedeCfg = inject(SedeConfigService);
+
+  readonly modules       = ALL_MODULES;
+  readonly perfiles      = PERFILES;
   readonly combinaciones = COMBINACIONES;
 
   private permisos: Record<string, string[]>;
@@ -114,29 +122,30 @@ export class PermissionsService {
     );
   }
 
-  // Clave de permisos: rol-sede normalizada
+  // Mapea la sede del usuario (del login) a un PERFIL de acceso.
+  // Realzza → 'realzza'. Todo lo demás (sedes Call y 'todas') → 'call'.
+  perfilDe(sede: string): string {
+    const s = this.sedeCfg.normalizar(sede);
+    if (s === 'realzza') return 'realzza';
+    return 'call';
+  }
+
+  // Clave de permisos: rol-perfil
   private buildKey(rol: string, sede: string): string {
-    const sedeNorm = sede
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-    return `${rol}-${sedeNorm}`;
+    return `${rol}-${this.perfilDe(sede)}`;
   }
 
   canAccess(moduleKey: string, rol: string, sede: string): boolean {
     if (rol === 'admin') return true;
     if (moduleKey === 'seguridad') return false;
 
-    const key     = this.buildKey(rol, sede);
-    const allowed = this.permisos[key] ?? [];
+    const allowed = this.permisos[this.buildKey(rol, sede)] ?? [];
     if (!allowed.includes(moduleKey)) return false;
 
     const mod = ALL_MODULES.find(m => m.key === moduleKey);
     if (mod?.sedeScoped) {
-      // Requiere tener una sede asignada — vale tanto una sede específica
-      // (ve solo esa) como 'todas' (ve todas las sedes en el componente)
+      // Requiere tener una sede asignada — vale una sede específica (ve solo esa)
+      // o 'todas' (ve todas las sedes vía selector en el componente).
       return !!sede;
     }
     return true;

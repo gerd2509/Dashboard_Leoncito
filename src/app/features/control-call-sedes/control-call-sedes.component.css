@@ -168,6 +168,38 @@
 .kpi-team-nocontacto .kpi-value { color: #C62828; }
 .kpi-progress-fill.bar-nocontacto { background: linear-gradient(90deg, #991B1B, #DC2626); }
 
+/* KPI Agendamientos */
+.kpi-team-agend  { cursor: pointer; border-left: 3px solid #1A5FAD; }
+.kpi-team-agend  .kpi-value { color: #1A5FAD; }
+.agend-badge     { background: #EBF3FF; color: #1A5FAD; }
+.kpi-progress-fill.bar-agend { background: linear-gradient(90deg, #0D47A1, #1A5FAD); }
+
+/* KPI Ventas No Concretadas */
+.kpi-team-vnc    { cursor: pointer; border-left: 3px solid #B45309; }
+.kpi-team-vnc    .kpi-value { color: #B45309; }
+.vnc-badge       { background: #FFF3E6; color: #B45309; }
+.kpi-progress-fill.bar-vnc { background: linear-gradient(90deg, #92400E, #D97706); }
+
+/* ── Sección Ventas No Concretadas ── */
+.vnc-row {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.vnc-resumen { flex: 1 1 280px; min-width: 0; }
+.vnc-detalle { flex: 2 1 520px; min-width: 0; }
+
+.team-label-bar {
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    border-radius: 4px 4px 0 0;
+}
+.vnc-bar { background: #FFF3E6; color: #B45309; }
+
 .kpi-action { font-size: 0.7rem; color: #B0C8E8; text-align: right; margin-top: 2px; transition: color 0.2s; }
 .kpi-card:hover .kpi-action      { color: #1A5FAD; }
 .kpi-card.kpi-active .kpi-action { color: #2B73D1; }

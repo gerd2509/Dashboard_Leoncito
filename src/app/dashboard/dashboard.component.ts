@@ -6,17 +6,16 @@ import { GestionContactXHoraComponent } from "../features/Gestion/gestion-contac
 import { CierreGestionComponent } from "../features/cierre-gestion/cierre-gestion.component";
 import { AnalisisGestionMensualComponent } from "../features/analisis-gestion-mensual/analisis-gestion-mensual.component";
 import { VentasComponent } from "../features/ventas/ventas.component";
-import { ProyeccionComparativoComponent } from "../features/proyeccion-comparativo/proyeccion-comparativo.component";
 import { ConvertidorExcelCsvComponent } from "../features/convertidor-excel-csv/convertidor-excel-csv.component";
 import { TercerosComponent } from "../features/terceros/terceros.component";
 import { VentasCuotasTipoVentaComponent } from "../features/ventas-cuotas-tipo-venta/ventas-cuotas-tipo-venta.component";
 import { VentasBrillaRealzzaComponent } from "../features/ventas-brilla-realzza/ventas-brilla-realzza.component";
 import { VentaXPlazoAvComponent } from "../features/venta-x-plazo-av/venta-x-plazo-av.component";
 import { VentasCampoComponent } from "../features/ventas-campo/ventas-campo.component";
-import { ProyeccionFfvvCampoComponent } from "../features/proyeccion-ffvv-campo/proyeccion-ffvv-campo.component";
 import { GestionCobranzasComponent } from "../features/gestion-cobranzas/gestion-cobranzas.component";
 import { GestionCampoRealzzaComponent } from "../features/Gestion/gestion-campo-realzza/gestion-campo-realzza.component";
 import { AgendamientosCampoComponent } from "../features/agendamientos/agendamientos-campo/agendamientos-campo.component";
+import { AgendamientosSedesComponent } from "../features/agendamientos/agendamientos-sedes/agendamientos-sedes.component";
 import { ComparativoVentasComponent } from "../features/comparativo-ventas/comparativo-ventas.component";
 import { PostVentaComponent } from "../features/post-venta/post-venta.component";
 import { GestionPostVentaComponent } from "../features/Gestion/gestion-post-venta/gestion-post-venta.component";
@@ -28,7 +27,9 @@ import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-s
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
 import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
 import { SeguridadComponent } from "../features/seguridad/seguridad.component";
+import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.component";
 import { AuthService } from '../services/auth.service';
+import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
 import { SedeConfigService } from '../services/sede-config.service';
 import { BrandService, Brand } from '../services/brand.service';
@@ -47,19 +48,18 @@ interface MenuItem {
   standalone: true,
   imports: [
     CommonModule, MatIconModule,
+    LionIconComponent,
     AgendamientosComponent,
     GestionContactXHoraComponent,
     CierreGestionComponent,
     AnalisisGestionMensualComponent,
     VentasComponent,
-    ProyeccionComparativoComponent,
     ConvertidorExcelCsvComponent,
     TercerosComponent,
     VentasCuotasTipoVentaComponent,
     VentasBrillaRealzzaComponent,
     VentaXPlazoAvComponent,
     VentasCampoComponent,
-    ProyeccionFfvvCampoComponent,
     GestionCobranzasComponent,
     GestionCampoRealzzaComponent,
     AgendamientosCampoComponent,
@@ -69,11 +69,13 @@ interface MenuItem {
     EvolucionTipoClienteComponent,
     GestionKommoComponent,
     AgendamientosKommoComponent,
+    AgendamientosSedesComponent,
     ControlGestionSedeComponent,
     GestionSedeComponent,
     GestionCallSedesComponent,
     ControlCallSedesComponent,
     SeguridadComponent,
+    LimpiezaBbddComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
@@ -103,7 +105,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       submenu: [
         { label: 'CALL CENTER', icon: 'call',      modulo: 'agendamientos' },
         { label: 'REALZZA',     icon: 'storefront', modulo: 'agendamientos-campo' },
-        { label: 'KOMMO',       icon: 'public',     modulo: 'agendamientos-kommo' }
+        { label: 'KOMMO',       icon: 'public',     modulo: 'agendamientos-kommo' },
+        { label: 'SEDES',       icon: 'location_city', modulo: 'agendamientos-sedes' }
       ]
     },
     { icon: 'people',      label: 'Terceros',          modulo: 'terceros' },
@@ -132,10 +135,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'storefront',  label: 'Ventas Brilla Realzza',        modulo: 'ventas-brilla-realzza' },
     { icon: 'storefront',  label: 'Ventas - Cuotas - Tipo Venta', modulo: 'ventas-cuotas-tipoVenta' },
     { icon: 'storefront',  label: 'Ventas - Plazo AV',            modulo: 'ventas-plazo-av' },
-    { icon: 'storefront',  label: 'Proyección Call',              modulo: 'proyeccion-comparativo' },
-    { icon: 'storefront',  label: 'Proyección Campo',             modulo: 'proyeccion-comparativo-campo' },
     { icon: 'payments',    label: 'Cobranzas',                    modulo: 'cobranzas' },
     { icon: 'sync_alt',    label: 'Conversor CSV',                modulo: 'conversor-csv' },
+    { icon: 'cleaning_services', label: 'Limpieza BBDD',          modulo: 'limpieza-bbdd' },
     { icon: 'post_add',    label: 'Post Venta',                   modulo: 'post-venta' },
     { icon: 'location_city', label: 'Control Gestión Sede',       modulo: 'control-gestion-sede' },
     { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
@@ -254,6 +256,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectModule(modulo?: string) {
     this.moduloSeleccionado = modulo ?? '';
     this.celebrar();
+  }
+
+  // Para ítems de nivel superior SIN submenú: además de seleccionar,
+  // cierra cualquier submenú que haya quedado abierto.
+  selectModuleRaiz(modulo?: string) {
+    this.submenuAbierto = null;
+    this.selectModule(modulo);
   }
 
   logout() { this.auth.logout(); }

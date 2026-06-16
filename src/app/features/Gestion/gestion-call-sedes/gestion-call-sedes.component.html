@@ -1,6 +1,11 @@
 <form class="form mt-2" [formGroup]="formGestion">
-    <dx-select-box style="width: 320px;" formControlName="asesor" [dataSource]="asesores"
-        label="Asesor de Venta" labelMode="floating" stylingMode="underlined"
+    <!-- Selector de sede: solo admin general. El usuario de sede queda fijo (chip). -->
+    <dx-select-box *ngIf="esAdmin" style="width: 200px;" formControlName="sede" [items]="sedesDisponibles"
+        displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
+        stylingMode="underlined" (onValueChanged)="onSedeChange($event)" />
+
+    <dx-select-box style="width: 300px;" formControlName="asesor" [dataSource]="asesores"
+        label="Asesor" labelMode="floating" stylingMode="underlined"
         [showClearButton]="true" placeholder="Todos los asesores"
         (onValueChanged)="onAsesorChanged($event)" />
 
@@ -19,7 +24,8 @@
         <mat-icon>file_download</mat-icon>
         Exportar
     </button>
-    <span class="sede-chip">📍 {{ sedeNombre }}</span>
+    <span class="sede-chip" *ngIf="!esAdmin">📍 {{ sedeNombre }}</span>
+    <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
 </form>
 
 <div class="grid-container">
@@ -38,7 +44,7 @@
         <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
 
         <dxi-column dataField="Marca temporal"                       caption="Marca Temporal" />
-        <dxi-column dataField="ASESOR CONTACT"                       caption="Asesor Contact" />
+        <dxi-column dataField="asesor"                               caption="Asesor" />
         <dxi-column dataField="DNI CLIENTE"                          caption="DNI Cliente" />
         <dxi-column dataField="TIPO DE CLIENTE"                      caption="Tipo de Cliente" />
         <dxi-column dataField="ESTADO DE GESTIÓN"                    caption="Estado de Gestión" />

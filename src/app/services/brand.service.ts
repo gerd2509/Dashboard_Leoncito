@@ -11,8 +11,8 @@ export interface Brand {
 
 const BRANDS: Record<BrandId, Brand> = {
   leoncito: { id: 'leoncito', nombre: 'LEONCITO', emoji: '🦁', rgb: '240,116,32' },
-  // Realzza nació de Leoncito como su línea moderna de hogar/muebles ("decora tu hogar")
-  realzza:  { id: 'realzza',  nombre: 'REALZZA',  emoji: '🛋️', rgb: '26,95,173'  },
+  // Realzza nació de Leoncito: mismo leoncito pero en blanco (filtro CSS .emoji-blanco)
+  realzza:  { id: 'realzza',  nombre: 'REALZZA',  emoji: '🦁', rgb: '26,95,173'  },
 };
 
 @Injectable({ providedIn: 'root' })

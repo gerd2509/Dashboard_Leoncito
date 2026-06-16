@@ -5,7 +5,7 @@
 
     <!-- Encabezado: marca animada (Leoncito / Realzza según el usuario) -->
     <div class="sidebar-brand" [style.--brand-rgb]="brand.rgb">
-      <span class="sb-emoji">{{ brand.emoji }}</span>
+      <app-lion-icon class="sb-emoji" [variant]="brand.id"></app-lion-icon>
       <span class="sb-name" *ngIf="sidebarVisible">
         <span class="sb-letter" *ngFor="let l of brand.nombre.split(''); let i = index"
               [style.animation-delay]="(i * 0.07) + 's'">{{ l }}</span>
@@ -32,7 +32,7 @@
         </div>
 
         <ng-template #simpleItem>
-          <button class="menu-main" (click)="selectModule(item.modulo)">
+          <button class="menu-main" (click)="selectModuleRaiz(item.modulo)">
             <mat-icon>{{ item.icon }}</mat-icon>
             <span>{{ item.label }}</span>
           </button>
@@ -56,7 +56,7 @@
 
         <!-- círculo + mascota de la marca + inicial del usuario -->
         <div class="lion-circle">
-          <span class="lion-emoji">{{ brand.emoji }}</span>
+          <app-lion-icon class="lion-emoji" [variant]="brand.id"></app-lion-icon>
           <span class="lion-inicial">{{ inicial }}</span>
         </div>
 
@@ -104,6 +104,7 @@
         <app-agendamientos               *ngSwitchCase="'agendamientos'"></app-agendamientos>
         <app-agendamientos-campo         *ngSwitchCase="'agendamientos-campo'"></app-agendamientos-campo>
         <app-agendamientos-kommo         *ngSwitchCase="'agendamientos-kommo'"></app-agendamientos-kommo>
+        <app-agendamientos-sedes         *ngSwitchCase="'agendamientos-sedes'"></app-agendamientos-sedes>
         <app-terceros                    *ngSwitchCase="'terceros'"></app-terceros>
         <app-gestion-contact-x-hora      *ngSwitchCase="'gestion'"></app-gestion-contact-x-hora>
         <app-gestion-campo-realzza       *ngSwitchCase="'gestion-campo'"></app-gestion-campo-realzza>
@@ -120,10 +121,9 @@
         <app-ventas-brilla-realzza       *ngSwitchCase="'ventas-brilla-realzza'"></app-ventas-brilla-realzza>
         <app-ventas-cuotas-tipo-venta    *ngSwitchCase="'ventas-cuotas-tipoVenta'"></app-ventas-cuotas-tipo-venta>
         <app-venta-x-plazo-av            *ngSwitchCase="'ventas-plazo-av'"></app-venta-x-plazo-av>
-        <app-proyeccion-comparativo      *ngSwitchCase="'proyeccion-comparativo'"></app-proyeccion-comparativo>
-        <app-proyeccion-ffvv-campo       *ngSwitchCase="'proyeccion-comparativo-campo'"></app-proyeccion-ffvv-campo>
         <app-gestion-cobranzas           *ngSwitchCase="'cobranzas'"></app-gestion-cobranzas>
         <app-convertidor-excel-csv       *ngSwitchCase="'conversor-csv'"></app-convertidor-excel-csv>
+        <app-limpieza-bbdd               *ngSwitchCase="'limpieza-bbdd'"></app-limpieza-bbdd>
         <app-post-venta                  *ngSwitchCase="'post-venta'"></app-post-venta>
         <app-control-gestion-sede        *ngSwitchCase="'control-gestion-sede'"></app-control-gestion-sede>
         <app-control-call-sedes          *ngSwitchCase="'control-call-sedes'"></app-control-call-sedes>

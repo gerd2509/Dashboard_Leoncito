@@ -1,0 +1,54 @@
+<form class="form mt-2" [formGroup]="formAgendamientos">
+    <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true" label="Fecha"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <!-- Selector de sede: solo admin general. El usuario de sede queda fijo (chip). -->
+    <dx-select-box *ngIf="esAdmin" formControlName="sede" [items]="sedesDisponibles"
+        displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
+        stylingMode="underlined" [width]="200" (onValueChanged)="onSedeChange($event)">
+    </dx-select-box>
+
+    <button class="button" mat-flat-button (click)="actualizar()" [disabled]="isLoading">
+        <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
+        {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+
+    <button class="button" mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon>
+        Exportar
+    </button>
+
+    <span class="sede-chip" *ngIf="!esAdmin">📍 {{ sedeNombre }}</span>
+    <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
+</form>
+
+<div class="grid-container">
+    <!-- Spinner superpuesto -->
+    <div class="grid-overlay" *ngIf="isLoading">
+        <mat-spinner diameter="40"></mat-spinner>
+    </div>
+
+    <!-- Grilla -->
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="datosFiltrados"
+        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+        [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true"
+        [wordWrapEnabled]="true" [columnAutoWidth]="true" [selection]="{mode: 'single'}">
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+        <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+        <dxi-column dataField="Marca temporal" [calculateCellValue]="soloFecha" caption="Fecha"></dxi-column>
+        <dxi-column dataField="asesor" caption="Asesor"></dxi-column>
+        <dxi-column dataField="TIPO DE CLIENTE" caption="Tipo de Cliente"></dxi-column>
+        <dxi-column dataField="DNI CLIENTE" caption="Dni Cliente"></dxi-column>
+        <dxi-column dataField="CELULAR GESTIONADO" caption="Celular Gestionado"></dxi-column>
+        <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto Interés"></dxi-column>
+        <dxi-column dataField="FECHA DE INTERÉS AGENDAMIENTO" dataType="date" caption="Fecha de Interés"></dxi-column>
+        <dxi-column dataField="HORA APROXIMADA INTERÉS AGENDAMIENTO" caption="Hora Aproximada Interés"
+            [sortOrder]="'asc'"></dxi-column>
+        <dxi-column dataField="SEDE" caption="Sede"></dxi-column>
+        <dxi-column caption="COMENTARIO ADICIONAL AGENDAMIENTO" [calculateCellValue]="getComentarioAdicionalUnido"></dxi-column>
+        <dxi-column dataField="estadoAgendamiento" caption="Estado Agendamiento"></dxi-column>
+    </dx-data-grid>
+</div>

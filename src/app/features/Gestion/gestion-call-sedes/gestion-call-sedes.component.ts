@@ -2,6 +2,8 @@ import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../../services/service-google.service';
+import { AuthService } from '../../../services/auth.service';
+import { SedeConfigService } from '../../../services/sede-config.service';
 import { DX_COMMON_MODULES } from '../../dx_common_modules';
 import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
 import { DxDataGridComponent } from 'devextreme-angular';
@@ -14,8 +16,10 @@ import { ExcelExportService } from '../../../services/excel/excel.service';
   styleUrl: './gestion-call-sedes.component.css'
 })
 export class GestionCallSedesComponent implements OnInit {
-  protected service      = inject(SheetsService);
-  protected excelService = inject(ExcelExportService);
+  private service      = inject(SheetsService);
+  private excelService = inject(ExcelExportService);
+  private auth         = inject(AuthService);
+  private sedeCfg      = inject(SedeConfigService);
 
   formGestion: UntypedFormGroup;
   dataFiltrada: any[] = [];
@@ -26,28 +30,19 @@ export class GestionCallSedesComponent implements OnInit {
 
   isLoading = false;
 
-  // Por ahora solo Ferreñafe (data del endpoint /ferre)
-  sedeNombre = 'Ferreñafe';
+  // ── Sede (mismo criterio que control-call-sedes: perfil del login) ──
+  esAdmin = false;
+  sedesDisponibles: { key: string; nombre: string }[] = [];
+  sedeKey = 'ferrenafe';
 
-  // Asesores del formulario de Ferreñafe (columna 'ASESOR CONTACT')
-  asesores: string[] = [
-    'ESMERALDA CHICOMA',
-    'LUCIA RUIZ',
-    'IRENE CARRASCO',
-    'LISET NUÑEZ',
-    'PAOLA QUEZADA',
-    'NATALI MORANTE',
-    'DANITZA CESPEDES',
-    'ADRIANA GINES',
-    'JULISSA VILCHEZ',
-    'DAYANA CIEZA',
-    'ERICK CAJO',
-  ];
+  // Asesores disponibles (registrados en la data de gestión de la sede)
+  asesores: string[] = [];
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
     this.formGestion = this.fb.group({
+      sede:        ['ferrenafe'],
       asesor:      [''],
       fechaInicio: [null],
       fechaFin:    [null],
@@ -55,19 +50,71 @@ export class GestionCallSedesComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.configurarSedeSegunUsuario();
     await this.cargarData();
+  }
+
+  // admin / sede 'todas' → selector; usuario de sede → fijo a su sede
+  private configurarSedeSegunUsuario() {
+    const u = this.auth.getUsuario();
+    this.esAdmin = !u || u.rol === 'admin' || this.sedeCfg.normalizar(u.sede) === 'todas';
+
+    if (this.esAdmin) {
+      this.sedesDisponibles = this.sedeCfg.getSedesCall();
+      this.sedeKey = this.sedesDisponibles[0]?.key ?? 'ferrenafe';
+    } else {
+      this.sedeKey = this.sedeCfg.normalizar(u!.sede);
+      const cfg = this.sedeCfg.getConfig(u!.sede);
+      this.sedesDisponibles = [{ key: this.sedeKey, nombre: cfg?.nombre ?? u!.sede }];
+    }
+    this.formGestion.patchValue({ sede: this.sedeKey }, { emitEvent: false });
+  }
+
+  get sedeNombre(): string {
+    return this.sedeCfg.getConfig(this.sedeKey)?.nombre ?? this.sedeKey;
+  }
+
+  // Columna del asesor en el form por sede: 'ASESOR FERREÑAFE' / 'ASESOR MOTUPE'
+  get columnaAsesor(): string {
+    const cfg = this.sedeCfg.getConfig(this.sedeKey);
+    return cfg ? `ASESOR ${cfg.valorSede.toUpperCase()}` : 'ASESOR';
+  }
+
+  // Filas que pertenecen a la sede seleccionada (su columna de asesor tiene valor)
+  private filasDeSede(): any[] {
+    const col = this.columnaAsesor;
+    return this.listData.filter(r => (r[col] ?? '').toString().trim() !== '');
+  }
+
+  // Lista de asesores disponibles = distintos de la columna de asesor en la data de la sede
+  private actualizarAsesoresDisponibles(): void {
+    const col = this.columnaAsesor;
+    this.asesores = Array.from(
+      new Set(this.filasDeSede().map(r => (r[col] ?? '').toString().trim()))
+    ).filter(a => a).sort();
+  }
+
+  onSedeChange(e: any) {
+    const key = e?.value ?? this.formGestion.value.sede;
+    if (!key || key === this.sedeKey) return;
+    this.sedeKey = key;
+    this.formGestion.patchValue({ asesor: '' }, { emitEvent: false });
+    this.actualizarAsesoresDisponibles();
+    this.aplicarFiltros();
   }
 
   private async cargarData(): Promise<void> {
     this.isLoading = true;
     try {
-      // Formulario de gestión de Ferreñafe (/ferre)
+      // Formulario de gestión de sedes Call (/ferre)
       this.listData = await lastValueFrom(this.service.getSheetDataFerre());
+      this.actualizarAsesoresDisponibles();
       this.aplicarFiltros();
     } catch (e) {
-      console.error('Error al cargar datos de Ferreñafe:', e);
+      console.error('Error al cargar datos de gestión de sedes:', e);
       this.listData = [];
       this.dataFiltrada = [];
+      this.asesores = [];
     } finally {
       this.isLoading = false;
     }
@@ -75,7 +122,10 @@ export class GestionCallSedesComponent implements OnInit {
 
   aplicarFiltros(): void {
     const { asesor, fechaInicio, fechaFin } = this.formGestion.value;
-    let filtrados = [...this.listData];
+    const col = this.columnaAsesor;
+
+    // 0) Acotar a la sede seleccionada (columna de asesor con valor) + mapear 'asesor'
+    let filtrados = this.filasDeSede().map(r => ({ ...r, asesor: (r[col] ?? '').toString().trim() }));
 
     // 1) Por rango de fechas (opcional)
     if (fechaInicio && fechaFin) {
@@ -89,16 +139,14 @@ export class GestionCallSedesComponent implements OnInit {
 
     // 2) Por asesor (opcional)
     if (asesor) {
-      filtrados = filtrados.filter(r =>
-        (r['ASESOR CONTACT'] || '').toString().trim().toUpperCase() === asesor.trim().toUpperCase()
-      );
+      filtrados = filtrados.filter(r => r.asesor.toUpperCase() === asesor.trim().toUpperCase());
     }
 
     this.dataFiltrada = filtrados;
   }
 
   onAsesorChanged(event: any): void {
-    this.formGestion.patchValue({ asesor: event.value });
+    this.formGestion.patchValue({ asesor: event.value }, { emitEvent: false });
     this.aplicarFiltros();
   }
 
@@ -107,7 +155,7 @@ export class GestionCallSedesComponent implements OnInit {
   }
 
   exportar(): void {
-    if (this.dataGrid) this.excelService.exportarDesdeGrid('gestion-call-ferrenafe', this.dataGrid);
+    if (this.dataGrid) this.excelService.exportarDesdeGrid(`gestion-call-${this.sedeKey}`, this.dataGrid);
   }
 
   onCellPrepared(e: any) {

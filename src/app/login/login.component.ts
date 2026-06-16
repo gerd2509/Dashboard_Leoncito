@@ -6,11 +6,12 @@ import { Subject, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { BrandService, Brand } from '../services/brand.service';
+import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, LionIconComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })

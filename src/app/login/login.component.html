@@ -7,27 +7,32 @@
   <div class="brand-side" [style.--brand-rgb]="brand.rgb">
     <div class="brand-content">
 
-      <!-- Anillos animados + mascota -->
+      <!-- Anillos animados + ambos leoncitos (Leoncito + Realzza) -->
       <div class="lion-stage">
         <div class="ring ring-1"></div>
         <div class="ring ring-2"></div>
         <div class="ring ring-3"></div>
-        <div class="lion-circle">
-          <span class="lion-emoji">{{ brand.emoji }}</span>
+
+        <div class="lion-duo">
+          <div class="lion-circle">
+            <app-lion-icon class="lion-emoji" variant="leoncito"></app-lion-icon>
+          </div>
+          <div class="lion-circle">
+            <app-lion-icon class="lion-emoji" variant="realzza"></app-lion-icon>
+          </div>
         </div>
+
         <!-- Estrellas orbitales -->
         <span class="orbit-star s1">✦</span>
         <span class="orbit-star s2">✦</span>
         <span class="orbit-star s3">✦</span>
-        <span class="orbit-star s4" *ngIf="brand.id !== 'realzza'">✦</span>
-        <!-- R orbitando (solo marca Realzza) -->
-        <span class="orbiter" *ngIf="brand.id === 'realzza'"><span class="orbit-r">R</span></span>
       </div>
 
-      <!-- Nombre de la empresa (cambia según marca) -->
-      <div class="brand-name">
-        <span class="brand-letter" *ngFor="let letra of brand.nombre.split(''); let i = index"
-              [style.animation-delay]="(i * 0.1) + 's'">{{ letra }}</span>
+      <!-- Nombre: ambas marcas -->
+      <div class="brand-name brand-name--duo">
+        <span class="bn-word bn-leoncito">LEONCITO</span>
+        <span class="bn-sep">·</span>
+        <span class="bn-word bn-realzza">REALZZA</span>
       </div>
 
       <p class="brand-tagline">Sistema de Gestión Integral</p>

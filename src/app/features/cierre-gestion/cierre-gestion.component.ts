@@ -67,6 +67,10 @@ export class CierreGestionComponent implements OnInit {
   porcentajeMetaRealzza = 0;
   porcentajeMetaDerivacionRealzza = 0;
 
+  // KOMMO Market Place (registros con MARKET PLACE = SI)
+  dataContactabilidadKOMMOCallMarket: any[] = [];
+  dataContactabilidadKOMMORealzzaMarket: any[] = [];
+
   // Variables globales / Resumen
   dataContactabilidad: any[] = [];
   dataContactabilidadKOMMO: any[] = [];
@@ -177,6 +181,22 @@ export class CierreGestionComponent implements OnInit {
     'CC8': 'Kelly', 'CC3': 'Felicita', 'CC5': 'Karen', 'CC11': 'Ariadne'
   };
 
+  // Nombres cortos para mostrar en las tablas (mismo criterio que ventas / ventas-campo)
+  nombresCortos: Record<string, string> = {
+    // Call Center
+    'CC1':  'PATRICIA', 'CC3':  'FELICITA', 'CC5':  'KAREN',   'CC6':  'MARIA',
+    'CC8':  'KELLY',    'CC11': 'ARIADNE',  'CC12': 'BRENDA',  'CC13': 'FRANCIS',
+    'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
+    // Realzza
+    'RZ0':  'ERNESTO',  'RZ1':  'NATALY',   'RZ2':  'TATIANA', 'RZ3':  'YUDITH',
+    'RZ6':  'ANYELA',   'RZ8':  'FELICITA', 'RZ10': 'MERLY',   'RZ11': 'CESAR'
+  };
+
+  // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo
+  private nombreCorto(asesor: { value: string; viewValue: string }): string {
+    return this.nombresCortos[asesor.value] || asesor.viewValue;
+  }
+
   dataResumen: any[] = [];
   chartAreas: any[] = [];
   chartEstadoGestion: any[] = [];
@@ -231,7 +251,9 @@ export class CierreGestionComponent implements OnInit {
     this.calcularContactabilidadCall();
     this.calcularContactabilidadRealzza();
     this.calcularContactabilidadKOMMOCall();
+    this.calcularContactabilidadKOMMOCallMarket();
     this.calcularContactabilidadKOMMORealzza();
+    this.calcularContactabilidadKOMMORealzzaMarket();
     this.calcularAgendamientosCall();
     this.calcularAgendamientosRealzza();
     this.calcularDerivacionesCall();
@@ -281,14 +303,29 @@ export class CierreGestionComponent implements OnInit {
   }
 
   calcularContactabilidadKOMMOCall() {
-    // Call Center KOMMO: solo asesores con gestión/data (TOTAL > 0)
+    // Call Center KOMMO: registros NO market place (MARKET PLACE L distinto de SI)
     this.dataContactabilidadKOMMOCall = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN')
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', false)
+      .filter(r => (r['TOTAL'] || 0) > 0);
+  }
+
+  calcularContactabilidadKOMMOCallMarket() {
+    // Call Center MARKET PLACE: registros con MARKET PLACE L = SI
+    this.dataContactabilidadKOMMOCallMarket = this
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', true)
       .filter(r => (r['TOTAL'] || 0) > 0);
   }
 
   calcularContactabilidadKOMMORealzza() {
-    this.dataContactabilidadKOMMORealzza = this.procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA');
+    // Realzza KOMMO: registros NO market place (MARKET PLACE R distinto de SI)
+    this.dataContactabilidadKOMMORealzza = this.procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false);
+  }
+
+  calcularContactabilidadKOMMORealzzaMarket() {
+    // Realzza MARKET PLACE: registros con MARKET PLACE R = SI
+    this.dataContactabilidadKOMMORealzzaMarket = this
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true)
+      .filter(r => (r['TOTAL'] || 0) > 0);
   }
 
   private procesarContactabilidad(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string): any[] {
@@ -312,7 +349,7 @@ export class CierreGestionComponent implements OnInit {
 
       resultado.push({
         'ASESOR ID': asesor.value,
-        'ASESOR CONTACT': asesor.viewValue,
+        'ASESOR CONTACT': this.nombreCorto(asesor),
         'CONTACTO': contacto,
         'CORTA LLAMADA': cortaLlamada,
         'NO CONTACTO': noContacto,
@@ -331,11 +368,19 @@ export class CierreGestionComponent implements OnInit {
     return resultado;
   }
 
+  // Devuelve true si la celda de Market Place (L o R) marca SI
+  private esMarketPlace(item: any, columna: string): boolean {
+    const v = (item?.[columna] ?? '').toString().toUpperCase().trim();
+    return v === 'SI' || v === 'SÍ';
+  }
+
   private procesarContactabilidadKOMMO(
     dataSource: any[],
     listaAsesores: any[],
     nombreColumnaAsesor: string, // 'ASESOR CONTACT' o 'ASESOR REALZZA'
-    nombreColumnaEstado: string  // 'ESTADO DE GESTIÓN' o 'ESTADO DE GESTIÓN REALZZA'
+    nombreColumnaEstado: string, // 'ESTADO DE GESTIÓN' o 'ESTADO DE GESTIÓN REALZZA'
+    columnaMarketPlace?: string, // 'MARKET PLACE L' o 'MARKET PLACE R' (opcional)
+    soloMarketPlace: boolean = false // true => solo SI ; false => NO/vacío
   ): any[] {
     const fechaSeleccionada = this.obtenerFechaSeleccionada();
     if (!fechaSeleccionada || !dataSource) return [];
@@ -345,10 +390,18 @@ export class CierreGestionComponent implements OnInit {
 
     listaAsesores.forEach(asesor => {
       // 1. Filtrar usando las columnas específicas de este grupo
-      const registrosAsesor = dataSource.filter(item =>
-        item[nombreColumnaAsesor]?.toUpperCase().trim() === asesor.viewValue.toUpperCase().trim() &&
-        this.esMismaFecha(item['Marca temporal'], dia, mes, anio)
-      );
+      const registrosAsesor = dataSource.filter(item => {
+        const esAsesor = item[nombreColumnaAsesor]?.toUpperCase().trim() === asesor.viewValue.toUpperCase().trim();
+        const esFecha = this.esMismaFecha(item['Marca temporal'], dia, mes, anio);
+        if (!esAsesor || !esFecha) return false;
+
+        // Separación KOMMO vs MARKET PLACE: SI => market; NO/vacío => kommo
+        if (columnaMarketPlace) {
+          const esMp = this.esMarketPlace(item, columnaMarketPlace);
+          return soloMarketPlace ? esMp : !esMp;
+        }
+        return true;
+      });
 
       // 2. Cálculos usando la columna de estado correspondiente (Normal o REALZZA)
       const registrosContacto = registrosAsesor.filter(r => r[nombreColumnaEstado] === 'CONTACTO');
@@ -364,7 +417,7 @@ export class CierreGestionComponent implements OnInit {
       // 3. Mapeo para el Grid
       resultado.push({
         'ASESOR ID': asesor.value,
-        [nombreColumnaAsesor]: asesor.viewValue,
+        [nombreColumnaAsesor]: this.nombreCorto(asesor),
         'CONTACTO': contactoEfectivo,
         'NO CONTACTO': noContacto,
         'CORTA LLAMADA': cortaLlamada,
@@ -378,7 +431,12 @@ export class CierreGestionComponent implements OnInit {
 
   // Método auxiliar para no ensuciar el procesador
   private actualizarTotalesGlobalesKOMMO() {
-    const totalData = [...(this.dataContactabilidadKOMMOCall || []), ...(this.dataContactabilidadKOMMORealzza || [])];
+    const totalData = [
+      ...(this.dataContactabilidadKOMMOCall || []),
+      ...(this.dataContactabilidadKOMMOCallMarket || []),
+      ...(this.dataContactabilidadKOMMORealzza || []),
+      ...(this.dataContactabilidadKOMMORealzzaMarket || [])
+    ];
 
     const sumaTotalContactos = totalData.reduce((acc, curr) => acc + (curr['CONTACTO'] || 0), 0);
     const sumaTotalGestion = totalData.reduce((acc, curr) => acc + (curr['TOTAL'] || 0), 0);

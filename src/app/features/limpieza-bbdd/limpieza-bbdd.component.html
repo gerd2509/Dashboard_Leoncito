@@ -1,0 +1,113 @@
+<div class="limpieza-wrap">
+
+  <!-- Encabezado -->
+  <div class="encabezado">
+    <div class="enc-icono"><mat-icon>cleaning_services</mat-icon></div>
+    <div>
+      <h2>Limpieza de Base de Datos</h2>
+      <p>Consolida los teléfonos por <b>DNI</b>, elimina duplicados y deja los números únicos alineados a la izquierda.</p>
+    </div>
+  </div>
+
+  <!-- Zona de carga -->
+  <div *ngIf="!listoParaDescargar"
+       class="dropzone"
+       [class.dragging]="arrastrando"
+       [class.procesando]="procesando"
+       (dragover)="onDragOver($event)"
+       (dragleave)="onDragLeave($event)"
+       (drop)="onDrop($event)">
+
+    <ng-container *ngIf="!procesando; else cargando">
+      <mat-icon class="dz-icon">cloud_upload</mat-icon>
+      <p class="dz-titulo">Arrastra tu archivo Excel aquí</p>
+      <p class="dz-sub">o</p>
+      <label class="btn-cargar">
+        <mat-icon>folder_open</mat-icon>
+        Seleccionar archivo
+        <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" />
+      </label>
+      <p class="dz-formatos">Formatos admitidos: .xlsx, .xls</p>
+    </ng-container>
+
+    <ng-template #cargando>
+      <div class="spinner"></div>
+      <p class="dz-titulo">Procesando «{{ nombreArchivo }}»…</p>
+    </ng-template>
+  </div>
+
+  <!-- Error -->
+  <div class="alerta-error" *ngIf="error">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error }}</span>
+    <button class="btn-link" (click)="reiniciar()">Reintentar</button>
+  </div>
+
+  <!-- Resultado -->
+  <div class="resultado" *ngIf="listoParaDescargar">
+
+    <div class="res-header">
+      <div class="res-archivo">
+        <mat-icon>description</mat-icon>
+        <span>{{ nombreArchivo }}</span>
+      </div>
+      <button class="btn-secundario" (click)="reiniciar()">
+        <mat-icon>restart_alt</mat-icon> Procesar otro
+      </button>
+    </div>
+
+    <!-- Métricas -->
+    <div class="metricas">
+      <div class="metrica">
+        <span class="m-valor">{{ totalFilasLeidas }}</span>
+        <span class="m-label">Filas leídas</span>
+      </div>
+      <div class="metrica">
+        <span class="m-valor">{{ totalDnis }}</span>
+        <span class="m-label">DNIs únicos</span>
+      </div>
+      <div class="metrica">
+        <span class="m-valor">{{ numerosUnicos }}</span>
+        <span class="m-label">Números únicos</span>
+      </div>
+      <div class="metrica destacada">
+        <span class="m-valor">{{ duplicadosEliminados }}</span>
+        <span class="m-label">Duplicados eliminados</span>
+      </div>
+      <div class="metrica">
+        <span class="m-valor">{{ maxNumerosPorDni }}</span>
+        <span class="m-label">Máx. nros / DNI</span>
+      </div>
+    </div>
+
+    <!-- Vista previa -->
+    <div class="preview" *ngIf="preview.length">
+      <h3>Vista previa <small>(primeras {{ preview.length }} filas)</small></h3>
+      <div class="tabla-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="th-dni">DNI</th>
+              <th *ngFor="let c of columnasNumero; let i = index">{{ c }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of preview">
+              <td class="td-dni">{{ f.dni || '—' }}</td>
+              <td *ngFor="let c of columnasNumero; let i = index">{{ f.numeros[i] || '' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Descargar -->
+    <div class="acciones">
+      <button class="btn-descargar" (click)="descargar()">
+        <mat-icon>download</mat-icon>
+        Descargar base limpia
+      </button>
+    </div>
+  </div>
+
+</div>

@@ -7,11 +7,6 @@
         <mat-icon>search</mat-icon>
         Actualizar
     </button>
-    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
-    <button mat-flat-button (click)="fileInput.click()">
-        <mat-icon>upload</mat-icon>
-        Importar
-    </button>
 </form>
 
 <div class="grid-container">
@@ -263,7 +258,7 @@
             </div>
 
             <div class="firstContainer mb-4">
-                <!-- IZQUIERDA: KOMMO -->
+                <!-- IZQUIERDA: KOMMO (registros NO market place) -->
                 <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
                     <div class="team-label-bar realzza-bar">🏢 REALZZA - KOMMO</div>
                     <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
@@ -272,13 +267,30 @@
                         <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
                         <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                         <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                        <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
                         <dxo-summary>
                             <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                            <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
+                        </dxo-summary>
+                    </dx-data-grid>
+                </div>
+
+                <!-- CENTRO: MARKET PLACE (MARKET PLACE R = SI) -->
+                <div class="focqus-elevation" style="border-top: 5px solid #d97706;">
+                    <div class="team-label-bar realzza-bar">🛒 REALZZA - MARKET PLACE</div>
+                    <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzzaMarket" [showBorders]="true"
+                        [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                        [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+                        <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
+                        <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                        <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                        <dxi-column dataField="TOTAL" caption="TOTAL" />
+                        <dxo-summary>
+                            <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
                         </dxo-summary>
                     </dx-data-grid>
@@ -309,54 +321,89 @@
         </div>
         <!-- ════════════ FIN VISTA REALZZA ════════════ -->
 
-        <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="!soloRealzza">
-            <h3 class="titulosGrillas">🔄 COMPARATIVA: KOMMO</h3>
-        </div>
+        <h3 class="titulosGrillas mb-2" *ngIf="!soloRealzza">🌐 DETALLE AFILIACIONES VIRTUALES</h3>
 
-        <div class="firstContainer mb-4" *ngIf="!soloRealzza">
+        <div class="kommoGrid mb-4" *ngIf="!soloRealzza">
+
+            <!-- 1) CALL CENTER - KOMMO (registros NO market place) -->
             <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
                 <div class="team-label-bar call-bar">📞 CALL CENTER - KOMMO</div>
-                <dx-data-grid id="gridCallDeriv" [dataSource]="dataContactabilidadKOMMOCall" [showBorders]="true"
+                <dx-data-grid [dataSource]="dataContactabilidadKOMMOCall" [showBorders]="true"
                     [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
                     [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
 
                     <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
                     <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                     <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
-                    <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
-                        [displayFormat]="'{0}'" />
                     <dxi-column dataField="TOTAL" caption="TOTAL" />
 
                     <dxo-summary>
                         <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
                         <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
-                            displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
                     </dxo-summary>
                 </dx-data-grid>
             </div>
 
+            <!-- 2) CALL CENTER - MARKET PLACE (MARKET PLACE L = SI) -->
+            <div class="focqus-elevation" style="border-top: 5px solid #2563eb;">
+                <div class="team-label-bar call-bar">🛒 CALL CENTER - MARKET PLACE</div>
+                <dx-data-grid [dataSource]="dataContactabilidadKOMMOCallMarket" [showBorders]="true"
+                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                    <dxi-column dataField="TOTAL" caption="TOTAL" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <!-- 3) REALZZA - KOMMO (registros NO market place) -->
             <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
                 <div class="team-label-bar realzza-bar">🏢 REALZZA - KOMMO</div>
-                <dx-data-grid id="gridRealzzaDeriv" [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
+                <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
                     [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
                     [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
 
                     <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
                     <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                     <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
                     <dxi-column dataField="TOTAL" caption="TOTAL" />
 
                     <dxo-summary>
                         <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
                         <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
-                            displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
+                    </dxo-summary>
+                </dx-data-grid>
+            </div>
+
+            <!-- 4) REALZZA - MARKET PLACE (MARKET PLACE R = SI) -->
+            <div class="focqus-elevation" style="border-top: 5px solid #d97706;">
+                <div class="team-label-bar realzza-bar">🛒 REALZZA - MARKET PLACE</div>
+                <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzzaMarket" [showBorders]="true"
+                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+
+                    <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
+                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
+                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
+                    <dxi-column dataField="TOTAL" caption="TOTAL" />
+
+                    <dxo-summary>
+                        <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
                     </dxo-summary>
                 </dx-data-grid>
@@ -410,224 +457,6 @@
                         <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
                     </dxo-summary>
                 </dx-data-grid>
-            </div>
-        </div>
-
-        <div class="card-container" *ngIf="!soloRealzza">
-            <h3>RESUMEN DE GESTIÓN POR ASESOR Y TIPO DE CLIENTE</h3>
-
-            <dx-data-grid [dataSource]="dataGestionPorAsesorYTipoCliente" [showBorders]="true" [columnAutoWidth]="true"
-                (onCellPrepared)="onCellPreparedVA($event)">
-
-                <dxi-column dataField="Asesor" caption="ASESOR" cellTemplate="asesorTemplate" />
-                <dxi-column *ngFor="let tipo of columnasTiposCliente" [dataField]="tipo" [caption]="tipo" />
-                <dxi-column dataField="TOTAL_GENERAL" caption="TOTAL" />
-
-                <div *dxTemplate="let data of 'asesorTemplate'">
-                    <span style="font-size: 0.85em;">{{ data.value }}</span>
-                </div>
-
-                <dxo-summary>
-                    <dxi-total-item alignment="right" column="Asesor" displayFormat="TOTAL" />
-                    <dxi-total-item *ngFor="let tipo of columnasTiposCliente" alignment="center" [column]="tipo"
-                        summaryType="sum" displayFormat="{0}" />
-                    <dxi-total-item alignment="center" column="TOTAL_GENERAL" summaryType="sum" displayFormat="{0}" />
-                </dxo-summary>
-
-            </dx-data-grid>
-        </div>
-
-        <!-- <div class="secondContainer">
-            <div class="cabecera">
-                <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
-                    class="dashboard-box mt-3">
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">TOTAL MONTO VENTAS</div>
-                            <div class="metric-content">S/. {{ totalMontoVentas | number:'1.0-0' }}K</div>
-                        </div>
-                    </dxi-item>
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">TOTAL VENTAS</div>
-                            <div class="metric-content">{{ totalVentas }}</div>
-                        </div>
-                    </dxi-item>
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">TICKET</div>
-                            <div class="metric-content">S/. {{ ticket | number:'1.0-0' }}K</div>
-                        </div>
-                    </dxi-item>
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">PROYECCIÓN</div>
-                            <div class="metric-content">S/. {{ proyeccion | number:'1.0-0' }}K</div>
-                        </div>
-                    </dxi-item>
-                </dx-box>
-            </div>
-
-            <div class="graficos">
-                <dx-chart class="w-100" [dataSource]="chartData" [palette]="'Material'" [rotated]="false">
-                    <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" name="Monto Consolidado" type="bar">
-                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
-                            [font]="{ color: '#000', size: 12, weight: 600 }" [position]="'outside'">
-                            <dxo-format [precision]="0"></dxo-format>
-                        </dxo-label>
-                    </dxi-series>
-                    <dxo-argument-axis>
-                        <dxo-label><dxo-font weight="bold" size="12"></dxo-font></dxo-label>
-                    </dxo-argument-axis>
-                    <dxo-legend [visible]="false"></dxo-legend>
-                </dx-chart>
-
-                <dx-chart class="w-100" [dataSource]="chartPorDia" [palette]="'Material'">
-                    <dxo-title [text]="tituloGraficoVentasDiarias">
-                        <dxo-font [size]="18" [weight]="600"></dxo-font>
-                    </dxo-title>
-                    <dxi-series *ngFor="let semana of semanas" [name]="semana" [valueField]="semana" argumentField="Dia"
-                        type="bar">
-                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
-                            [font]="{ color: '#000', size: 12, weight: 600 }" position="outside">
-                            <dxo-format [precision]="0"></dxo-format>
-                        </dxo-label>
-                    </dxi-series>
-                    <dxo-argument-axis>
-                        <dxo-label><dxo-font weight="bold" size="14"></dxo-font></dxo-label>
-                    </dxo-argument-axis>
-                    <dxo-legend [visible]="true" verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
-                </dx-chart>
-            </div>
-        </div> -->
-
-        <div class="secondContainer" *ngIf="!soloRealzza">
-            <div class="cabecera">
-                <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
-                    class="dashboard-box mt-3">
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">TOTAL MONTO VENTAS</div>
-                            <!-- <div class="metric-content">S/. {{ totalMontoVentas | number:'1.0-0' }}K</div> -->
-                            <div class="metric-content">
-                                <span class="text-call">Call: {{ montoCall | number:'1.0-0' }}K</span> |
-                                <span class="text-realzza">Rz: {{ montoRealzza | number:'1.0-0' }}K</span>
-                            </div>
-                        </div>
-                    </dxi-item>
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">TOTAL VENTAS</div>
-                            <!-- <div class="metric-content">{{ totalVentas }} Und.</div> -->
-                            <div class="metric-content">
-                                <span class="text-call">Call: {{ ventasCallCount }}</span> |
-                                <span class="text-realzza">Rz: {{ ventasRealzzaCount }}</span>
-                            </div>
-                        </div>
-                    </dxi-item>
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">TICKET PROMEDIO</div>
-                            <!-- <div class="metric-content">S/. {{ ticket | number:'1.0-0' }}</div> -->
-                            <div class=metric-content>
-                                <span class="text-call">Call: {{ ticketCall | number:'1.0-0' }}</span> |
-                                <span class="text-realzza">Rz: {{ ticketRealzza | number:'1.0-0' }}</span>
-                            </div>
-                        </div>
-                    </dxi-item>
-
-                    <dxi-item baseSize="25%">
-                        <div class="metric-card">
-                            <div class="metric-title">PROYECCIÓN MES</div>
-                            <!-- <div class="metric-content">S/. {{ proyeccion | number:'1.0-0' }}K</div> -->
-                            <div class="metric-content">
-                                <span class="text-call">Call: {{ proyeccionCall | number:'1.0-0' }}K</span> |
-                                <span class="text-realzza">Rz: {{ proyeccionRealzza | number:'1.0-0' }}K</span>
-                            </div>
-                        </div>
-                    </dxi-item>
-                </dx-box>
-            </div>
-
-            <div class="graficos">
-                <!-- <dx-chart class="w-100" [dataSource]="chartData" [rotated]="false">
-                    <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" type="bar" name="Ventas">
-                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
-                            [font]="{ color: '#000', size: 11, weight: 600 }" [position]="'outside'">
-                            <dxo-format [precision]="0"></dxo-format>
-                        </dxo-label>
-                    </dxi-series>
-
-                    <dxo-argument-axis>
-                        <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45">
-                            <dxo-font weight="bold" size="11"></dxo-font>
-                        </dxo-label>
-                    </dxo-argument-axis>
-
-                    <dxo-legend [visible]="false"></dxo-legend>
-                    <dxo-title text="RANKING DE VENTAS (Call vs Realzza)"></dxo-title>
-                </dx-chart> -->
-                <dx-chart class="w-100" [dataSource]="chartData" [rotated]="true"
-                    (onInitialized)="onChartRankingInit($event)" title="Ranking de Ventas por Asesor">
-
-                    <dxi-series argumentField="AsesorVenta" valueField="MontoTotal" type="bar" name="Ventas">
-
-                        <dxo-label [visible]="true" [backgroundColor]="'transparent'"
-                            [font]="{ color: '#000', size: 12, weight: 700 }" position="outside">
-                            <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
-                        </dxo-label>
-                    </dxi-series>
-
-                    <dxo-argument-axis>
-                        <dxo-label [overlappingBehavior]="'none'">
-                            <dxo-font weight="bold" size="11"></dxo-font>
-                        </dxo-label>
-                    </dxo-argument-axis>
-
-                    <dxo-value-axis [visible]="true"></dxo-value-axis>
-
-                    <dxo-scroll-bar [visible]="true"></dxo-scroll-bar>
-                    <dxo-zoom-and-pan argumentAxis="both"></dxo-zoom-and-pan>
-
-                    <dxo-legend [visible]="false"></dxo-legend>
-
-                    <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipRanking"></dxo-tooltip>
-                </dx-chart>
-
-                <dx-chart class="w-100" [dataSource]="chartPorDia" [palette]="['#1e3a8a', '#f59e0b']">
-                    <dxo-title [text]="tituloGraficoVentasDiarias">
-                        <dxo-font [size]="18" [weight]="600"></dxo-font>
-                    </dxo-title>
-
-                    <dxi-series valueField="MontoCall" name="Call Center" argumentField="Dia" type="stackedBar">
-                    </dxi-series>
-
-                    <dxi-series valueField="MontoRealzza" name="Realzza" argumentField="Dia" type="stackedBar">
-                    </dxi-series>
-
-                    <dxo-common-series-settings>
-                        <dxo-label [visible]="true" position="inside" backgroundColor="transparent"
-                            [customizeText]="customizeLabelVentas">
-
-                            <dxo-font color="#ffffff" weight="bold" size="11"></dxo-font>
-                            <dxo-format type="fixedPoint" [precision]="0"></dxo-format>
-                        </dxo-label>
-                    </dxo-common-series-settings>
-
-                    <dxo-argument-axis>
-                        <dxo-label><dxo-font weight="bold" size="12"></dxo-font></dxo-label>
-                    </dxo-argument-axis>
-
-                    <dxo-legend [visible]="false" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
-                    <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipVentas"></dxo-tooltip>
-                </dx-chart>
             </div>
         </div>
 

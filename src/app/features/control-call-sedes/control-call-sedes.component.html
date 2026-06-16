@@ -2,11 +2,20 @@
     <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true"
         label="Fecha de Gestión" labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
+
+    <!-- Selector de sede: solo admin general. El usuario de sede queda fijo (chip). -->
+    <dx-select-box *ngIf="esAdmin" formControlName="sede" [items]="sedesDisponibles"
+        displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
+        stylingMode="underlined" [width]="200" (onValueChanged)="onSedeChange($event)">
+    </dx-select-box>
+
     <button mat-flat-button type="button" (click)="actualizar()" [disabled]="isLoading">
         <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
         {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
     </button>
-    <span class="sede-chip">📍 {{ sedeNombre }}</span>
+
+    <span class="sede-chip" *ngIf="!esAdmin">📍 {{ sedeNombre }}</span>
+    <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
 </form>
 
 <div class="grid-container">
@@ -66,6 +75,38 @@
                     <div class="kpi-action">{{ kpiSeleccionado === 'no-contactos' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
                 </div>
 
+                <!-- AGENDAMIENTOS -->
+                <div class="kpi-card kpi-team-agend"
+                    [class.kpi-active]="kpiSeleccionado === 'agendamientos'"
+                    (click)="toggleKpi('agendamientos')">
+                    <div class="kpi-team-badge agend-badge">📅 AGENDA</div>
+                    <div class="kpi-icon">📅</div>
+                    <div class="kpi-title">AGENDAMIENTOS</div>
+                    <div class="kpi-value">{{ totalAgendamientos }}</div>
+                    <div class="kpi-meta">de {{ totalGestiones }} gestiones</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill bar-agend"
+                            [style.width.%]="totalGestiones > 0 ? (totalAgendamientos / totalGestiones) * 100 : 0"></div>
+                    </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'agendamientos' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
+                <!-- VENTAS NO CONCRETADAS -->
+                <div class="kpi-card kpi-team-vnc"
+                    [class.kpi-active]="kpiSeleccionado === 'venta-no-concretada'"
+                    (click)="toggleKpi('venta-no-concretada')">
+                    <div class="kpi-team-badge vnc-badge">🚫 NO CONCRETADA</div>
+                    <div class="kpi-icon">🚫</div>
+                    <div class="kpi-title">V. NO CONCRETADAS</div>
+                    <div class="kpi-value">{{ totalVentaNoConcretada }}</div>
+                    <div class="kpi-meta">en el día</div>
+                    <div class="kpi-progress">
+                        <div class="kpi-progress-fill bar-vnc"
+                            [style.width.%]="totalGestiones > 0 ? (totalVentaNoConcretada / totalGestiones) * 100 : 0"></div>
+                    </div>
+                    <div class="kpi-action">{{ kpiSeleccionado === 'venta-no-concretada' ? '▲ Ocultar' : '▼ Ver asesores' }}</div>
+                </div>
+
             </div>
 
             <!-- PANEL DE DETALLE POR ASESOR -->
@@ -80,15 +121,9 @@
                         <span class="kpi-detail-valor" [class.valor-zero]="item.valor === 0">{{ item.valor }}</span>
                         <div class="kpi-detail-bar-wrap">
                             <div class="kpi-detail-bar">
-                                <div class="kpi-detail-bar-fill"
-                                    [style.width.%]="item.meta * 100"
-                                    [class.bar-success]="item.meta >= 0.8"
-                                    [class.bar-warning]="item.meta >= 0.5 && item.meta < 0.8"
-                                    [class.bar-danger]="item.meta < 0.5">
-                                </div>
+                                <div class="kpi-detail-bar-fill" [style.width.%]="item.meta * 100"></div>
                             </div>
                         </div>
-                        <span class="kpi-detail-pct">{{ (item.meta * 100) | number:'1.0-0' }}%</span>
                     </div>
                 </div>
             </div>
@@ -99,7 +134,7 @@
         <!-- FILA: TABLA + DONUT -->
         <div class="panel-row">
 
-            <!-- TABLA GENERAL DE ASESORES (estilo cierre-gestión, sin corta llamada) -->
+            <!-- TABLA GENERAL DE ASESORES -->
             <div class="panel-tabla">
                 <h3 class="titulosGrillas mb-2">📋 CONTACTABILIDAD POR ASESOR — {{ sedeNombre }}</h3>
 
@@ -108,17 +143,21 @@
                         [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
                         (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true">
 
-                        <dxi-column dataField="asesor"     caption="ASESOR" [minWidth]="200" [allowSorting]="true" />
-                        <dxi-column dataField="contacto"   caption="CONTACTO"    alignment="center" [width]="110" />
-                        <dxi-column dataField="noContacto" caption="NO CONTACTO" alignment="center" [width]="120" />
-                        <dxi-column dataField="total"      caption="TOTAL"       alignment="center" [width]="90" />
-                        <dxi-column dataField="porcentaje" caption="%"           alignment="center" [width]="90"
+                        <dxi-column dataField="asesor"     caption="ASESOR" [minWidth]="180" [allowSorting]="true" />
+                        <dxi-column dataField="contacto"   caption="CONTACTO"    alignment="center" [width]="100" />
+                        <dxi-column dataField="noContacto" caption="NO CONTACTO" alignment="center" [width]="110" />
+                        <dxi-column dataField="agendamientos" caption="AGEND." alignment="center" [width]="90" />
+                        <dxi-column dataField="ventaNoConcretada" caption="V. NO CONCR." alignment="center" [width]="110" />
+                        <dxi-column dataField="total"      caption="TOTAL"       alignment="center" [width]="85" />
+                        <dxi-column dataField="porcentaje" caption="%"           alignment="center" [width]="85"
                             [format]="{ type: 'percent', precision: 0 }" />
 
                         <dxo-summary>
                             <dxi-total-item alignment="right"  column="asesor"     [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="contacto"   summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="noContacto" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="agendamientos" summaryType="sum" displayFormat="{0}" />
+                            <dxi-total-item alignment="center" column="ventaNoConcretada" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="total"      summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="porcentaje" [displayFormat]="pctContactabilidad + '%'" />
                         </dxo-summary>
@@ -146,6 +185,47 @@
                         <span class="chart-stat-pct">{{ pctContactabilidad }}%</span>
                         <span class="chart-stat-label">Contactabilidad</span>
                     </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ════════════ VENTAS NO CONCRETADAS ════════════ -->
+        <h3 class="titulosGrillas mt-4 mb-2">🚫 VENTAS NO CONCRETADAS — {{ sedeNombre }}</h3>
+
+        <div class="vnc-row">
+
+            <!-- Conteo por asesor -->
+            <div class="vnc-resumen">
+                <div class="team-label-bar vnc-bar">📊 POR ASESOR</div>
+                <div class="focqus-elevation">
+                    <dx-data-grid [dataSource]="vncPorAsesor" [showBorders]="true" [showColumnLines]="true"
+                        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                        (onCellPrepared)="onCellPrepared($event)" noDataText="Sin ventas no concretadas en el día">
+                        <dxi-column dataField="asesor"   caption="ASESOR" [minWidth]="160" />
+                        <dxi-column dataField="cantidad" caption="N° VNC" alignment="center" [width]="100" />
+                        <dxo-summary>
+                            <dxi-total-item alignment="right"  column="asesor"   [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="center" column="cantidad" summaryType="sum" displayFormat="{0}" />
+                        </dxo-summary>
+                    </dx-data-grid>
+                </div>
+            </div>
+
+            <!-- Detalle registro a registro -->
+            <div class="vnc-detalle">
+                <div class="team-label-bar vnc-bar">📝 DETALLE (MOTIVO DE NO CIERRE)</div>
+                <div class="focqus-elevation">
+                    <dx-data-grid [dataSource]="vncDetalle" [showBorders]="true" [showColumnLines]="true"
+                        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                        (onCellPrepared)="onCellPrepared($event)" [wordWrapEnabled]="true"
+                        noDataText="Sin ventas no concretadas en el día">
+                        <dxi-column dataField="asesor"         caption="ASESOR" [minWidth]="150" />
+                        <dxi-column dataField="dni"            caption="DNI CLIENTE" alignment="center" [width]="110" />
+                        <dxi-column dataField="producto"       caption="PRODUCTO INTERÉS" [minWidth]="150" />
+                        <dxi-column dataField="motivoNoCierre" caption="MOTIVO DE NO CIERRE" [minWidth]="200" />
+                        <dxi-column dataField="comentario"     caption="COMENTARIO" [minWidth]="200" />
+                    </dx-data-grid>
                 </div>
             </div>
 
