@@ -474,6 +474,23 @@ export class VentasCampoComponent implements OnInit {
       });
   }
 
+  /**
+   * Agrupa el monto de las notas de crédito por la clave devuelta por keyFn,
+   * EXCLUYENDO siempre las que tienen refacturación. Si una NC fue refacturada,
+   * la venta nueva ya está sumada en filtroVentas, por lo que descontar la NC
+   * sería un doble descuento. Centralizar este criterio evita que una tabla
+   * nueva olvide aplicar el filtro de refacturación.
+   */
+  private agruparNCSinRefacturacion(keyFn: (nc: any) => string): Map<string, number> {
+    const map = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      const key = keyFn(nc);
+      map.set(key, (map.get(key) || 0) + (nc.MontoConsolidado || 0));
+    });
+    return map;
+  }
+
   calcularKPIs(): void {
     this.totalVentas = this.filtroVentas.length;
     this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
@@ -547,11 +564,8 @@ export class VentasCampoComponent implements OnInit {
 
     // Restar solo las NCs puras (sin refacturación) por vendedor.
     // Las refacturadas no restan porque la nueva venta ya está sumada en filtroVentas.
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const nombre = this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta);
-      map.set(nombre, (map.get(nombre) || 0) - (nc.MontoConsolidado || 0));
-    });
+    this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta))
+      .forEach((monto, nombre) => map.set(nombre, (map.get(nombre) || 0) - monto));
 
     this.chartData = Array.from(map, ([name, total]) => ({
       Vendedor: name,
@@ -727,12 +741,7 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const nombre = this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta);
-      mapNC.set(nombre, (mapNC.get(nombre) || 0) + (nc.MontoConsolidado || 0));
-    });
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta));
 
     const rows: any[] = [];
     mapVentas.forEach((data, nombre) => {
@@ -781,12 +790,7 @@ export class VentasCampoComponent implements OnInit {
       if (diaAF <= 28) return 'Semana 4 (22-28)';
       return 'Semana 5 (29-31)';
     };
-    const ncPorSemana = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const s = semanaDeNCAF(nc.DiaAF || 0);
-      ncPorSemana.set(s, (ncPorSemana.get(s) || 0) + (nc.MontoConsolidado || 0));
-    });
+    const ncPorSemana = this.agruparNCSinRefacturacion(nc => semanaDeNCAF(nc.DiaAF || 0));
     this.ventasPorSemana = config.map(s => {
       const ventas = this.filtroVentas.filter(v => {
         const dia = (v.FECHAVENTA as Date).getDate();
@@ -813,12 +817,7 @@ export class VentasCampoComponent implements OnInit {
       const cur = mapVentas.get(ent) || { monto: 0, ops: 0 };
       mapVentas.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
-    const mapNC = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const ent = this.entidadDisplay(nc.Entidad);
-      mapNC.set(ent, (mapNC.get(ent) || 0) + (nc.MontoConsolidado || 0));
-    });
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.entidadDisplay(nc.Entidad));
     const rows: any[] = [];
     mapVentas.forEach((data, ent) => {
       const montoNC = Math.round(mapNC.get(ent) || 0);
@@ -866,11 +865,6 @@ export class VentasCampoComponent implements OnInit {
   }
 
   generarVentasPorTipoCredito(): void {
-    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
-    const fechaFin = new Date(this.formVentas.value.fechaFin);
-    fechaInicio.setHours(0, 0, 0, 0);
-    fechaFin.setHours(23, 59, 59, 999);
-
     const tipoKey = (v: any): string => {
       const entidad = (v.Entidad || '').toString().trim().toUpperCase();
       return entidad === 'GLOBAL GO'
@@ -885,13 +879,7 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = new Map<string, number>();
-    this.dataNotasCredito
-      .filter(nc => { const f = nc.FECHAVENTA as Date; return f >= fechaInicio && f <= fechaFin; })
-      .forEach(nc => {
-        const tipo = tipoKey(nc);
-        mapNC.set(tipo, (mapNC.get(tipo) || 0) + (nc.MontoConsolidado || 0));
-      });
+    const mapNC = this.agruparNCSinRefacturacion(tipoKey);
 
     const rows: any[] = [];
     mapVentas.forEach((data, tipo) => {
@@ -924,12 +912,7 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const tipo = (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase();
-      mapNC.set(tipo, (mapNC.get(tipo) || 0) + (nc.MontoConsolidado || 0));
-    });
+    const mapNC = this.agruparNCSinRefacturacion(nc => (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase());
 
     const rows: any[] = [];
     mapVentas.forEach((data, tipo) => {
@@ -1280,12 +1263,7 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
-      const nombre = this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta);
-      mapNC.set(nombre, (mapNC.get(nombre) || 0) + (nc.MontoConsolidado || 0));
-    });
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta));
 
     this.tablaBonosAsesor = Array.from(mapVentas.entries()).map(([nombre, data]) => {
       const ventas = Math.round(data.ventas);

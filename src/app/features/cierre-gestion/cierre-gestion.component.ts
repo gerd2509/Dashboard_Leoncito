@@ -171,7 +171,8 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ8', viewValue: 'UCHOFEN VIGO FELICITA' },
     // { value: 'RZ9', viewValue: 'CARRANZA ALARCON TREYCI JOHANA' },
     { value: 'RZ10', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'RZ11', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' }
+    { value: 'RZ11', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
+    { value: 'RZ12', viewValue: 'BUSTAMANTE CHALAN ANA RUT' }
   ];
 
   asesores1 = this.asesoresCall;
@@ -189,7 +190,8 @@ export class CierreGestionComponent implements OnInit {
     'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
     // Realzza
     'RZ0':  'ERNESTO',  'RZ1':  'NATALY',   'RZ2':  'TATIANA', 'RZ3':  'YUDITH',
-    'RZ6':  'ANYELA',   'RZ8':  'FELICITA', 'RZ10': 'MERLY',   'RZ11': 'CESAR'
+    'RZ6':  'ANYELA',   'RZ8':  'FELICITA', 'RZ10': 'MERLY',   'RZ11': 'CESAR',
+    'RZ12': 'ANA RUT'
   };
 
   // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo
@@ -299,7 +301,10 @@ export class CierreGestionComponent implements OnInit {
   }
 
   calcularContactabilidadRealzza() {
-    this.dataContactabilidadRealzza = this.procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA');
+    // Realzza: solo asesores con gestión/data (TOTAL > 0), igual que Call Center
+    this.dataContactabilidadRealzza = this
+      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA')
+      .filter(r => (r['TOTAL'] || 0) > 0);
   }
 
   calcularContactabilidadKOMMOCall() {
@@ -318,7 +323,10 @@ export class CierreGestionComponent implements OnInit {
 
   calcularContactabilidadKOMMORealzza() {
     // Realzza KOMMO: registros NO market place (MARKET PLACE R distinto de SI)
-    this.dataContactabilidadKOMMORealzza = this.procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false);
+    // Solo asesores con gestión/data (TOTAL > 0), igual que Call Center
+    this.dataContactabilidadKOMMORealzza = this
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false)
+      .filter(r => (r['TOTAL'] || 0) > 0);
   }
 
   calcularContactabilidadKOMMORealzzaMarket() {

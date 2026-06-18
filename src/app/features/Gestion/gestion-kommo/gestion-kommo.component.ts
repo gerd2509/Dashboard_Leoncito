@@ -32,6 +32,7 @@ export class GestionKommoComponent implements OnInit {
   columnaCelular: string = 'CELULAR GESTIONADO';
   columnaEstado: string = 'ESTADO DE GESTIÓN';
   columnaMotivoNoAtendible: string = 'MOTIVO NO ATENDIBLE';
+  columnaMarketPlace: string = 'MARKET PLACE L';
 
   asesoresCall = [
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
@@ -101,6 +102,7 @@ export class GestionKommoComponent implements OnInit {
       this.columnaCelular = 'CELULAR GESTIONADO';
       this.columnaEstado = 'ESTADO DE GESTIÓN';
       this.columnaMotivoNoAtendible = 'MOTIVO NO ATENDIBLE';
+      this.columnaMarketPlace = 'MARKET PLACE L';
     } else if (seleccion === 'REALZZA') {
       this.labelAsesor = 'Asesor Realzza';
       this.asesoresFiltrados = this.asesoresRealzza;
@@ -109,6 +111,7 @@ export class GestionKommoComponent implements OnInit {
       this.columnaCelular = 'CELULAR GESTIONADO REALZZA';
       this.columnaEstado = 'ESTADO DE GESTIÓN REALZZA';
       this.columnaMotivoNoAtendible = 'MOTIVO NO ATENDIBLE';
+      this.columnaMarketPlace = 'MARKET PLACE R';
     } else {
       this.asesoresFiltrados = [];
       this.labelAsesor = 'Asesor';
