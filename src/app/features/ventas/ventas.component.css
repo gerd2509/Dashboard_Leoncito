@@ -228,6 +228,103 @@ button[mat-stroked-button].toggle-detail,
     color: #1A5FAD;
 }
 
+/* ── Tabla evolutivo por Tipo de Cliente ── */
+.evo-tabla-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.evo-tabla {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 12.5px;
+    white-space: nowrap;
+}
+
+.evo-tabla thead th {
+    background: #293964;
+    color: #FFFFFF;
+    font-weight: 700;
+    text-align: right;
+    padding: 11px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    letter-spacing: 0.2px;
+}
+
+.evo-tabla thead th.evo-col-fija {
+    text-align: left;
+    z-index: 3;
+}
+
+.evo-tabla .evo-col-fija {
+    position: sticky;
+    left: 0;
+    font-weight: 700;
+    text-align: left;
+    color: #1E3A5F;
+    background: #FFFFFF;
+    z-index: 1;
+}
+
+.evo-tabla thead .evo-col-fija {
+    background: #293964;
+    color: #FFFFFF;
+}
+
+.evo-tabla tbody td {
+    padding: 9px 14px;
+    text-align: right;
+    border-bottom: 1px solid #E6EDF6;
+    color: #1E3A5F;
+    font-variant-numeric: tabular-nums;
+}
+
+.evo-tabla tbody tr:nth-child(even) td,
+.evo-tabla tbody tr:nth-child(even) td.evo-col-fija {
+    background: #F4F7FB;
+}
+
+.evo-tabla tbody tr:hover td,
+.evo-tabla tbody tr:hover td.evo-col-fija {
+    background: #E6EEF8;
+}
+
+.evo-col-proy {
+    background: #EEF2F9;
+    font-weight: 700;
+    color: #1A3A6B !important;
+    border-left: 2px solid #CCDAEE;
+}
+
+.evo-tabla thead th.evo-col-proy {
+    background: #1E2D50;
+    color: #FFFFFF !important;
+    border-left: 2px solid #1E2D50;
+}
+
+.evo-tabla tfoot td {
+    background: #f0f3fa;
+    color: #1A3A6B;
+    font-weight: 800;
+    text-align: right;
+    padding: 11px 14px;
+    font-variant-numeric: tabular-nums;
+    position: sticky;
+    bottom: 0;
+}
+
+.evo-tabla tfoot td.evo-col-fija {
+    background: #f0f3fa;
+    z-index: 1;
+}
+
+.evo-tabla tfoot td.evo-col-proy {
+    background: #E4EAF4;
+    color: #1A3A6B !important;
+}
+
 /* =========================================================
    GRÁFICOS
    ========================================================= */

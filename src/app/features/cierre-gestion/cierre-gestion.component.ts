@@ -160,19 +160,17 @@ export class CierreGestionComponent implements OnInit {
 
   // LISTA ASESORES REALZZA
   asesoresRealzza = [
-    { value: 'RZ0', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'RZ1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'RZ2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'RZ3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    // { value: 'RZ4', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
-    // { value: 'RZ5', viewValue: 'SAMAME HUAMAN ARIADNE' },
-    { value: 'RZ6', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    // { value: 'RZ7', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
-    { value: 'RZ8', viewValue: 'UCHOFEN VIGO FELICITA' },
-    // { value: 'RZ9', viewValue: 'CARRANZA ALARCON TREYCI JOHANA' },
-    { value: 'RZ10', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'RZ11', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
-    { value: 'RZ12', viewValue: 'BUSTAMANTE CHALAN ANA RUT' }
+    { value: 'RZ1', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
+    { value: 'RZ2', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
+    { value: 'RZ3', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
+    { value: 'RZ4', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
+    { value: 'RZ5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
+    { value: 'RZ6', viewValue: 'UCHOFEN VIGO FELICITA' },
+    { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
+    { value: 'RZ8', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
+    { value: 'RZ9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
+    { value: 'RZ10', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
+    { value: 'RZ11', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
   ];
 
   asesores1 = this.asesoresCall;
@@ -191,7 +189,7 @@ export class CierreGestionComponent implements OnInit {
     // Realzza
     'RZ0':  'ERNESTO',  'RZ1':  'NATALY',   'RZ2':  'TATIANA', 'RZ3':  'YUDITH',
     'RZ6':  'ANYELA',   'RZ8':  'FELICITA', 'RZ10': 'MERLY',   'RZ11': 'CESAR',
-    'RZ12': 'ANA RUT'
+    'RZ12': 'ANA RUT', 'RZ13': 'LUCIA'
   };
 
   // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo

@@ -136,6 +136,13 @@ export class VentasCampoComponent implements OnInit {
     'CASTILLO AGUILAR ANYELA VANESSA'
   ]);
 
+  // Vendedores que pertenecen al cap RealZZA aunque traigan un código de asesor
+  // CALL en AsesorVenta (ej. CC12). Deben contarse como vendedor independiente
+  // (su propio nombre), NO como "CALL", en todas las tablas y gráficos.
+  private readonly vendedoresExcepcionCall = new Set([
+    'BERNAL BAZAN BRENDA NICOLL'
+  ]);
+
 
 
   // Lista para el filtro manual (Dropdown)
@@ -145,15 +152,14 @@ export class VentasCampoComponent implements OnInit {
     { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
     { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
     { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
-    { value: 'AV5', viewValue: 'SAMAME HUAMAN ARIADNE' },
-    { value: 'AV6', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'AV7', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
-    { value: 'AV8', viewValue: 'SERNAQUE DAVILA JUAN ALBERTO' },
-    { value: 'AV9', viewValue: 'CARRANZA ALARCON TREYCI JOHANA' },
-    { value: 'AV10', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'AV11', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'AV12', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'AV12', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' }
+    { value: 'AV5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
+    { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
+    { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
+    { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
+    { value: 'AV9', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
+    { value: 'AV10', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
+    { value: 'AV11', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
+    { value: 'AV12', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
   ];
 
   nombresCortos: Record<string, string> = {
@@ -169,7 +175,9 @@ export class VentasCampoComponent implements OnInit {
     'MIÑOPE GONZALES ANYELA ESTHEFANY': 'ANYELA',
     'SAMAME HUAMAN ARIADNE': 'ARIADNE',
     'UCHOFEN VIGO FELICITA': 'FELICITA',
-    'RIQUERO ULCO CESAR JEFFERSON': 'CESAR'
+    'RIQUERO ULCO CESAR JEFFERSON': 'CESAR',
+    'BUSTAMANTE CHALAN ANA RUT': 'ANA RUT',
+    'BUSTAMANTE BANCES LUCIA NICOLL': 'LUCIA'
   };
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
@@ -549,7 +557,7 @@ export class VentasCampoComponent implements OnInit {
 
   private resolverNombreVendedor(vendedorOriginal: string, asesorVenta: string = ''): string {
     const av = (asesorVenta || '').toString().trim().toUpperCase();
-    if (av && av !== 'NAS') return 'CALL';
+    if (av && av !== 'NAS' && !this.vendedoresExcepcionCall.has(vendedorOriginal)) return 'CALL';
     if (this.grupoBrilla.has(vendedorOriginal)) return 'BRILLA';
     return this.nombresCortos[vendedorOriginal] || vendedorOriginal;
   }
@@ -1076,13 +1084,14 @@ export class VentasCampoComponent implements OnInit {
       const key = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
       mesesSet.add(key);
     });
-    this.mesesGlobalGo = Array.from(mesesSet).sort().map(k => {
+    const mesesOrdenados = Array.from(mesesSet).sort().map(k => {
       const [y, m] = k.split('-');
       return { value: k, label: `${this.getNombreMes(+m)} ${y}` };
     });
-    const hoy = new Date();
-    const curKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-    this.mesSeleccionadoGlobalGo = mesesSet.has(curKey) ? curKey : (this.mesesGlobalGo[0]?.value || '');
+    // Opción inicial "Seleccionar" (value vacío) → muestra la data general de todos los meses.
+    this.mesesGlobalGo = [{ value: '', label: 'Seleccionar (Todos)' }, ...mesesOrdenados];
+    // Por defecto arranca en "Seleccionar" para listar toda la data al cargar.
+    this.mesSeleccionadoGlobalGo = '';
     this.filtrarGlobalGo();
   }
 

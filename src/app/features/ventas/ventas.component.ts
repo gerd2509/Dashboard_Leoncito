@@ -31,6 +31,7 @@ export class VentasComponent implements OnInit {
   popupVisibleVentasSemanal = false;
   popupVisibleVentasPorMes = false;
   popupVisibleEvolutivo = false;
+  popupVisibleEvolutivoTabla = false;
 
   // KPIs
   totalMontoVentas = 0;
@@ -52,6 +53,11 @@ export class VentasComponent implements OnInit {
   dataEvolutivo: any[] = [];
   seriesEvolutivoMain: string[] = [];
   seriesEvolutivoTrend: string[] = [];
+
+  // Evolutivo por Tipo de Cliente (matriz: TipoCliente x Periodo)
+  evolutivoPeriodos: string[] = [];
+  evolutivoPorTipoCliente: any[] = [];
+  evolutivoTotalesPorPeriodo: any = {};
 
   // Tabla bonos por asesor
   tablaBonosAsesor: any[] = [];
@@ -123,6 +129,19 @@ export class VentasComponent implements OnInit {
     { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' }
   ];
 
+  // Asesores cuyo cap pertenece a RealZZA: su monto SÍ suma al total general,
+  // pero se muestran aparte (tabla "Cap RealZZA") y se excluyen de la lista de
+  // vendedores, bonos/proyección y tablas de contacto, porque su comisión es
+  // distinta. Ampliar el set para sumar más asesores cap-realzza.
+  private readonly capRealzzaCodes = new Set(['CC12']);
+
+  esCapRealzza(asesorVenta: string): boolean {
+    return this.capRealzzaCodes.has((asesorVenta || '').toString().trim().toUpperCase());
+  }
+
+  // Tabla separada Cap RealZZA (1 fila por asesor, desglose por sede)
+  ventasCapRealzza: any[] = [];
+
   nombresCortos: Record<string, string> = {
     'CC1':  'PATRICIA',
     'CC3':  'FELICITA',
@@ -170,7 +189,7 @@ export class VentasComponent implements OnInit {
     { value: '2', viewValue: 'MELAMINA' }
   ];
 
-  @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
+  @ViewChild('detailGrid', { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
     const today = new Date();
@@ -227,24 +246,62 @@ export class VentasComponent implements OnInit {
       this.dataEvolutivo = [];
       this.seriesEvolutivoMain = ['Ventas'];
       this.seriesEvolutivoTrend = [];
+      this.evolutivoPeriodos = [];
+      this.evolutivoPorTipoCliente = [];
+      this.evolutivoTotalesPorPeriodo = {};
       const evoSheet = workbook.SheetNames.find(n => n.trim().toUpperCase() === 'EVOLUTIVO');
       if (evoSheet) {
         const evoRows = XLSX.utils.sheet_to_json(workbook.Sheets[evoSheet], { raw: true }) as any[];
-        const mapEvo = new Map<string, number>();
+        const mapEvo = new Map<string, number>();                  // periodoKey -> total
+        const pivot = new Map<string, Map<string, number>>();      // TipoCliente -> (periodoKey -> monto)
+        const periodKeys = new Set<string>();
         evoRows.forEach((r: any) => {
           const keys = Object.keys(r);
           const fk = keys.find(k => k.trim().toUpperCase().replace(/\s+/g, '') === 'FECHAVENTA') || 'FECHAVENTA';
           const mk = keys.find(k => k.trim().toUpperCase().replace(/\s+/g, '') === 'MONTOCONSOLIDADO') || 'MontoConsolidado';
+          const tk = keys.find(k => k.trim().toUpperCase().replace(/\s+/g, '') === 'TIPOCLIENTE') || 'TipoCliente';
           const fecha = this.getFechaJS(r[fk] ?? '');
           const monto = this.parseNumber(r[mk] ?? 0);
           if (!fecha || isNaN(fecha.getTime()) || monto <= 0) return;
           const key = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
           mapEvo.set(key, (mapEvo.get(key) || 0) + monto);
+          periodKeys.add(key);
+
+          const tipo = (r[tk] ?? '').toString().trim().toUpperCase() || 'SIN TIPO';
+          if (!pivot.has(tipo)) pivot.set(tipo, new Map());
+          const inner = pivot.get(tipo)!;
+          inner.set(key, (inner.get(key) || 0) + monto);
         });
-        this.dataEvolutivo = Array.from(mapEvo.keys()).sort().map(k => {
+
+        const sortedKeys = Array.from(periodKeys).sort();
+        this.evolutivoPeriodos = sortedKeys.map(k => {
           const [anio, mes] = k.split('-');
-          return { Periodo: `${this.getNombreMes(+mes).substring(0, 3).toUpperCase()} ${anio}`, Ventas: Math.round(mapEvo.get(k) || 0) };
+          return `${this.getNombreMes(+mes).substring(0, 3).toUpperCase()} ${anio}`;
         });
+
+        // Datos del gráfico (total por periodo)
+        this.dataEvolutivo = sortedKeys.map((k, i) => ({
+          Periodo: this.evolutivoPeriodos[i],
+          Ventas: Math.round(mapEvo.get(k) || 0)
+        }));
+
+        // Matriz por Tipo de Cliente
+        const lastKey = sortedKeys[sortedKeys.length - 1];
+        const rows: any[] = [];
+        pivot.forEach((periodMap, tipo) => {
+          const row: any = { TipoCliente: tipo };
+          sortedKeys.forEach((k, i) => { row[this.evolutivoPeriodos[i]] = Math.round(periodMap.get(k) || 0); });
+          row['ProyeccionCierre'] = Math.round(this.getProyeccionEvolutivo(periodMap.get(lastKey) || 0, lastKey));
+          rows.push(row);
+        });
+        rows.sort((a, b) => a.TipoCliente.localeCompare(b.TipoCliente));
+        this.evolutivoPorTipoCliente = rows;
+
+        // Fila de totales
+        const totals: any = { TipoCliente: 'TOTAL' };
+        this.evolutivoPeriodos.forEach(p => { totals[p] = rows.reduce((s, r) => s + (r[p] || 0), 0); });
+        totals['ProyeccionCierre'] = rows.reduce((s, r) => s + (r.ProyeccionCierre || 0), 0);
+        this.evolutivoTotalesPorPeriodo = totals;
       }
 
       this.actualizarFiltros();
@@ -292,6 +349,7 @@ export class VentasComponent implements OnInit {
     this.generarVentasPorSede();
     this.generarVentasPorAsesorTipoBase();
     this.generarResumenBonosAsesor();
+    this.generarVentasCapRealzza();
   }
 
   calcularKPIs(): void {
@@ -329,6 +387,7 @@ export class VentasComponent implements OnInit {
   generarChartData(): void {
     const map = new Map<string, number>();
     for (const v of this.filtroVentas) {
+      if (this.esCapRealzza(v.AsesorVenta)) continue;
       const id = (v.AsesorVenta || '').toString().trim();
       map.set(id, (map.get(id) || 0) + (v.MontoConsolidado || 0));
     }
@@ -435,6 +494,7 @@ export class VentasComponent implements OnInit {
   generarVentasPorContacto(): void {
     const map = new Map<string, { monto: number; ops: number }>();
     this.filtroVentas.forEach(v => {
+      if (this.esCapRealzza(v.AsesorVenta)) return;
       const c = (v.CONTACTO || 'SIN CONTACTO').toString().trim().toUpperCase();
       const cur = map.get(c) || { monto: 0, ops: 0 };
       map.set(c, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
@@ -528,6 +588,7 @@ export class VentasComponent implements OnInit {
     // Recolectar todos los tipos de base únicos ordenados
     const tiposSet = new Set<string>();
     this.filtroVentas.forEach(v => {
+      if (this.esCapRealzza(v.AsesorVenta)) return;
       const c = (v.CONTACTO || 'SIN CONTACTO').toString().trim().toUpperCase();
       if (c) tiposSet.add(c);
     });
@@ -536,6 +597,7 @@ export class VentasComponent implements OnInit {
     // Mapa: nombre asesor → { tipoBase → monto }
     const map = new Map<string, Map<string, number>>();
     this.filtroVentas.forEach(v => {
+      if (this.esCapRealzza(v.AsesorVenta)) return;
       const id      = (v.AsesorVenta || '').toString().trim();
       const nombre  = this.nombresCortos[id] || (this.asesores.find(a => a.value === id)?.viewValue ?? id);
       const tipo    = (v.CONTACTO || 'SIN CONTACTO').toString().trim().toUpperCase();
@@ -565,9 +627,48 @@ export class VentasComponent implements OnInit {
     this.ventasPorAsesorTipoBase = rows;
   }
 
+  // Tabla "Cap RealZZA": una fila por asesor cap-realzza, con su monto
+  // desglosado entre ventas de la sede RealZZA y ventas de otras sedes.
+  generarVentasCapRealzza(): void {
+    const map = new Map<string, { realzza: number; otras: number; ops: number }>();
+    this.filtroVentas.forEach(v => {
+      const id = (v.AsesorVenta || '').toString().trim().toUpperCase();
+      if (!this.esCapRealzza(id)) return;
+      const nombre = this.nombresCortos[id] || (this.asesores.find(a => a.value === id)?.viewValue ?? id);
+      const esRealzza = (v.Sede || '').toString().trim().toUpperCase().includes('REALZZA');
+      const cur = map.get(nombre) || { realzza: 0, otras: 0, ops: 0 };
+      if (esRealzza) cur.realzza += (v.MontoConsolidado || 0);
+      else           cur.otras   += (v.MontoConsolidado || 0);
+      cur.ops += 1;
+      map.set(nombre, cur);
+    });
+    this.ventasCapRealzza = Array.from(map.entries()).map(([nombre, d]) => ({
+      Asesor: nombre,
+      VentasRealzza: Math.round(d.realzza),
+      VentasOtrasSedes: Math.round(d.otras),
+      Total: Math.round(d.realzza + d.otras),
+      NroOps: d.ops
+    })).sort((a, b) => b.Total - a.Total);
+  }
+
   formatMontoPivot(value: number): string {
     if (!value || value <= 0) return '-';
     return `S/ ${Math.round(value).toLocaleString('es-PE')}`;
+  }
+
+  formatEvoMonto(value: number): string {
+    if (!value || value <= 0) return 'S/  -';
+    return `S/ ${Math.round(value).toLocaleString('es-PE')}`;
+  }
+
+  // Proyección de cierre del último mes con data:
+  // (monto del último mes / días transcurridos) × días del último mes.
+  getProyeccionEvolutivo(monto: number, periodKey: string): number {
+    if (!monto || monto <= 0) return 0;
+    const [anio, mes] = periodKey.split('-').map(Number);
+    const diasMes = new Date(anio, mes, 0).getDate();          // días del último mes con data
+    const diasTranscurridos = Math.max(1, new Date().getDate()); // días transcurridos del mes en curso
+    return (monto / diasTranscurridos) * diasMes;
   }
 
   // ─── UTILIDADES ──────────────────────────────────────────────────────────────
@@ -709,12 +810,13 @@ export class VentasComponent implements OnInit {
     for (const v of this.filtroVentas) {
       const id = (v.AsesorVenta || '').toString().trim();
       if (!id) continue;
+      if (this.esCapRealzza(id)) continue;
       const cur = map.get(id) || { ventas: 0, ops: 0 };
       map.set(id, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     }
 
     this.tablaBonosAsesor = Array.from(map.entries()).map(([id, data]) => {
-      const nombre = this.asesores.find(a => a.value === id)?.viewValue ?? id;
+      const nombre = this.nombresCortos[id] || (this.asesores.find(a => a.value === id)?.viewValue ?? id);
       const ventas = Math.round(data.ventas);
       const ticket = data.ops > 0 ? Math.round(data.ventas / data.ops) : 0;
       let ticketDiario = 0;

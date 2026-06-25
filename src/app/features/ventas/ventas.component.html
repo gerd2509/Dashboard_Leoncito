@@ -23,9 +23,6 @@
     <button mat-flat-button (click)="fileInput.click()">
         <mat-icon>upload</mat-icon> Importar Excel
     </button>
-    <button mat-flat-button (click)="exportar()">
-        <mat-icon>file_download</mat-icon> Exportar
-    </button>
 </form>
 
 <!-- ===== KPIs ===== -->
@@ -77,15 +74,47 @@
     </dx-data-grid>
 </div>
 
+<!-- ===== CAP REALZZA (asesores con comisión distinta, mostrados aparte) ===== -->
+<div *ngIf="ventasCapRealzza.length > 0" style="margin: 16px 0;">
+    <div class="section-header">
+        <mat-icon>workspace_premium</mat-icon>
+        Cap RealZZA
+    </div>
+    <dx-data-grid [dataSource]="ventasCapRealzza" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="false" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedBonos($event)" [hoverStateEnabled]="true">
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxi-column dataField="Asesor" caption="ASESOR" alignment="center" [minWidth]="200" />
+        <dxi-column dataField="VentasRealzza" caption="VENTAS REALZZA" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="VentasOtrasSedes" caption="VENTAS OTRAS SEDES" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="Total" caption="TOTAL" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="Asesor" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="VentasRealzza" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="VentasOtrasSedes" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="Total" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>
+
 <!-- ===== TOGGLE TABLA DETALLE ===== -->
-<div style="margin: 12px 0 4px 0;">
+<div style="margin: 12px 0 4px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
     <button mat-stroked-button (click)="showDetailGrid = !showDetailGrid"
         style="border-color:rgba(26,95,173,0.4); color:#1A5FAD; font-weight:600; border-radius:8px; background:rgba(26,95,173,0.07);">
         <mat-icon>{{ showDetailGrid ? 'expand_less' : 'expand_more' }}</mat-icon>
         {{ showDetailGrid ? 'Ocultar tabla de detalle' : 'Ver tabla de detalle completa' }}
     </button>
+    <button *ngIf="showDetailGrid" mat-flat-button color="primary" (click)="exportar()"
+        style="border-radius:8px; font-weight:600;">
+        <mat-icon>file_download</mat-icon> Exportar detalle
+    </button>
 </div>
-<dx-data-grid *ngIf="showDetailGrid" id="dataGrid" class="focqus-elevation"
+<dx-data-grid *ngIf="showDetailGrid" #detailGrid id="dataGrid" class="focqus-elevation"
     [dataSource]="filtroVentas" [allowColumnReordering]="true"
     [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
     [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
@@ -363,6 +392,54 @@
         </dxo-crosshair>
     </dx-chart>
 </div>
+
+<!-- ===== EVOLUTIVO POR TIPO DE CLIENTE (matriz) ===== -->
+<ng-template #evoTablaTpl>
+    <div class="evo-tabla-scroll">
+        <table class="evo-tabla">
+            <thead>
+                <tr>
+                    <th class="evo-col-fija">TIPO DE CLIENTE</th>
+                    <th *ngFor="let p of evolutivoPeriodos">{{ p }}</th>
+                    <th class="evo-col-proy">PROYECCIÓN CIERRE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let row of evolutivoPorTipoCliente">
+                    <td class="evo-col-fija">{{ row.TipoCliente }}</td>
+                    <td *ngFor="let p of evolutivoPeriodos">{{ formatEvoMonto(row[p]) }}</td>
+                    <td class="evo-col-proy">{{ formatEvoMonto(row.ProyeccionCierre) }}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="evo-col-fija">TOTAL</td>
+                    <td *ngFor="let p of evolutivoPeriodos">{{ formatEvoMonto(evolutivoTotalesPorPeriodo[p]) }}</td>
+                    <td class="evo-col-proy">{{ formatEvoMonto(evolutivoTotalesPorPeriodo.ProyeccionCierre) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</ng-template>
+
+<div class="evolutivo-card" *ngIf="evolutivoPorTipoCliente.length > 0">
+    <div class="evolutivo-header">
+        <mat-icon>table_chart</mat-icon>
+        <span>Evolutivo por Tipo de Cliente &mdash; Monto Mes a Mes</span>
+        <button mat-icon-button (click)="popupVisibleEvolutivoTabla = true" title="Ampliar"
+            style="margin-left:auto; color:#1A5FAD;">
+            <mat-icon>open_in_full</mat-icon>
+        </button>
+    </div>
+    <ng-container *ngTemplateOutlet="evoTablaTpl"></ng-container>
+</div>
+
+<!-- POPUP: EVOLUTIVO POR TIPO DE CLIENTE -->
+<dx-popup [(visible)]="popupVisibleEvolutivoTabla" [showTitle]="true"
+    title="Evolutivo por Tipo de Cliente — Monto Mes a Mes"
+    [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+    <ng-container *ngTemplateOutlet="evoTablaTpl"></ng-container>
+</dx-popup>
 
 <!-- POPUP: EVOLUTIVO -->
 <dx-popup [(visible)]="popupVisibleEvolutivo" [showTitle]="true"
