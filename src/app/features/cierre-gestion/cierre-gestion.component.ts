@@ -187,9 +187,9 @@ export class CierreGestionComponent implements OnInit {
     'CC8':  'KELLY',    'CC11': 'ARIADNE',  'CC12': 'BRENDA',  'CC13': 'FRANCIS',
     'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
     // Realzza
-    'RZ0':  'ERNESTO',  'RZ1':  'NATALY',   'RZ2':  'TATIANA', 'RZ3':  'YUDITH',
-    'RZ6':  'ANYELA',   'RZ8':  'FELICITA', 'RZ10': 'MERLY',   'RZ11': 'CESAR',
-    'RZ12': 'ANA RUT', 'RZ13': 'LUCIA'
+    'RZ1':  'ERNESTO',  'RZ2':  'NATALY',   'RZ3':  'TATIANA', 'RZ4':  'YUDITH',
+    'RZ5':  'ANYELA',   'RZ6':  'FELICITA', 'RZ7': 'MERLY',   'RZ8': 'CESAR',
+    'RZ9': 'ANA RUT', 'RZ10': 'LUCIA', 'RZ11': 'DENNIS'
   };
 
   // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo
