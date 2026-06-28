@@ -177,7 +177,8 @@ export class VentasCampoComponent implements OnInit {
     'UCHOFEN VIGO FELICITA': 'FELICITA',
     'RIQUERO ULCO CESAR JEFFERSON': 'CESAR',
     'BUSTAMANTE CHALAN ANA RUT': 'ANA RUT',
-    'BUSTAMANTE BANCES LUCIA NICOLL': 'LUCIA'
+    'BUSTAMANTE BANCES LUCIA NICOLL': 'LUCIA',
+    'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS'
   };
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
