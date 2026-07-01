@@ -63,22 +63,26 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'ventas-campo',                 label: 'Ventas — Realzza',             grupo: 'Ventas' },
   { key: 'ventas-comparativo',           label: 'Ventas — Comparativo',         grupo: 'Ventas' },
   { key: 'evolucion-tipo-cliente',       label: 'Ventas — Evolutivo',           grupo: 'Ventas' },
+  { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
   { key: 'ventas-brilla-realzza',        label: 'Ventas Brilla Realzza' },
   { key: 'ventas-cuotas-tipoVenta',      label: 'Ventas Cuotas Tipo Venta' },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV' },
   { key: 'cobranzas',                    label: 'Cobranzas' },
   { key: 'conversor-csv',                label: 'Conversor CSV' },
   { key: 'limpieza-bbdd',                label: 'Limpieza BBDD' },
+  { key: 'gps-ruta',                     label: 'Optimizar Rutas GPS' },
   { key: 'post-venta',                   label: 'Post Venta' },
   { key: 'gestion-sede',                 label: 'Gestión Sede',          grupo: 'Gestión', sedeScoped: true },
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',                    sedeScoped: true },
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',    grupo: 'Gestión', sedeScoped: true },
   { key: 'control-call-sedes',           label: 'Control Call Sedes',                      sedeScoped: true },
+  { key: 'pizarra-metas',                label: 'Pizarra de Metas',                        sedeScoped: true },
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
+  'ventas-sedes', 'pizarra-metas',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'ventas-brilla-realzza',
@@ -91,7 +95,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v7';
+const STORAGE_KEY = 'gd_permissions_v10';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

@@ -5,109 +5,212 @@
     <div class="enc-icono"><mat-icon>cleaning_services</mat-icon></div>
     <div>
       <h2>Limpieza de Base de Datos</h2>
-      <p>Consolida los teléfonos por <b>DNI</b>, elimina duplicados y deja los números únicos alineados a la izquierda.</p>
+      <p *ngIf="!modo">Elige el tipo de limpieza que necesitas realizar.</p>
+      <p *ngIf="modo === 'sedes'">Consolida los teléfonos por <b>DNI</b>, elimina duplicados y deja los números únicos alineados a la izquierda.</p>
+      <p *ngIf="modo === 'call'">Limpia duplicados y cruza cada número con la <b>gestión Call Center</b> del rango elegido: elimina los <b>NO CONTACTO</b> y conserva CONTACTO + no gestionados.</p>
     </div>
+    <button *ngIf="modo" class="btn-secundario volver" (click)="volverModos()">
+      <mat-icon>arrow_back</mat-icon> Cambiar modo
+    </button>
   </div>
 
-  <!-- Zona de carga -->
-  <div *ngIf="!listoParaDescargar"
-       class="dropzone"
-       [class.dragging]="arrastrando"
-       [class.procesando]="procesando"
-       (dragover)="onDragOver($event)"
-       (dragleave)="onDragLeave($event)"
-       (drop)="onDrop($event)">
-
-    <ng-container *ngIf="!procesando; else cargando">
-      <mat-icon class="dz-icon">cloud_upload</mat-icon>
-      <p class="dz-titulo">Arrastra tu archivo Excel aquí</p>
-      <p class="dz-sub">o</p>
-      <label class="btn-cargar">
-        <mat-icon>folder_open</mat-icon>
-        Seleccionar archivo
-        <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" />
-      </label>
-      <p class="dz-formatos">Formatos admitidos: .xlsx, .xls</p>
-    </ng-container>
-
-    <ng-template #cargando>
-      <div class="spinner"></div>
-      <p class="dz-titulo">Procesando «{{ nombreArchivo }}»…</p>
-    </ng-template>
+  <!-- ── Selección de modo ── -->
+  <div class="modos" *ngIf="!modo">
+    <button class="modo-card" (click)="seleccionarModo('sedes')">
+      <div class="modo-ico sedes"><mat-icon>location_city</mat-icon></div>
+      <h3>Limpieza BBDD Sedes</h3>
+      <p>Solo consolida y depura los teléfonos por DNI (números únicos, sin duplicados).</p>
+    </button>
+    <button class="modo-card" (click)="seleccionarModo('call')">
+      <div class="modo-ico call"><mat-icon>call</mat-icon></div>
+      <h3>Limpieza BBDD Call</h3>
+      <p>Depura teléfonos y los cruza con la gestión Call Center para marcar contacto / no contacto y filtrar.</p>
+    </button>
   </div>
 
-  <!-- Error -->
-  <div class="alerta-error" *ngIf="error">
-    <mat-icon>error_outline</mat-icon>
-    <span>{{ error }}</span>
-    <button class="btn-link" (click)="reiniciar()">Reintentar</button>
-  </div>
+  <!-- ── Flujo de limpieza (Sedes o Call) ── -->
+  <ng-container *ngIf="modo">
 
-  <!-- Resultado -->
-  <div class="resultado" *ngIf="listoParaDescargar">
-
-    <div class="res-header">
-      <div class="res-archivo">
-        <mat-icon>description</mat-icon>
-        <span>{{ nombreArchivo }}</span>
+    <!-- Rango de fechas (solo Call) -->
+    <div class="rango" *ngIf="modo === 'call' && !listoParaDescargar">
+      <div class="rango-campo">
+        <label>Gestión desde</label>
+        <dx-date-box [(value)]="fechaInicio" type="date" displayFormat="dd/MM/yyyy"
+          stylingMode="outlined" [width]="170" (onValueChanged)="error=''"
+          placeholder="Fecha inicio"></dx-date-box>
       </div>
-      <button class="btn-secundario" (click)="reiniciar()">
-        <mat-icon>restart_alt</mat-icon> Procesar otro
-      </button>
-    </div>
-
-    <!-- Métricas -->
-    <div class="metricas">
-      <div class="metrica">
-        <span class="m-valor">{{ totalFilasLeidas }}</span>
-        <span class="m-label">Filas leídas</span>
+      <div class="rango-campo">
+        <label>Gestión hasta</label>
+        <dx-date-box [(value)]="fechaFin" type="date" displayFormat="dd/MM/yyyy"
+          stylingMode="outlined" [width]="170" (onValueChanged)="error=''"
+          placeholder="Fecha fin"></dx-date-box>
       </div>
-      <div class="metrica">
-        <span class="m-valor">{{ totalDnis }}</span>
-        <span class="m-label">DNIs únicos</span>
-      </div>
-      <div class="metrica">
-        <span class="m-valor">{{ numerosUnicos }}</span>
-        <span class="m-label">Números únicos</span>
-      </div>
-      <div class="metrica destacada">
-        <span class="m-valor">{{ duplicadosEliminados }}</span>
-        <span class="m-label">Duplicados eliminados</span>
-      </div>
-      <div class="metrica">
-        <span class="m-valor">{{ maxNumerosPorDni }}</span>
-        <span class="m-label">Máx. nros / DNI</span>
+      <div class="rango-nota" [class.ok]="puedeCargarCall">
+        <mat-icon>{{ puedeCargarCall ? 'check_circle' : 'info' }}</mat-icon>
+        {{ puedeCargarCall ? 'Rango listo, ya puedes cargar el archivo.' : 'Selecciona el rango para habilitar la carga.' }}
       </div>
     </div>
 
-    <!-- Vista previa -->
-    <div class="preview" *ngIf="preview.length">
-      <h3>Vista previa <small>(primeras {{ preview.length }} filas)</small></h3>
-      <div class="tabla-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th class="th-dni">DNI</th>
-              <th *ngFor="let c of columnasNumero; let i = index">{{ c }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let f of preview">
-              <td class="td-dni">{{ f.dni || '—' }}</td>
-              <td *ngFor="let c of columnasNumero; let i = index">{{ f.numeros[i] || '' }}</td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- Zona de carga -->
+    <div *ngIf="!listoParaDescargar"
+         class="dropzone"
+         [class.dragging]="arrastrando"
+         [class.procesando]="procesando"
+         [class.deshabilitado]="modo === 'call' && !puedeCargarCall"
+         (dragover)="onDragOver($event)"
+         (dragleave)="onDragLeave($event)"
+         (drop)="onDrop($event)">
+
+      <ng-container *ngIf="!procesando; else cargando">
+        <mat-icon class="dz-icon">cloud_upload</mat-icon>
+        <p class="dz-titulo">Arrastra tu archivo Excel aquí</p>
+        <p class="dz-sub">o</p>
+        <label class="btn-cargar" [class.disabled]="modo === 'call' && !puedeCargarCall">
+          <mat-icon>folder_open</mat-icon>
+          Seleccionar archivo
+          <input type="file" hidden accept=".xlsx,.xls"
+                 [disabled]="modo === 'call' && !puedeCargarCall"
+                 (change)="onFileChange($event)" />
+        </label>
+        <p class="dz-formatos">Formatos admitidos: .xlsx, .xls</p>
+      </ng-container>
+
+      <ng-template #cargando>
+        <div class="spinner"></div>
+        <p class="dz-titulo">Procesando «{{ nombreArchivo }}»…</p>
+      </ng-template>
+    </div>
+
+    <!-- Error -->
+    <div class="alerta-error" *ngIf="error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error }}</span>
+      <button class="btn-link" (click)="reiniciar()">Reintentar</button>
+    </div>
+
+    <!-- Resultado -->
+    <div class="resultado" *ngIf="listoParaDescargar">
+
+      <div class="res-header">
+        <div class="res-archivo">
+          <mat-icon>description</mat-icon>
+          <span>{{ nombreArchivo }}</span>
+        </div>
+        <button class="btn-secundario" (click)="reiniciar()">
+          <mat-icon>restart_alt</mat-icon> Procesar otro
+        </button>
+      </div>
+
+      <!-- Métricas comunes -->
+      <div class="metricas">
+        <div class="metrica">
+          <span class="m-valor">{{ totalFilasLeidas }}</span>
+          <span class="m-label">Filas leídas</span>
+        </div>
+        <div class="metrica">
+          <span class="m-valor">{{ totalDnis }}</span>
+          <span class="m-label">DNIs únicos</span>
+        </div>
+        <div class="metrica">
+          <span class="m-valor">{{ numerosUnicos }}</span>
+          <span class="m-label">Números únicos</span>
+        </div>
+        <div class="metrica destacada">
+          <span class="m-valor">{{ duplicadosEliminados }}</span>
+          <span class="m-label">Duplicados eliminados</span>
+        </div>
+        <div class="metrica" *ngIf="modo === 'sedes'">
+          <span class="m-valor">{{ maxNumerosPorDni }}</span>
+          <span class="m-label">Máx. nros / DNI</span>
+        </div>
+      </div>
+
+      <!-- Métricas Call -->
+      <div class="metricas call" *ngIf="modo === 'call'">
+        <div class="metrica ok">
+          <span class="m-valor">{{ callContacto }}</span>
+          <span class="m-label">Contacto (verde)</span>
+        </div>
+        <div class="metrica no">
+          <span class="m-valor">{{ callNoContacto }}</span>
+          <span class="m-label">No contacto (se eliminan)</span>
+        </div>
+        <div class="metrica neutro">
+          <span class="m-valor">{{ callSinGestion }}</span>
+          <span class="m-label">Sin gestión (se conservan)</span>
+        </div>
+        <div class="metrica alerta">
+          <span class="m-valor">{{ callSinTelefono }}</span>
+          <span class="m-label">DNIs sin teléfono → SINTELEFONOS</span>
+        </div>
+        <div class="metrica">
+          <span class="m-valor">{{ gestionesRango }}</span>
+          <span class="m-label">Gestiones en el rango</span>
+        </div>
+      </div>
+
+      <!-- Leyenda Call -->
+      <div class="leyenda" *ngIf="modo === 'call'">
+        <span><i class="ley ok"></i> Contacto (se conserva)</span>
+        <span><i class="ley no"></i> No contacto (se elimina)</span>
+        <span><i class="ley neutro"></i> Sin gestión (se conserva)</span>
+      </div>
+
+      <!-- Vista previa SEDES -->
+      <div class="preview" *ngIf="modo === 'sedes' && preview.length">
+        <h3>Vista previa <small>(primeras {{ preview.length }} filas)</small></h3>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="th-dni">DNI</th>
+                <th *ngFor="let c of columnasNumero; let i = index">{{ c }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let f of preview">
+                <td class="td-dni">{{ f.dni || '—' }}</td>
+                <td *ngFor="let c of columnasNumero; let i = index">{{ f.numeros[i] || '' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Vista previa CALL (con color) -->
+      <div class="preview" *ngIf="modo === 'call' && previewCall.length">
+        <h3>Vista previa <small>(primeros {{ previewCall.length }} DNIs)</small></h3>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="th-dni">DNI</th>
+                <th>Números (con estado de gestión)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of previewCall">
+                <td class="td-dni">{{ d.dni || '—' }}</td>
+                <td class="td-nums">
+                  <span *ngFor="let n of d.numeros" class="chip" [ngClass]="estadoClase(n.estado)"
+                        [title]="n.estado">{{ n.numero }}</span>
+                  <span *ngIf="d.numeros.length === 0" class="sin">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Descargar -->
+      <div class="acciones">
+        <button class="btn-descargar" (click)="descargar()">
+          <mat-icon>download</mat-icon>
+          {{ modo === 'call' ? 'Descargar base limpia + SINTELEFONOS' : 'Descargar base limpia' }}
+        </button>
       </div>
     </div>
 
-    <!-- Descargar -->
-    <div class="acciones">
-      <button class="btn-descargar" (click)="descargar()">
-        <mat-icon>download</mat-icon>
-        Descargar base limpia
-      </button>
-    </div>
-  </div>
+  </ng-container>
 
 </div>

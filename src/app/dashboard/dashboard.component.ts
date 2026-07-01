@@ -12,6 +12,7 @@ import { VentasCuotasTipoVentaComponent } from "../features/ventas-cuotas-tipo-v
 import { VentasBrillaRealzzaComponent } from "../features/ventas-brilla-realzza/ventas-brilla-realzza.component";
 import { VentaXPlazoAvComponent } from "../features/venta-x-plazo-av/venta-x-plazo-av.component";
 import { VentasCampoComponent } from "../features/ventas-campo/ventas-campo.component";
+import { VentasSedesComponent } from "../features/ventas-sedes/ventas-sedes.component";
 import { GestionCobranzasComponent } from "../features/gestion-cobranzas/gestion-cobranzas.component";
 import { GestionCampoRealzzaComponent } from "../features/Gestion/gestion-campo-realzza/gestion-campo-realzza.component";
 import { AgendamientosCampoComponent } from "../features/agendamientos/agendamientos-campo/agendamientos-campo.component";
@@ -28,6 +29,8 @@ import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sede
 import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
 import { SeguridadComponent } from "../features/seguridad/seguridad.component";
 import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.component";
+import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
+import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
@@ -60,6 +63,7 @@ interface MenuItem {
     VentasBrillaRealzzaComponent,
     VentaXPlazoAvComponent,
     VentasCampoComponent,
+    VentasSedesComponent,
     GestionCobranzasComponent,
     GestionCampoRealzzaComponent,
     AgendamientosCampoComponent,
@@ -76,6 +80,8 @@ interface MenuItem {
     ControlCallSedesComponent,
     SeguridadComponent,
     LimpiezaBbddComponent,
+    GpsRutaComponent,
+    PizarraMetasComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
@@ -128,6 +134,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       submenu: [
         { label: 'CALL CENTER',  icon: 'call',      modulo: 'ventas' },
         { label: 'REALZZA',      icon: 'storefront', modulo: 'ventas-campo' },
+        { label: 'SEDES',        icon: 'location_city', modulo: 'ventas-sedes' },
         { label: 'COMPARATIVO',  icon: 'balance',    modulo: 'ventas-comparativo' },
         { label: 'EVOLUTIVO',    icon: 'balance',    modulo: 'evolucion-tipo-cliente' }
       ]
@@ -138,9 +145,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'payments',    label: 'Cobranzas',                    modulo: 'cobranzas' },
     { icon: 'sync_alt',    label: 'Conversor CSV',                modulo: 'conversor-csv' },
     { icon: 'cleaning_services', label: 'Limpieza BBDD',          modulo: 'limpieza-bbdd' },
+    { icon: 'route',       label: 'Optimizar Rutas GPS',          modulo: 'gps-ruta' },
     { icon: 'post_add',    label: 'Post Venta',                   modulo: 'post-venta' },
     { icon: 'location_city', label: 'Control Gestión Sede',       modulo: 'control-gestion-sede' },
     { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
+    { icon: 'dashboard',     label: 'Pizarra de Metas',           modulo: 'pizarra-metas' },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 

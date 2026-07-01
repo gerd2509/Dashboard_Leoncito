@@ -1,0 +1,169 @@
+<div class="pizarra-wrap">
+
+  <!-- ── Barra superior ────────────────────────────────────────────────── -->
+  <header class="pz-toolbar">
+    <div class="pz-title">
+      <mat-icon>dashboard</mat-icon>
+      <div>
+        <h2>Pizarra de Metas</h2>
+        <span class="pz-sub">Panel editable por tienda — {{ nombreSedeActual }}</span>
+      </div>
+    </div>
+
+    <div class="pz-controls">
+      <!-- Sede: selector (global) o chip (sede fija) -->
+      <dx-select-box *ngIf="esGlobal"
+        [items]="sedesDisponibles" displayExpr="nombre" valueExpr="key"
+        [(value)]="sedeSeleccionada" (onValueChanged)="onSedeChanged()"
+        [width]="200" stylingMode="outlined" label="Sede">
+      </dx-select-box>
+      <span *ngIf="!esGlobal" class="pz-chip"><mat-icon>location_city</mat-icon>{{ nombreSedeActual }}</span>
+
+      <dx-date-box [(value)]="fecha" type="date" displayFormat="dd/MM/yyyy"
+        (onValueChanged)="onFechaChanged()" [width]="150" stylingMode="outlined" label="Fecha">
+      </dx-date-box>
+
+      <span class="pz-saved" *ngIf="guardadoEn"><mat-icon>cloud_done</mat-icon>{{ guardadoEn }}</span>
+    </div>
+  </header>
+
+  <!-- ── Tarjetas KPI de tienda (editables) ────────────────────────────── -->
+  <section class="pz-kpis">
+    <div class="kpi-card">
+      <div class="kpi-row"><span class="kpi-lbl">META</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.meta" (ngModelChange)="persistir()"></div>
+      <div class="kpi-row alt"><span class="kpi-lbl">Avance</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.avance" (ngModelChange)="persistir()"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-row"><span class="kpi-lbl">Ticket Promedio</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.ticketPromedio" (ngModelChange)="persistir()"></div>
+      <div class="kpi-row alt"><span class="kpi-lbl">Operaciones</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.operaciones" (ngModelChange)="persistir()"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-row"><span class="kpi-lbl">Margen %</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.margen" (ngModelChange)="persistir()"></div>
+      <div class="kpi-row alt"><span class="kpi-lbl">CAP Actual / Aprob.</span>
+        <span class="kpi-cap">
+          <input type="number" class="kpi-inp mini" [(ngModel)]="cabecera.capActual" (ngModelChange)="persistir()">
+          <b>/</b>
+          <input type="number" class="kpi-inp mini" [(ngModel)]="cabecera.capAprobado" (ngModelChange)="persistir()">
+        </span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-row"><span class="kpi-lbl">Incautaciones</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.incautaciones" (ngModelChange)="persistir()"></div>
+      <div class="kpi-row alt"><span class="kpi-lbl">Notas de Crédito</span>
+        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.notasCredito" (ngModelChange)="persistir()"></div>
+    </div>
+  </section>
+
+  <!-- ── Acciones de la tabla ──────────────────────────────────────────── -->
+  <div class="pz-actions">
+    <button class="btn primary" (click)="abrirAgregar()"><mat-icon>person_add</mat-icon>Agregar asesor</button>
+    <button class="btn" (click)="cargarAsesoresSede()" [disabled]="asesoresDisponibles.length === 0">
+      <mat-icon>group_add</mat-icon>Cargar asesores de la sede</button>
+    <button class="btn" (click)="exportar()" [disabled]="filas.length === 0">
+      <mat-icon>download</mat-icon>Excel</button>
+    <button class="btn danger" (click)="limpiar()" [disabled]="filas.length === 0">
+      <mat-icon>delete_sweep</mat-icon>Limpiar</button>
+  </div>
+
+  <!-- ── Tabla pizarra ─────────────────────────────────────────────────── -->
+  <div class="pz-table-scroll">
+    <table class="pz-table" *ngIf="filas.length > 0; else vacio">
+      <thead>
+        <tr>
+          <th rowspan="2" class="col-tipo">Tipo</th>
+          <th rowspan="2" class="col-asesor">Asesor</th>
+          <th [attr.colspan]="colsMeta.length" class="band band-meta">Meta</th>
+          <th [attr.colspan]="colsAvance.length" class="band band-avance">Avance</th>
+          <th [attr.colspan]="colsCalidad.length" class="band band-calidad">Calidad</th>
+          <th [attr.colspan]="colsInv.length" class="band band-inv">Inv día</th>
+          <th rowspan="2" class="col-pct">% Av.</th>
+          <th rowspan="2" class="col-acc"></th>
+        </tr>
+        <tr>
+          <th *ngFor="let c of colsMeta; trackBy: trackCol" class="sub band-meta">{{ c.label }}</th>
+          <th *ngFor="let c of colsAvance; trackBy: trackCol" class="sub band-avance">{{ c.label }}</th>
+          <th *ngFor="let c of colsCalidad; trackBy: trackCol" class="sub band-calidad">{{ c.label }}</th>
+          <th *ngFor="let c of colsInv; trackBy: trackCol" class="sub band-inv">{{ c.label }}</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <ng-container *ngFor="let g of gruposConFilas()">
+          <tr *ngFor="let f of filasDeGrupo(g); let i = index; trackBy: trackFila" class="fila">
+            <!-- Banda de tipo de campaña (rowspan sobre las filas del grupo) -->
+            <th *ngIf="i === 0" [attr.rowspan]="filasDeGrupo(g).length"
+                class="tipo-band" [ngClass]="'g-' + (grupos.indexOf(g))">
+              <span>{{ g }}</span>
+            </th>
+
+            <td class="asesor" [title]="f.asesor">{{ f.asesor }}</td>
+
+            <td *ngFor="let c of todasCols; trackBy: trackCol"
+                [ngClass]="{ 'is-avance': c.key.startsWith('av') }">
+              <input [type]="c.tipo === 'num' ? 'number' : 'text'"
+                     [(ngModel)]="f.vals[c.key]" (ngModelChange)="persistir()"
+                     class="cell-inp" [class.txt]="c.tipo === 'text'">
+            </td>
+
+            <td class="pct" [ngClass]="claseAvance(f)">{{ avanceFila(f) }}%</td>
+
+            <td class="acc">
+              <select class="grupo-sel" [ngModel]="f.grupo"
+                      (ngModelChange)="cambiarGrupo(f, $event)" title="Cambiar tipo">
+                <option *ngFor="let gr of grupos" [value]="gr">{{ gr }}</option>
+              </select>
+              <button class="del" (click)="eliminarFila(f.id)" title="Quitar asesor">
+                <mat-icon>close</mat-icon>
+              </button>
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+
+      <tfoot>
+        <tr class="total-row">
+          <td colspan="2">TOTAL</td>
+          <td *ngFor="let c of todasCols; trackBy: trackCol">
+            <ng-container *ngIf="c.tipo === 'num'">{{ totalCol(c.key, filas) }}</ng-container>
+          </td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <ng-template #vacio>
+      <div class="pz-empty">
+        <mat-icon>grid_on</mat-icon>
+        <p>La pizarra de <b>{{ nombreSedeActual }}</b> está vacía.</p>
+        <span>Agrega asesores uno por uno o carga todos los de la sede para empezar a llenar los datos.</span>
+      </div>
+    </ng-template>
+  </div>
+</div>
+
+<!-- ── Popup: Agregar asesor ─────────────────────────────────────────────── -->
+<dx-popup [(visible)]="popupVisible" [width]="420" [height]="'auto'" [showTitle]="true"
+          title="Agregar asesor a la pizarra" [dragEnabled]="false" [hideOnOutsideClick]="true">
+  <div *dxTemplate="let d of 'content'" class="pop-add">
+    <label class="pop-lbl">Tipo de campaña</label>
+    <dx-select-box [items]="grupos" [(value)]="nuevoGrupo" stylingMode="outlined"></dx-select-box>
+
+    <label class="pop-lbl">Asesor</label>
+    <dx-select-box [items]="asesoresDisponibles" [(value)]="nuevoAsesor"
+                   [acceptCustomValue]="true" [searchEnabled]="true" stylingMode="outlined"
+                   placeholder="Selecciona o escribe un asesor"
+                   noDataText="Todos los asesores de la sede ya están agregados">
+    </dx-select-box>
+
+    <div class="pop-btns">
+      <dx-button text="Cancelar" stylingMode="outlined" (onClick)="popupVisible = false"></dx-button>
+      <dx-button text="Agregar" type="default" stylingMode="contained" icon="add"
+                 [disabled]="!nuevoAsesor" (onClick)="confirmarAgregar()"></dx-button>
+    </div>
+  </div>
+</dx-popup>

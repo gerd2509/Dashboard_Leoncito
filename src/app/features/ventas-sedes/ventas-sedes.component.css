@@ -1,0 +1,429 @@
+/* =========================================================
+   FORMULARIO DE FILTROS
+   ========================================================= */
+.form {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 14px 18px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    box-shadow: 0 2px 8px rgba(26,95,173,0.07);
+    margin-bottom: 18px;
+}
+
+.form button {
+    height: 40px;
+    border-radius: 8px !important;
+    background: #1A5FAD !important;
+    color: #fff !important;
+    border: none !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    box-shadow: 0 2px 10px rgba(26,95,173,0.25) !important;
+    transition: all 0.18s !important;
+}
+
+.form button:hover {
+    background: #2B73D1 !important;
+    box-shadow: 0 4px 18px rgba(26,95,173,0.38) !important;
+    transform: translateY(-1px);
+}
+
+/* =========================================================
+   ESTADO VACÍO
+   ========================================================= */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: #7A9BB8;
+    background: #FFFFFF;
+    border: 1px dashed #CCDAEE;
+    border-radius: 14px;
+}
+.empty-state mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #1A5FAD;
+    opacity: 0.7;
+}
+.empty-state p { font-size: 14px; font-weight: 600; margin: 0; }
+
+/* =========================================================
+   SECTION HEADERS
+   ========================================================= */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #F0F6FF;
+    color: #1E3A5F;
+    padding: 11px 18px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin: 20px 0 10px 0;
+    border: 1px solid #CCDAEE;
+    border-left: 3px solid #1A5FAD;
+    box-shadow: 0 1px 4px rgba(26,95,173,0.07);
+}
+
+.section-header mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #1A5FAD;
+}
+
+/* Tema por sede: las cabeceras del detalle usan el color de la sede */
+.detalle-sede .section-header { border-left-color: var(--sede-color, #1A5FAD); }
+.detalle-sede .section-header mat-icon { color: var(--sede-color, #1A5FAD); }
+.detalle-sede .card-resumen { border-top-color: var(--sede-color, #1A5FAD); }
+.detalle-sede .card-resumen .valor { color: var(--sede-color, #1A5FAD); }
+/* Excepciones de KPI que conservan su color semántico */
+.detalle-sede .card-nc     { border-top-color: #DC2626 !important; }
+.detalle-sede .card-nc     .valor { color: #DC2626 !important; }
+.detalle-sede .card-inc    { border-top-color: #C2410C !important; }
+.detalle-sede .card-inc    .valor { color: #C2410C !important; }
+.detalle-sede .card-refact { border-top-color: #F07420 !important; }
+.detalle-sede .card-refact .valor { color: #F07420 !important; }
+.detalle-sede .card-real   { border-top-color: #3D9B2F !important; }
+.detalle-sede .card-real   .valor { color: #3D9B2F !important; }
+
+/* =========================================================
+   BANNER DE SEDE
+   ========================================================= */
+.sede-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    color: #FFFFFF;
+    margin-bottom: 18px;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.18);
+}
+.sede-banner mat-icon { font-size: 26px; width: 26px; height: 26px; }
+.sede-banner .banner-title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+.sede-banner .banner-sub {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.85;
+    margin-left: 4px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255,255,255,0.4);
+}
+.sede-banner .banner-back { color: #FFFFFF !important; }
+
+/* =========================================================
+   KPI CARDS
+   ========================================================= */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+}
+
+.card-resumen {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 18px 16px;
+    border: 1px solid #CCDAEE;
+    border-top: 3px solid #1A5FAD;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-resumen::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: linear-gradient(180deg, rgba(26,95,173,0.05) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+.card-resumen:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(26,95,173,0.14);
+    border-color: #1A5FAD;
+}
+
+.card-resumen .titulo {
+    font-size: 10px;
+    font-weight: 700;
+    color: #7A9BB8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.card-resumen .valor {
+    font-size: 24px;
+    font-weight: 800;
+    color: #1A5FAD;
+    line-height: 1;
+}
+
+.card-nc     { border-top-color: #DC2626 !important; }
+.card-nc     .valor { color: #DC2626 !important; }
+.card-inc    { border-top-color: #C2410C !important; }
+.card-inc    .valor { color: #C2410C !important; }
+.card-refact { border-top-color: #F07420 !important; }
+.card-refact .valor { color: #F07420 !important; }
+.card-real   { border-top-color: #3D9B2F !important; }
+.card-real   .valor { color: #3D9B2F !important; }
+
+/* =========================================================
+   TARJETAS POR SEDE (vista principal)
+   ========================================================= */
+.sedes-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin: 10px 0 18px 0;
+}
+
+.sede-card {
+    background: #FFFFFF;
+    border: 1px solid #CCDAEE;
+    border-left: 5px solid var(--sede-color, #1A5FAD);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    position: relative;
+    overflow: hidden;
+}
+.sede-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+}
+.sede-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.sede-card-head .sede-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--sede-color, #1A5FAD);
+    flex: 0 0 auto;
+}
+.sede-card-head .sede-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: #1E3A5F;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.sede-card-head .sede-arrow {
+    margin-left: auto;
+    color: var(--sede-color, #1A5FAD);
+    font-size: 22px; width: 22px; height: 22px;
+    opacity: 0.7;
+}
+.sede-monto {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--sede-color, #1A5FAD);
+    line-height: 1.1;
+    margin-bottom: 6px;
+}
+.sede-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11.5px;
+    color: #6B829B;
+    margin-bottom: 10px;
+}
+.sede-meta .sede-part {
+    margin-left: auto;
+    font-weight: 800;
+    color: #1E3A5F;
+}
+.sede-bar-track {
+    height: 6px;
+    border-radius: 4px;
+    background: #EDF2F9;
+    overflow: hidden;
+}
+.sede-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--sede-color, #1A5FAD);
+    opacity: 0.85;
+    transition: width 0.3s ease;
+}
+
+/* =========================================================
+   NOTAS DE CRÉDITO
+   ========================================================= */
+.nc-section {
+    border: 1px solid rgba(220,38,38,0.22);
+    border-radius: 12px;
+    padding: 14px;
+    background: rgba(220,38,38,0.03);
+    margin-bottom: 18px;
+}
+
+.nc-header {
+    background: linear-gradient(135deg, #FEE2E2, #FECACA);
+    color: #DC2626;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(220,38,38,0.25);
+}
+
+/* =========================================================
+   INCAUTACIONES
+   ========================================================= */
+.inc-section {
+    border: 1px solid rgba(194,65,12,0.22);
+    border-radius: 12px;
+    padding: 14px;
+    background: rgba(194,65,12,0.03);
+    margin-bottom: 18px;
+}
+
+.inc-header {
+    background: linear-gradient(135deg, #FFE7D6, #FFD3B8);
+    color: #C2410C;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(194,65,12,0.25);
+}
+
+/* =========================================================
+   DATA GRID
+   ========================================================= */
+#dataGrid {
+    background: #FFFFFF;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #CCDAEE;
+}
+
+/* =========================================================
+   DOS COLUMNAS
+   ========================================================= */
+.tabla-row-2 {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+}
+.tabla-row-2 > div { flex: 1; min-width: 0; }
+
+/* =========================================================
+   EVOLUTIVO
+   ========================================================= */
+.evolutivo-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(26,95,173,0.08);
+}
+
+.evolutivo-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--sede-color, #1A5FAD);
+    color: #FFFFFF;
+    border-bottom: 1px solid #CCDAEE;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.evolutivo-header mat-icon {
+    font-size: 20px; width: 20px; height: 20px; color: #FFFFFF;
+}
+
+/* =========================================================
+   GRÁFICOS
+   ========================================================= */
+.graficosVentas {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.grafico-card {
+    flex: 1;
+    min-width: 400px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    border: 1px solid #CCDAEE;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(26,95,173,0.07);
+    transition: box-shadow 0.2s;
+}
+
+.grafico-card:hover {
+    box-shadow: 0 6px 22px rgba(26,95,173,0.13);
+}
+
+.grafico-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 8px 16px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #4A6A88;
+    border-bottom: 1px solid #CCDAEE;
+    background: #F0F6FF;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grafico-card dx-chart {
+    display: block;
+    height: 280px;
+    padding: 10px;
+    background: transparent;
+}
+
+.gap-2 { gap: 10px; }
+
+.section-header-moto {
+    border-left-color: #F07420 !important;
+    color: #C04A00 !important;
+}
+.section-header-moto mat-icon { color: #F07420 !important; }
+
+.check-icon { color: #3D9B2F; font-size: 20px; width: 20px; height: 20px; }
+.warn-icon  { color: #DC2626; font-size: 20px; width: 20px; height: 20px; }

@@ -1,0 +1,929 @@
+<!-- ===== FILTROS ===== -->
+<form class="form mt-2" [formGroup]="formVentas">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin"
+        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
+    </dx-date-box>
+
+    <dx-select-box *ngIf="esGlobal" style="width: 240px;" [items]="sedesDisponibles" displayExpr="nombre"
+        valueExpr="key" [(value)]="sedeSeleccionada" label="Sede" labelMode="floating" stylingMode="underlined"
+        placeholder="Todas las sedes" (onValueChanged)="onSedeChanged($event)" [showClearButton]="true" />
+
+    <dx-select-box *ngIf="sedeSeleccionada" style="width: 280px;" [items]="vendedores"
+        formControlName="Vendedor" label="Filtrar Vendedor" labelMode="floating" stylingMode="underlined"
+        placeholder="" (onValueChanged)="onVendedorChanged($event)" [showClearButton]="true" />
+
+    <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
+        <mat-icon>search</mat-icon> Actualizar
+    </button>
+    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
+    <button mat-flat-button (click)="fileInput.click()">
+        <mat-icon>upload</mat-icon> Importar Excel
+    </button>
+    <button *ngIf="sedeSeleccionada" mat-flat-button (click)="exportar()">
+        <mat-icon>file_download</mat-icon> Exportar
+    </button>
+</form>
+
+<!-- ===== ESTADO VACÍO ===== -->
+<div *ngIf="dataVentas.length === 0" class="empty-state">
+    <mat-icon>cloud_upload</mat-icon>
+    <p>Importe el Excel de ventas por sede para comenzar.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- ===== VISTA PRINCIPAL: RESUMEN POR SEDE ===== -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<ng-container *ngIf="dataVentas.length > 0 && !sedeSeleccionada">
+
+    <!-- KPIs Generales -->
+    <div class="kpi-grid">
+        <div class="card-resumen">
+            <div class="titulo">Total Monto Ventas</div>
+            <div class="valor">S/. {{ totalGeneral.monto | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-nc">
+            <div class="titulo">Notas de Crédito</div>
+            <div class="valor">- S/. {{ totalGeneral.nc | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-inc">
+            <div class="titulo">Incautaciones</div>
+            <div class="valor">- S/. {{ totalGeneral.inc | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-real">
+            <div class="titulo">Monto Neto</div>
+            <div class="valor">S/. {{ totalGeneral.neto | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen">
+            <div class="titulo">Total Ventas (#)</div>
+            <div class="valor">{{ totalGeneral.ops }}</div>
+        </div>
+        <div class="card-resumen">
+            <div class="titulo">Ticket Promedio</div>
+            <div class="valor">S/. {{ totalGeneral.ticket | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen">
+            <div class="titulo">Sedes con Ventas</div>
+            <div class="valor">{{ totalGeneral.sedes }}</div>
+        </div>
+    </div>
+
+    <!-- Tarjetas por sede (clic para ver detalle) -->
+    <div class="section-header">
+        <mat-icon>location_city</mat-icon>
+        Ventas por Sede &mdash; Seleccione una sede para ver el detalle
+    </div>
+    <div class="sedes-cards">
+        <div *ngFor="let s of resumenPorSede" class="sede-card" [style.--sede-color]="s.Color"
+            (click)="seleccionarSede(s.SedeKey)">
+            <div class="sede-card-head">
+                <span class="sede-dot"></span>
+                <span class="sede-name">{{ s.Sede }}</span>
+                <mat-icon class="sede-arrow">chevron_right</mat-icon>
+            </div>
+            <div class="sede-monto">S/. {{ s.MontoNeto | number:'1.0-0' }}</div>
+            <div class="sede-meta">
+                <span><b>{{ s.NroOps }}</b> ops</span>
+                <span>Ticket S/. {{ s.TicketPromedio | number:'1.0-0' }}</span>
+                <span class="sede-part">{{ s.Participacion | number:'1.1-1' }}%</span>
+            </div>
+            <div class="sede-bar-track">
+                <div class="sede-bar-fill" [style.width.%]="s.MontoVentas / maxMontoSede * 100"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla resumen por sede -->
+    <div class="section-header">
+        <mat-icon>table_chart</mat-icon>
+        Resumen Comparativo por Sede
+    </div>
+    <dx-data-grid [dataSource]="resumenPorSede" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedSede($event)" (onRowClick)="onResumenSedeClick($event)"
+        [hoverStateEnabled]="true">
+        <dxi-column dataField="Sede" caption="SEDE" alignment="left" [minWidth]="150" />
+        <dxi-column dataField="MontoVentas" caption="MONTO VENTAS" alignment="center"
+            dataType="number" cellTemplate="montoSedeBarTemplate" />
+        <dxi-column dataField="MontoNC" caption="NOTAS CRÉDITO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="MontoINC" caption="INCAUT." alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="MontoNeto" caption="MONTO NETO" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+        <dxi-column dataField="TicketPromedio" caption="TICKET" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="Participacion" caption="% PART." alignment="center"
+            dataType="number" [width]="90" cellTemplate="partSedeTemplate" />
+
+        <div *dxTemplate="let cell of 'montoSedeBarTemplate'"
+            style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+            <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px; opacity:0.28;"
+                [style.background]="cell.data.Color"
+                [style.width.%]="cell.data.MontoVentas / maxMontoSede * 100"></div>
+            <span style="position:relative; font-weight:600; font-size:13px;">
+                S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
+            </span>
+        </div>
+        <div *dxTemplate="let cell of 'partSedeTemplate'" style="text-align:center; font-weight:700;">
+            {{ cell.data.Participacion | number:'1.1-1' }}%
+        </div>
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="Sede" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}"
+                [valueFormat]="'#,##0'" showInColumn="MontoVentas"></dxi-total-item>
+            <dxi-total-item column="MontoNC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="MontoINC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+
+    <!-- Gráfico Ventas Netas por Sede -->
+    <div class="section-header">
+        <mat-icon>bar_chart</mat-icon>
+        Ventas Netas por Sede
+    </div>
+    <div class="grafico-card" style="min-width:0;">
+        <dx-chart [dataSource]="chartPorSede" [customizePoint]="customizeSedePoint">
+            <dxi-series valueField="MontoNeto" argumentField="Sede" name="VENTAS NETAS"
+                type="bar"
+                [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 10 } }">
+            </dxi-series>
+            <dxo-argument-axis [label]="{ rotationAngle: -20 }"></dxo-argument-axis>
+            <dxo-value-axis>
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+            </dxo-value-axis>
+            <dxo-legend [visible]="false"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+        </dx-chart>
+    </div>
+</ng-container>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- ===== DETALLE DE SEDE ===== -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div class="detalle-sede" *ngIf="dataVentas.length > 0 && sedeSeleccionada"
+    [style.--sede-color]="colorSedeActual">
+
+    <!-- Banner de sede -->
+    <div class="sede-banner" [style.background]="colorSedeActual">
+        <button *ngIf="esGlobal" mat-icon-button class="banner-back" (click)="volverResumen()" title="Volver al resumen">
+            <mat-icon>arrow_back</mat-icon>
+        </button>
+        <mat-icon>storefront</mat-icon>
+        <span class="banner-title">{{ nombreSedeActual }}</span>
+        <span class="banner-sub">Detalle de Ventas</span>
+    </div>
+
+    <!-- ===== KPIs ===== -->
+    <div class="kpi-grid">
+        <div class="card-resumen">
+            <div class="titulo">Total Monto Ventas</div>
+            <div class="valor">S/. {{ totalMontoVentas | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-nc">
+            <div class="titulo">Notas de Crédito</div>
+            <div class="valor">- S/. {{ totalNotasCredito | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-refact">
+            <div class="titulo">Refacturación</div>
+            <div class="valor">+ S/. {{ totalMontoRefacturacion | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-inc">
+            <div class="titulo">Incautaciones</div>
+            <div class="valor">- S/. {{ totalIncautaciones | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen card-real">
+            <div class="titulo">Monto Real Ventas</div>
+            <div class="valor">S/. {{ montoRealVentas | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen">
+            <div class="titulo">Total Ventas (#)</div>
+            <div class="valor">{{ totalVentas }}</div>
+        </div>
+        <div class="card-resumen">
+            <div class="titulo">Ticket Promedio</div>
+            <div class="valor">S/. {{ ticket | number:'1.0-0' }}</div>
+        </div>
+        <div class="card-resumen">
+            <div class="titulo">Proyección Mes</div>
+            <div class="valor">S/. {{ proyeccion | number:'1.0-0' }}</div>
+        </div>
+    </div>
+
+    <!-- ===== TABLA BONOS POR ASESOR (deshabilitada por ahora — pendiente de definir) ===== -->
+    <!--
+    <div *ngIf="tablaBonosAsesor.length > 0" style="margin: 16px 0;">
+        <div class="section-header">
+            <mat-icon>emoji_events</mat-icon>
+            Proyección de Bonos por Vendedor
+        </div>
+        <dx-data-grid [dataSource]="tablaBonosAsesor" [showBorders]="true" [showColumnLines]="true"
+            [showRowLines]="true" [rowAlternationEnabled]="false" [columnAutoWidth]="true"
+            (onCellPrepared)="onCellPreparedBonos($event)" [hoverStateEnabled]="true">
+            <dxo-paging [enabled]="false"></dxo-paging>
+            <dxi-column dataField="ASESOR" caption="VENDEDOR" alignment="left" [minWidth]="160" />
+            <dxi-column dataField="VENTAS" caption="VENTAS" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="NC" caption="NOTAS CRÉD." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="NETO" caption="NETO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="TICKET" caption="TICKET" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="TICKETDIARIO" caption="TICKET DIARIO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="PROYECCION" caption="PROYECCIÓN" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+            <dxi-column dataField="BONO" caption="BONO" alignment="center" dataType="number" [format]="'S/ #,##0'" [width]="110" />
+            <dxo-summary>
+                <dxi-total-item alignment="left" column="ASESOR" displayFormat="TOTAL"></dxi-total-item>
+                <dxi-total-item column="VENTAS" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                <dxi-total-item column="NC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                <dxi-total-item column="NETO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                <dxi-total-item column="BONO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+    -->
+
+    <!-- ===== NOTAS DE CRÉDITO ===== -->
+    <div style="margin: 10px 0 4px 0;" *ngIf="filtroNotasCreditoVisible.length > 0">
+        <button mat-stroked-button (click)="showNCGrid = !showNCGrid"
+            style="border-color:rgba(244,63,94,0.5); color:#FB7185; font-weight:600; border-radius:8px; background:rgba(244,63,94,0.07);">
+            <mat-icon>{{ showNCGrid ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ showNCGrid ? 'Ocultar Notas de Crédito' : 'Ver Notas de Crédito (' + filtroNotasCreditoVisible.length + ' registros)' }}
+        </button>
+    </div>
+    <div class="nc-section mt-2" *ngIf="showNCGrid && filtroNotasCreditoVisible.length > 0">
+        <div class="nc-header">
+            <mat-icon style="vertical-align:middle; margin-right:6px;">remove_circle</mat-icon>
+            Notas de Crédito &mdash; Mes en Curso ({{ filtroNotasCreditoVisible.length }} registros)
+        </div>
+        <dx-data-grid [dataSource]="filtroNotasCreditoVisible" [showBorders]="true" [showColumnLines]="true"
+            [showRowLines]="true" [rowAlternationEnabled]="true" [wordWrapEnabled]="true"
+            [hoverStateEnabled]="true" (onCellPrepared)="onCellPreparedNC($event)" [selection]="{ mode: 'single' }">
+            <dxo-paging [pageSize]="10"></dxo-paging>
+            <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50]" />
+            <dxo-filter-row [visible]="true" />
+            <dxi-column alignment="center" caption="VENDEDOR" dataField="Vendedor" dataType="string" />
+            <dxi-column alignment="center" caption="DOC. IDENTIDAD" dataField="DocIdentidad" dataType="string" />
+            <dxi-column caption="CLIENTE" dataField="ClienteVenta" dataType="string" />
+            <dxi-column alignment="center" caption="FECHA VENTA" dataField="FECHAVENTA" dataType="date" [format]="'dd/MM/yyyy'" />
+            <dxi-column caption="PRODUCTOS" dataField="Productos" dataType="string" />
+            <dxi-column alignment="center" caption="MONTO" dataField="MontoConsolidado" dataType="number" [format]="'S/ #,##0.00'" />
+            <dxi-column alignment="center" caption="ESTADO" dataField="EstadoVenta" dataType="string" />
+            <dxi-column alignment="center" caption="ENTIDAD" dataField="Entidad" dataType="string" />
+            <dxi-column alignment="center" caption="TIPO CRÉDITO" dataField="TipoCredito" dataType="string" />
+            <dxi-column alignment="center" caption="REFACTURACIÓN" dataField="esRefacturacion" [width]="120" cellTemplate="refacturacionTemplate" />
+            <dxi-column alignment="center" caption="MONTO REFACT." dataField="MontoRefacturacion" dataType="number" [format]="'S/ #,##0.00'" [width]="140" />
+            <div *dxTemplate="let cell of 'refacturacionTemplate'" style="display:flex;justify-content:center;align-items:center;">
+                <mat-icon class="{{ cell.data.esRefacturacion ? 'check-icon' : 'warn-icon' }}">
+                    {{ cell.data.esRefacturacion ? 'check_circle' : 'cancel' }}
+                </mat-icon>
+            </div>
+            <dxo-summary>
+                <dxi-total-item alignment="right" column="Vendedor" displayFormat="TOTAL NC:"></dxi-total-item>
+                <dxi-total-item column="MontoConsolidado" summaryType="sum" displayFormat="S/ {0}"
+                    [valueFormat]="{ type: 'fixedPoint', precision: 2 }" [skipEmptyValues]="false"></dxi-total-item>
+                <dxi-total-item alignment="center" column="esRefacturacion" displayFormat="REFACTURACIÓN:"></dxi-total-item>
+                <dxi-total-item column="MontoRefacturacion" summaryType="sum" displayFormat="S/ {0}"
+                    [valueFormat]="{ type: 'fixedPoint', precision: 2 }" [skipEmptyValues]="false"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+
+    <!-- ===== INCAUTACIONES ===== -->
+    <div style="margin: 10px 0 4px 0;" *ngIf="filtroIncautaciones.length > 0">
+        <button mat-stroked-button (click)="showINCGrid = !showINCGrid"
+            style="border-color:rgba(194,65,12,0.5); color:#C2410C; font-weight:600; border-radius:8px; background:rgba(194,65,12,0.07);">
+            <mat-icon>{{ showINCGrid ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ showINCGrid ? 'Ocultar Incautaciones' : 'Ver Incautaciones (' + filtroIncautaciones.length + ' registros)' }}
+        </button>
+    </div>
+    <div class="inc-section mt-2" *ngIf="showINCGrid && filtroIncautaciones.length > 0">
+        <div class="inc-header">
+            <mat-icon style="vertical-align:middle; margin-right:6px;">gavel</mat-icon>
+            Incautaciones &mdash; Mes en Curso ({{ filtroIncautaciones.length }} registros)
+        </div>
+        <dx-data-grid [dataSource]="filtroIncautaciones" [showBorders]="true" [showColumnLines]="true"
+            [showRowLines]="true" [rowAlternationEnabled]="true" [wordWrapEnabled]="true"
+            [hoverStateEnabled]="true" (onCellPrepared)="onCellPreparedINC($event)" [selection]="{ mode: 'single' }">
+            <dxo-paging [pageSize]="10"></dxo-paging>
+            <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50]" />
+            <dxo-filter-row [visible]="true" />
+            <dxi-column alignment="center" caption="VENDEDOR" dataField="Vendedor" dataType="string" />
+            <dxi-column alignment="center" caption="DOC. IDENTIDAD" dataField="DocIdentidad" dataType="string" />
+            <dxi-column caption="CLIENTE" dataField="ClienteVenta" dataType="string" />
+            <dxi-column alignment="center" caption="FECHA VENTA" dataField="FECHAVENTA" dataType="date" [format]="'dd/MM/yyyy'" />
+            <dxi-column caption="PRODUCTOS" dataField="Productos" dataType="string" />
+            <dxi-column alignment="center" caption="MONTO" dataField="MontoConsolidado" dataType="number" [format]="'S/ #,##0.00'" />
+            <dxi-column alignment="center" caption="ESTADO" dataField="EstadoVenta" dataType="string" />
+            <dxi-column alignment="center" caption="ENTIDAD" dataField="Entidad" dataType="string" />
+            <dxi-column alignment="center" caption="TIPO CRÉDITO" dataField="TipoCredito" dataType="string" />
+            <dxo-summary>
+                <dxi-total-item alignment="right" column="Vendedor" displayFormat="TOTAL INCAUT.:"></dxi-total-item>
+                <dxi-total-item column="MontoConsolidado" summaryType="sum" displayFormat="S/ {0}"
+                    [valueFormat]="{ type: 'fixedPoint', precision: 2 }" [skipEmptyValues]="false"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+
+    <!-- ===== TOGGLE TABLA DE DETALLE ===== -->
+    <div style="margin: 12px 0 4px 0;">
+        <button mat-stroked-button (click)="showDetailGrid = !showDetailGrid"
+            style="border-color:rgba(26,95,173,0.4); color:#1A5FAD; font-weight:600; border-radius:8px; background:rgba(26,95,173,0.07);">
+            <mat-icon>{{ showDetailGrid ? 'expand_less' : 'expand_more' }}</mat-icon>
+            {{ showDetailGrid ? 'Ocultar tabla de detalle' : 'Ver tabla de detalle completa' }}
+        </button>
+    </div>
+    <dx-data-grid *ngIf="showDetailGrid" id="dataGrid" class="focqus-elevation"
+        [dataSource]="filtroVentas" [allowColumnReordering]="true"
+        [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+        [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
+        [selection]="{mode: 'single'}">
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+        <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+        <dxi-column alignment="center" caption="ID VENTA" dataField="IDVENTA" dataType="string" />
+        <dxi-column alignment="center" caption="FECHA" dataField="FECHAVENTA" dataType="date" [format]="'dd/MM/yyyy'" />
+        <dxi-column caption="SEDE" dataField="Sede" dataType="string" />
+        <dxi-column alignment="center" caption="MONTO CONSOLIDADO" dataField="MontoConsolidado"
+            dataType="number" [customizeText]="customizeCurrencyText" />
+        <dxi-column caption="CUOTA INICIAL" dataField="CuotaInicial" dataType="string" />
+        <dxi-column alignment="center" caption="DNI CLIENTE" dataField="DocIdentidad" dataType="string" />
+        <dxi-column caption="CLIENTE" dataField="ClienteVenta" dataType="string" />
+        <dxi-column caption="PRODUCTOS" dataField="Productos" dataType="string" />
+        <dxi-column alignment="center" caption="Nº CUOTAS" dataField="Cuotas" dataType="number" />
+        <dxi-column alignment="center" caption="ESTADO VENTA" dataField="EstadoVenta" dataType="string" />
+        <dxi-column alignment="center" caption="Asesor Venta" dataField="AsesorVenta" dataType="string" />
+        <dxi-column alignment="center" caption="VENDEDOR" dataField="Vendedor" dataType="string" />
+        <dxi-column alignment="center" caption="ENTIDAD" dataField="Entidad" dataType="string" />
+        <dxi-column alignment="center" caption="TIPO CREDITO" dataField="TipoCredito" dataType="string" />
+        <dxi-column alignment="center" caption="TIPO PRODUCTO" dataField="TipoProducto" dataType="string" />
+        <dxo-summary>
+            <dxi-total-item alignment="center" column="MontoConsolidado" summaryType="sum"
+                [valueFormat]="{ type: 'fixedPoint', precision: 2 }" displayFormat="Total: {0}"></dxi-total-item>
+            <dxi-total-item column="Vendedor" summaryType="count" displayFormat="Cant: {0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+
+    <!-- ===== VENTAS POR TIPO CRÉDITO (ancho completo) ===== -->
+    <div class="section-header">
+        <mat-icon>credit_score</mat-icon>
+        Ventas por Tipo Crédito
+    </div>
+    <dx-data-grid [dataSource]="ventasPorTipoCredito" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+        <dxi-column dataField="TipoCredito" caption="TIPO CRÉDITO" alignment="left" />
+        <dxi-column dataField="MontoVentas" caption="MONTO VENTAS" alignment="center"
+            dataType="number" cellTemplate="montoTipoBarTemplate" />
+        <dxi-column dataField="MontoNC" caption="NOTAS CRÉDITO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="MontoINC" caption="INCAUT." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="MontoNeto" caption="MONTO NETO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="70" />
+        <dxi-column dataField="TicketPromedio" caption="TICKET" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="Participacion" caption="% PART." alignment="center"
+            dataType="number" [width]="85" cellTemplate="partTipoTemplate" />
+
+        <div *dxTemplate="let cell of 'montoTipoBarTemplate'"
+            style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+            <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                background:linear-gradient(90deg, rgba(239,68,68,0.15), rgba(239,68,68,0.32));"
+                [style.width.%]="cell.data.MontoVentas / maxMontoTipoCredito * 100"></div>
+            <span style="position:relative; font-weight:600; font-size:13px;">
+                S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
+            </span>
+        </div>
+        <div *dxTemplate="let cell of 'partTipoTemplate'" style="text-align:center; font-weight:700;">
+            {{ cell.data.Participacion | number:'1.1-1' }}%
+        </div>
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="TipoCredito" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}"
+                [valueFormat]="'#,##0'" showInColumn="MontoVentas"></dxi-total-item>
+            <dxi-total-item column="MontoNC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="MontoINC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+            <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%"
+                [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+
+    <!-- ===== FILA: AVANCE VENDEDOR + GLOBAL GO ===== -->
+    <div class="tabla-row-2">
+        <div>
+            <div class="section-header">
+                <mat-icon>groups</mat-icon>
+                Avance de Ventas por Vendedor
+            </div>
+            <dx-data-grid [dataSource]="resumenPorVendedor" [showBorders]="true" [showColumnLines]="true"
+                [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+                <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [minWidth]="110" />
+                <dxi-column dataField="MontoVentas" caption="MONTO VENTAS" alignment="center"
+                    dataType="number" cellTemplate="montoVendedorBarTemplate" />
+                <dxi-column dataField="MontoNC" caption="NOTAS CRÉDITO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="MontoINC" caption="INCAUT." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="MontoNeto" caption="MONTO NETO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="70" />
+                <dxi-column dataField="TicketPromedio" caption="TICKET" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="Participacion" caption="% PART." alignment="center"
+                    dataType="number" [width]="85" cellTemplate="participacionTemplate" />
+
+                <div *dxTemplate="let cell of 'montoVendedorBarTemplate'"
+                    style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+                    <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                        background:linear-gradient(90deg, rgba(124,58,237,0.15), rgba(124,58,237,0.35));"
+                        [style.width.%]="cell.data.MontoVentas / maxMontoVendedor * 100"></div>
+                    <span style="position:relative; font-weight:600; font-size:13px;">
+                        S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
+                    </span>
+                </div>
+                <div *dxTemplate="let cell of 'participacionTemplate'" style="text-align:center; font-weight:700;">
+                    {{ cell.data.Participacion | number:'1.1-1' }}%
+                </div>
+                <dxo-summary>
+                    <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+                    <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}"
+                        [valueFormat]="'#,##0'" showInColumn="MontoVentas"></dxi-total-item>
+                    <dxi-total-item column="MontoNC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="MontoINC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+                    <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%"
+                        [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
+                </dxo-summary>
+            </dx-data-grid>
+        </div>
+
+        <div>
+            <div class="section-header">
+                <mat-icon>two_wheeler</mat-icon>
+                Ventas Motos / Mototaxis &mdash; Global GO
+            </div>
+            <dx-data-grid [dataSource]="detalleMotosGlobalGo" [showBorders]="true" [showColumnLines]="true"
+                [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+                <dxo-paging [enabled]="false"></dxo-paging>
+                <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [minWidth]="110" />
+                <dxi-column *ngFor="let tipo of tiposProductoGlobalGo"
+                    [dataField]="tipo" [caption]="tipo" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="TotalOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+                <dxi-column dataField="Total" caption="TOTAL" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxo-summary>
+                    <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+                    <dxi-total-item column="Total" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="TotalOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+                </dxo-summary>
+            </dx-data-grid>
+        </div>
+    </div>
+
+    <!-- ===== FILA: SEMANA + ENTIDAD ===== -->
+    <div class="tabla-row-2">
+        <div>
+            <div class="section-header">
+                <mat-icon>calendar_view_week</mat-icon>
+                Ventas por Semana
+            </div>
+            <dx-data-grid [dataSource]="ventasPorSemana" [showBorders]="true" [showColumnLines]="true"
+                [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+                <dxi-column dataField="Semana" caption="SEMANA" alignment="left" />
+                <dxi-column dataField="MontoVentas" caption="MONTO VENTAS" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="MontoNeto" caption="MONTO NETO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+                <dxi-column dataField="TicketPromedio" caption="TICKET PROM." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxo-summary>
+                    <dxi-total-item alignment="left" column="Semana" displayFormat="TOTAL"></dxi-total-item>
+                    <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+                </dxo-summary>
+            </dx-data-grid>
+        </div>
+
+        <div>
+            <div class="section-header">
+                <mat-icon>store</mat-icon>
+                Ventas por Entidad
+            </div>
+            <dx-data-grid [dataSource]="ventasPorEntidad" [showBorders]="true" [showColumnLines]="true"
+                [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+                <dxi-column dataField="Entidad" caption="ENTIDAD" alignment="left" />
+                <dxi-column dataField="MontoVentas" caption="MONTO VENTAS" alignment="center"
+                    dataType="number" cellTemplate="montoEntidadBarTemplate" />
+                <dxi-column dataField="MontoNC" caption="NOTAS CRÉDITO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="MontoINC" caption="INCAUT." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="MontoNeto" caption="MONTO NETO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="75" />
+                <dxi-column dataField="TicketPromedio" caption="TICKET PROM." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+                <dxi-column dataField="Participacion" caption="% PART." alignment="center"
+                    dataType="number" [width]="85" cellTemplate="partEntTemplate" />
+
+                <div *dxTemplate="let cell of 'montoEntidadBarTemplate'"
+                    style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+                    <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                        background:linear-gradient(90deg, rgba(124,58,237,0.15), rgba(124,58,237,0.35));"
+                        [style.width.%]="cell.data.MontoVentas / maxMontoEntidad * 100"></div>
+                    <span style="position:relative; font-weight:600; font-size:13px;">
+                        S/. {{ cell.data.MontoVentas | number:'1.0-0' }}
+                    </span>
+                </div>
+                <div *dxTemplate="let cell of 'partEntTemplate'" style="text-align:center; font-weight:700;">
+                    {{ cell.data.Participacion | number:'1.1-1' }}%
+                </div>
+                <dxo-summary>
+                    <dxi-total-item alignment="left" column="Entidad" displayFormat="TOTAL"></dxi-total-item>
+                    <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}"
+                        [valueFormat]="'#,##0'" showInColumn="MontoVentas"></dxi-total-item>
+                    <dxi-total-item column="MontoNC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="MontoINC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                    <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+                    <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%"
+                        [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
+                </dxo-summary>
+            </dx-data-grid>
+        </div>
+    </div>
+
+    <!-- ===== FILA: MOTOS POR ENTIDAD + MOTOS POR TIPO PRODUCTO ===== -->
+    <div class="tabla-row-2">
+        <div>
+            <div class="section-header section-header-moto">
+                <mat-icon>two_wheeler</mat-icon>
+                Motos por Entidad
+            </div>
+            <dx-data-grid [dataSource]="motosPorEntidad" [showBorders]="true" [showColumnLines]="true"
+                [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedMoto($event)" [hoverStateEnabled]="true">
+                <dxi-column dataField="Entidad" caption="ENTIDAD" alignment="left" />
+                <dxi-column dataField="Monto" caption="MONTO" alignment="center"
+                    dataType="number" cellTemplate="montoMotoEntBarTemplate" />
+                <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+                <div *dxTemplate="let cell of 'montoMotoEntBarTemplate'"
+                    style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+                    <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                        background:linear-gradient(90deg, rgba(249,115,22,0.15), rgba(249,115,22,0.35));"
+                        [style.width.%]="cell.data.Monto / maxMontoMotoEntidad * 100"></div>
+                    <span style="position:relative; font-weight:600; font-size:13px;">
+                        S/. {{ cell.data.Monto | number:'1.0-0' }}
+                    </span>
+                </div>
+                <dxo-summary>
+                    <dxi-total-item alignment="left" column="Entidad" displayFormat="TOTAL"></dxi-total-item>
+                    <dxi-total-item column="Monto" summaryType="sum" displayFormat="S/ {0}"
+                        [valueFormat]="'#,##0'" showInColumn="Monto"></dxi-total-item>
+                    <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+                </dxo-summary>
+            </dx-data-grid>
+        </div>
+
+        <div>
+            <div class="section-header section-header-moto">
+                <mat-icon>two_wheeler</mat-icon>
+                Motos por Tipo Producto
+            </div>
+            <dx-data-grid [dataSource]="motosPorTipoProducto" [showBorders]="true" [showColumnLines]="true"
+                [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+                (onCellPrepared)="onCellPreparedMoto($event)" [hoverStateEnabled]="true">
+                <dxi-column dataField="TipoProducto" caption="TIPO PRODUCTO" alignment="left" />
+                <dxi-column dataField="Monto" caption="MONTO" alignment="center"
+                    dataType="number" cellTemplate="montoMotoTipoBarTemplate" />
+                <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+                <div *dxTemplate="let cell of 'montoMotoTipoBarTemplate'"
+                    style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+                    <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                        background:linear-gradient(90deg, rgba(249,115,22,0.15), rgba(249,115,22,0.35));"
+                        [style.width.%]="cell.data.Monto / maxMontoMotoTipo * 100"></div>
+                    <span style="position:relative; font-weight:600; font-size:13px;">
+                        S/. {{ cell.data.Monto | number:'1.0-0' }}
+                    </span>
+                </div>
+                <dxo-summary>
+                    <dxi-total-item alignment="left" column="TipoProducto" displayFormat="TOTAL"></dxi-total-item>
+                    <dxi-total-item column="Monto" summaryType="sum" displayFormat="S/ {0}"
+                        [valueFormat]="'#,##0'" showInColumn="Monto"></dxi-total-item>
+                    <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+                </dxo-summary>
+            </dx-data-grid>
+        </div>
+    </div>
+
+    <!-- ===== GRÁFICOS ===== -->
+    <div class="section-header">
+        <mat-icon>bar_chart</mat-icon>
+        Análisis Gráfico
+    </div>
+
+    <!-- ===== GRÁFICO EVOLUTIVO (ancho completo) ===== -->
+    <div class="evolutivo-card" *ngIf="dataEvolutivo.length > 0">
+        <div class="evolutivo-header">
+            <mat-icon>trending_up</mat-icon>
+            <span>Evolutivo de Ventas {{ nombreSedeActual }} &mdash; Crecimiento Mes a Mes</span>
+            <button mat-icon-button (click)="popupVisibleEvolutivo = true" title="Ampliar"
+                style="margin-left:auto; color:#fff;">
+                <mat-icon>open_in_full</mat-icon>
+            </button>
+        </div>
+        <dx-chart [dataSource]="dataEvolutivo" style="height:400px;" palette="Office" [margin]="{ left: 20, top: 18 }">
+            <dxi-series *ngFor="let s of seriesEvolutivoMain"
+                [valueField]="s" [name]="s" argumentField="Periodo"
+                type="splineArea" color="#1A5FAD" [opacity]="0.14"
+                [border]="{ visible: true, width: 2, color: '#1A5FAD' }"
+                [point]="{ visible: true, size: 12, color: '#FFFFFF', border: { visible: true, width: 2, color: '#1A5FAD' } }"
+                [label]="{ visible: true, customizeText: customizeMontoTexto,
+                            font: { size: 11, weight: 700, color: '#1E3A5F' },
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            border: { visible: false },
+                            connector: { visible: true, width: 1, color: '#1A5FAD' } }">
+            </dxi-series>
+            <dxo-argument-axis>
+                <dxo-label [rotationAngle]="-30" [font]="{ size: 11, color: '#4A6A88' }"></dxo-label>
+                <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
+            </dxo-argument-axis>
+            <dxo-value-axis>
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [font]="{ size: 11, color: '#4A6A88' }"></dxo-label>
+                <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
+            </dxo-value-axis>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right" [font]="{ size: 12 }"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip" [border]="{ color: '#1A5FAD' }" [font]="{ size: 13, color: '#FFFFFF' }"></dxo-tooltip>
+            <dxo-crosshair [enabled]="true" color="#1A5FAD" [width]="1" dashStyle="dot">
+                <dxo-horizontal-line [visible]="true"></dxo-horizontal-line>
+            </dxo-crosshair>
+        </dx-chart>
+    </div>
+
+    <!-- POPUP: EVOLUTIVO -->
+    <dx-popup [(visible)]="popupVisibleEvolutivo" [showTitle]="true"
+        title="Evolutivo de Ventas — Crecimiento Mes a Mes"
+        [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart [dataSource]="dataEvolutivo" palette="Office" style="height:calc(90vh - 130px);" [margin]="{ left: 20, top: 18 }">
+            <dxi-series *ngFor="let s of seriesEvolutivoMain"
+                [valueField]="s" [name]="s" argumentField="Periodo"
+                type="splineArea" color="#1A5FAD" [opacity]="0.14"
+                [border]="{ visible: true, width: 2, color: '#1A5FAD' }"
+                [point]="{ visible: true, size: 14, color: '#FFFFFF', border: { visible: true, width: 2, color: '#1A5FAD' } }"
+                [label]="{ visible: true, customizeText: customizeMontoTexto,
+                            font: { size: 12, weight: 700, color: '#1E3A5F' },
+                            backgroundColor: 'rgba(255,255,255,0.95)',
+                            border: { visible: false },
+                            connector: { visible: true, width: 1, color: '#1A5FAD' } }">
+            </dxi-series>
+            <dxo-argument-axis>
+                <dxo-label [rotationAngle]="-30" [font]="{ size: 12, color: '#4A6A88' }"></dxo-label>
+                <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
+            </dxo-argument-axis>
+            <dxo-value-axis>
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }" [font]="{ size: 12, color: '#4A6A88' }"></dxo-label>
+                <dxo-grid [visible]="true" color="#D8E8F5"></dxo-grid>
+            </dxo-value-axis>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right" [font]="{ size: 13 }"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip" [border]="{ color: '#1A5FAD' }" [font]="{ size: 14, color: '#FFFFFF' }"></dxo-tooltip>
+            <dxo-crosshair [enabled]="true" color="#1A5FAD" [width]="1" dashStyle="dot">
+                <dxo-horizontal-line [visible]="true"></dxo-horizontal-line>
+            </dxo-crosshair>
+        </dx-chart>
+    </dx-popup>
+
+    <!-- Fila 1: Vendedor | Por Mes -->
+    <div class="graficosVentas">
+        <div class="grafico-card">
+            <div class="grafico-card-header">
+                <span>Ventas por Vendedor</span>
+                <button mat-icon-button (click)="abrirPopup('asesor')" title="Ampliar">
+                    <mat-icon style="font-size:18px;">open_in_full</mat-icon>
+                </button>
+            </div>
+            <dx-chart [dataSource]="chartData" palette="Soft Blue" [customizePoint]="customizeVendedorPoint">
+                <dxi-series valueField="MontoTotal" argumentField="Vendedor" name="VENTAS"
+                    type="bar"
+                    [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 10 } }">
+                </dxi-series>
+                <dxo-argument-axis [label]="{ rotationAngle: -15 }"></dxo-argument-axis>
+                <dxo-value-axis>
+                    <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+                </dxo-value-axis>
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+                <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+            </dx-chart>
+        </div>
+
+        <div class="grafico-card">
+            <div class="grafico-card-header">
+                <span>Ventas por Mes</span>
+                <button mat-icon-button (click)="abrirPopup('ventasPorMes')" title="Ampliar">
+                    <mat-icon style="font-size:18px;">open_in_full</mat-icon>
+                </button>
+            </div>
+            <dx-chart [dataSource]="chartMontoMensual" palette="Soft Blue">
+                <dxi-series valueField="MontoTotal" argumentField="Mes" name="VENTAS"
+                    type="bar" color="#3a5298"
+                    [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 10 } }">
+                </dxi-series>
+                <dxo-value-axis>
+                    <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+                </dxo-value-axis>
+                <dxo-legend [visible]="false"></dxo-legend>
+                <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+            </dx-chart>
+        </div>
+    </div>
+
+    <!-- Fila 2: Por Día Semana | # Ventas por Día -->
+    <div class="graficosVentas">
+        <div class="grafico-card">
+            <div class="grafico-card-header">
+                <span>Monto por Día de la Semana</span>
+                <button mat-icon-button (click)="abrirPopup('dia')" title="Ampliar">
+                    <mat-icon style="font-size:18px;">open_in_full</mat-icon>
+                </button>
+            </div>
+            <dx-chart [dataSource]="chartPorDia" palette="Soft Blue">
+                <dxi-series *ngFor="let s of semanas" [valueField]="s" [name]="s"
+                    type="bar" argumentField="Dia"
+                    [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 9 } }">
+                </dxi-series>
+                <dxo-argument-axis></dxo-argument-axis>
+                <dxo-value-axis>
+                    <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+                </dxo-value-axis>
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+                <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+            </dx-chart>
+        </div>
+
+        <div class="grafico-card">
+            <div class="grafico-card-header">
+                <span>N° Ventas por Día de la Semana</span>
+                <button mat-icon-button (click)="abrirPopup('nroVentas')" title="Ampliar">
+                    <mat-icon style="font-size:18px;">open_in_full</mat-icon>
+                </button>
+            </div>
+            <dx-chart [dataSource]="chartNumeroVentasPorDia" palette="Soft Blue">
+                <dxi-series *ngFor="let s of semanas" [valueField]="s" [name]="s"
+                    type="spline" argumentField="Dia"
+                    [point]="{ visible: true, size: 8 }"
+                    [label]="{ visible: true, font: { size: 10 } }">
+                </dxi-series>
+                <dxo-argument-axis></dxo-argument-axis>
+                <dxo-value-axis>
+                    <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+                </dxo-value-axis>
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+                <dxo-tooltip [enabled]="true"></dxo-tooltip>
+            </dx-chart>
+        </div>
+    </div>
+
+    <!-- Fila 3: Por Semana (ancho completo) -->
+    <div class="graficosVentas">
+        <div class="grafico-card" style="min-width:0; flex:1;">
+            <div class="grafico-card-header">
+                <span>Monto de Ventas por Semana</span>
+                <button mat-icon-button (click)="abrirPopup('ventasSemanal')" title="Ampliar">
+                    <mat-icon style="font-size:18px;">open_in_full</mat-icon>
+                </button>
+            </div>
+            <dx-chart [dataSource]="chartMontoSemanal" palette="Soft Blue">
+                <dxi-series *ngFor="let m of seriesMeses" [valueField]="m" [name]="m"
+                    type="bar" argumentField="Semana"
+                    [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 9 } }">
+                </dxi-series>
+                <dxo-argument-axis></dxo-argument-axis>
+                <dxo-value-axis>
+                    <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+                </dxo-value-axis>
+                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+                <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+            </dx-chart>
+        </div>
+    </div>
+
+    <!-- ===== POPUP: POR VENDEDOR ===== -->
+    <dx-popup [(visible)]="popupVisibleAsesor" [showTitle]="true" title="Ventas por Vendedor"
+        [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart [dataSource]="chartData" palette="Soft Blue" style="height:calc(90vh - 130px);"
+            [customizePoint]="customizeVendedorPoint">
+            <dxi-series valueField="MontoTotal" argumentField="Vendedor" name="VENTAS"
+                type="bar"
+                [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 11 } }">
+            </dxi-series>
+            <dxo-argument-axis [label]="{ rotationAngle: -15 }"></dxo-argument-axis>
+            <dxo-value-axis [title]="{ text: 'Monto (S/)' }">
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+            </dxo-value-axis>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+        </dx-chart>
+    </dx-popup>
+
+    <!-- ===== POPUP: POR DÍA SEMANA ===== -->
+    <dx-popup [(visible)]="popupVisibleDia" [showTitle]="true" title="Monto por Día de la Semana"
+        [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart [dataSource]="chartPorDia" palette="Soft Blue" style="height:calc(90vh - 130px);">
+            <dxi-series *ngFor="let s of semanas" [valueField]="s" [name]="s"
+                type="bar" argumentField="Dia"
+                [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 10 } }">
+            </dxi-series>
+            <dxo-argument-axis></dxo-argument-axis>
+            <dxo-value-axis [title]="{ text: 'Monto (S/)' }">
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+            </dxo-value-axis>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+        </dx-chart>
+    </dx-popup>
+
+    <!-- ===== POPUP: N° VENTAS POR DÍA ===== -->
+    <dx-popup [(visible)]="popupVisibleNroVentas" [showTitle]="true" title="N° Ventas por Día de la Semana"
+        [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart [dataSource]="chartNumeroVentasPorDia" palette="Soft Blue" style="height:calc(90vh - 130px);">
+            <dxi-series *ngFor="let s of semanas" [valueField]="s" [name]="s"
+                type="spline" argumentField="Dia"
+                [point]="{ visible: true, size: 10 }"
+                [label]="{ visible: true, font: { size: 11 } }">
+            </dxi-series>
+            <dxo-argument-axis></dxo-argument-axis>
+            <dxo-value-axis [title]="{ text: 'N° Ventas' }">
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+            </dxo-value-axis>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+        </dx-chart>
+    </dx-popup>
+
+    <!-- ===== POPUP: VENTAS SEMANAL ===== -->
+    <dx-popup [(visible)]="popupVisibleVentasSemanal" [showTitle]="true" title="Monto de Ventas por Semana"
+        [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart [dataSource]="chartMontoSemanal" palette="Soft Blue" style="height:calc(90vh - 130px);">
+            <dxi-series *ngFor="let m of seriesMeses" [valueField]="m" [name]="m"
+                type="bar" argumentField="Semana"
+                [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 10 } }">
+            </dxi-series>
+            <dxo-argument-axis></dxo-argument-axis>
+            <dxo-value-axis [title]="{ text: 'Monto (S/)' }">
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+            </dxo-value-axis>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" itemTextPosition="right"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+        </dx-chart>
+    </dx-popup>
+
+    <!-- ===== POPUP: VENTAS POR MES ===== -->
+    <dx-popup [(visible)]="popupVisibleVentasPorMes" [showTitle]="true" title="Monto de Ventas por Mes"
+        [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+        <dx-chart [dataSource]="chartMontoMensual" palette="Soft Blue" style="height:calc(90vh - 130px);">
+            <dxi-series valueField="MontoTotal" argumentField="Mes" name="VENTAS"
+                type="bar" color="#3a5298"
+                [label]="{ visible: true, customizeText: customizeMontoTexto, font: { size: 11 } }">
+            </dxi-series>
+            <dxo-value-axis [title]="{ text: 'Monto (S/)' }">
+                <dxo-label [format]="{ type: 'fixedPoint', precision: 0 }"></dxo-label>
+            </dxo-value-axis>
+            <dxo-legend [visible]="false"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
+        </dx-chart>
+    </dx-popup>
+
+    <!-- ===== GLOBAL GO ===== -->
+    <div class="section-header" style="margin-top: 24px;">
+        <mat-icon>shopping_bag</mat-icon>
+        Detalle Global GO
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
+        <mat-form-field appearance="outline" style="min-width:180px; margin-bottom:0;">
+            <mat-label>Mes</mat-label>
+            <mat-select [(ngModel)]="mesSeleccionadoGlobalGo" (ngModelChange)="filtrarGlobalGo()">
+                <mat-option *ngFor="let m of mesesGlobalGo" [value]="m.value">{{ m.label }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <button mat-stroked-button (click)="exportarGlobalGo()"
+            style="border-color:rgba(26,95,173,0.4); color:#1A5FAD; font-weight:600; border-radius:8px; background:rgba(26,95,173,0.07);">
+            <mat-icon>file_download</mat-icon> Exportar Global GO
+        </button>
+    </div>
+    <dx-data-grid #gridGlobalGo [dataSource]="filtroGlobalGo" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true">
+        <dxo-paging [pageSize]="15"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[15, 30, 50]" />
+        <dxo-filter-row [visible]="true" />
+        <dxi-column alignment="center" caption="FECHA" dataField="FECHAVENTA" dataType="date" [format]="'dd/MM/yyyy'" />
+        <dxi-column caption="CLIENTE" dataField="ClienteVenta" dataType="string" />
+        <dxi-column alignment="center" caption="DNI" dataField="DocIdentidad" dataType="string" />
+        <dxi-column caption="PRODUCTOS" dataField="Productos" dataType="string" />
+        <dxi-column alignment="center" caption="MONTO" dataField="MontoConsolidado" dataType="number" [format]="'S/ #,##0.00'" />
+        <dxi-column alignment="center" caption="VENDEDOR" dataField="Vendedor" dataType="string" />
+        <dxo-summary>
+            <dxi-total-item alignment="right" column="ClienteVenta" displayFormat="TOTAL:"></dxi-total-item>
+            <dxi-total-item column="MontoConsolidado" summaryType="sum" displayFormat="S/ {0}"
+                [valueFormat]="{ type: 'fixedPoint', precision: 2 }"></dxi-total-item>
+            <dxi-total-item column="Vendedor" summaryType="count" displayFormat="{0} ops"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>

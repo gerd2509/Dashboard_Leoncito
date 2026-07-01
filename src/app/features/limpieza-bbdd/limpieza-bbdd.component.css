@@ -47,6 +47,62 @@
   font-size: 13.5px;
   color: var(--gris);
 }
+.encabezado .volver { margin-left: auto; }
+
+/* ── Selección de modo ── */
+.modos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  margin-top: 6px;
+}
+.modo-card {
+  text-align: left;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  padding: 22px 20px;
+  transition: transform .12s, box-shadow .15s, border-color .15s;
+}
+.modo-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--azul);
+  box-shadow: 0 10px 26px rgba(26, 95, 173, 0.16);
+}
+.modo-ico {
+  display: grid; place-items: center;
+  width: 52px; height: 52px; border-radius: 13px; color: #fff; margin-bottom: 14px;
+}
+.modo-ico.sedes { background: linear-gradient(135deg, #1A5FAD, #2b7fd6); }
+.modo-ico.call  { background: linear-gradient(135deg, #1f9d55, #14823f); }
+.modo-ico mat-icon { font-size: 28px; width: 28px; height: 28px; }
+.modo-card h3 { margin: 0 0 6px; font-size: 17px; font-weight: 800; color: var(--texto); }
+.modo-card p { margin: 0; font-size: 13px; color: var(--gris); line-height: 1.4; }
+
+/* ── Rango de fechas (Call) ── */
+.rango {
+  display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;
+  background: #fff; border: 1px solid var(--borde); border-radius: 14px;
+  padding: 16px 18px; margin-bottom: 16px;
+}
+.rango-campo { display: flex; flex-direction: column; gap: 5px; }
+.rango-campo label { font-size: 12px; font-weight: 700; color: var(--gris); text-transform: uppercase; letter-spacing: .4px; }
+.rango-campo input {
+  border: 1px solid var(--borde); border-radius: 9px; padding: 9px 12px;
+  font-size: 14px; color: var(--texto); background: var(--azul-suave); outline: none;
+}
+.rango-campo input:focus { border-color: var(--azul); box-shadow: 0 0 0 3px rgba(26,95,173,.12); }
+.rango-nota {
+  display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
+  font-size: 13px; font-weight: 600; color: var(--gris);
+}
+.rango-nota.ok { color: #14823f; }
+.rango-nota mat-icon { font-size: 19px; width: 19px; height: 19px; }
+
+/* Dropzone deshabilitada */
+.dropzone.deshabilitado { opacity: .55; pointer-events: none; }
+.btn-cargar.disabled { opacity: .5; pointer-events: none; }
 
 /* ── Dropzone ── */
 .dropzone {
@@ -193,6 +249,39 @@
   border-color: #FFD8A8;
 }
 .metrica.destacada .m-valor { color: #C76E00; }
+
+/* Métricas Call */
+.metricas.call { margin-top: -6px; }
+.metrica.ok { background: #E6F7EB; border-color: #B7E7C4; }
+.metrica.ok .m-valor { color: #14823f; }
+.metrica.no { background: #FDECEC; border-color: #F5C2C2; }
+.metrica.no .m-valor { color: #C0392B; }
+.metrica.neutro { background: #F1F4F8; border-color: #D7DEE8; }
+.metrica.neutro .m-valor { color: #55627a; }
+.metrica.alerta { background: linear-gradient(135deg, #FFF4E5, #FFE9CC); border-color: #FFD8A8; }
+.metrica.alerta .m-valor { color: #C76E00; }
+
+/* Leyenda Call */
+.leyenda {
+  display: flex; gap: 20px; flex-wrap: wrap; margin: 4px 2px 18px;
+  font-size: 12.5px; color: var(--gris); font-weight: 600;
+}
+.leyenda span { display: inline-flex; align-items: center; gap: 7px; }
+.ley { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
+.ley.ok { background: #34c26a; }
+.ley.no { background: #e05a4d; }
+.ley.neutro { background: #9aa7bb; }
+
+/* Chips de números con color por estado */
+.td-nums { white-space: normal !important; }
+.chip {
+  display: inline-block; margin: 2px 4px 2px 0; padding: 3px 9px;
+  border-radius: 999px; font-size: 12.5px; font-weight: 700; letter-spacing: .3px;
+}
+.chip.num-ok { background: #E6F7EB; color: #14823f; border: 1px solid #B7E7C4; }
+.chip.num-no { background: #FDECEC; color: #C0392B; border: 1px solid #F5C2C2; text-decoration: line-through; }
+.chip.num-neutro { background: #F1F4F8; color: #55627a; border: 1px solid #D7DEE8; }
+.td-nums .sin { color: var(--gris); }
 .m-valor {
   display: block;
   font-size: 28px;

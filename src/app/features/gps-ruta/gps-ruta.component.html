@@ -1,0 +1,161 @@
+<div class="gps-ruta">
+
+  <!-- Barra de acciones -->
+  <header class="gps-header">
+    <div class="gps-titulo">
+      <mat-icon>route</mat-icon>
+      <span>Optimización de Rutas GPS</span>
+    </div>
+
+    <div class="gps-acciones">
+      <!-- input oculto: lo dispara el botón Importar -->
+      <input #fileInput type="file" accept=".xlsx,.xls,.csv" hidden (change)="onFileChange($event)" />
+      <dx-button
+        icon="upload"
+        text="Importar Excel"
+        stylingMode="outlined"
+        [disabled]="loading"
+        (onClick)="fileInput.click()">
+      </dx-button>
+
+      <dx-button
+        icon="export"
+        text="Exportar Excel"
+        stylingMode="outlined"
+        [disabled]="loading || !puntos.length"
+        (onClick)="exportarExcel()">
+      </dx-button>
+
+      <dx-select-box
+        class="gps-modo"
+        [items]="modos"
+        displayExpr="texto"
+        valueExpr="id"
+        [(value)]="travelmode"
+        [width]="190"
+        label="Modo de viaje"
+        labelMode="floating">
+      </dx-select-box>
+
+      <dx-button
+        icon="check"
+        text="Optimizar Ruta"
+        type="default"
+        [disabled]="loading || puntos.length < 2"
+        (onClick)="optimizarRuta()">
+      </dx-button>
+
+      <dx-button
+        icon="map"
+        text="Abrir Navegación en Google Maps"
+        type="success"
+        [disabled]="loading || puntos.length < 2"
+        (onClick)="abrirEnGoogleMaps()">
+      </dx-button>
+
+      <dx-button
+        icon="trash"
+        text="Limpiar"
+        stylingMode="outlined"
+        [disabled]="loading || !puntos.length"
+        (onClick)="limpiar()">
+      </dx-button>
+    </div>
+  </header>
+
+  <!-- Mensajes -->
+  <div class="gps-error" *ngIf="error">
+    <mat-icon>error_outline</mat-icon> {{ error }}
+  </div>
+
+  <div class="gps-info" *ngIf="info && !error">
+    <mat-icon>info</mat-icon>
+    <span>{{ info }}</span>
+    <span *ngIf="nombreArchivo" class="chip">{{ nombreArchivo }}</span>
+  </div>
+
+  <div class="gps-warn" *ngIf="cantidadInvalidos > 0">
+    <mat-icon>warning</mat-icon>
+    <span>
+      {{ cantidadInvalidos }} punto(s) tienen coordenadas fuera de Perú (resaltados en rojo).
+      Se excluyen automáticamente de la ruta. Corrige la lat/lng o elimínalos.
+    </span>
+    <dx-button
+      icon="trash"
+      text="Eliminar inválidos"
+      type="danger"
+      stylingMode="contained"
+      (onClick)="eliminarInvalidos()">
+    </dx-button>
+  </div>
+
+  <div class="gps-resumen" *ngIf="optimizada && !error">
+    <mat-icon>check_circle</mat-icon>
+    <span>Ruta optimizada.</span>
+    <span *ngIf="distanciaKm != null" class="chip">{{ distanciaKm }} km</span>
+    <span *ngIf="duracionMin != null" class="chip">{{ duracionMin }} min aprox.</span>
+  </div>
+
+  <!-- Grilla editable de coordenadas -->
+  <dx-data-grid
+    [dataSource]="puntos"
+    [showBorders]="true"
+    [columnAutoWidth]="true"
+    [rowAlternationEnabled]="true"
+    (onInitNewRow)="onInitNewRow($event)"
+    (onCellPrepared)="onCellPrepared($event)"
+    class="gps-grid">
+
+    <dxo-editing
+      mode="cell"
+      [allowAdding]="true"
+      [allowUpdating]="true"
+      [allowDeleting]="true">
+    </dxo-editing>
+
+    <dxi-column
+      dataField="nombre"
+      caption="Punto / Cliente"
+      [width]="220"
+      sortOrder="none">
+    </dxi-column>
+
+    <dxi-column
+      dataField="lat"
+      caption="Latitud"
+      dataType="number"
+      [editorOptions]="{ format: '#0.000000' }">
+      <dxi-validation-rule type="required"></dxi-validation-rule>
+    </dxi-column>
+
+    <dxi-column
+      dataField="lng"
+      caption="Longitud"
+      dataType="number"
+      [editorOptions]="{ format: '#0.000000' }">
+      <dxi-validation-rule type="required"></dxi-validation-rule>
+    </dxi-column>
+
+    <dxi-column
+      dataField="id"
+      caption="ID"
+      [width]="140"
+      [allowEditing]="true">
+    </dxi-column>
+  </dx-data-grid>
+
+  <p class="gps-hint">
+    El <strong>primer punto</strong> es el origen y el <strong>último</strong> el destino.
+    Al optimizar, los puntos intermedios se reordenan en la secuencia más eficiente.
+  </p>
+
+  <!-- Panel de carga -->
+  <dx-load-panel
+    [visible]="loading"
+    message="Optimizando ruta…"
+    [showIndicator]="true"
+    [showPane]="true"
+    [shading]="true"
+    shadingColor="rgba(0,0,0,0.4)">
+  </dx-load-panel>
+</div>
