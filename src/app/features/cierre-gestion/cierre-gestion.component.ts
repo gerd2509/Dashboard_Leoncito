@@ -149,11 +149,11 @@ export class CierreGestionComponent implements OnInit {
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
+    // { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
     { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
     // { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
-    { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
+    // { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
     { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
     { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' }
   ];
@@ -167,13 +167,30 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
     { value: 'RZ6', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'RZ8', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
+    // { value: 'RZ8', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
     { value: 'RZ9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
     { value: 'RZ10', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
     { value: 'RZ11', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
   ];
 
   asesores1 = this.asesoresCall;
+
+  // ── Sublistas fijas para KOMMO (se muestran siempre, tengan o no registros) ──
+  // Leoncito / Call KOMMO: solo KAREN, ESMERALDA, KELLY
+  private readonly kommoCallIds = ['CC5', 'CC15', 'CC8'];
+  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH
+  private readonly kommoRealzzaIds = ['RZ2', 'RZ5', 'RZ3', 'RZ7', 'RZ6', 'RZ9', 'RZ4'];
+
+  get asesoresKommoCall() {
+    return this.kommoCallIds
+      .map(id => this.asesoresCall.find(a => a.value === id))
+      .filter((a): a is { value: string; viewValue: string } => !!a);
+  }
+  get asesoresKommoRealzza() {
+    return this.kommoRealzzaIds
+      .map(id => this.asesoresRealzza.find(a => a.value === id))
+      .filter((a): a is { value: string; viewValue: string } => !!a);
+  }
 
   asesorMap: { [codigo: string]: string } = {
     'CC10': 'Yudith', 'CC6': 'Maria', 'CC1': 'Patricia',
@@ -292,46 +309,39 @@ export class CierreGestionComponent implements OnInit {
 
   // LOGICA CONTACTABILIDAD
   calcularContactabilidadCall() {
-    // Call Center: solo asesores con gestión/data (TOTAL > 0)
+    // Contactabilidad Leoncito (llamadas): TODOS los asesores, tengan o no gestión.
     this.dataContactabilidadCall = this
-      .procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT')
-      .filter(r => (r['TOTAL'] || 0) > 0);
+      .procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT');
   }
 
   calcularContactabilidadRealzza() {
-    // Realzza: solo asesores con gestión/data (TOTAL > 0), igual que Call Center
+    // Contactabilidad Realzza: TODOS los asesores, tengan o no gestión.
     this.dataContactabilidadRealzza = this
-      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA')
-      .filter(r => (r['TOTAL'] || 0) > 0);
+      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA');
   }
 
   calcularContactabilidadKOMMOCall() {
-    // Call Center KOMMO: registros NO market place (MARKET PLACE L distinto de SI)
+    // KOMMO Leoncito (NO market place): SOLO Karen, Esmeralda, Kelly; tengan o no registros.
     this.dataContactabilidadKOMMOCall = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', false)
-      .filter(r => (r['TOTAL'] || 0) > 0);
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresKommoCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', false);
   }
 
   calcularContactabilidadKOMMOCallMarket() {
-    // Call Center MARKET PLACE: registros con MARKET PLACE L = SI
+    // KOMMO Leoncito MARKET PLACE: TODOS los asesores, tengan o no registros.
     this.dataContactabilidadKOMMOCallMarket = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', true)
-      .filter(r => (r['TOTAL'] || 0) > 0);
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', true);
   }
 
   calcularContactabilidadKOMMORealzza() {
-    // Realzza KOMMO: registros NO market place (MARKET PLACE R distinto de SI)
-    // Solo asesores con gestión/data (TOTAL > 0), igual que Call Center
+    // KOMMO Realzza (NO market place): SOLO Nataly, Anyela, Tatiana, Merly, Felicita, Ana Rut, Yudith.
     this.dataContactabilidadKOMMORealzza = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false)
-      .filter(r => (r['TOTAL'] || 0) > 0);
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresKommoRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false);
   }
 
   calcularContactabilidadKOMMORealzzaMarket() {
-    // Realzza MARKET PLACE: registros con MARKET PLACE R = SI
+    // KOMMO Realzza MARKET PLACE: TODOS los asesores, tengan o no registros.
     this.dataContactabilidadKOMMORealzzaMarket = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true)
-      .filter(r => (r['TOTAL'] || 0) > 0);
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true);
   }
 
   private procesarContactabilidad(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string): any[] {
