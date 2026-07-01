@@ -85,7 +85,7 @@ const CALL_MODULES = [
   'ventas-sedes', 'pizarra-metas',
 ];
 const REALZZA_MODULES = [
-  'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'ventas-brilla-realzza',
+  'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'ventas-brilla-realzza', 'cierre',
 ];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
@@ -95,7 +95,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v10';
+const STORAGE_KEY = 'gd_permissions_v11';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
