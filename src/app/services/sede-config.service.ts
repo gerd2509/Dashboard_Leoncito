@@ -255,8 +255,8 @@ const SEDES: Record<string, SedeConfig> = {
 };
 
 // Claves (normalizadas) de las sedes que se gestionan por Call Center.
-// Ferreñafe está activa hoy; Olmos y Motupe quedan listas para activar luego.
-const CALL_SEDES = ['ferrenafe', 'olmos', 'motupe'];
+// Activas: Ferreñafe, Olmos, Motupe, Cayaltí, Oyotún y Chongoyape.
+const CALL_SEDES = ['ferrenafe', 'olmos', 'motupe', 'cayalti', 'oyotun', 'chongoyape'];
 
 @Injectable({ providedIn: 'root' })
 export class SedeConfigService {

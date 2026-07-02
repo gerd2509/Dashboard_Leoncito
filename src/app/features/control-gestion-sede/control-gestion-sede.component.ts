@@ -195,7 +195,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           totalContacto, total,
           porcentaje: total > 0 ? totalContacto / total : 0,
         };
-      });
+      })
+      // Solo asesores que tienen gestión en el día (se ocultan los que están en 0).
+      .filter(f => f.total > 0);
 
       const totalLlamadas         = filas.reduce((s, f) => s + f.llamadaContacto + f.llamadaNoContacto, 0);
       const totalCartas           = filas.reduce((s, f) => s + f.cartaContacto   + f.cartaNoContacto,   0);

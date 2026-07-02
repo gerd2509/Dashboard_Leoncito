@@ -1,0 +1,174 @@
+<div class="ac-wrap">
+
+  <!-- Encabezado -->
+  <div class="encabezado">
+    <div class="enc-icono"><mat-icon>trending_up</mat-icon></div>
+    <div>
+      <h2>Avance de Cartera</h2>
+      <p *ngIf="!modo">Elige la cartera a evaluar: cruza tu Excel con la gestión y mide cuánto se ha avanzado.</p>
+      <p *ngIf="modo">Cartera <b>{{ nombreCartera }}</b> — se compara por DNI y teléfonos contra la gestión del mes elegido.</p>
+    </div>
+    <button *ngIf="modo" class="btn-secundario volver" (click)="volverModos()">
+      <mat-icon>arrow_back</mat-icon> Cambiar cartera
+    </button>
+  </div>
+
+  <!-- Selección de modo -->
+  <div class="modos" *ngIf="!modo">
+    <button class="modo-card" (click)="seleccionarModo('leoncito')">
+      <div class="modo-ico leoncito"><mat-icon>call</mat-icon></div>
+      <h3>Cartera Leoncito</h3>
+      <p>Cruza contra la gestión de <b>Call Center</b> (ASESOR CONTACT).</p>
+    </button>
+    <button class="modo-card" (click)="seleccionarModo('realzza')">
+      <div class="modo-ico realzza"><mat-icon>storefront</mat-icon></div>
+      <h3>Cartera Realzza</h3>
+      <p>Cruza contra la gestión de <b>Realzza</b> (ASESOR REALZZA).</p>
+    </button>
+  </div>
+
+  <ng-container *ngIf="modo">
+
+    <!-- Mes + carga -->
+    <div class="barra" *ngIf="!listo">
+      <div class="campo">
+        <label>Mes de gestión</label>
+        <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
+          [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
+      </div>
+      <span class="barra-nota"><mat-icon>info</mat-icon> Se comparará contra la gestión de ese mes.</span>
+    </div>
+
+    <div *ngIf="!listo" class="dropzone"
+         [class.dragging]="arrastrando" [class.procesando]="procesando"
+         (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+      <ng-container *ngIf="!procesando; else cargando">
+        <mat-icon class="dz-icon">cloud_upload</mat-icon>
+        <p class="dz-titulo">Arrastra el Excel de la cartera aquí</p>
+        <p class="dz-sub">o</p>
+        <label class="btn-cargar">
+          <mat-icon>folder_open</mat-icon> Seleccionar archivo
+          <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" />
+        </label>
+        <p class="dz-formatos">Debe incluir DNI, teléfonos y columna de asesor (ASESOR CONTACT / ASIGNACION CONTACT).</p>
+      </ng-container>
+      <ng-template #cargando>
+        <div class="spinner"></div>
+        <p class="dz-titulo">Procesando y cruzando con la gestión…</p>
+      </ng-template>
+    </div>
+
+    <!-- Error -->
+    <div class="alerta-error" *ngIf="error">
+      <mat-icon>error_outline</mat-icon><span>{{ error }}</span>
+      <button class="btn-link" (click)="reiniciar()">Reintentar</button>
+    </div>
+
+    <!-- Resultado -->
+    <div class="resultado" *ngIf="listo">
+
+      <div class="res-header">
+        <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
+        <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otra</button>
+      </div>
+
+      <!-- Avance global -->
+      <div class="avance-global">
+        <div class="ag-left">
+          <span class="ag-pct">{{ avanceGlobal }}%</span>
+          <span class="ag-lbl">Avance de gestión</span>
+        </div>
+        <div class="ag-bar">
+          <div class="ag-fill" [class]="claseAvance(avanceGlobal)" [style.width.%]="avanceGlobal"></div>
+        </div>
+        <div class="ag-right">
+          <span>{{ totalGestionados }} / {{ totalCartera }}</span>
+          <small>gestionados</small>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="metricas">
+        <div class="metrica"><span class="m-valor">{{ totalCartera }}</span><span class="m-label">Cartera total</span></div>
+        <div class="metrica ok"><span class="m-valor">{{ totalContacto }}</span><span class="m-label">Contacto</span></div>
+        <div class="metrica no"><span class="m-valor">{{ totalNoContacto }}</span><span class="m-label">No contacto</span></div>
+        <div class="metrica alerta"><span class="m-valor">{{ totalPendientes }}</span><span class="m-label">Faltan gestionar</span></div>
+        <div class="metrica"><span class="m-valor">{{ gestionesMes }}</span><span class="m-label">Gestiones del mes</span></div>
+        <div class="metrica"><span class="m-valor">{{ diasParaTerminar || '—' }}</span><span class="m-label">Días para terminar (ritmo {{ ritmoDiario }}/día)</span></div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="charts">
+        <div class="chart-box">
+          <h3>Avance por día del mes</h3>
+          <dx-chart [dataSource]="porDia" [rotated]="false">
+            <dxi-series valueField="Contacto" name="Contacto" type="stackedbar" color="#2E9E5B"></dxi-series>
+            <dxi-series valueField="No Contacto" name="No Contacto" type="stackedbar" color="#E0603A"></dxi-series>
+            <dxo-argument-axis [tickInterval]="2"><dxo-label [overlappingBehavior]="'stagger'"></dxo-label></dxo-argument-axis>
+            <dxo-common-series-settings argumentField="dia"></dxo-common-series-settings>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+          </dx-chart>
+        </div>
+        <div class="chart-box small">
+          <h3>Distribución de la cartera</h3>
+          <dx-pie-chart [dataSource]="distribucion" palette="Soft" type="doughnut"
+            [customizePoint]="customizePointPie">
+            <dxi-series argumentField="tipo" valueField="valor">
+              <dxo-label [visible]="true" [customizeText]="customizeLabelPie" backgroundColor="none">
+                <dxo-connector [visible]="true" [width]="1"></dxo-connector>
+              </dxo-label>
+            </dxi-series>
+            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipPie"></dxo-tooltip>
+          </dx-pie-chart>
+        </div>
+      </div>
+
+      <!-- Tabla por asesor -->
+      <div class="tabla-asesores">
+        <h3>Avance por asesor</h3>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="left">Asesor</th>
+                <th>Asignados</th>
+                <th>Gestionados</th>
+                <th>Contacto</th>
+                <th>No contacto</th>
+                <th>Faltan</th>
+                <th>% Avance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of resumenAsesores">
+                <td class="left">{{ r.asesor }}</td>
+                <td>{{ r.asignados }}</td>
+                <td>{{ r.gestionados }}</td>
+                <td class="c-ok">{{ r.contacto }}</td>
+                <td class="c-no">{{ r.noContacto }}</td>
+                <td class="c-alerta">{{ r.pendientes }}</td>
+                <td>
+                  <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
+                  <b>{{ r.avance }}%</b>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Acciones export -->
+      <div class="acciones">
+        <button class="btn-descargar alerta" (click)="exportarPendientes()">
+          <mat-icon>download</mat-icon> Exportar faltan gestionar ({{ totalPendientes }})
+        </button>
+        <button class="btn-descargar" (click)="exportarDetalle()">
+          <mat-icon>download</mat-icon> Exportar detalle completo
+        </button>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

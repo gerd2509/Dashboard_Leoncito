@@ -31,6 +31,7 @@ import { SeguridadComponent } from "../features/seguridad/seguridad.component";
 import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.component";
 import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
 import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.component";
+import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
@@ -82,6 +83,7 @@ interface MenuItem {
     LimpiezaBbddComponent,
     GpsRutaComponent,
     PizarraMetasComponent,
+    AvanceCarteraComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
@@ -150,6 +152,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'location_city', label: 'Control Gestión Sede',       modulo: 'control-gestion-sede' },
     { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
     { icon: 'dashboard',     label: 'Pizarra de Metas',           modulo: 'pizarra-metas' },
+    { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 
@@ -221,8 +224,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const esGlobal = u.sede.toLowerCase() === 'todas';
     const nombreSede = esGlobal ? 'Sedes' : (this.sedeConfig.getConfig(u.sede)?.nombre ?? u.sede);
+    const sedeUpper = nombreSede.toUpperCase();
 
-    return this.menuItems
+    const visibles = this.menuItems
       .map(item => {
         if (item.adminOnly) return null;
         if (item.submenu) {
@@ -230,17 +234,35 @@ export class DashboardComponent implements OnInit, OnDestroy {
             .filter(s => this.permissions.canAccess(s.modulo, u.rol, u.sede))
             .map(s => ({
               ...s,
-              label: s.modulo === 'gestion-sede' ? nombreSede.toUpperCase() : s.label,
+              label:
+                s.modulo === 'gestion-sede'        ? `PISO ${sedeUpper}` :
+                s.modulo === 'gestion-call-sedes'  ? `CALL ${sedeUpper}` :
+                s.modulo === 'ventas-sedes'        ? `SEDE ${sedeUpper}` :
+                s.label,
             }));
           return subs.length ? { ...item, submenu: subs } : null;
         }
         if (!item.modulo || !this.permissions.canAccess(item.modulo, u.rol, u.sede)) return null;
-        const label = item.modulo === 'control-gestion-sede'
-          ? `Control Gestión ${nombreSede}`
-          : item.label;
+        const label =
+          item.modulo === 'control-gestion-sede' ? `Control Gestión ${nombreSede}` :
+          item.modulo === 'control-call-sedes'   ? `Control Call ${nombreSede}` :
+          item.label;
         return { ...item, label };
       })
       .filter((i): i is MenuItem => i !== null);
+
+    // Orden solicitado al iniciar sesión (por perfil de sede). Los ítems no
+    // listados conservan su orden original al final.
+    const orden = [
+      'control-gestion-sede', 'control-call-sedes', 'pizarra-metas', 'avance-cartera',
+      'Gestión', 'Ventas', 'Agendamientos',
+    ];
+    const pos = (it: MenuItem): number => {
+      const id = it.modulo ?? it.label;
+      const i = orden.indexOf(id);
+      return i === -1 ? orden.length + 1 : i;
+    };
+    return visibles.sort((a, b) => pos(a) - pos(b));
   }
 
   get usuario() { return this.auth.getUsuario(); }
