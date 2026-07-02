@@ -122,9 +122,14 @@
 
     <ng-template #vacio>
       <div class="pz-empty">
-        <mat-icon>{{ cargando ? 'hourglass_top' : 'grid_on' }}</mat-icon>
+        <mat-icon>{{ cargando ? 'hourglass_top' : (capError ? 'cloud_off' : 'grid_on') }}</mat-icon>
         <p *ngIf="cargando">Cargando asesores del CAP…</p>
-        <ng-container *ngIf="!cargando">
+        <ng-container *ngIf="!cargando && capError">
+          <p>No se pudo cargar el <b>CAP</b> (conexión al servidor).</p>
+          <span>Revisa que el API esté disponible y vuelve a intentar.</span>
+          <div><button class="btn primary" (click)="reintentar()"><mat-icon>refresh</mat-icon>Reintentar</button></div>
+        </ng-container>
+        <ng-container *ngIf="!cargando && !capError">
           <p>No hay asesores <b>activos</b> en el CAP para <b>{{ nombreSedeActual }}</b>.</p>
           <span>Verifica que la hoja CAP tenga vendedores con ESTADO = ACTIVO para esta sede.</span>
         </ng-container>

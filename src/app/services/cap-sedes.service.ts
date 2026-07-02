@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, timeout } from 'rxjs';
 import { SheetsService } from './service-google.service';
 import { SedeConfigService } from './sede-config.service';
 
@@ -28,14 +28,23 @@ export class CapSedesService {
 
   private cache: CapRow[] | null = null;
   private cargando: Promise<CapRow[]> | null = null;
+  error = false;  // true si la última carga falló (para mostrar "Reintentar")
 
-  /** Carga (una sola vez) y cachea el CAP. */
+  /** Carga (una sola vez) y cachea el CAP. Nunca se cuelga: timeout de 20s. */
   async cargar(): Promise<CapRow[]> {
     if (this.cache) return this.cache;
     if (!this.cargando) {
-      this.cargando = lastValueFrom(this.sheets.getSheetDataCapSedes())
+      this.error = false;
+      this.cargando = lastValueFrom(
+        this.sheets.getSheetDataCapSedes().pipe(timeout(20000)),
+      )
         .then(data => (this.cache = this.parse(data)))
-        .catch(() => (this.cache = []));
+        .catch(err => {
+          console.error('❌ CAP: no se pudo cargar cap-sedes:', err);
+          this.error = true;
+          this.cargando = null; // permite reintentar
+          return [];
+        });
     }
     return this.cargando;
   }

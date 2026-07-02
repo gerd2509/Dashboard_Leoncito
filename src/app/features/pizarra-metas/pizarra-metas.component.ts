@@ -114,6 +114,13 @@ export class PizarraMetasComponent implements OnInit {
   onSedeChanged(): void { this.cargar(); }
   onFechaChanged(): void { this.cargar(); }
 
+  get capError(): boolean { return this.cap.error; }
+  async reintentar(): Promise<void> {
+    this.cap.invalidar();
+    await this.cap.cargar();
+    await this.cargar();
+  }
+
   // ── Persistencia ──
   private claveActual(): string {
     return `${this.sedeSeleccionada}|${this.fechaISO()}`;

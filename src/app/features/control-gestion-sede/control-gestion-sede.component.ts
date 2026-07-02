@@ -109,14 +109,21 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     // Mostrar headers de inmediato (skeleton) para que no se vea vacío al cargar
     this.inicializarBloquesSkeleton();
 
-    // Roster de vendedores ACTIVOS por sede desde el CAP (nombres correctos).
+    // Carga los datos y renderiza YA (con la lista estática como fallback).
+    await this.cargarDatos();
+    this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
+
+    // El CAP se carga en segundo plano; al llegar, recalcula con los nombres correctos.
+    this.cargarRosterCap();
+  }
+
+  // Roster de vendedores ACTIVOS por sede desde el CAP (no bloquea el render).
+  private async cargarRosterCap(): Promise<void> {
     await this.cap.cargar();
     for (const s of this.sedesObjetivo) {
       this.capPorSede.set(s.key, await this.cap.vendedoresActivos(s.key));
     }
-
-    await this.cargarDatos();
-    this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
+    if (this.listData.length) this.calcular();
   }
 
   private inicializarBloquesSkeleton() {
