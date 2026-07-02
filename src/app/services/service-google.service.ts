@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -75,9 +75,18 @@ export class SheetsService {
     return this.http.get<any[]>(`${this.baseUrl}/${endpointKey}`);
   }
 
-  // 🏬 Sheet unificado de gestión de todas las sedes
-  getSheetDataSedes(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlSedes);
+  // 🏬 Sheet unificado de gestión de todas las sedes.
+  // Acepta rango de fechas opcional para NO traer todo el histórico (el sheet es enorme).
+  // Ej.: getSheetDataSedes({ desde: date1, hasta: date2 }) → ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+  getSheetDataSedes(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any[]>(this.apiUrlSedes, { params });
+  }
+
+  private fechaISO(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)

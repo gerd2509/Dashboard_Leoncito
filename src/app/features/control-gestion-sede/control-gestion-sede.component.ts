@@ -157,7 +157,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   async cargarDatos() {
     this.isLoading = true;
     try {
-      this.listData = await lastValueFrom(this.sheetsService.getSheetDataSedes());
+      // Solo el día seleccionado (el sheet de sedes es enorme; filtrar en el backend
+      // evita descargar todo el histórico y que la app se cuelgue al refrescar).
+      const fecha = this.formCtrl.value.fechaGestion as Date;
+      this.listData = await lastValueFrom(
+        this.sheetsService.getSheetDataSedes({ desde: fecha, hasta: fecha })
+      );
       this.calcular();
     } catch (e) {
       console.error('Error al cargar datos de sedes:', e);

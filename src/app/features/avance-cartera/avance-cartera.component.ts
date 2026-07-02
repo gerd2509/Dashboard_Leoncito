@@ -312,9 +312,12 @@ export class AvanceCarteraComponent implements OnInit {
   /** Gestión SEDES → un índice (DNI/teléfono) POR CADA sede (TIENDA SEDE). */
   private async cargarGestionSedes(): Promise<Map<string, IndiceGestion>> {
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
+    // Solo el mes seleccionado (el sheet de sedes es enorme → filtrar en backend).
+    const desde = new Date(anio, mes, 1);
+    const hasta = new Date(anio, mes + 1, 0);
     let data: any[] = [];
     try {
-      data = await lastValueFrom(this.sheets.getSheetDataSedes());
+      data = await lastValueFrom(this.sheets.getSheetDataSedes({ desde, hasta }));
     } catch {
       throw new Error('No se pudo cargar la gestión SEDES (revisa la conexión al servidor).');
     }
