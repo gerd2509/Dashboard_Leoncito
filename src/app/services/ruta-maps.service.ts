@@ -7,6 +7,7 @@ import {
   OptimizarRutaResponse,
   TravelMode,
 } from '../features/gps-ruta/models/ruta.model';
+import { environment } from '../../environments/environment';
 
 /**
  * Servicio de rutas geográficas.
@@ -18,9 +19,8 @@ import {
  */
 @Injectable({ providedIn: 'root' })
 export class RutaMapsService {
-  // Misma base que AuthService (sheets-api). Para producción descomentar Render.
-  private readonly baseUrl = 'https://api-leoncito.onrender.com';
-  // private readonly baseUrl = 'http://localhost:3000';
+  // Misma base que AuthService (sheets-api), tomada del environment.
+  private readonly baseUrl = environment.apiBase;
 
   constructor(private http: HttpClient) {}
 

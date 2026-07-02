@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Usuario {
   nombre: string;
@@ -10,10 +11,7 @@ export interface Usuario {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly baseUrl = 'https://api-leoncito.onrender.com';
-
-
-  // private readonly baseUrl = 'http://localhost:3000';
+  private readonly baseUrl = environment.apiBase;
   private readonly SESSION_KEY = 'gd_usuario';
 
   constructor(private http: HttpClient) {}
