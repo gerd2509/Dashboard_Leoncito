@@ -8,22 +8,27 @@
       <p *ngIf="!modo">Elige la cartera a evaluar: cruza tu Excel con la gestión y mide cuánto se ha avanzado.</p>
       <p *ngIf="modo">Cartera <b>{{ nombreCartera }}</b> — se compara por DNI y teléfonos contra la gestión del mes elegido.</p>
     </div>
-    <button *ngIf="modo" class="btn-secundario volver" (click)="volverModos()">
+    <button *ngIf="modo && !modoFijo" class="btn-secundario volver" (click)="volverModos()">
       <mat-icon>arrow_back</mat-icon> Cambiar cartera
     </button>
   </div>
 
   <!-- Selección de modo -->
   <div class="modos" *ngIf="!modo">
-    <button class="modo-card" (click)="seleccionarModo('leoncito')">
+    <button class="modo-card" *ngIf="puedeVer('call')" (click)="seleccionarModo('call')">
       <div class="modo-ico leoncito"><mat-icon>call</mat-icon></div>
-      <h3>Cartera Leoncito</h3>
+      <h3>Cartera Call</h3>
       <p>Cruza contra la gestión de <b>Call Center</b> (ASESOR CONTACT).</p>
     </button>
-    <button class="modo-card" (click)="seleccionarModo('realzza')">
+    <button class="modo-card" *ngIf="puedeVer('realzza')" (click)="seleccionarModo('realzza')">
       <div class="modo-ico realzza"><mat-icon>storefront</mat-icon></div>
       <h3>Cartera Realzza</h3>
       <p>Cruza contra la gestión de <b>Realzza</b> (ASESOR REALZZA).</p>
+    </button>
+    <button class="modo-card" *ngIf="puedeVer('piso')" (click)="seleccionarModo('piso')">
+      <div class="modo-ico piso"><mat-icon>location_city</mat-icon></div>
+      <h3>Cartera Piso</h3>
+      <p>Cruza contra la gestión de <b>Sedes</b> y separa por sede según la columna <b>ZONA</b> del Excel.</p>
     </button>
   </div>
 
@@ -50,7 +55,8 @@
           <mat-icon>folder_open</mat-icon> Seleccionar archivo
           <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" />
         </label>
-        <p class="dz-formatos">Debe incluir DNI, teléfonos y columna de asesor (ASESOR CONTACT / ASIGNACION CONTACT).</p>
+        <p class="dz-formatos" *ngIf="!esPiso">Debe incluir DNI, teléfonos y columna de asesor (ASESOR CONTACT / ASIGNACION CONTACT).</p>
+        <p class="dz-formatos" *ngIf="esPiso">Debe incluir DNI, teléfonos y la columna <b>ZONA/SEDE</b> (para separar por sede).</p>
       </ng-container>
       <ng-template #cargando>
         <div class="spinner"></div>
@@ -70,6 +76,18 @@
       <div class="res-header">
         <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
         <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otra</button>
+      </div>
+
+      <!-- Piso: selector de sede que enfoca TODA la vista -->
+      <div class="piso-bar" *ngIf="esPiso">
+        <div class="pb-scope">
+          <mat-icon>filter_alt</mat-icon>
+          <span *ngIf="!sedeDetalle">Vista global — todas las sedes</span>
+          <span *ngIf="sedeDetalle">Sede: <b>{{ nombreSedeDetalle }}</b></span>
+        </div>
+        <dx-select-box [items]="sedesDisponiblesDetalle" displayExpr="nombre" valueExpr="key"
+          [(value)]="sedeDetalle" (onValueChanged)="onSedeDetalleChanged()" [showClearButton]="true"
+          placeholder="Ver una sede en detalle" [width]="260" stylingMode="outlined"></dx-select-box>
       </div>
 
       <!-- Avance global -->
@@ -125,20 +143,46 @@
         </div>
       </div>
 
-      <!-- Tabla por asesor -->
-      <div class="tabla-asesores">
-        <h3>Avance por asesor</h3>
+      <!-- Tabla por SEDE (solo Piso en vista global) -->
+      <div class="tabla-asesores" *ngIf="esPiso && !sedeDetalle">
+        <h3>Avance por sede <small>(elige una sede arriba para ver su detalle)</small></h3>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="left">Sede</th>
+                <th>Asignados</th><th>Gestionados</th><th>Contacto</th>
+                <th>No contacto</th><th>Faltan</th><th>% Avance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of resumenSedes" class="fila-click" (click)="sedeDetalle = (r.sedeKey || 'sin-sede'); onSedeDetalleChanged()">
+                <td class="left">{{ r.sede }}</td>
+                <td>{{ r.asignados }}</td>
+                <td>{{ r.gestionados }}</td>
+                <td class="c-ok">{{ r.contacto }}</td>
+                <td class="c-no">{{ r.noContacto }}</td>
+                <td class="c-alerta">{{ r.pendientes }}</td>
+                <td>
+                  <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
+                  <b>{{ r.avance }}%</b>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabla por asesor (Call / Realzza, o Piso con sede seleccionada) -->
+      <div class="tabla-asesores" *ngIf="!esPiso || sedeDetalle">
+        <h3>Avance por asesor <small *ngIf="esPiso && sedeDetalle">— {{ nombreSedeDetalle }}</small></h3>
         <div class="tabla-scroll">
           <table>
             <thead>
               <tr>
                 <th class="left">Asesor</th>
-                <th>Asignados</th>
-                <th>Gestionados</th>
-                <th>Contacto</th>
-                <th>No contacto</th>
-                <th>Faltan</th>
-                <th>% Avance</th>
+                <th>Asignados</th><th>Gestionados</th><th>Contacto</th>
+                <th>No contacto</th><th>Faltan</th><th>% Avance</th>
               </tr>
             </thead>
             <tbody>
@@ -162,10 +206,12 @@
       <!-- Acciones export -->
       <div class="acciones">
         <button class="btn-descargar alerta" (click)="exportarPendientes()">
-          <mat-icon>download</mat-icon> Exportar faltan gestionar ({{ totalPendientes }})
+          <mat-icon>download</mat-icon>
+          Exportar faltan gestionar ({{ totalPendientes }}){{ esPiso && sedeDetalle ? ' — ' + nombreSedeDetalle : '' }}
         </button>
         <button class="btn-descargar" (click)="exportarDetalle()">
-          <mat-icon>download</mat-icon> Exportar detalle completo
+          <mat-icon>download</mat-icon>
+          Exportar detalle{{ esPiso && sedeDetalle ? ' — ' + nombreSedeDetalle : ' completo' }}
         </button>
       </div>
     </div>

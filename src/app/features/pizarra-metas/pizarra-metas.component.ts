@@ -4,25 +4,21 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
-
-// ── Tipos de campaña (bandas de la pizarra) ──────────────────────────────────
-type Grupo = 'RECEPTIVO' | 'CAMPAÑA 1' | 'CAMPAÑA 2';
-const GRUPOS: Grupo[] = ['RECEPTIVO', 'CAMPAÑA 1', 'CAMPAÑA 2'];
 
 // Definición de una columna editable de la tabla.
 interface Col { key: string; label: string; tipo: 'num' | 'text'; }
 
-// Una fila = un asesor con su tipo de campaña y todos sus valores.
+// Una fila = un asesor con su canal (grupo) y todos sus valores editables.
 interface Fila {
-  id: string;
-  grupo: Grupo;
   asesor: string;
+  canal: string;
   vals: Record<string, number | string>;
 }
 
-// Cabecera con los KPI de tienda (tarjetas superiores de la imagen).
+// Cabecera con los KPI de tienda (tarjetas superiores).
 interface Cabecera {
   meta: number; avance: number;
   ticketPromedio: number; operaciones: number;
@@ -30,10 +26,10 @@ interface Cabecera {
   incautaciones: number; notasCredito: number;
 }
 
-// Lo que se guarda por sede + fecha.
-interface Board { cabecera: Cabecera; filas: Fila[]; }
+// Lo que se guarda por sede + fecha (valores por asesor + cabecera).
+interface Board { cabecera: Cabecera; vals: Record<string, Record<string, number | string>>; }
 
-const STORAGE_KEY = 'gd_pizarra_v1';
+const STORAGE_KEY = 'gd_pizarra_v2';
 
 @Component({
   selector: 'app-pizarra-metas',
@@ -45,8 +41,9 @@ const STORAGE_KEY = 'gd_pizarra_v1';
 export class PizarraMetasComponent implements OnInit {
   private auth = inject(AuthService);
   private sedeConfig = inject(SedeConfigService);
+  private cap = inject(CapSedesService);
 
-  // ── Selección de sede (mismo patrón que ventas-sedes) ──
+  // ── Selección de sede ──
   esGlobal = false;
   sedeForzada = '';
   sedeSeleccionada = '';
@@ -56,15 +53,11 @@ export class PizarraMetasComponent implements OnInit {
   fecha: Date = new Date();
 
   // ── Estado del tablero ──
-  readonly grupos = GRUPOS;
+  cargando = false;
   cabecera: Cabecera = this.cabeceraVacia();
   filas: Fila[] = [];
+  canales: string[] = [];      // grupos (canales del CAP) presentes
   guardadoEn = '';
-
-  // ── Popup "Agregar asesor" ──
-  popupVisible = false;
-  nuevoGrupo: Grupo = 'RECEPTIVO';
-  nuevoAsesor = '';
 
   // ── Definición de columnas por banda ──
   readonly colsMeta: Col[] = [
@@ -88,16 +81,14 @@ export class PizarraMetasComponent implements OnInit {
     { key: 'invZona', label: 'Zona', tipo: 'text' },
   ];
 
-  // Todas las columnas en orden (para recorrer filas / totales).
   get todasCols(): Col[] {
     return [...this.colsMeta, ...this.colsAvance, ...this.colsCalidad, ...this.colsInv];
   }
-  // Solo numéricas (para totales).
   get colsNum(): Col[] {
     return this.todasCols.filter(c => c.tipo === 'num');
   }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     const u = this.auth.getUsuario();
     this.esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
 
@@ -112,34 +103,25 @@ export class PizarraMetasComponent implements OnInit {
       this.sedesDisponibles = [{ key: this.sedeForzada, nombre: cfg?.nombre ?? u.sede }];
     }
 
-    this.cargar();
+    await this.cap.cargar();
+    await this.cargar();
   }
 
   get nombreSedeActual(): string {
     return this.sedeConfig.getConfig(this.sedeSeleccionada)?.nombre ?? this.sedeSeleccionada;
   }
 
-  // ── Cambios de sede / fecha → recargar el tablero correspondiente ──
   onSedeChanged(): void { this.cargar(); }
   onFechaChanged(): void { this.cargar(); }
 
-  // ── Asesores de la sede disponibles para agregar (sin los ya usados) ──
-  get asesoresDisponibles(): string[] {
-    const usados = new Set(this.filas.map(f => f.asesor));
-    const asesores = this.sedeConfig.getConfig(this.sedeSeleccionada)?.asesores ?? [];
-    return asesores.filter(a => !usados.has(a));
-  }
-
-  // ── Persistencia ─────────────────────────────────────────────────────────
+  // ── Persistencia ──
   private claveActual(): string {
     return `${this.sedeSeleccionada}|${this.fechaISO()}`;
   }
-
   private fechaISO(): string {
     const f = this.fecha;
     return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
   }
-
   private leerStore(): Record<string, Board> {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -148,100 +130,73 @@ export class PizarraMetasComponent implements OnInit {
     return {};
   }
 
-  cargar(): void {
+  /** Construye las filas desde el CAP (vendedores ACTIVOS por canal) y las hidrata
+   *  con los valores guardados de esta sede+fecha. */
+  async cargar(): Promise<void> {
     if (!this.sedeSeleccionada) return;
-    const board = this.leerStore()[this.claveActual()];
-    this.cabecera = board?.cabecera ? { ...this.cabeceraVacia(), ...board.cabecera } : this.cabeceraVacia();
-    this.filas = (board?.filas ?? []).map(f => ({ ...f, vals: { ...f.vals } }));
-    this.guardadoEn = board ? 'Cargado' : '';
+    this.cargando = true;
+    try {
+      const board = this.leerStore()[this.claveActual()];
+      this.cabecera = board?.cabecera ? { ...this.cabeceraVacia(), ...board.cabecera } : this.cabeceraVacia();
+      const guardado = board?.vals ?? {};
+
+      const grupos = await this.cap.vendedoresPorCanal(this.sedeSeleccionada);
+      this.canales = grupos.map(g => g.canal);
+
+      const filas: Fila[] = [];
+      for (const g of grupos) {
+        for (const asesor of g.vendedores) {
+          const vals = { ...this.valsVacios(), ...(guardado[asesor] ?? {}) };
+          filas.push({ asesor, canal: g.canal, vals });
+        }
+      }
+      this.filas = filas;
+      this.guardadoEn = board ? 'Cargado' : '';
+    } finally {
+      this.cargando = false;
+    }
   }
 
   persistir(): void {
     if (!this.sedeSeleccionada) return;
+    const vals: Record<string, Record<string, number | string>> = {};
+    this.filas.forEach(f => { vals[f.asesor] = f.vals; });
     const store = this.leerStore();
-    store[this.claveActual()] = { cabecera: this.cabecera, filas: this.filas };
+    store[this.claveActual()] = { cabecera: this.cabecera, vals };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     this.guardadoEn = 'Guardado ' + new Date().toLocaleTimeString('es-PE');
   }
 
-  // ── Filas / asesores ───────────────────────────────────────────────────────
+  limpiar(): void {
+    if (!confirm('¿Borrar los datos ingresados de esta sede y fecha? (los asesores se mantienen)')) return;
+    this.cabecera = this.cabeceraVacia();
+    this.filas.forEach(f => (f.vals = this.valsVacios()));
+    this.persistir();
+  }
+
   private valsVacios(): Record<string, number | string> {
     const v: Record<string, number | string> = {};
     this.todasCols.forEach(c => (v[c.key] = c.tipo === 'num' ? 0 : ''));
     return v;
   }
 
-  abrirAgregar(): void {
-    this.nuevoGrupo = 'RECEPTIVO';
-    this.nuevoAsesor = this.asesoresDisponibles[0] ?? '';
-    this.popupVisible = true;
+  // ── Agrupación para el template ──
+  filasDeGrupo(canal: string): Fila[] {
+    return this.filas.filter(f => f.canal === canal);
+  }
+  gruposConFilas(): string[] {
+    return this.canales.filter(c => this.filasDeGrupo(c).length > 0);
   }
 
-  confirmarAgregar(): void {
-    const asesor = (this.nuevoAsesor || '').toString().trim();
-    if (!asesor) return;
-    this.filas.push({ id: this.genId(), grupo: this.nuevoGrupo, asesor, vals: this.valsVacios() });
-    this.ordenarFilas();
-    this.popupVisible = false;
-    this.persistir();
-  }
-
-  // Carga de golpe todos los asesores de la sede que aún no estén, en RECEPTIVO.
-  cargarAsesoresSede(): void {
-    this.asesoresDisponibles.forEach(asesor => {
-      this.filas.push({ id: this.genId(), grupo: 'RECEPTIVO', asesor, vals: this.valsVacios() });
-    });
-    this.ordenarFilas();
-    this.persistir();
-  }
-
-  eliminarFila(id: string): void {
-    this.filas = this.filas.filter(f => f.id !== id);
-    this.persistir();
-  }
-
-  cambiarGrupo(fila: Fila, grupo: Grupo): void {
-    fila.grupo = grupo;
-    this.ordenarFilas();
-    this.persistir();
-  }
-
-  limpiar(): void {
-    if (!confirm('¿Borrar todos los datos de la pizarra de esta sede y fecha?')) return;
-    this.cabecera = this.cabeceraVacia();
-    this.filas = [];
-    this.persistir();
-  }
-
-  private ordenarFilas(): void {
-    this.filas.sort((a, b) => {
-      const g = GRUPOS.indexOf(a.grupo) - GRUPOS.indexOf(b.grupo);
-      return g !== 0 ? g : a.asesor.localeCompare(b.asesor);
-    });
-  }
-
-  // ── Agrupación para el template (RECEPTIVO / CAMPAÑA 1 / CAMPAÑA 2) ──
-  filasDeGrupo(grupo: Grupo): Fila[] {
-    return this.filas.filter(f => f.grupo === grupo);
-  }
-
-  gruposConFilas(): Grupo[] {
-    return GRUPOS.filter(g => this.filasDeGrupo(g).length > 0);
-  }
-
-  // ── Totales ────────────────────────────────────────────────────────────────
+  // ── Totales / avance ──
   totalCol(key: string, filas: Fila[]): number {
     return filas.reduce((s, f) => s + (Number(f.vals[key]) || 0), 0);
   }
-
-  // % de avance de una fila (avance total / meta total en unidades).
   avanceFila(f: Fila): number {
     const meta = this.colsMeta.reduce((s, c) => s + (Number(f.vals[c.key]) || 0), 0);
     const avance = this.colsAvance.reduce((s, c) => s + (Number(f.vals[c.key]) || 0), 0);
     return meta > 0 ? Math.round((avance / meta) * 100) : 0;
   }
-
-  // Clase de color según el % de avance (semáforo).
   claseAvance(f: Fila): string {
     const p = this.avanceFila(f);
     if (p >= 100) return 'av-ok';
@@ -250,7 +205,7 @@ export class PizarraMetasComponent implements OnInit {
     return '';
   }
 
-  // ── Exportar a Excel ─────────────────────────────────────────────────────────
+  // ── Exportar a Excel ──
   async exportar(): Promise<void> {
     const wb = new Workbook();
     const ws = wb.addWorksheet('Pizarra');
@@ -268,9 +223,8 @@ export class PizarraMetasComponent implements OnInit {
     ]);
     ws.addRow([]);
 
-    // Cabeceras de banda + columnas.
     ws.addRow([
-      'TIPO', 'ASESOR',
+      'CANAL', 'ASESOR',
       'META Retail', 'META Melamina', 'META Afiliaciones',
       'AVANCE Retail', 'AVANCE Melamina', 'AVANCE Afiliaciones',
       'CAL Iniciales', 'CAL 3pc',
@@ -279,7 +233,7 @@ export class PizarraMetasComponent implements OnInit {
 
     this.filas.forEach(f => {
       ws.addRow([
-        f.grupo, f.asesor,
+        f.canal, f.asesor,
         ...this.colsMeta.map(c => f.vals[c.key]),
         ...this.colsAvance.map(c => f.vals[c.key]),
         ...this.colsCalidad.map(c => f.vals[c.key]),
@@ -288,7 +242,6 @@ export class PizarraMetasComponent implements OnInit {
       ]);
     });
 
-    // Estilo cabecera.
     const headerRow = ws.getRow(6);
     headerRow.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -304,7 +257,7 @@ export class PizarraMetasComponent implements OnInit {
     FileSaver.saveAs(blob, `Pizarra_${this.nombreSedeActual}_${this.fechaISO()}.xlsx`);
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
+  // ── Helpers ──
   private cabeceraVacia(): Cabecera {
     return {
       meta: 0, avance: 0, ticketPromedio: 0, operaciones: 0,
@@ -312,10 +265,8 @@ export class PizarraMetasComponent implements OnInit {
     };
   }
 
-  private genId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
+  indiceCanal(canal: string): number { return this.canales.indexOf(canal); }
 
-  trackFila = (_: number, f: Fila) => f.id;
+  trackFila = (_: number, f: Fila) => f.asesor + '|' + f.canal;
   trackCol = (_: number, c: Col) => c.key;
 }

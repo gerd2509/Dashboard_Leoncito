@@ -6,6 +6,7 @@ import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 
 interface AsesorRow {
   asesor: string;
@@ -35,6 +36,10 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   private auth     = inject(AuthService);
   private sedeCfg  = inject(SedeConfigService);
+  private cap      = inject(CapSedesService);
+
+  // Roster de vendedores ACTIVOS por sede (CAP) → nombres correctos.
+  private capPorSede = new Map<string, string[]>();
 
   formCtrl: UntypedFormGroup;
   isLoading = false;
@@ -80,6 +85,11 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.configurarSedeSegunUsuario();
+    // Roster de vendedores ACTIVOS por sede desde el CAP (nombres correctos).
+    await this.cap.cargar();
+    for (const s of this.sedesDisponibles) {
+      this.capPorSede.set(s.key, await this.cap.vendedoresActivos(s.key));
+    }
     await this.cargarDatos();
     this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
   }
@@ -152,16 +162,19 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
     // Filas que pertenecen a la sede seleccionada = tienen su columna de asesor con valor
     const filasSede = this.listData.filter(r => (r[col] ?? '').toString().trim() !== '');
 
-    // Asesores de la sede (dinámico: distintos de la columna de asesor, en toda la data)
-    const asesores = Array.from(
-      new Set(filasSede.map(r => (r[col] ?? '').toString().trim().toUpperCase()))
-    ).filter(a => a).sort();
+    // Asesores de la sede: roster ACTIVO del CAP (nombres correctos). Si el CAP no
+    // está disponible, cae al listado dinámico distinto de la columna de asesor.
+    const roster = this.capPorSede.get(this.sedeKey) ?? [];
+    const asesores = roster.length
+      ? roster
+      : Array.from(new Set(filasSede.map(r => (r[col] ?? '').toString().trim().toUpperCase()))).filter(a => a).sort();
 
     // Solo las filas del día seleccionado
     const filasDia = filasSede.filter(r => this.esMismaFecha(r['Marca temporal'], fecha));
 
     this.asesoresData = asesores.map(asesorNombre => {
-      const regs = filasDia.filter(r => (r[col] ?? '').toString().trim().toUpperCase() === asesorNombre);
+      const objetivo = this.normalizar(asesorNombre);
+      const regs = filasDia.filter(r => this.normalizar(r[col]) === objetivo);
 
       const contacto   = regs.filter(r => this.esContacto(r)).length;
       const noContacto = regs.filter(r => this.esNoContacto(r)).length;

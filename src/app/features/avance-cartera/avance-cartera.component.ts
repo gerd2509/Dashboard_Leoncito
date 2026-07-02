@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { lastValueFrom } from 'rxjs';
@@ -6,6 +6,8 @@ import * as XLSX from 'xlsx';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { SheetsService } from '../../services/service-google.service';
+import { SedeConfigService } from '../../services/sede-config.service';
+import { AuthService } from '../../services/auth.service';
 
 /** Columnas de teléfono a considerar de la cartera importada. */
 const COLUMNAS_TELEFONO = [
@@ -13,25 +15,34 @@ const COLUMNAS_TELEFONO = [
   'ProvedorExterno1', 'ProvedorExterno2', 'ProvedorExterno3',
 ];
 
-// Candidatos de cabecera para DNI y asesor en el Excel de cartera.
+// Candidatos de cabecera para DNI, asesor y sede/zona en el Excel de cartera.
 const CANDIDATOS_DNI = [
   'DNI', 'Dni', 'DNI CLIENTE', 'DNICLIENTE', 'DNI_CLIENTE', 'NRO DNI', 'N° DNI', 'NUM DNI',
   'DOCUMENTO', 'NRO DOCUMENTO', 'N° DOCUMENTO', 'DOC', 'DOC IDENTIDAD', 'DOCUMENTO IDENTIDAD',
   'DOCUMENTO DE IDENTIDAD', 'DOCIDENTIDAD', 'NRO DOC',
 ];
 const CANDIDATOS_ASESOR = [
+  'ASIGNACION FINAL', 'ASIGNACIONFINAL', 'ASESOR FINAL', 'ASESORFINAL',
   'ASESOR CONTACT', 'ASESORCONTACT', 'ASESOR CONTACTO', 'ASESORCONTACTO',
   'ASIGNACION CONTACT', 'ASIGNACIONCONTACT', 'ASIGNACION CONTACTO', 'ASIGNACIONCONTACTO',
   'ASESOR REALZZA', 'ASIGNACION REALZZA',
 ];
+const CANDIDATOS_ZONA = ['ZONA', 'ZONAS', 'SEDE', 'TIENDA', 'TIENDA SEDE'];
 
-// Columnas de la gestión (Call Center / Realzza).
+// Columnas de la gestión Call / Realzza (form).
 const G_DNI = 'DNI CLIENTE';
 const G_CELULAR = 'CELULAR GESTIONADO';
 const G_ESTADO = 'ESTADO DE GESTIÓN';
 const G_FECHA = 'Marca temporal';
 
-type Modo = 'leoncito' | 'realzza';
+// Columnas de la gestión SEDES (getSheetDataSedes).
+const GS_SEDE = 'TIENDA SEDE';
+const GS_DNI = 'DNI CLIENTE';
+const GS_CELULAR = 'N° CELULAR ACTUALIZADO';
+const GS_ESTADO = 'RESULTADO DE GESTION';
+const GS_FECHA = 'Marca temporal';
+
+type Modo = 'call' | 'realzza' | 'piso';
 type EstadoCliente = 'CONTACTO' | 'NO CONTACTO' | 'PENDIENTE';
 
 interface ClienteCartera {
@@ -41,20 +52,25 @@ interface ClienteCartera {
   estado: EstadoCliente;
   fechaGestion: Date | null;
   diaGestion: number | null;
+  sedeKey: string;
+  sedeNombre: string;
   raw: Record<string, any>;
 }
 
 interface ResumenAsesor {
   asesor: string;
-  asignados: number;
-  gestionados: number;
-  contacto: number;
-  noContacto: number;
-  pendientes: number;
-  avance: number; // %
+  asignados: number; gestionados: number;
+  contacto: number; noContacto: number; pendientes: number; avance: number;
+}
+
+interface ResumenSede {
+  sedeKey: string; sede: string;
+  asignados: number; gestionados: number;
+  contacto: number; noContacto: number; pendientes: number; avance: number;
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
+interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
 @Component({
   selector: 'app-avance-cartera',
@@ -63,26 +79,53 @@ interface RegGestion { fecha: Date; estado: EstadoCliente; }
   templateUrl: './avance-cartera.component.html',
   styleUrls: ['./avance-cartera.component.css'],
 })
-export class AvanceCarteraComponent {
+export class AvanceCarteraComponent implements OnInit {
   private sheets = inject(SheetsService);
+  private sedeCfg = inject(SedeConfigService);
+  private auth = inject(AuthService);
 
   // ── Modo / estado UI ──
   modo: Modo | null = null;
+  modosPermitidos: Modo[] = ['call', 'realzza', 'piso'];
+  modoFijo = false;  // true cuando el usuario tiene un único modo permitido
+
+  ngOnInit(): void {
+    const u = this.auth.getUsuario();
+    const sede = this.sedeCfg.normalizar(u?.sede ?? '');
+    const esAdmin = !u || u.rol === 'admin' || sede === 'todas';
+
+    if (esAdmin) {
+      this.modosPermitidos = ['call', 'realzza', 'piso'];
+      return;
+    }
+    // Realzza → solo su cartera; cualquier otra sede (Call sedes) → solo Piso.
+    this.modosPermitidos = sede === 'realzza' ? ['realzza'] : ['piso'];
+    if (this.modosPermitidos.length === 1) {
+      this.modoFijo = true;
+      this.seleccionarModo(this.modosPermitidos[0]);
+    }
+  }
+
+  puedeVer(m: Modo): boolean { return this.modosPermitidos.includes(m); }
   arrastrando = false;
   procesando = false;
   error = '';
   nombreArchivo = '';
   listo = false;
 
-  // Mes de gestión a comparar (se usa mes + año).
   fecha: Date = new Date();
 
   // ── Datos calculados ──
   private headersOriginales: string[] = [];
   clientes: ClienteCartera[] = [];
-  resumenAsesores: ResumenAsesor[] = [];
+  resumenAsesores: ResumenAsesor[] = [];      // modo call/realzza
+  resumenSedes: ResumenSede[] = [];           // modo piso
   porDia: { dia: string; Contacto: number; 'No Contacto': number; Total: number }[] = [];
   distribucion: { tipo: string; valor: number; color: string }[] = [];
+
+  // Piso: selector de sede para enfocar toda la vista en una sede
+  sedeDetalle = '';
+  sedesDisponiblesDetalle: { key: string; nombre: string }[] = [];
 
   // KPIs globales
   totalCartera = 0;
@@ -93,16 +136,15 @@ export class AvanceCarteraComponent {
   avanceGlobal = 0;
   gestionesMes = 0;
 
-  // Proyección
   diasTranscurridos = 0;
   diasMes = 0;
   ritmoDiario = 0;
   diasParaTerminar = 0;
 
   get nombreCartera(): string {
-    return this.modo === 'realzza' ? 'Realzza' : 'Leoncito';
+    return this.modo === 'realzza' ? 'Realzza' : this.modo === 'piso' ? 'Piso' : 'Call';
   }
-  get puedeCargar(): boolean { return !!this.fecha; }
+  get esPiso(): boolean { return this.modo === 'piso'; }
 
   // ── Selección de modo ──
   seleccionarModo(m: Modo): void { this.modo = m; this.reiniciar(); }
@@ -126,7 +168,9 @@ export class AvanceCarteraComponent {
   reiniciar(): void {
     this.listo = false; this.error = ''; this.nombreArchivo = '';
     this.headersOriginales = [];
-    this.clientes = []; this.resumenAsesores = []; this.porDia = []; this.distribucion = [];
+    this.clientes = []; this.resumenAsesores = []; this.resumenSedes = [];
+    this.porDia = []; this.distribucion = [];
+    this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
     this.totalNoContacto = this.totalPendientes = this.avanceGlobal = this.gestionesMes = 0;
     this.diasTranscurridos = this.diasMes = this.ritmoDiario = this.diasParaTerminar = 0;
@@ -160,7 +204,6 @@ export class AvanceCarteraComponent {
   // ── Núcleo: cruzar cartera con la gestión ──
   private async calcularAvance(filas: Record<string, any>[]): Promise<void> {
     this.headersOriginales = Object.keys(filas[0]);
-    // DNI: candidatos exactos y, si falla, cualquier cabecera que contenga "dni"/"documento".
     const dniHeader = this.buscarHeader(this.headersOriginales, CANDIDATOS_DNI)
       ?? this.buscarHeaderIncluye(this.headersOriginales, ['dni', 'documento', 'docidentidad']);
     const asesorHeader = this.buscarHeader(this.headersOriginales, CANDIDATOS_ASESOR)
@@ -170,26 +213,43 @@ export class AvanceCarteraComponent {
       .filter((h): h is string => !!h);
 
     if (!dniHeader) throw new Error('No se encontró la columna de DNI en el archivo.');
-    if (!asesorHeader) throw new Error('No se encontró la columna de asesor (ASESOR CONTACT / ASIGNACION CONTACT).');
 
-    // 1) Índices de gestión del mes seleccionado (por DNI y por teléfono).
-    const { porDni, porTel } = await this.cargarGestion();
+    // Modo Piso: la columna ZONA/SEDE indica a qué sede pertenece cada cartera.
+    let zonaHeader: string | undefined;
+    if (this.modo === 'piso') {
+      zonaHeader = this.buscarHeader(this.headersOriginales, CANDIDATOS_ZONA)
+        ?? this.buscarHeaderIncluye(this.headersOriginales, ['zona', 'sede', 'tienda']);
+      if (!zonaHeader) throw new Error('No se encontró la columna ZONA/SEDE en el archivo (necesaria para separar por sede).');
+    }
 
-    // 2) Clasificar cada cliente de la cartera.
+    // Índices de gestión del mes seleccionado.
+    const idxGlobal = this.modo === 'piso' ? null : await this.cargarGestion();
+    const idxPorSede = this.modo === 'piso' ? await this.cargarGestionSedes() : null;
+
     const clientes: ClienteCartera[] = filas.map(fila => {
       const dni = this.soloDigitos(String(fila[dniHeader] ?? ''));
-      const asesor = (fila[asesorHeader] || 'SIN ASESOR').toString().trim().toUpperCase();
+      const asesor = (fila[asesorHeader ?? ''] || 'SIN ASESOR').toString().trim().toUpperCase();
       const telefonos = telHeaders
         .flatMap(h => this.extraerNumeros(fila[h]))
         .filter((v, i, arr) => arr.indexOf(v) === i);
 
-      // Busca la última gestión por DNI o por cualquiera de sus teléfonos.
+      let sedeKey = '', sedeNombre = '';
+      let idx: IndiceGestion | null = idxGlobal;
+      if (this.modo === 'piso') {
+        const raw = (fila[zonaHeader!] || '').toString().trim();
+        sedeKey = this.sedeCfg.normalizar(raw);
+        sedeNombre = this.sedeCfg.getConfig(sedeKey)?.nombre ?? (raw || 'SIN SEDE');
+        idx = idxPorSede!.get(sedeKey) ?? null;
+      }
+
       const candidatos: RegGestion[] = [];
-      const g = porDni.get(dni); if (g) candidatos.push(g);
-      telefonos.forEach(t => {
-        const gt = porTel.get(t.slice(-9));
-        if (gt) candidatos.push(gt);
-      });
+      if (idx) {
+        const g = idx.porDni.get(dni); if (g) candidatos.push(g);
+        telefonos.forEach(t => {
+          const gt = idx!.porTel.get(t.slice(-9));
+          if (gt) candidatos.push(gt);
+        });
+      }
 
       let estado: EstadoCliente = 'PENDIENTE';
       let fechaGestion: Date | null = null;
@@ -202,22 +262,27 @@ export class AvanceCarteraComponent {
       return {
         dni, asesor, telefonos, estado, fechaGestion,
         diaGestion: fechaGestion ? fechaGestion.getDate() : null,
-        raw: fila,
+        sedeKey, sedeNombre, raw: fila,
       };
     });
 
     this.clientes = clientes;
-    this.construirResumen(clientes);
+    this.calcularGlobales(clientes);
+    if (this.modo === 'piso') {
+      this.construirResumenSedes(clientes);
+      this.resumenAsesores = [];
+    } else {
+      this.resumenAsesores = this.agregarPorAsesor(clientes);
+      this.resumenSedes = [];
+    }
     this.construirPorDia(clientes);
     this.construirDistribucion();
     this.construirProyeccion();
   }
 
-  /** Trae la gestión (Call o Realzza) y arma índices por DNI y por teléfono del mes seleccionado. */
-  private async cargarGestion(): Promise<{ porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion> }> {
-    const mes = this.fecha.getMonth();
-    const anio = this.fecha.getFullYear();
-
+  /** Gestión Call/Realzza → índice por DNI y por teléfono del mes seleccionado. */
+  private async cargarGestion(): Promise<IndiceGestion> {
+    const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
     let data: any[] = [];
     try {
       data = this.modo === 'realzza'
@@ -230,24 +295,52 @@ export class AvanceCarteraComponent {
     const porDni = new Map<string, RegGestion>();
     const porTel = new Map<string, RegGestion>();
     let count = 0;
-
     for (const item of data) {
       const fecha = this.parseMarcaTemporal(item[G_FECHA]);
       if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) continue;
-
-      const estadoRaw = (item[G_ESTADO] || '').toString().trim().toUpperCase();
-      const estado: EstadoCliente = estadoRaw === 'CONTACTO' ? 'CONTACTO' : 'NO CONTACTO';
+      const estado = this.mapEstado(item[G_ESTADO]);
       count++;
-
       const dni = this.soloDigitos(String(item[G_DNI] ?? ''));
       if (dni) this.guardarUltima(porDni, dni, { fecha, estado });
-
       const tel = this.soloDigitos(String(item[G_CELULAR] ?? '')).slice(-9);
       if (tel.length >= 9) this.guardarUltima(porTel, tel, { fecha, estado });
     }
-
     this.gestionesMes = count;
     return { porDni, porTel };
+  }
+
+  /** Gestión SEDES → un índice (DNI/teléfono) POR CADA sede (TIENDA SEDE). */
+  private async cargarGestionSedes(): Promise<Map<string, IndiceGestion>> {
+    const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
+    let data: any[] = [];
+    try {
+      data = await lastValueFrom(this.sheets.getSheetDataSedes());
+    } catch {
+      throw new Error('No se pudo cargar la gestión SEDES (revisa la conexión al servidor).');
+    }
+
+    const porSede = new Map<string, IndiceGestion>();
+    let count = 0;
+    for (const item of data) {
+      const fecha = this.parseMarcaTemporal(item[GS_FECHA]);
+      if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) continue;
+      const sedeKey = this.sedeCfg.normalizar(item[GS_SEDE] ?? '');
+      if (!sedeKey) continue;
+      const estado = this.mapEstado(item[GS_ESTADO]);
+      count++;
+      if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map() });
+      const idx = porSede.get(sedeKey)!;
+      const dni = this.soloDigitos(String(item[GS_DNI] ?? ''));
+      if (dni) this.guardarUltima(idx.porDni, dni, { fecha, estado });
+      const tel = this.soloDigitos(String(item[GS_CELULAR] ?? '')).slice(-9);
+      if (tel.length >= 9) this.guardarUltima(idx.porTel, tel, { fecha, estado });
+    }
+    this.gestionesMes = count;
+    return porSede;
+  }
+
+  private mapEstado(raw: any): EstadoCliente {
+    return (raw || '').toString().trim().toUpperCase() === 'CONTACTO' ? 'CONTACTO' : 'NO CONTACTO';
   }
 
   private guardarUltima(map: Map<string, RegGestion>, key: string, reg: RegGestion): void {
@@ -256,24 +349,36 @@ export class AvanceCarteraComponent {
   }
 
   // ── Agregados ──
-  private construirResumen(clientes: ClienteCartera[]): void {
+  private agregarPorAsesor(clientes: ClienteCartera[]): ResumenAsesor[] {
     const map = new Map<string, ResumenAsesor>();
     for (const c of clientes) {
       let r = map.get(c.asesor);
-      if (!r) {
-        r = { asesor: c.asesor, asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0 };
-        map.set(c.asesor, r);
-      }
+      if (!r) { r = { asesor: c.asesor, asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0 }; map.set(c.asesor, r); }
       r.asignados++;
       if (c.estado === 'PENDIENTE') r.pendientes++;
-      else {
-        r.gestionados++;
-        if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++;
-      }
+      else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
     }
     map.forEach(r => { r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0; });
-    this.resumenAsesores = Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+    return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+  }
 
+  private construirResumenSedes(clientes: ClienteCartera[]): void {
+    const map = new Map<string, ResumenSede>();
+    for (const c of clientes) {
+      const key = c.sedeKey || 'sin-sede';
+      let r = map.get(key);
+      if (!r) { r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0 }; map.set(key, r); }
+      r.asignados++;
+      if (c.estado === 'PENDIENTE') r.pendientes++;
+      else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
+    }
+    map.forEach(r => { r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0; });
+    this.resumenSedes = Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+    // Lista estable para el combo de detalle (evita re-render del dx-select-box).
+    this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
+  }
+
+  private calcularGlobales(clientes: ClienteCartera[]): void {
     this.totalCartera = clientes.length;
     this.totalContacto = clientes.filter(c => c.estado === 'CONTACTO').length;
     this.totalNoContacto = clientes.filter(c => c.estado === 'NO CONTACTO').length;
@@ -282,12 +387,38 @@ export class AvanceCarteraComponent {
     this.avanceGlobal = this.totalCartera > 0 ? Math.round((this.totalGestionados / this.totalCartera) * 100) : 0;
   }
 
+  // Piso: al elegir/limpiar una sede, TODA la vista (KPIs, gráficos, tabla por
+  // asesor y export) se enfoca en esa sede; sin sede vuelve a la vista global.
+  onSedeDetalleChanged(): void {
+    this.recomputarVista();
+  }
+
+  get nombreSedeDetalle(): string {
+    return this.sedesDisponiblesDetalle.find(x => x.key === this.sedeDetalle)?.nombre ?? '';
+  }
+
+  /** Subconjunto de clientes según el scope actual (sede seleccionada en Piso). */
+  private subsetActual(): ClienteCartera[] {
+    return (this.modo === 'piso' && this.sedeDetalle)
+      ? this.clientes.filter(c => (c.sedeKey || 'sin-sede') === this.sedeDetalle)
+      : this.clientes;
+  }
+
+  /** Recalcula KPIs, gráficos y tabla por asesor para el scope actual. */
+  private recomputarVista(): void {
+    const subset = this.subsetActual();
+    this.calcularGlobales(subset);
+    this.construirPorDia(subset);
+    this.construirDistribucion();
+    this.construirProyeccion();
+    // En Piso global (sin sede) la tabla principal es "por sede"; con sede, "por asesor".
+    this.resumenAsesores = (this.esPiso && !this.sedeDetalle) ? [] : this.agregarPorAsesor(subset);
+  }
+
   private construirPorDia(clientes: ClienteCartera[]): void {
     this.diasMes = new Date(this.fecha.getFullYear(), this.fecha.getMonth() + 1, 0).getDate();
     const filas: { dia: string; Contacto: number; 'No Contacto': number; Total: number }[] = [];
-    for (let d = 1; d <= this.diasMes; d++) {
-      filas.push({ dia: String(d), Contacto: 0, 'No Contacto': 0, Total: 0 });
-    }
+    for (let d = 1; d <= this.diasMes; d++) filas.push({ dia: String(d), Contacto: 0, 'No Contacto': 0, Total: 0 });
     clientes.forEach(c => {
       if (c.estado === 'PENDIENTE' || !c.diaGestion) return;
       const f = filas[c.diaGestion - 1];
@@ -322,14 +453,18 @@ export class AvanceCarteraComponent {
 
   // ── Exportaciones ──
   async exportarPendientes(): Promise<void> {
-    const pendientes = this.clientes.filter(c => c.estado === 'PENDIENTE');
+    const subset = this.subsetActual();
+    const pendientes = subset.filter(c => c.estado === 'PENDIENTE');
     if (!pendientes.length) { this.error = 'No hay clientes pendientes para exportar.'; return; }
-    await this.exportarClientes(pendientes, 'Pendientes', '_PENDIENTES', false);
+    const suf = this.esPiso && this.sedeDetalle ? `_${this.nombreSedeDetalle}_PENDIENTES` : '_PENDIENTES';
+    await this.exportarClientes(pendientes, 'Pendientes', suf, false);
   }
 
   async exportarDetalle(): Promise<void> {
-    if (!this.clientes.length) return;
-    await this.exportarClientes(this.clientes, 'Detalle', '_DETALLE', true);
+    const subset = this.subsetActual();
+    if (!subset.length) return;
+    const suf = this.esPiso && this.sedeDetalle ? `_${this.nombreSedeDetalle}_DETALLE` : '_DETALLE';
+    await this.exportarClientes(subset, 'Detalle', suf, true);
   }
 
   private async exportarClientes(lista: ClienteCartera[], hoja: string, sufijo: string, conEstado: boolean): Promise<void> {
@@ -348,9 +483,7 @@ export class AvanceCarteraComponent {
 
     for (const c of lista) {
       const base = this.headersOriginales.map(h => c.raw[h] ?? '');
-      const extra = conEstado
-        ? [c.estado, c.fechaGestion ? c.fechaGestion.toLocaleDateString('es-PE') : '']
-        : [];
+      const extra = conEstado ? [c.estado, c.fechaGestion ? c.fechaGestion.toLocaleDateString('es-PE') : ''] : [];
       const row = ws.addRow([...base, ...extra]);
       if (conEstado) {
         const argb = c.estado === 'CONTACTO' ? 'FFD6F5DD' : c.estado === 'NO CONTACTO' ? 'FFFAD9CE' : 'FFECEFF3';
@@ -381,7 +514,6 @@ export class AvanceCarteraComponent {
     return headers.find(h => this.normHeader(h) === o);
   }
 
-  /** Devuelve la 1ª cabecera cuyo nombre normalizado CONTENGA alguno de los fragmentos. */
   private buscarHeaderIncluye(headers: string[], fragmentos: string[]): string | undefined {
     return headers.find(h => {
       const n = this.normHeader(h);

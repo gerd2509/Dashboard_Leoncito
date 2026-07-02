@@ -122,6 +122,7 @@
 .tipo-band.g-0 { background: var(--pz-primary); }
 .tipo-band.g-1 { background: var(--pz-calidad); }
 .tipo-band.g-2 { background: var(--pz-inv); }
+.tipo-band.g-3 { background: var(--pz-avance); }
 
 /* Inputs de celda */
 .cell-inp {

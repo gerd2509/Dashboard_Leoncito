@@ -6,6 +6,7 @@ import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 
 interface AsesorRow {
   asesor: string;
@@ -77,6 +78,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   private listData: any[] = [];
   private sedesObjetivo: { key: string; nombre: string }[] = [];
+  // Roster de vendedores ACTIVOS por sede, tomado del CAP (nombres correctos).
+  private capPorSede = new Map<string, string[]>();
 
   private intervaloCincoMin: any = null;
 
@@ -85,6 +88,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     private sheetsService: SheetsService,
     private auth: AuthService,
     private sedeConfig: SedeConfigService,
+    private cap: CapSedesService,
   ) {
     this.formCtrl = this.fb.group({ fechaGestion: [new Date()] });
   }
@@ -104,6 +108,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     // Mostrar headers de inmediato (skeleton) para que no se vea vacío al cargar
     this.inicializarBloquesSkeleton();
+
+    // Roster de vendedores ACTIVOS por sede desde el CAP (nombres correctos).
+    await this.cap.cargar();
+    for (const s of this.sedesObjetivo) {
+      this.capPorSede.set(s.key, await this.cap.vendedoresActivos(s.key));
+    }
 
     await this.cargarDatos();
     this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
@@ -165,7 +175,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     this.sedesBloques = this.sedesObjetivo.map(sede => {
       const cfg = this.sedeConfig.getConfig(sede.key);
-      const asesores = cfg?.asesores ?? [];
+      // Roster desde el CAP (solo ACTIVOS); si no hay CAP, cae al listado estático.
+      const asesores = this.capPorSede.get(sede.key)?.length
+        ? this.capPorSede.get(sede.key)!
+        : (cfg?.asesores ?? []);
       const valorSede = cfg?.valorSede ?? sede.nombre;
 
       // Filtrar filas de esta sede + fecha seleccionada
@@ -175,9 +188,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       );
 
       const filas: AsesorRow[] = asesores.map(asesorNombre => {
+        const objetivo = this.normNombre(asesorNombre);
         const regs = filasSede.filter(r =>
-          (r['ASESOR'] ?? r[cfg!.columnaAsesor] ?? '').toString().trim().toUpperCase()
-            === asesorNombre.trim().toUpperCase()
+          this.normNombre(r['ASESOR'] ?? r[cfg!.columnaAsesor] ?? '') === objetivo
         );
 
         const llamadaContacto   = regs.filter(r => this.esLlamada(r) && this.esContacto(r)).length;
@@ -382,5 +395,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     if (!marca || !marca.includes('/')) return false;
     const [d, m, a] = marca.split(' ')[0].split('/');
     return +d === fecha.getDate() && +m === (fecha.getMonth() + 1) && +a === fecha.getFullYear();
+  }
+
+  /** Normaliza un nombre para comparar (minúsculas, sin tildes, espacios colapsados). */
+  private normNombre(s: any): string {
+    return (s ?? '').toString().toLowerCase().normalize('NFD')
+      .replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   }
 }

@@ -26,6 +26,7 @@ export class SheetsService {
   private apiUrlKOMMO = `${this.baseUrl}/kommo`;
   private apiUrlFerre = `${this.baseUrl}/ferre`; // formulario de gestión de Ferreñafe
   private apiUrlSedes = `${this.baseUrl}/sedes`;
+  private apiUrlCapSedes = `${this.baseUrl}/capSedes`; // CAP de asesores por sede (hoja CAP)
 
   constructor(private http: HttpClient) { }
 
@@ -85,5 +86,10 @@ export class SheetsService {
   // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)
   getSheetDataFerre(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlFerre);
+  }
+
+  // 👥 CAP de asesores por sede (hoja "CAP"): VENDEDOR, SEDE, CANAL, ESTADO, TIPO AV, ...
+  getSheetDataCapSedes(): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrlCapSedes);
   }
 }
