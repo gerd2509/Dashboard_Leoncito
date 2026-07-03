@@ -4,16 +4,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { AgendamientosComponent } from "../features/agendamientos/agendamientos.component";
 import { GestionContactXHoraComponent } from "../features/Gestion/gestion-contact-x-hora/gestion-contact-x-hora.component";
 import { CierreGestionComponent } from "../features/cierre-gestion/cierre-gestion.component";
-import { AnalisisGestionMensualComponent } from "../features/analisis-gestion-mensual/analisis-gestion-mensual.component";
 import { VentasComponent } from "../features/ventas/ventas.component";
 import { ConvertidorExcelCsvComponent } from "../features/convertidor-excel-csv/convertidor-excel-csv.component";
-import { TercerosComponent } from "../features/terceros/terceros.component";
-import { VentasCuotasTipoVentaComponent } from "../features/ventas-cuotas-tipo-venta/ventas-cuotas-tipo-venta.component";
-import { VentasBrillaRealzzaComponent } from "../features/ventas-brilla-realzza/ventas-brilla-realzza.component";
 import { VentaXPlazoAvComponent } from "../features/venta-x-plazo-av/venta-x-plazo-av.component";
 import { VentasCampoComponent } from "../features/ventas-campo/ventas-campo.component";
 import { VentasSedesComponent } from "../features/ventas-sedes/ventas-sedes.component";
-import { GestionCobranzasComponent } from "../features/gestion-cobranzas/gestion-cobranzas.component";
 import { GestionCampoRealzzaComponent } from "../features/Gestion/gestion-campo-realzza/gestion-campo-realzza.component";
 import { AgendamientosCampoComponent } from "../features/agendamientos/agendamientos-campo/agendamientos-campo.component";
 import { AgendamientosSedesComponent } from "../features/agendamientos/agendamientos-sedes/agendamientos-sedes.component";
@@ -32,6 +27,7 @@ import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.c
 import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
 import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.component";
 import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
+import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-gestion.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
@@ -56,16 +52,11 @@ interface MenuItem {
     AgendamientosComponent,
     GestionContactXHoraComponent,
     CierreGestionComponent,
-    AnalisisGestionMensualComponent,
     VentasComponent,
     ConvertidorExcelCsvComponent,
-    TercerosComponent,
-    VentasCuotasTipoVentaComponent,
-    VentasBrillaRealzzaComponent,
     VentaXPlazoAvComponent,
     VentasCampoComponent,
     VentasSedesComponent,
-    GestionCobranzasComponent,
     GestionCampoRealzzaComponent,
     AgendamientosCampoComponent,
     ComparativoVentasComponent,
@@ -84,6 +75,7 @@ interface MenuItem {
     GpsRutaComponent,
     PizarraMetasComponent,
     AvanceCarteraComponent,
+    EmbudosGestionComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
@@ -117,7 +109,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'SEDES',       icon: 'location_city', modulo: 'agendamientos-sedes' }
       ]
     },
-    { icon: 'people',      label: 'Terceros',          modulo: 'terceros' },
     {
       icon: 'bar_chart', label: 'Gestión',
       submenu: [
@@ -130,7 +121,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ]
     },
     { icon: 'done_all',    label: 'Cierre Gestión',      modulo: 'cierre' },
-    { icon: 'analytics',   label: 'Análisis Mensual',    modulo: 'analisis' },
     {
       icon: 'shopping_cart', label: 'Ventas',
       submenu: [
@@ -141,10 +131,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'EVOLUTIVO',    icon: 'balance',    modulo: 'evolucion-tipo-cliente' }
       ]
     },
-    { icon: 'storefront',  label: 'Ventas Brilla Realzza',        modulo: 'ventas-brilla-realzza' },
-    { icon: 'storefront',  label: 'Ventas - Cuotas - Tipo Venta', modulo: 'ventas-cuotas-tipoVenta' },
     { icon: 'storefront',  label: 'Ventas - Plazo AV',            modulo: 'ventas-plazo-av' },
-    { icon: 'payments',    label: 'Cobranzas',                    modulo: 'cobranzas' },
     { icon: 'sync_alt',    label: 'Conversor CSV',                modulo: 'conversor-csv' },
     { icon: 'cleaning_services', label: 'Limpieza BBDD',          modulo: 'limpieza-bbdd' },
     { icon: 'route',       label: 'Optimizar Rutas GPS',          modulo: 'gps-ruta' },
@@ -153,6 +140,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
     { icon: 'dashboard',     label: 'Pizarra de Metas',           modulo: 'pizarra-metas' },
     { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
+    { icon: 'filter_alt',    label: 'Embudos de Gestión',         modulo: 'embudos-gestion' },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 

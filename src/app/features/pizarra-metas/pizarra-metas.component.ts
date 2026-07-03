@@ -144,7 +144,8 @@ export class PizarraMetasComponent implements OnInit {
     this.cargando = true;
     try {
       const board = this.leerStore()[this.claveActual()];
-      this.cabecera = board?.cabecera ? { ...this.cabeceraVacia(), ...board.cabecera } : this.cabeceraVacia();
+      // Si ya hay datos guardados se usan; si no, se aplican las metas fijas por sede.
+      this.cabecera = board?.cabecera ? { ...this.cabeceraVacia(), ...board.cabecera } : this.cabeceraDefault(this.sedeSeleccionada);
       const guardado = board?.vals ?? {};
 
       const grupos = await this.cap.vendedoresPorCanal(this.sedeSeleccionada);
@@ -270,6 +271,21 @@ export class PizarraMetasComponent implements OnInit {
       meta: 0, avance: 0, ticketPromedio: 0, operaciones: 0,
       margen: 0, capActual: 0, capAprobado: 0, incautaciones: 0, notasCredito: 0,
     };
+  }
+
+  // Metas fijas por defecto (mientras se cargan): META + CAP actual/aprobado por sede.
+  // TODO: quitar/ajustar cuando se definan metas reales de todas las sedes.
+  private readonly metasFijas: Record<string, { meta: number; capActual: number; capAprobado: number }> = {
+    chongoyape: { meta: 150000, capActual: 3, capAprobado: 3 },
+    cayalti:    { meta: 150000, capActual: 3, capAprobado: 3 },
+    oyotun:     { meta: 120000, capActual: 3, capAprobado: 3 },
+  };
+
+  private cabeceraDefault(sedeKey: string): Cabecera {
+    const cab = this.cabeceraVacia();
+    const fija = this.metasFijas[this.sedeConfig.normalizar(sedeKey)];
+    if (fija) { cab.meta = fija.meta; cab.capActual = fija.capActual; cab.capAprobado = fija.capAprobado; }
+    return cab;
   }
 
   indiceCanal(canal: string): number { return this.canales.indexOf(canal); }

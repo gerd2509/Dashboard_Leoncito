@@ -1,0 +1,154 @@
+<div class="eg-wrap">
+
+  <!-- Encabezado -->
+  <div class="encabezado">
+    <div class="enc-icono"><mat-icon>filter_alt</mat-icon></div>
+    <div>
+      <h2>Embudos de Gestión</h2>
+      <p *ngIf="!modo">Elige la base y sube tu Excel de carteras: cruza cada cartera con la gestión y muestra el embudo.</p>
+      <p *ngIf="modo">Base <b>{{ nombreModo }}</b> — cada hoja del Excel es un embudo; la hoja VENTAS mide las ventas.</p>
+    </div>
+    <button *ngIf="modo" class="btn-secundario volver" (click)="volverModos()">
+      <mat-icon>arrow_back</mat-icon> Cambiar base
+    </button>
+  </div>
+
+  <!-- Selección de modo -->
+  <div class="modos" *ngIf="!modo">
+    <button class="modo-card" (click)="seleccionarModo('call')">
+      <div class="modo-ico call"><mat-icon>call</mat-icon></div>
+      <h3>Embudos Call</h3>
+      <p>Cruza las carteras contra la gestión de <b>Call Center</b> (+ Kommo).</p>
+    </button>
+    <button class="modo-card" (click)="seleccionarModo('realzza')">
+      <div class="modo-ico realzza"><mat-icon>storefront</mat-icon></div>
+      <h3>Embudos Realzza</h3>
+      <p>Cruza las carteras contra la gestión de <b>Realzza</b> (+ Kommo).</p>
+    </button>
+  </div>
+
+  <ng-container *ngIf="modo">
+    <!-- Mes + carga -->
+    <div class="barra" *ngIf="!listo">
+      <div class="campo">
+        <label>Mes de gestión</label>
+        <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
+          [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
+      </div>
+      <span class="barra-nota"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Incluye una hoja <b>VENTAS</b>.</span>
+    </div>
+
+    <div *ngIf="!listo" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
+         (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+      <ng-container *ngIf="!procesando; else cargando">
+        <mat-icon class="dz-icon">cloud_upload</mat-icon>
+        <p class="dz-titulo">Arrastra el Excel de carteras aquí</p>
+        <p class="dz-sub">o</p>
+        <label class="btn-cargar"><mat-icon>folder_open</mat-icon> Seleccionar archivo
+          <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" /></label>
+        <p class="dz-formatos">Una hoja por cartera (con DNI) + una hoja <b>VENTAS</b> (DNI, CONTACTO KOMMO, MARKET PLACE).</p>
+      </ng-container>
+      <ng-template #cargando>
+        <div class="spinner"></div>
+        <p class="dz-titulo">Procesando y cruzando con la gestión…</p>
+      </ng-template>
+    </div>
+
+    <div class="alerta-error" *ngIf="error">
+      <mat-icon>error_outline</mat-icon><span>{{ error }}</span>
+      <button class="btn-link" (click)="reiniciar()">Reintentar</button>
+    </div>
+
+    <!-- Resultado: embudos -->
+    <div class="resultado" *ngIf="listo">
+      <div class="res-header">
+        <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
+        <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otro</button>
+      </div>
+
+      <div class="embudos-grid">
+        <div class="embudo" *ngFor="let emb of embudos">
+          <div class="emb-title" [style.background]="emb.color">
+            <span class="emb-tit-txt">{{ emb.titulo }}</span>
+            <span class="emb-mp" *ngIf="emb.kommoLeads && emb.marketPlace !== undefined">
+              MARKET PLACE: {{ emb.marketPlace }}
+            </span>
+            <button class="emb-expand" (click)="abrirEmbudo(emb)" title="Ampliar embudo">
+              <mat-icon>open_in_full</mat-icon>
+            </button>
+          </div>
+
+          <div class="emb-body">
+            <!-- Tabla detalle -->
+            <table class="emb-tabla">
+              <thead>
+                <tr><th>DETALLE GESTIÓN</th><th>OP</th><th>RATIOS</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let e of emb.etapas" [class.total]="e.nombre === 'TOTAL VENTAS'">
+                  <td class="left">{{ e.nombre }}</td>
+                  <td class="num">{{ e.op }}</td>
+                  <td class="num">{{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</td>
+                  <td class="cod">{{ e.codigo }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- Embudo (barras centradas decrecientes) -->
+            <div class="emb-funnel">
+              <div class="funnel-row" *ngFor="let e of emb.etapas">
+                <span class="fr-label">{{ e.nombre }}</span>
+                <div class="fr-track">
+                  <div class="fr-bar" [style.width.%]="anchoBarra(e)" [style.background]="emb.color">
+                    <span class="fr-val" *ngIf="e.op > 0">{{ e.op }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<!-- Popup: embudo ampliado -->
+<dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="embudoSel?.titulo || 'Embudo'"
+          [width]="'82%'" [height]="'82%'" [dragEnabled]="false" [hideOnOutsideClick]="true"
+          [showCloseButton]="true">
+  <div *dxTemplate="let d of 'content'">
+    <ng-container *ngIf="embudoSel as emb">
+      <div class="pop-emb">
+        <div class="pop-bar" [style.background]="emb.color" *ngIf="emb.kommoLeads && emb.marketPlace !== undefined">
+          MARKET PLACE (independiente): <b>{{ emb.marketPlace }}</b>
+        </div>
+        <div class="pop-body">
+          <table class="emb-tabla pop-tabla">
+            <thead>
+              <tr><th>DETALLE GESTIÓN</th><th>OP</th><th>RATIOS</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of emb.etapas" [class.total]="e.nombre === 'TOTAL VENTAS'">
+                <td class="left">{{ e.nombre }}</td>
+                <td class="num">{{ e.op }}</td>
+                <td class="num">{{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</td>
+                <td class="cod">{{ e.codigo }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="emb-funnel pop-funnel">
+            <div class="funnel-row" *ngFor="let e of emb.etapas">
+              <span class="fr-label">{{ e.nombre }}</span>
+              <div class="fr-track">
+                <div class="fr-bar" [style.width.%]="anchoBarra(e)" [style.background]="emb.color">
+                  <span class="fr-val" *ngIf="e.op > 0">{{ e.op }} · {{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</dx-popup>

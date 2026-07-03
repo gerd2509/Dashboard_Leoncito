@@ -52,22 +52,17 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'agendamientos-campo',          label: 'Agendamientos — Realzza',      grupo: 'Agendamientos' },
   { key: 'agendamientos-kommo',          label: 'Agendamientos — Kommo',        grupo: 'Agendamientos' },
   { key: 'agendamientos-sedes',          label: 'Agendamientos — Sedes',        grupo: 'Agendamientos', sedeScoped: true },
-  { key: 'terceros',                     label: 'Terceros' },
   { key: 'gestion',                      label: 'Gestión — Call Center',        grupo: 'Gestión' },
   { key: 'gestion-campo',                label: 'Gestión — Realzza',            grupo: 'Gestión' },
   { key: 'gestion-post-venta',           label: 'Gestión — Post Venta',         grupo: 'Gestión' },
   { key: 'gestion-kommo',                label: 'Gestión — Kommo',              grupo: 'Gestión' },
   { key: 'cierre',                       label: 'Cierre Gestión' },
-  { key: 'analisis',                     label: 'Análisis Mensual' },
   { key: 'ventas',                       label: 'Ventas — Call Center',         grupo: 'Ventas' },
   { key: 'ventas-campo',                 label: 'Ventas — Realzza',             grupo: 'Ventas' },
   { key: 'ventas-comparativo',           label: 'Ventas — Comparativo',         grupo: 'Ventas' },
   { key: 'evolucion-tipo-cliente',       label: 'Ventas — Evolutivo',           grupo: 'Ventas' },
   { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
-  { key: 'ventas-brilla-realzza',        label: 'Ventas Brilla Realzza' },
-  { key: 'ventas-cuotas-tipoVenta',      label: 'Ventas Cuotas Tipo Venta' },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV' },
-  { key: 'cobranzas',                    label: 'Cobranzas' },
   { key: 'conversor-csv',                label: 'Conversor CSV' },
   { key: 'limpieza-bbdd',                label: 'Limpieza BBDD' },
   { key: 'gps-ruta',                     label: 'Optimizar Rutas GPS' },
@@ -78,15 +73,16 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'control-call-sedes',           label: 'Control Call Sedes',                      sedeScoped: true },
   { key: 'pizarra-metas',                label: 'Pizarra de Metas',                        sedeScoped: true },
   { key: 'avance-cartera',               label: 'Avance de Cartera' },
+  { key: 'embudos-gestion',              label: 'Embudos de Gestión' },
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
-  'ventas-sedes', 'pizarra-metas', 'avance-cartera',
+  'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion',
 ];
 const REALZZA_MODULES = [
-  'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'ventas-brilla-realzza', 'cierre', 'avance-cartera',
+  'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
 ];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
@@ -96,7 +92,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v12';
+const STORAGE_KEY = 'gd_permissions_v14';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

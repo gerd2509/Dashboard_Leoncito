@@ -35,6 +35,24 @@ export class SheetsService {
     return this.http.get<any[]>(this.apiUrlCampo);
   }
 
+  // Variantes con rango de fechas (mes) para no traer todo el histórico (usadas por Embudos).
+  getSheetDataCallRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrlCall, { params: this.rangoParams(rango) });
+  }
+  getSheetDataCampoRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrlCampo, { params: this.rangoParams(rango) });
+  }
+  getSheetKOMMORango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    return this.http.get<any[]>(this.apiUrlKOMMO, { params: this.rangoParams(rango) });
+  }
+
+  private rangoParams(rango?: { desde?: Date; hasta?: Date }): HttpParams {
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return params;
+  }
+
   getSheetDataPostVenta(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlPostVenta);
   }
