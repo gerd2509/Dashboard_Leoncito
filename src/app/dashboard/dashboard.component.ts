@@ -28,6 +28,7 @@ import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
 import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.component";
 import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
 import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-gestion.component";
+import { RegistroGestionComponent } from "../features/registro-gestion/registro-gestion.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
@@ -76,6 +77,7 @@ interface MenuItem {
     PizarraMetasComponent,
     AvanceCarteraComponent,
     EmbudosGestionComponent,
+    RegistroGestionComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
@@ -141,6 +143,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'dashboard',     label: 'Pizarra de Metas',           modulo: 'pizarra-metas' },
     { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
     { icon: 'filter_alt',    label: 'Embudos de Gestión',         modulo: 'embudos-gestion' },
+    { icon: 'assignment_turned_in', label: 'Registro de Gestión',  modulo: 'registro-gestion' },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 

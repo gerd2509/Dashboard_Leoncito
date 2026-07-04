@@ -1,0 +1,42 @@
+:host { display: block; }
+
+.vs-shell {
+  min-height: 100vh;
+  background: #f4f7fb;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header mínimo, sticky */
+.vs-top {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px calc(10px);
+  padding-top: calc(10px + env(safe-area-inset-top));
+  background: rgba(var(--brand-rgb, 26, 95, 173), 1);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .18);
+}
+.vs-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vs-emoji { width: 30px; height: 30px; display: inline-grid; place-items: center; }
+.vs-name { font-weight: 800; letter-spacing: 1px; font-size: 15px; }
+
+.vs-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.vs-uinfo { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
+.vs-uname { font-weight: 700; font-size: 13.5px; max-width: 46vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vs-sede { font-size: 11px; opacity: .9; font-weight: 600; }
+.vs-logout {
+  display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0;
+  border: none; border-radius: 10px; cursor: pointer;
+  background: rgba(255, 255, 255, .2); color: #fff;
+}
+.vs-logout:hover { background: rgba(255, 255, 255, .34); }
+.vs-logout mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+/* Contenido = el formulario, a pantalla completa */
+.vs-content { flex: 1; }

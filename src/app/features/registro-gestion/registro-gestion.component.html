@@ -1,0 +1,184 @@
+<div class="rg-wrap">
+
+  <!-- Encabezado -->
+  <header class="rg-head">
+    <div class="rg-title">
+      <mat-icon>assignment_turned_in</mat-icon>
+      <div>
+        <h2>Registro de Gestión</h2>
+        <span>Reporte de gestión del equipo comercial</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Pantalla de éxito ── -->
+  <div class="rg-ok" *ngIf="guardado">
+    <div class="ok-ico"><mat-icon>check_circle</mat-icon></div>
+    <h3>¡Gestión registrada!</h3>
+    <p>Se guardó correctamente.</p>
+    <button class="btn primary grande" (click)="registrarOtra()">
+      <mat-icon>add</mat-icon> Registrar otra
+    </button>
+  </div>
+
+  <!-- ── Wizard ── -->
+  <ng-container *ngIf="!guardado">
+
+    <!-- Progreso -->
+    <div class="rg-progress">
+      <div class="bar"><span [style.width.%]="((pasoIndex + 1) / totalPasos) * 100"></span></div>
+      <small>Paso {{ pasoIndex + 1 }} de {{ totalPasos }}</small>
+    </div>
+
+    <div class="rg-card" [ngSwitch]="pasoActual">
+
+      <!-- DNI -->
+      <section *ngSwitchCase="'dni'" class="paso">
+        <label class="preg">DNI CLIENTE <b>*</b></label>
+        <input class="inp" type="tel" inputmode="numeric" maxlength="8"
+               [ngModel]="modelo.dni_cliente" (ngModelChange)="modelo.dni_cliente = soloNum($event, 8)"
+               placeholder="8 dígitos" (keyup.enter)="pasoValido() && siguiente()" autofocus>
+        <p class="msg-err" *ngIf="dniInvalido()">El DNI debe tener exactamente <b>8 dígitos</b>.</p>
+      </section>
+
+      <!-- SEDE -->
+      <section *ngSwitchCase="'sede'" class="paso">
+        <label class="preg">TIENDA SEDE <b>*</b></label>
+        <div class="opciones">
+          <button *ngFor="let s of sedes" class="op" [class.sel]="modelo.sede === s.nombre"
+                  (click)="seleccionarSede(s)">
+            <span class="radio"></span>{{ s.nombre }}
+          </button>
+        </div>
+      </section>
+
+      <!-- ASESOR -->
+      <section *ngSwitchCase="'asesor'" class="paso">
+        <label class="preg">ASESOR DE VENTA — {{ modelo.sede }} <b>*</b></label>
+        <div *ngIf="cargandoAsesores" class="cargando"><span class="spin"></span> Cargando asesores…</div>
+        <div class="opciones" *ngIf="!cargandoAsesores">
+          <button *ngFor="let a of asesores" class="op" [class.sel]="modelo.asesor === a"
+                  (click)="modelo.asesor = a">
+            <span class="radio"></span>{{ a }}
+          </button>
+          <p class="vacio" *ngIf="asesores.length === 0">No hay asesores activos para esta sede en el CAP.</p>
+        </div>
+      </section>
+
+      <!-- TIPO GESTIÓN -->
+      <section *ngSwitchCase="'tipo'" class="paso">
+        <label class="preg">TIPO DE GESTIÓN <b>*</b></label>
+        <div class="opciones">
+          <button *ngFor="let t of tipos" class="op" [class.sel]="modelo.tipo_gestion === t"
+                  (click)="modelo.tipo_gestion = t">
+            <span class="radio"></span>{{ t }}
+          </button>
+        </div>
+      </section>
+
+      <!-- RESULTADO -->
+      <section *ngSwitchCase="'resultado'" class="paso">
+        <label class="preg">RESULTADO DE GESTIÓN <b>*</b></label>
+        <div class="opciones">
+          <button class="op" [class.sel]="modelo.resultado === 'CONTACTO'"
+                  (click)="modelo.resultado = 'CONTACTO'; onResultadoChange()">
+            <span class="radio"></span>CONTACTO
+          </button>
+          <button class="op" [class.sel]="modelo.resultado === 'NO CONTACTO'"
+                  (click)="modelo.resultado = 'NO CONTACTO'; onResultadoChange()">
+            <span class="radio"></span>NO CONTACTO
+          </button>
+        </div>
+      </section>
+
+      <!-- MOTIVO CONTACTO -->
+      <section *ngSwitchCase="'motivoContacto'" class="paso">
+        <label class="preg">MOTIVOS "CONTACTO EN LA GESTIÓN" <b>*</b></label>
+        <select class="inp" [(ngModel)]="modelo.motivo_contacto" (ngModelChange)="onMotivoContactoChange()">
+          <option value="" disabled>Elegir…</option>
+          <option *ngFor="let m of motivosContacto" [value]="m">{{ m }}</option>
+        </select>
+      </section>
+
+      <!-- MOTIVO NO CONTACTO -->
+      <section *ngSwitchCase="'motivoNoContacto'" class="paso">
+        <label class="preg">MOTIVOS "NO CONTACTO EN LA GESTIÓN" <b>*</b></label>
+        <div class="opciones">
+          <button *ngFor="let m of motivosNoContacto" class="op" [class.sel]="modelo.motivo_no_contacto === m"
+                  (click)="modelo.motivo_no_contacto = m">
+            <span class="radio"></span>{{ m }}
+          </button>
+        </div>
+      </section>
+
+      <!-- FORMULARIO (compromiso/visita) -->
+      <section *ngSwitchCase="'formulario'" class="paso">
+        <label class="preg">FECHA DE COMPROMISO O VISITA <b>*</b></label>
+        <input class="inp" type="date" [(ngModel)]="modelo.fecha_compromiso">
+
+        <label class="preg mt">VALOR DE LA VENTA <b>*</b></label>
+        <input class="inp" type="number" inputmode="decimal" [(ngModel)]="modelo.valor_venta" placeholder="S/ 0.00">
+
+        <label class="preg mt">PRODUCTO DE INTERÉS <b>*</b></label>
+        <div class="opciones">
+          <button *ngFor="let p of productos" class="op" [class.sel]="modelo.producto_interes === p"
+                  (click)="modelo.producto_interes = p">
+            <span class="radio"></span>{{ p }}
+          </button>
+        </div>
+      </section>
+
+      <!-- DETALLE (atención) -->
+      <section *ngSwitchCase="'detalle'" class="paso">
+        <label class="preg">DETALLE (COMENTARIO) CONTACTO <b>*</b></label>
+        <textarea class="inp area" rows="4" [(ngModel)]="modelo.detalle_contacto"
+                  placeholder="Escribe el comentario…"></textarea>
+
+        <label class="preg mt">N° CELULAR ACTUALIZADO <b>*</b></label>
+        <input class="inp" type="tel" inputmode="numeric" maxlength="9"
+               [ngModel]="modelo.celular_actualizado" (ngModelChange)="modelo.celular_actualizado = soloNum($event, 9)"
+               placeholder="9 dígitos">
+        <p class="msg-err" *ngIf="celularInvalido()">El celular debe tener exactamente <b>9 dígitos</b>.</p>
+      </section>
+
+      <!-- RESUMEN -->
+      <section *ngSwitchCase="'resumen'" class="paso">
+        <label class="preg">Revisa y confirma</label>
+        <ul class="resumen">
+          <li><span>DNI</span><b>{{ modelo.dni_cliente }}</b></li>
+          <li><span>Sede</span><b>{{ modelo.sede }}</b></li>
+          <li><span>Asesor</span><b>{{ modelo.asesor }}</b></li>
+          <li><span>Tipo</span><b>{{ modelo.tipo_gestion }}</b></li>
+          <li><span>Resultado</span><b>{{ modelo.resultado }}</b></li>
+          <li *ngIf="modelo.motivo_contacto"><span>Motivo</span><b>{{ modelo.motivo_contacto }}</b></li>
+          <li *ngIf="modelo.motivo_no_contacto"><span>Motivo</span><b>{{ modelo.motivo_no_contacto }}</b></li>
+          <li *ngIf="modelo.fecha_compromiso"><span>Fecha comp.</span><b>{{ modelo.fecha_compromiso }}</b></li>
+          <li *ngIf="modelo.valor_venta"><span>Valor venta</span><b>S/ {{ modelo.valor_venta }}</b></li>
+          <li *ngIf="modelo.producto_interes"><span>Producto</span><b>{{ modelo.producto_interes }}</b></li>
+          <li *ngIf="modelo.detalle_contacto"><span>Detalle</span><b>{{ modelo.detalle_contacto }}</b></li>
+          <li *ngIf="modelo.celular_actualizado"><span>Celular</span><b>{{ modelo.celular_actualizado }}</b></li>
+        </ul>
+      </section>
+
+    </div>
+
+    <p class="rg-error" *ngIf="error">{{ error }}</p>
+
+    <!-- Navegación -->
+    <div class="rg-nav">
+      <button class="btn" (click)="atras()" [disabled]="pasoIndex === 0 || guardando">
+        <mat-icon>arrow_back</mat-icon> Atrás
+      </button>
+
+      <button *ngIf="!esUltimo" class="btn primary" (click)="siguiente()" [disabled]="!pasoValido()">
+        Siguiente <mat-icon>arrow_forward</mat-icon>
+      </button>
+
+      <button *ngIf="esUltimo" class="btn guardar" (click)="guardar()" [disabled]="guardando">
+        <mat-icon>{{ guardando ? 'hourglass_top' : 'save' }}</mat-icon>
+        {{ guardando ? 'Guardando…' : 'Guardar gestión' }}
+      </button>
+    </div>
+
+  </ng-container>
+</div>

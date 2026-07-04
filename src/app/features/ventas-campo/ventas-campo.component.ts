@@ -83,6 +83,16 @@ export class VentasCampoComponent implements OnInit {
   ventasPorTipoBase: any[] = [];
   maxMontoTipoBase = 1;
   metasPorTipoBase: Record<string, number> = {};
+  // Metas de la hoja METAS por mes (mesKey 'yyyy-mm' → { tipoBase → meta }).
+  metasPorMes: Record<string, Record<string, number>> = {};
+  // Fila "TOTAL" de la hoja METAS = cuota del mes GENERAL (no es un tipo de base).
+  metasTotalPorMes: Record<string, number> = {};
+  totalCuotaMes = 0;          // cuota del mes total = suma de metas de los tipos
+  totalAvanceTipoBase = 0;    // % avance total (ventas / cuota del mes)
+  totalPartTipoBase = 0;      // % participación total (100% si hay ventas)
+  customizeAvanceTipoBaseTotal = (_: any) => `${this.totalAvanceTipoBase.toFixed(1)}%`;
+  customizeCuotaTipoBaseTotal = (_: any) => `S/ ${this.totalCuotaMes.toLocaleString('es-PE')}`;
+  customizePartTipoBaseTotal = (_: any) => `${this.totalPartTipoBase.toFixed(1)}%`;
   showDetailGrid = false;
   showNCGrid = false;
   totalPctMargenCredito = 0;
@@ -326,20 +336,28 @@ export class VentasCampoComponent implements OnInit {
           });
         }
       });
-      // Leer hoja METAS para TipoBase
-      this.metasPorTipoBase = {};
+      // Leer hoja METAS por TipoBase, guardando TODOS los meses (columnas 'yyyy-mm').
+      // Así la tabla puede mostrar la meta/cuota del mes que se esté filtrando.
+      this.metasPorMes = {};
+      this.metasTotalPorMes = {};
       const metasSheetName = workbook.SheetNames.find(n => n.trim().toUpperCase() === 'METAS');
       if (metasSheetName) {
         const metasSheet = workbook.Sheets[metasSheetName];
         const metasData = XLSX.utils.sheet_to_json(metasSheet, { raw: false }) as any[];
-        const hoy = new Date();
-        const mesKey = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
         metasData.forEach((metaRow: any) => {
           const keys = Object.keys(metaRow);
           if (keys.length === 0) return;
           const tipoBase = (metaRow[keys[0]] || '').toString().trim().toUpperCase();
-          const meta = this.parseNumber(metaRow[mesKey] || '0');
-          if (tipoBase) this.metasPorTipoBase[tipoBase] = meta;
+          if (!tipoBase) return;
+          // La fila TOTAL no es un tipo de base: es la cuota del mes general.
+          const esTotal = tipoBase === 'TOTAL' || tipoBase === 'TOTAL GENERAL' || tipoBase.startsWith('CUOTA');
+          keys.forEach(k => {
+            const mesKey = k.trim();
+            if (!/^\d{4}-\d{2}$/.test(mesKey)) return; // solo columnas de mes
+            const meta = this.parseNumber(metaRow[k] || '0');
+            if (esTotal) this.metasTotalPorMes[mesKey] = meta;
+            else (this.metasPorMes[mesKey] ??= {})[tipoBase] = meta;
+          });
         });
       }
       // Leer hoja EVOLUTIVO: FECHAVENTA + MontoConsolidado → guardar mapa crudo por mes
@@ -923,11 +941,20 @@ export class VentasCampoComponent implements OnInit {
 
     const mapNC = this.agruparNCSinRefacturacion(nc => (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase());
 
+    // Metas del MES filtrado (según fechaFin del filtro).
+    const fechaFin = new Date(this.formVentas.value.fechaFin);
+    const mesKey = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}`;
+    const metasMes = this.metasPorMes[mesKey] || {};
+
+    // Se muestran todos los tipos de base que tengan ventas O meta (aunque no tengan ventas aún).
+    const tipos = new Set<string>([...mapVentas.keys(), ...Object.keys(metasMes)]);
+
     const rows: any[] = [];
-    mapVentas.forEach((data, tipo) => {
+    tipos.forEach(tipo => {
+      const data = mapVentas.get(tipo) || { monto: 0, ops: 0 };
       const montoNC = Math.round(mapNC.get(tipo) || 0);
       const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
-      const meta = this.metasPorTipoBase[tipo] || 0;
+      const meta = metasMes[tipo] || 0;
       rows.push({
         TipoBase: tipo,
         MontoVentas: Math.round(data.monto),
@@ -946,8 +973,15 @@ export class VentasCampoComponent implements OnInit {
     });
 
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
-    this.maxMontoTipoBase = rows.length > 0 ? rows[0].MontoVentas : 1;
+    this.maxMontoTipoBase = Math.max(rows[0]?.MontoVentas || 0, 1);
     this.ventasPorTipoBase = rows;
+
+    // Cuota del mes general = suma de las metas de todos los tipos de base.
+    this.totalCuotaMes = rows.reduce((s, r) => s + (r.Meta || 0), 0);
+    this.totalAvanceTipoBase = this.totalCuotaMes > 0
+      ? Math.round((totalMonto / this.totalCuotaMes) * 1000) / 10 : 0;
+    // Participación total = 100% por definición cuando hay ventas.
+    this.totalPartTipoBase = totalMonto > 0 ? 100 : 0;
   }
 
   generarChartEvolutivo(): void {

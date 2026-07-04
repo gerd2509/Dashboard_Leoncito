@@ -74,12 +74,13 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'pizarra-metas',                label: 'Pizarra de Metas',                        sedeScoped: true },
   { key: 'avance-cartera',               label: 'Avance de Cartera' },
   { key: 'embudos-gestion',              label: 'Embudos de Gestión' },
+  { key: 'registro-gestion',             label: 'Registro de Gestión',                     sedeScoped: true },
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
-  'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion',
+  'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
@@ -92,7 +93,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v14';
+const STORAGE_KEY = 'gd_permissions_v15';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

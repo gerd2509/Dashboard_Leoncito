@@ -266,9 +266,11 @@
                     [valueFormat]="'#,##0'" showInColumn="MontoVentas"></dxi-total-item>
                 <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
                 <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
-                <dxi-total-item column="Meta" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
-                <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%"
-                    [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
+                <!-- Total META = cuota del mes general (suma de metas de los tipos) -->
+                <dxi-total-item column="Meta" [customizeText]="customizeCuotaTipoBaseTotal"></dxi-total-item>
+                <dxi-total-item column="Participacion" [customizeText]="customizePartTipoBaseTotal"></dxi-total-item>
+                <!-- % avance total = ventas / cuota del mes -->
+                <dxi-total-item column="PorcentajeAvance" [customizeText]="customizeAvanceTipoBaseTotal"></dxi-total-item>
             </dxo-summary>
         </dx-data-grid>
     </div>

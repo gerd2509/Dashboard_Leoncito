@@ -1,0 +1,14 @@
+{
+  "name": "Leoncito — Registro de Gestión",
+  "short_name": "Leoncito",
+  "description": "Registro de gestión de ventas del equipo comercial",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1A5FAD",
+  "icons": [
+    { "src": "favicon.ico", "sizes": "48x48 32x32 16x16", "type": "image/x-icon", "purpose": "any" }
+  ]
+}

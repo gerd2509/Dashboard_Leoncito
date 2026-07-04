@@ -1,0 +1,22 @@
+<div class="vs-shell" [style.--brand-rgb]="brand.rgb">
+  <header class="vs-top">
+    <div class="vs-brand">
+      <app-lion-icon class="vs-emoji" [variant]="brand.id"></app-lion-icon>
+      <span class="vs-name">{{ brand.nombre }}</span>
+    </div>
+
+    <div class="vs-user">
+      <div class="vs-uinfo">
+        <span class="vs-uname">{{ usuario?.nombre }}</span>
+        <span class="vs-sede" *ngIf="usuario?.sede && usuario?.sede !== 'todas'">{{ usuario?.sede | uppercase }}</span>
+      </div>
+      <button class="vs-logout" (click)="logout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <main class="vs-content">
+    <app-registro-gestion></app-registro-gestion>
+  </main>
+</div>
