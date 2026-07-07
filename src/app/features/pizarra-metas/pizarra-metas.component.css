@@ -64,6 +64,17 @@
 .kpi-inp.mini { width: 46px; padding: 6px 5px; text-align: center; }
 .kpi-cap { display: inline-flex; align-items: center; gap: 5px; }
 
+/* Valor calculado desde ventas (solo lectura) */
+.kpi-auto {
+  display: inline-flex; align-items: center; gap: 4px;
+  min-width: 100px; justify-content: flex-end;
+  font-size: 14px; font-weight: 800; color: var(--pz-primary-dark);
+}
+.kpi-auto .auto-ic { font-size: 15px; width: 15px; height: 15px; color: #E9A400; }
+.pz-saved.loading { color: var(--pz-primary); }
+.pz-saved .spin { animation: pz-spin 1s linear infinite; }
+@keyframes pz-spin { to { transform: rotate(360deg); } }
+
 /* ── Botones ─────────────────────────────────────────────── */
 .pz-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .btn {

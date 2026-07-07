@@ -29,6 +29,7 @@ import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.c
 import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
 import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-gestion.component";
 import { RegistroGestionComponent } from "../features/registro-gestion/registro-gestion.component";
+import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
@@ -78,6 +79,7 @@ interface MenuItem {
     AvanceCarteraComponent,
     EmbudosGestionComponent,
     RegistroGestionComponent,
+    CargaVentasComponent,
   ],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
@@ -144,6 +146,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
     { icon: 'filter_alt',    label: 'Embudos de Gestión',         modulo: 'embudos-gestion' },
     { icon: 'assignment_turned_in', label: 'Registro de Gestión',  modulo: 'registro-gestion' },
+    { icon: 'cloud_upload',         label: 'Carga de Ventas',      modulo: 'carga-ventas', adminOnly: true },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 

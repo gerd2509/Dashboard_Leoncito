@@ -22,7 +22,8 @@
         (onValueChanged)="onFechaChanged()" [width]="150" stylingMode="outlined" label="Fecha">
       </dx-date-box>
 
-      <span class="pz-saved" *ngIf="guardadoEn"><mat-icon>cloud_done</mat-icon>{{ guardadoEn }}</span>
+      <span class="pz-saved loading" *ngIf="cargandoVentas"><mat-icon class="spin">autorenew</mat-icon>Actualizando ventas…</span>
+      <span class="pz-saved" *ngIf="guardadoEn && !cargandoVentas"><mat-icon>cloud_done</mat-icon>{{ guardadoEn }}</span>
     </div>
   </header>
 
@@ -32,17 +33,21 @@
       <div class="kpi-row"><span class="kpi-lbl">META</span>
         <input type="number" class="kpi-inp" [(ngModel)]="cabecera.meta" (ngModelChange)="persistir()"></div>
       <div class="kpi-row alt"><span class="kpi-lbl">Avance</span>
-        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.avance" (ngModelChange)="persistir()"></div>
+        <span class="kpi-auto" title="Calculado desde ventas (acumulado del mes hasta la fecha)">
+          {{ cabecera.avance | number:'1.0-0' }}<mat-icon class="auto-ic">bolt</mat-icon></span></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-row"><span class="kpi-lbl">Ticket Promedio</span>
-        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.ticketPromedio" (ngModelChange)="persistir()"></div>
+        <span class="kpi-auto" title="Calculado desde ventas">
+          {{ cabecera.ticketPromedio | number:'1.0-0' }}<mat-icon class="auto-ic">bolt</mat-icon></span></div>
       <div class="kpi-row alt"><span class="kpi-lbl">Operaciones</span>
-        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.operaciones" (ngModelChange)="persistir()"></div>
+        <span class="kpi-auto" title="Calculado desde ventas">
+          {{ cabecera.operaciones | number:'1.0-0' }}<mat-icon class="auto-ic">bolt</mat-icon></span></div>
     </div>
     <div class="kpi-card">
       <div class="kpi-row"><span class="kpi-lbl">Margen %</span>
-        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.margen" (ngModelChange)="persistir()"></div>
+        <span class="kpi-auto" title="Calculado desde margen de ventas (Σ margen ÷ Σ valor venta)">
+          {{ cabecera.margen | number:'1.1-1' }}%<mat-icon class="auto-ic">bolt</mat-icon></span></div>
       <div class="kpi-row alt"><span class="kpi-lbl">CAP Actual / Aprob.</span>
         <span class="kpi-cap">
           <input type="number" class="kpi-inp mini" [(ngModel)]="cabecera.capActual" (ngModelChange)="persistir()">
@@ -54,7 +59,8 @@
       <div class="kpi-row"><span class="kpi-lbl">Incautaciones</span>
         <input type="number" class="kpi-inp" [(ngModel)]="cabecera.incautaciones" (ngModelChange)="persistir()"></div>
       <div class="kpi-row alt"><span class="kpi-lbl">Notas de Crédito</span>
-        <input type="number" class="kpi-inp" [(ngModel)]="cabecera.notasCredito" (ngModelChange)="persistir()"></div>
+        <span class="kpi-auto" title="Calculado desde ventas (acumulado del mes hasta la fecha)">
+          {{ cabecera.notasCredito | number:'1.0-0' }}<mat-icon class="auto-ic">bolt</mat-icon></span></div>
     </div>
   </section>
 

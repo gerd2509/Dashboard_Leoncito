@@ -5,6 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
+import { lastValueFrom } from 'rxjs';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 
@@ -42,6 +44,10 @@ export class PizarraMetasComponent implements OnInit {
   private auth = inject(AuthService);
   private sedeConfig = inject(SedeConfigService);
   private cap = inject(CapSedesService);
+  private ventasSvc = inject(CargaVentasService);
+
+  // KPIs (Avance/Operaciones/Ticket) calculados desde PostgreSQL.
+  cargandoVentas = false;
 
   // ── Selección de sede ──
   esGlobal = false;
@@ -160,9 +166,100 @@ export class PizarraMetasComponent implements OnInit {
       }
       this.filas = filas;
       this.guardadoEn = board ? 'Cargado' : '';
+
+      // KPIs de tienda (Avance/Operaciones/Ticket) desde las ventas en PostgreSQL.
+      await this.aplicarKpisVentas();
     } finally {
       this.cargando = false;
     }
+  }
+
+  /**
+   * Calcula Avance, Operaciones, Ticket Promedio y Notas de Crédito desde las
+   * ventas en PostgreSQL para la sede seleccionada, ACUMULADO del mes hasta la
+   * fecha elegida. Incautaciones NO se calcula (se mantiene manual).
+   * NO calcula Margen (la fuente no tiene costo) → sigue siendo editable.
+   */
+  private ventasMesCache: any[] = [];
+  private mesCacheKey = '';
+  private margenMesCache: any[] = [];
+  private margenCacheKey = '';
+
+  private async aplicarKpisVentas(): Promise<void> {
+    if (!this.sedeSeleccionada) return;
+    const anio = this.fecha.getFullYear();
+    const mes = this.fecha.getMonth() + 1;
+    const diaTope = this.fecha.getDate();
+    const key = `${anio}-${mes}`;
+    this.cargandoVentas = true;
+    try {
+      // El endpoint (con mes) trae ventas del mes por CV + afectaciones (NC/INC)
+      // por AF de ese mes. Cacheamos por año-mes para no re-descargar al cambiar
+      // de sede o de día.
+      if (key !== this.mesCacheKey) {
+        this.ventasMesCache = (await lastValueFrom(this.ventasSvc.obtenerVentas(anio, { mes }))) || [];
+        this.mesCacheKey = key;
+      }
+
+      let avanceBruto = 0, ops = 0, notasCredito = 0;
+      for (const r of this.ventasMesCache) {
+        if (this.sedeKeyDe(r.sede) !== this.sedeSeleccionada) continue;
+        const estado = (r.estado_venta || '').toString().trim().toUpperCase();
+        const monto = Number(r.monto_consolidado) || 0;
+
+        // Notas de Crédito: se atribuyen por su fecha de AFECTACIÓN (AF); si no
+        // tiene AF, por la de venta (CV). Acumulado hasta el día seleccionado.
+        if (estado.includes('NOTA DE CR')) {
+          const usaAf = Number(r.anio_af) > 0 && Number(r.mes_af) > 0;
+          const a = usaAf ? Number(r.anio_af) : Number(r.anio_cv);
+          const m = usaAf ? Number(r.mes_af) : Number(r.mes_cv);
+          const d = usaAf ? Number(r.dia_af) : Number(r.dia_cv);
+          if (a === anio && m === mes && d <= diaTope) notasCredito += Math.abs(monto);
+          continue;
+        }
+        if (estado.includes('INCAUTAC')) continue;               // no se mapea aún
+
+        // Ventas (avance/operaciones): por fecha de venta (CV), hasta la fecha.
+        if (Number(r.anio_cv) !== anio || Number(r.mes_cv) !== mes) continue;
+        if (Number(r.dia_cv) > diaTope) continue;
+        if (monto <= 0) continue;
+        avanceBruto += monto; ops++;
+      }
+
+      // Avance = monto NETO (ventas − notas de crédito). Incautaciones se
+      // incluirán después. Ticket Promedio se mantiene sobre el bruto.
+      this.cabecera.avance = Math.round(avanceBruto - notasCredito);
+      this.cabecera.operaciones = ops;
+      this.cabecera.ticketPromedio = ops > 0 ? Math.round(avanceBruto / ops) : 0;
+      this.cabecera.notasCredito = Math.round(notasCredito);
+
+      // Margen % desde margen_ventas (Σ margen / Σ valor venta), por sede,
+      // acumulado del mes hasta la fecha.
+      if (key !== this.margenCacheKey) {
+        this.margenMesCache = (await lastValueFrom(this.ventasSvc.obtenerMargen(anio, { mes }))) || [];
+        this.margenCacheKey = key;
+      }
+      let sumMargen = 0, sumValor = 0;
+      for (const r of this.margenMesCache) {
+        if (this.sedeKeyDe(r.sede) !== this.sedeSeleccionada) continue;
+        const fstr = (r.fecha || '').toString().slice(0, 10);      // YYYY-MM-DD
+        const [fy, fm, fd] = fstr.split('-').map((n: string) => Number(n));
+        if (fy !== anio || fm !== mes || fd > diaTope) continue;
+        sumMargen += Number(r.margen_total) || 0;
+        sumValor += Number(r.valor_venta) || 0;
+      }
+      this.cabecera.margen = sumValor > 0 ? Math.round((sumMargen / sumValor) * 1000) / 10 : 0;
+    } catch (e) {
+      console.error('❌ Pizarra: no se pudieron traer las ventas:', e);
+    } finally {
+      this.cargandoVentas = false;
+    }
+  }
+
+  /** "SEDE RELENOR CAYALTI" → clave normalizada ("cayalti") para cruzar con la sede seleccionada. */
+  private sedeKeyDe(sedeRaw: string): string {
+    const limpio = (sedeRaw || '').toString().replace(/^\s*SEDE\s+RELENOR\s+/i, '').trim();
+    return this.sedeConfig.normalizar(limpio);
   }
 
   persistir(): void {

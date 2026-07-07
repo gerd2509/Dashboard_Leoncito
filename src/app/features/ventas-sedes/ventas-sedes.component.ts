@@ -4,8 +4,10 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
+import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 
 interface ResumenSede {
@@ -31,6 +33,12 @@ export class VentasSedesComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private auth = inject(AuthService);
   private sedeConfig = inject(SedeConfigService);
+  private ventasSvc = inject(CargaVentasService);
+
+  // Carga de datos desde PostgreSQL (reemplaza la importación de Excel).
+  cargando = false;
+  errorCarga = '';
+  private anioCargado = 0;
 
   formVentas: UntypedFormGroup;
 
@@ -44,6 +52,17 @@ export class VentasSedesComponent implements OnInit {
   dataNotasCredito: any[] = [];
   dataIncautaciones: any[] = [];
   dataGlobalGo: any[] = [];
+  dataMargen: any[] = [];   // filas de margen_ventas (una por línea de producto)
+
+  // Ventas por Línea Real (desde margen_ventas)
+  ventasPorLineaReal: any[] = [];
+  maxValorVentaLineaReal = 1;
+  totalPctMargenLineaReal = 0;
+  ventasPorLineaRealGlobal: any[] = [];
+  maxValorVentaLineaRealGlobal = 1;
+  totalPctMargenLineaRealGlobal = 0;
+  customizePctMargenLineaTotal = (_: any) => `${this.totalPctMargenLineaReal.toFixed(1)}%`;
+  customizePctMargenLineaGlobalTotal = (_: any) => `${this.totalPctMargenLineaRealGlobal.toFixed(1)}%`;
 
   // Date-filtered (todas las sedes) → base para el resumen general
   private ventasFecha: any[] = [];
@@ -196,6 +215,233 @@ export class VentasSedesComponent implements OnInit {
       this.sedeForzada = this.sedeConfig.normalizar(u.sede);
       this.sedeSeleccionada = this.sedeForzada;
     }
+    // Carga inicial desde la base (año de la fecha fin seleccionada).
+    this.cargarVentas();
+  }
+
+  /**
+   * Trae las ventas del año seleccionado desde PostgreSQL y las reparte en
+   * dataVentas / dataNotasCredito / dataIncautaciones / dataGlobalGo (misma
+   * estructura que producía la importación de Excel). Luego aplica los filtros.
+   */
+  cargarVentas(anio?: number): void {
+    const y = anio ?? new Date(this.formVentas.value.fechaFin).getFullYear();
+    this.cargando = true;
+    this.errorCarga = '';
+    forkJoin({
+      ventas: this.ventasSvc.obtenerVentas(y),
+      margen: this.ventasSvc.obtenerMargen(y),
+    }).subscribe({
+      next: ({ ventas, margen }) => {
+        this.procesarFilasBackend(ventas || []);
+        this.procesarMargenBackend(margen || []);
+        this.anioCargado = y;
+        this.cargando = false;
+        this.construirSedesDisponibles();
+        this.aplicarFiltros();
+      },
+      error: (err) => {
+        this.cargando = false;
+        this.errorCarga = err?.error?.message ?? 'No se pudo cargar la información de ventas desde la base.';
+      },
+    });
+  }
+
+  /** Convierte las filas de margen_ventas a la forma que usa Ventas por Línea Real. */
+  private procesarMargenBackend(rows: any[]): void {
+    this.dataMargen = [];
+    rows.forEach((row: any) => {
+      const sedeKey = this.resolverSedeKey((row.sede || '').toString());
+      if (!sedeKey) return;
+      const fstr = (row.fecha || '').toString().slice(0, 10);     // YYYY-MM-DD (sin desfase de zona)
+      const [fy, fm, fd] = fstr.split('-').map((n: string) => Number(n));
+      const fecha = fy ? new Date(fy, (fm || 1) - 1, fd || 1) : null;
+      this.dataMargen.push({
+        FECHAVENTA: fecha,
+        SedeKey: sedeKey,
+        LineaReal: (row.linea_real || 'SIN LÍNEA').toString().trim().toUpperCase(),
+        ValorVenta: this.parseNumber(row.valor_venta),
+        MargenTotal: this.parseNumber(row.margen_total),
+      });
+    });
+  }
+
+  /**
+   * Agrupa el margen por LÍNEA REAL en el rango de fechas. Si soloSede se indica,
+   * limita a esa sede (vista detalle); si es null, toma todas las sedes visibles
+   * (vista general/global).
+   */
+  private calcularLineaReal(soloSede: string | null): { rows: any[]; maxVV: number; totalPct: number } {
+    const fechaInicio = new Date(this.formVentas.value.fechaInicio);
+    const fechaFin = new Date(this.formVentas.value.fechaFin);
+    fechaInicio.setHours(0, 0, 0, 0);
+    fechaFin.setHours(23, 59, 59, 999);
+    const visibles = new Set(this.sedesDisponibles.map(s => s.key));
+
+    const map = new Map<string, { valorVenta: number; margen: number; ops: number }>();
+    this.dataMargen.forEach(mr => {
+      const f = mr.FECHAVENTA as Date;
+      if (!f || f < fechaInicio || f > fechaFin) return;
+      if (soloSede) { if (mr.SedeKey !== soloSede) return; }
+      else if (visibles.size > 0 && !visibles.has(mr.SedeKey)) return;
+      const linea = mr.LineaReal;
+      const cur = map.get(linea) || { valorVenta: 0, margen: 0, ops: 0 };
+      map.set(linea, {
+        valorVenta: cur.valorVenta + (mr.ValorVenta || 0),
+        margen: cur.margen + (mr.MargenTotal || 0),
+        ops: cur.ops + 1,
+      });
+    });
+
+    const rows: any[] = [];
+    map.forEach((data, linea) => {
+      rows.push({
+        LineaReal: linea,
+        ValorVenta: Math.round(data.valorVenta),
+        NroOps: data.ops,
+        MargenTotal: Math.round(data.margen),
+        PorcentajeMargen: data.valorVenta > 0 ? Math.round((data.margen / data.valorVenta) * 1000) / 10 : 0,
+        TicketPromedio: data.ops > 0 ? Math.round(data.valorVenta / data.ops) : 0,
+        Participacion: 0,
+      });
+    });
+    const totalVV = rows.reduce((s, r) => s + r.ValorVenta, 0);
+    const totalMg = rows.reduce((s, r) => s + r.MargenTotal, 0);
+    rows.forEach(r => { r.Participacion = totalVV > 0 ? Math.round((r.ValorVenta / totalVV) * 1000) / 10 : 0; });
+    rows.sort((a, b) => b.ValorVenta - a.ValorVenta);
+    return {
+      rows,
+      maxVV: rows.length > 0 ? rows[0].ValorVenta : 1,
+      totalPct: totalVV > 0 ? Math.round((totalMg / totalVV) * 1000) / 10 : 0,
+    };
+  }
+
+  generarVentasPorLineaReal(): void {
+    const r = this.calcularLineaReal(this.sedeSeleccionada);
+    this.ventasPorLineaReal = r.rows;
+    this.maxValorVentaLineaReal = r.maxVV;
+    this.totalPctMargenLineaReal = r.totalPct;
+  }
+
+  generarVentasPorLineaRealGlobal(): void {
+    const r = this.calcularLineaReal(null);
+    this.ventasPorLineaRealGlobal = r.rows;
+    this.maxValorVentaLineaRealGlobal = r.maxVV;
+    this.totalPctMargenLineaRealGlobal = r.totalPct;
+  }
+
+  /**
+   * Convierte las filas de la tabla `ventas` (snake_case) a la misma forma que
+   * antes producía importar() desde el Excel, separando por EstadoVenta.
+   */
+  private procesarFilasBackend(rows: any[]): void {
+    this.dataVentas = [];
+    this.dataNotasCredito = [];
+    this.dataIncautaciones = [];
+    this.dataGlobalGo = [];
+
+    rows.forEach((row: any) => {
+      const sedeRaw = (row.sede || '').toString().trim();
+      const sedeKey = this.resolverSedeKey(sedeRaw);
+      if (!sedeKey) return;
+
+      const estadoVenta = (row.estado_venta || '').toString().trim().toUpperCase();
+      const entidad = (row.entidad || '').toString().trim().toUpperCase();
+      const monto = this.parseNumber(row.monto_consolidado);
+      const esNC = estadoVenta === 'NOTA DE CRÉDITO' || estadoVenta === 'NOTA DE CREDITO';
+      const esINC = estadoVenta === 'INCAUTACIÓN' || estadoVenta === 'INCAUTACION';
+
+      const fecha = this.fechaDesdePartes(row.anio_cv, row.mes_cv, row.dia_cv);
+      const sedeNombre = this.sedeConfig.getConfig(sedeKey)?.nombre ?? sedeRaw;
+
+      if (!esNC && !esINC && monto > 0) {
+        this.dataVentas.push({
+          IDVENTA: row.codigo_cv,
+          FECHAVENTA: fecha,
+          SedeKey: sedeKey,
+          Sede: sedeNombre,
+          MontoConsolidado: monto,
+          CuotaInicial: this.parseNumber(row.cuota_inicial),
+          Productos: row.productos,
+          Cuotas: row.cuotas,
+          DocIdentidad: (row.doc_identidad || '').toString().trim(),
+          ClienteVenta: row.cliente_venta,
+          Vendedor: (row.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+          EstadoVenta: row.estado_venta,
+          Entidad: row.entidad,
+          AsesorVenta: '',                       // no existe en la fuente Postgres
+          TipoCredito: row.tipo_credito,
+          TipoProducto: row.estado_tipo_producto, // aproximación (la fuente no trae TipoProducto)
+        });
+      }
+
+      if (esNC) {
+        this.dataNotasCredito.push({
+          IDVENTA: row.codigo_cv,
+          FECHAVENTA: fecha,
+          SedeKey: sedeKey,
+          Sede: sedeNombre,
+          MontoConsolidado: Math.abs(monto),
+          Productos: row.productos,
+          ClienteVenta: row.cliente_venta,
+          DocIdentidad: (row.doc_identidad || '').toString().trim(),
+          Vendedor: (row.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+          EstadoVenta: row.estado_venta,
+          AsesorVenta: '',
+          Entidad: row.entidad,
+          TipoCredito: row.tipo_credito,
+          DiaAF: this.parseNumber(row.dia_af),
+          MesAF: this.parseNumber(row.mes_af),
+          AñoAF: this.parseNumber(row.anio_af),
+        });
+      }
+
+      if (esINC) {
+        this.dataIncautaciones.push({
+          IDVENTA: row.codigo_cv,
+          FECHAVENTA: fecha,
+          SedeKey: sedeKey,
+          Sede: sedeNombre,
+          MontoConsolidado: Math.abs(monto),
+          Productos: row.productos,
+          ClienteVenta: row.cliente_venta,
+          DocIdentidad: (row.doc_identidad || '').toString().trim(),
+          Vendedor: (row.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+          EstadoVenta: row.estado_venta,
+          AsesorVenta: '',
+          Entidad: row.entidad,
+          TipoCredito: row.tipo_credito,
+          DiaAF: this.parseNumber(row.dia_af),
+          MesAF: this.parseNumber(row.mes_af),
+          AñoAF: this.parseNumber(row.anio_af),
+        });
+      }
+
+      if (entidad === 'GLOBAL GO' && !esNC && !esINC && monto > 0) {
+        this.dataGlobalGo.push({
+          ClienteVenta: row.cliente_venta,
+          DocIdentidad: row.doc_identidad,
+          FECHAVENTA: fecha,
+          SedeKey: sedeKey,
+          Sede: sedeNombre,
+          MontoConsolidado: monto,
+          Productos: row.productos,
+          TipoProducto: (row.estado_tipo_producto || 'SIN TIPO').toString().trim().toUpperCase(),
+          Vendedor: (row.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+          AsesorVenta: '',
+        });
+      }
+    });
+
+    console.log(`✅ [PG] Ventas: ${this.dataVentas.length} | NC: ${this.dataNotasCredito.length} | INC: ${this.dataIncautaciones.length} | GO: ${this.dataGlobalGo.length}`);
+  }
+
+  /** Construye una fecha JS a partir de las partes dia/mes/anio de la tabla. */
+  private fechaDesdePartes(anio: any, mes: any, dia: any): Date {
+    const yy = Number(anio) || 0;
+    const mm = Number(mes) || 1;
+    const dd = Number(dia) || 1;
+    return new Date(yy, mm - 1, dd);
   }
 
   get colorSedeActual(): string {
@@ -382,7 +628,14 @@ export class VentasSedesComponent implements OnInit {
   }
 
   actualizarFiltros(): void {
-    if (this.formVentas.valid) this.aplicarFiltros();
+    if (!this.formVentas.valid) return;
+    // Si cambió el año de la fecha fin, recargamos desde la base; si no, solo re-filtramos.
+    const anio = new Date(this.formVentas.value.fechaFin).getFullYear();
+    if (anio !== this.anioCargado) {
+      this.cargarVentas(anio);
+    } else {
+      this.aplicarFiltros();
+    }
   }
 
   aplicarFiltros(): void {
@@ -399,6 +652,7 @@ export class VentasSedesComponent implements OnInit {
     this.calcularNotasCreditoFecha(fechaInicio, fechaFin);
     this.calcularIncautacionesFecha(fechaInicio, fechaFin);
     this.generarResumenPorSede();
+    this.generarVentasPorLineaRealGlobal();
 
     // 2) Si no hay sede seleccionada → solo vista principal
     if (!this.sedeSeleccionada) {
@@ -427,6 +681,7 @@ export class VentasSedesComponent implements OnInit {
     this.generarMotosPorTipoProducto();
     this.generarDetalleMotosGlobalGo();
     this.generarVentasPorTipoCredito();
+    this.generarVentasPorLineaReal();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
     this.generarChartMontoSemanal();

@@ -427,3 +427,14 @@
 
 .check-icon { color: #3D9B2F; font-size: 20px; width: 20px; height: 20px; }
 .warn-icon  { color: #DC2626; font-size: 20px; width: 20px; height: 20px; }
+
+/* Indicador de carga inline (prueba PostgreSQL) */
+.cargando-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1A5FAD;
+}
+.cargando-inline ::ng-deep circle { stroke: #1A5FAD; }

@@ -15,9 +15,18 @@
         formControlName="Vendedor" label="Filtrar Vendedor" labelMode="floating" stylingMode="underlined"
         placeholder="" (onValueChanged)="onVendedorChanged($event)" [showClearButton]="true" />
 
-    <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
+    <button mat-flat-button [disabled]="formVentas.invalid || cargando" (click)="actualizarFiltros()">
         <mat-icon>search</mat-icon> Actualizar
     </button>
+
+    <!-- ⏳ PRUEBA POSTGRESQL: la data ahora se trae del backend (GET /ventas) según las fechas.
+         Importar/Exportar Excel quedan comentados hasta nuevo aviso. -->
+    <span *ngIf="cargando" class="cargando-inline">
+        <mat-progress-spinner mode="indeterminate" [diameter]="22" [strokeWidth]="3"></mat-progress-spinner>
+        Cargando ventas…
+    </span>
+
+    <!--
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
     <button mat-flat-button (click)="fileInput.click()">
         <mat-icon>upload</mat-icon> Importar Excel
@@ -25,12 +34,21 @@
     <button *ngIf="sedeSeleccionada" mat-flat-button (click)="exportar()">
         <mat-icon>file_download</mat-icon> Exportar
     </button>
+    -->
 </form>
 
-<!-- ===== ESTADO VACÍO ===== -->
-<div *ngIf="dataVentas.length === 0" class="empty-state">
-    <mat-icon>cloud_upload</mat-icon>
-    <p>Importe el Excel de ventas por sede para comenzar.</p>
+<!-- ===== ESTADO: CARGANDO / ERROR / VACÍO ===== -->
+<div *ngIf="cargando" class="empty-state">
+    <mat-progress-spinner mode="indeterminate" [diameter]="48" [strokeWidth]="4"></mat-progress-spinner>
+    <p>Cargando ventas desde la base…</p>
+</div>
+<div *ngIf="!cargando && errorCarga" class="empty-state">
+    <mat-icon>error</mat-icon>
+    <p>{{ errorCarga }}</p>
+</div>
+<div *ngIf="!cargando && !errorCarga && dataVentas.length === 0" class="empty-state">
+    <mat-icon>inbox</mat-icon>
+    <p>No hay ventas para el rango seleccionado.</p>
 </div>
 
 <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -161,6 +179,44 @@
             <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
         </dx-chart>
     </div>
+
+    <!-- ===== VENTAS POR LÍNEA REAL — TODAS LAS SEDES ===== -->
+    <div class="section-header" *ngIf="ventasPorLineaRealGlobal.length > 0">
+        <mat-icon>storefront</mat-icon>
+        Ventas por Línea Real &mdash; Todas las sedes
+    </div>
+    <dx-data-grid *ngIf="ventasPorLineaRealGlobal.length > 0"
+        [dataSource]="ventasPorLineaRealGlobal" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+        <dxi-column dataField="LineaReal" caption="LÍNEA REAL" alignment="left" [fixed]="true" [minWidth]="140" />
+        <dxi-column dataField="ValorVenta" caption="VALOR VENTA" alignment="center"
+            dataType="number" cellTemplate="vvLineaGlobalTpl" />
+        <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+        <dxi-column dataField="MargenTotal" caption="MARGEN" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="PorcentajeMargen" caption="% MARGEN" alignment="center"
+            dataType="number" [width]="100" cellTemplate="pctMargenGlobalTpl" />
+        <dxi-column dataField="TicketPromedio" caption="TICKET PROM." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="Participacion" caption="% PART." alignment="center"
+            dataType="number" [width]="90" cellTemplate="partLineaGlobalTpl" />
+        <div *dxTemplate="let cell of 'vvLineaGlobalTpl'"
+            style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+            <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                background:linear-gradient(90deg, rgba(56,189,248,0.15), rgba(56,189,248,0.32));"
+                [style.width.%]="cell.data.ValorVenta / maxValorVentaLineaRealGlobal * 100"></div>
+            <span style="position:relative; font-weight:600; font-size:13px;">S/. {{ cell.data.ValorVenta | number:'1.0-0' }}</span>
+        </div>
+        <div *dxTemplate="let cell of 'pctMargenGlobalTpl'" style="text-align:center; font-weight:700;">{{ cell.data.PorcentajeMargen | number:'1.1-1' }}%</div>
+        <div *dxTemplate="let cell of 'partLineaGlobalTpl'" style="text-align:center; font-weight:700;">{{ cell.data.Participacion | number:'1.1-1' }}%</div>
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="LineaReal" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="ValorVenta" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" showInColumn="ValorVenta"></dxi-total-item>
+            <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+            <dxi-total-item column="MargenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="PorcentajeMargen" summaryType="sum" [customizeText]="customizePctMargenLineaGlobalTotal"></dxi-total-item>
+            <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%" [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
 </ng-container>
 
 <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -408,6 +464,44 @@
             <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
             <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%"
                 [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+
+    <!-- ===== VENTAS POR LÍNEA REAL (sede) ===== -->
+    <div class="section-header" *ngIf="ventasPorLineaReal.length > 0">
+        <mat-icon>storefront</mat-icon>
+        Ventas por Línea Real &mdash; {{ nombreSedeActual }}
+    </div>
+    <dx-data-grid *ngIf="ventasPorLineaReal.length > 0"
+        [dataSource]="ventasPorLineaReal" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+        <dxi-column dataField="LineaReal" caption="LÍNEA REAL" alignment="left" [fixed]="true" [minWidth]="140" />
+        <dxi-column dataField="ValorVenta" caption="VALOR VENTA" alignment="center"
+            dataType="number" cellTemplate="vvLineaTpl" />
+        <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+        <dxi-column dataField="MargenTotal" caption="MARGEN" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="PorcentajeMargen" caption="% MARGEN" alignment="center"
+            dataType="number" [width]="100" cellTemplate="pctMargenLineaTpl" />
+        <dxi-column dataField="TicketPromedio" caption="TICKET PROM." alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="Participacion" caption="% PART." alignment="center"
+            dataType="number" [width]="90" cellTemplate="partLineaTpl" />
+        <div *dxTemplate="let cell of 'vvLineaTpl'"
+            style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+            <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                background:linear-gradient(90deg, rgba(56,189,248,0.15), rgba(56,189,248,0.32));"
+                [style.width.%]="cell.data.ValorVenta / maxValorVentaLineaReal * 100"></div>
+            <span style="position:relative; font-weight:600; font-size:13px;">S/. {{ cell.data.ValorVenta | number:'1.0-0' }}</span>
+        </div>
+        <div *dxTemplate="let cell of 'pctMargenLineaTpl'" style="text-align:center; font-weight:700;">{{ cell.data.PorcentajeMargen | number:'1.1-1' }}%</div>
+        <div *dxTemplate="let cell of 'partLineaTpl'" style="text-align:center; font-weight:700;">{{ cell.data.Participacion | number:'1.1-1' }}%</div>
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="LineaReal" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="ValorVenta" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" showInColumn="ValorVenta"></dxi-total-item>
+            <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+            <dxi-total-item column="MargenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="PorcentajeMargen" summaryType="sum" [customizeText]="customizePctMargenLineaTotal"></dxi-total-item>
+            <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%" [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
         </dxo-summary>
     </dx-data-grid>
 

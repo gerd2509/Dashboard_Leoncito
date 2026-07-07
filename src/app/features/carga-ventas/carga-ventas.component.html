@@ -1,0 +1,107 @@
+<div class="carga-wrap">
+
+  <!-- Encabezado -->
+  <div class="carga-head">
+    <mat-icon>cloud_upload</mat-icon>
+    <div>
+      <h2>Carga de Datos</h2>
+      <p>Sube el Excel al destino seleccionado. La carga se hace en el servidor (Neon).</p>
+    </div>
+  </div>
+
+  <!-- Selector de dataset -->
+  <div class="tipo-selector">
+    <button *ngFor="let o of opciones" type="button" class="tipo-btn"
+      [class.activo]="tipo === o.tipo" [disabled]="subiendo" (click)="seleccionarTipo(o.tipo)">
+      <mat-icon>{{ o.icono }}</mat-icon>
+      <span class="tipo-label">{{ o.label }}</span>
+      <span class="tipo-desc">{{ o.descripcion }}</span>
+    </button>
+  </div>
+
+  <!-- Estado actual de la base -->
+  <div class="estado-card" *ngIf="estado && estado.total !== undefined">
+    <div class="estado-item">
+      <span class="estado-label">Registros en base</span>
+      <span class="estado-valor">{{ estado.total | number }}</span>
+    </div>
+    <div class="estado-item" *ngIf="estado.updated_at">
+      <span class="estado-label">Última actualización</span>
+      <span class="estado-valor">{{ estado.updated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+    <div class="estado-item" *ngIf="estado.ultimaCarga">
+      <span class="estado-label">Última carga por</span>
+      <span class="estado-valor">{{ estado.ultimaCarga.cargado_por || '—' }}</span>
+    </div>
+  </div>
+
+  <!-- Zona de carga -->
+  <div class="drop-card">
+    <input type="file" (change)="onArchivo($event)" accept=".xlsx, .xls" hidden #fileInput
+      [disabled]="subiendo" />
+
+    <div class="file-row">
+      <button mat-flat-button color="primary" (click)="fileInput.click()" [disabled]="subiendo">
+        <mat-icon>attach_file</mat-icon> Seleccionar Excel
+      </button>
+      <span class="file-name" *ngIf="archivo">{{ archivo.name }} <span class="file-size">({{ tamanoArchivo }})</span></span>
+      <span class="file-name file-empty" *ngIf="!archivo">Ningún archivo seleccionado</span>
+    </div>
+
+    <button mat-flat-button class="btn-subir" (click)="subir()" [disabled]="!archivo || subiendo">
+      <mat-icon>upload</mat-icon> Cargar {{ opcionActual.label }}
+    </button>
+
+    <!-- Progreso -->
+    <div class="progreso" *ngIf="subiendo">
+      <ng-container *ngIf="!procesando">
+        <div class="barra-track">
+          <div class="barra-fill" [style.width.%]="progreso"></div>
+        </div>
+        <span class="progreso-txt">Subiendo archivo… {{ progreso }}%</span>
+      </ng-container>
+
+      <div class="procesando-box" *ngIf="procesando">
+        <mat-progress-spinner mode="indeterminate" [diameter]="46" [strokeWidth]="4"></mat-progress-spinner>
+        <div class="procesando-info">
+          <span class="procesando-title">Procesando en el servidor…</span>
+          <span class="procesando-sub">Guardando los registros. Con archivos grandes puede tardar un momento.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultado -->
+  <div class="result-card ok" *ngIf="resultado">
+    <mat-icon>check_circle</mat-icon>
+    <div>
+      <h3>Carga completada</h3>
+      <div class="result-nums">
+        <span><b>{{ resultado.filas | number }}</b> filas procesadas</span>
+        <!-- Ventas -->
+        <span class="ins" *ngIf="resultado.insertados !== undefined"><b>{{ resultado.insertados | number }}</b> insertadas</span>
+        <span class="upd" *ngIf="resultado.actualizados !== undefined"><b>{{ resultado.actualizados | number }}</b> actualizadas</span>
+        <!-- Margen -->
+        <span class="ins" *ngIf="resultado.codigos !== undefined"><b>{{ resultado.codigos | number }}</b> códigos</span>
+        <span class="upd" *ngIf="resultado.reemplazados !== undefined"><b>{{ resultado.reemplazados | number }}</b> reemplazadas</span>
+      </div>
+      <span class="result-fecha">Actualizado al {{ resultado.updated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="result-card err" *ngIf="error">
+    <mat-icon>error</mat-icon>
+    <div>
+      <h3>No se pudo cargar</h3>
+      <p>{{ error }}</p>
+    </div>
+  </div>
+
+  <!-- Ayuda -->
+  <div class="ayuda">
+    <mat-icon>info</mat-icon>
+    <span>{{ opcionActual.ayuda }}</span>
+  </div>
+
+</div>
