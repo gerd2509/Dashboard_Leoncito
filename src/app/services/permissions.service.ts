@@ -1,4 +1,7 @@
 import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom, Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { SedeConfigService } from './sede-config.service';
 
 export interface ModuleConfig {
@@ -75,15 +78,20 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'avance-cartera',               label: 'Avance de Cartera' },
   { key: 'embudos-gestion',              label: 'Embudos de Gestión' },
   { key: 'registro-gestion',             label: 'Registro de Gestión',                     sedeScoped: true },
+  { key: 'registro-supervisor',          label: 'Registro Supervisor — Realzza' },
+  { key: 'control-supervisor',           label: 'Control Supervisor — Realzza' },
+  { key: 'comparativo-cartera-ventas',   label: 'Comparativo Cartera Ventas Piso' },
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
+  'comparativo-cartera-ventas',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
+  'registro-supervisor', 'control-supervisor',
 ];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
@@ -93,12 +101,14 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v15';
+const STORAGE_KEY = 'gd_permissions_v17';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
 
   private sedeCfg = inject(SedeConfigService);
+  private http = inject(HttpClient);
+  private root = environment.apiBase;
 
   readonly modules       = ALL_MODULES;
   readonly perfiles      = PERFILES;
@@ -107,7 +117,23 @@ export class PermissionsService {
   private permisos: Record<string, string[]>;
 
   constructor() {
+    // Arranca con lo que haya en localStorage/defaults (disponible de inmediato);
+    // luego `cargarDesdeBackend()` refresca desde Neon (fuente de verdad).
     this.permisos = this.cargarDesdeStorage();
+  }
+
+  /** Carga la matriz de permisos desde la BD (Neon). Se llama al iniciar el dashboard.
+   *  Las claves que existan en la BD ganan; las que no, usan los defaults del código. */
+  async cargarDesdeBackend(): Promise<void> {
+    try {
+      const dbMap = await firstValueFrom(this.http.get<Record<string, string[]>>(`${this.root}/permisos`));
+      const merged = this.copiarDefaults();
+      if (dbMap) for (const k of Object.keys(dbMap)) merged[k] = [...(dbMap[k] || [])];
+      this.permisos = merged;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.permisos));
+    } catch {
+      // Sin backend: se queda con lo ya cargado (localStorage/defaults).
+    }
   }
 
   private cargarDesdeStorage(): Record<string, string[]> {
@@ -159,11 +185,13 @@ export class PermissionsService {
     );
   }
 
-  setPermisos(nuevos: Record<string, string[]>): void {
+  /** Guarda la matriz en la BD (y en localStorage como caché). Devuelve el PUT. */
+  setPermisos(nuevos: Record<string, string[]>): Observable<any> {
     this.permisos = Object.fromEntries(
       Object.entries(nuevos).map(([k, v]) => [k, [...v]])
     );
     localStorage.setItem(STORAGE_KEY, JSON.stringify(this.permisos));
+    return this.http.put(`${this.root}/permisos`, this.permisos);
   }
 
   tieneAcceso(moduleKey: string, rol: string, sede: string): boolean {
@@ -171,8 +199,10 @@ export class PermissionsService {
     return (this.permisos[this.buildKey(rol, sede)] ?? []).includes(moduleKey);
   }
 
-  restablecerDefaults(): void {
+  /** Restablece a los defaults del código y los persiste en la BD. */
+  restablecerDefaults(): Observable<any> {
     this.permisos = this.copiarDefaults();
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.permisos));
+    return this.http.put(`${this.root}/permisos`, this.permisos);
   }
 }

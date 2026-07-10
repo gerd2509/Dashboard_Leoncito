@@ -338,10 +338,56 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .th-dni, .td-dni { font-weight: 700; color: var(--azul); }
 
 /* ── Acciones ── */
+/* Filtro de exportación por Sede / Zona */
+.filtro-export {
+  margin-top: 22px;
+  border: 1px solid #d8e8f5;
+  border-radius: 12px;
+  background: #f7fbff;
+  padding: 14px 18px;
+}
+.fe-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A5FAD;
+  margin-bottom: 12px;
+}
+.fe-titulo mat-icon { font-size: 20px; width: 20px; height: 20px; }
+.fe-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.fe-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fe-campo label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b8299;
+}
+
 .acciones {
   margin-top: 22px;
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn-descargar.filtrada {
+  background: linear-gradient(135deg, #1A5FAD, #14487f);
+  box-shadow: 0 5px 16px rgba(26, 95, 173, 0.32);
+}
+.btn-descargar.filtrada:hover { box-shadow: 0 7px 20px rgba(26, 95, 173, 0.4); }
+.btn-descargar:disabled {
+  opacity: .5;
+  cursor: default;
+  box-shadow: none;
 }
 .btn-descargar {
   display: inline-flex;

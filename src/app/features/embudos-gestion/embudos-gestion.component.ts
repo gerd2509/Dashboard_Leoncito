@@ -18,7 +18,27 @@ const CANDIDATOS_DNI = [
 // Fragmentos para el fallback (cabecera que CONTENGA alguno).
 const FRAG_DNI = ['dni', 'docidentidad', 'documento', 'identidad'];
 
+// Candidatos y fragmentos para la columna de ASESOR en las hojas de cartera.
+const CANDIDATOS_ASESOR = [
+  'ASESOR', 'Asesor', 'asesor', 'ASESOR ASIGNADO', 'ASESOR CONTACT', 'ASESOR DE VENTA', 'ASESORVENTA',
+  'VENDEDOR', 'EJECUTIVO', 'GESTOR', 'RESPONSABLE', 'PROMOTOR',
+];
+const FRAG_ASESOR = ['asesor', 'vendedor', 'ejecutivo', 'gestor', 'promotor', 'responsable'];
+
 interface Etapa { nombre: string; op: number; ratio: number; codigo: string; }
+
+// Detalle por asesor dentro de una cartera: cuánto tiene asignado y cuánto le falta.
+interface DetalleAsesor {
+  asesor: string;
+  asignados: number;
+  gestionados: number;
+  pendientes: number;   // FALTA = asignados − gestionados
+  contactados: number;
+  interesados: number;
+  ventas: number;
+  pctAvance: number;    // gestionados / asignados
+}
+
 interface Embudo {
   titulo: string;
   color: string;
@@ -26,6 +46,8 @@ interface Embudo {
   asignados: number;
   etapas: Etapa[];
   marketPlace?: number;
+  hoja?: string;
+  detalle?: DetalleAsesor[];   // detalle por asesor (si la cartera trae columna de asesor)
 }
 
 // Estado agregado por DNI en una gestión.
@@ -55,6 +77,11 @@ export class EmbudosGestionComponent {
   popupVisible = false;
   embudoSel: Embudo | null = null;
   abrirEmbudo(e: Embudo): void { this.embudoSel = e; this.popupVisible = true; }
+
+  // Popup del detalle por asesor de una cartera
+  popupDetalleVisible = false;
+  embudoDetalle: Embudo | null = null;
+  abrirDetalle(e: Embudo): void { this.embudoDetalle = e; this.popupDetalleVisible = true; }
 
   private readonly paleta = ['#2E5DAA', '#3E8E41', '#E0701A', '#6A1B9A', '#00838F', '#AD1457', '#37474F'];
 
@@ -144,8 +171,8 @@ export class EmbudosGestionComponent {
     try {
       [dataModo, dataKommo] = await Promise.all([
         lastValueFrom(this.modo === 'realzza'
-          ? this.sheets.getSheetDataCampoRango({ desde, hasta })
-          : this.sheets.getSheetDataCallRango({ desde, hasta })),
+          ? this.sheets.getSheetDataCampoRango({ desde, hasta })   // Google Form campo/realzza
+          : this.sheets.getSheetDataCallRango({ desde, hasta })),  // Google Form call
         lastValueFrom(this.sheets.getSheetKOMMO()),
       ]);
     } catch {
@@ -169,6 +196,7 @@ export class EmbudosGestionComponent {
       const headers = Object.keys(rows[0]);
       const dniCol = this.buscarHeader(headers, CANDIDATOS_DNI) ?? this.buscarIncluye(headers, FRAG_DNI);
       if (!dniCol) continue;
+      const asesorCol = this.buscarHeader(headers, CANDIDATOS_ASESOR) ?? this.buscarIncluye(headers, FRAG_ASESOR);
 
       const dnis = Array.from(new Set(rows.map(r => this.dig(r[dniCol])).filter(d => d)));
 
@@ -184,7 +212,11 @@ export class EmbudosGestionComponent {
       // (en vez del cruce por DNI). Las demás carteras siguen por cruce de DNI.
       const esCarteraKommo = this.norm(hoja).includes('kommo');
       const ventas = (this.modo === 'realzza' && esCarteraKommo) ? ventasBbddKommo : ventasDni;
-      embudos.push(this.armarEmbudo(hoja, dnis.length, gestionados, contactados, interesados, ventas, this.paleta[ci++ % this.paleta.length], false));
+      const emb = this.armarEmbudo(hoja, dnis.length, gestionados, contactados, interesados, ventas, this.paleta[ci++ % this.paleta.length], false);
+      emb.hoja = hoja;
+      // Detalle por asesor (solo si la cartera trae una columna de asesor).
+      emb.detalle = asesorCol ? this.calcularDetalleAsesor(rows, dniCol, asesorCol, idxModo, ventasSet) : [];
+      embudos.push(emb);
     }
 
     // 5) Embudo KOMMO (LEADS), desde la hoja "kommo" del Excel + la gestión Kommo del mes.
@@ -241,6 +273,67 @@ export class EmbudosGestionComponent {
     const codigos = ['RG/A', 'RCT/A', 'RI/A', 'RD/A', 'RV/A', ''];
     etapas.forEach((e, i) => (e.codigo = codigos[i]));
     return { titulo, color, kommoLeads, asignados, etapas };
+  }
+
+  /**
+   * Detalle por asesor de una cartera: agrupa los DNIs por asesor y, cruzando con
+   * la gestión del mes, calcula asignados / gestionados / FALTA (pendientes) /
+   * contactados / interesados / ventas / % avance. Ordena por los que más faltan.
+   */
+  private calcularDetalleAsesor(rows: Record<string, any>[], dniCol: string, asesorCol: string,
+                                idxModo: Map<string, EstadoDni>, ventasSet: Set<string>): DetalleAsesor[] {
+    const porAsesor = new Map<string, Set<string>>();
+    for (const r of rows) {
+      const dni = this.dig(r[dniCol]);
+      if (!dni) continue;
+      const asesor = (r[asesorCol] ?? '').toString().trim().toUpperCase() || 'SIN ASESOR';
+      if (!porAsesor.has(asesor)) porAsesor.set(asesor, new Set());
+      porAsesor.get(asesor)!.add(dni);
+    }
+
+    const detalle: DetalleAsesor[] = [];
+    porAsesor.forEach((dnis, asesor) => {
+      let g = 0, c = 0, i = 0, v = 0;
+      dnis.forEach(d => {
+        const e = idxModo.get(d);
+        if (e?.gestionado) g++;
+        if (e?.contactado) c++;
+        if (e?.interesado) i++;
+        if (ventasSet.has(d)) v++;
+      });
+      const asignados = dnis.size;
+      detalle.push({
+        asesor, asignados, gestionados: g, pendientes: asignados - g,
+        contactados: c, interesados: i, ventas: v,
+        pctAvance: asignados > 0 ? Math.round((g / asignados) * 1000) / 10 : 0,
+      });
+    });
+    detalle.sort((a, b) => b.pendientes - a.pendientes);
+    return detalle;
+  }
+
+  onCellPreparedDetalle(e: any): void {
+    if (e.rowType === 'header') {
+      e.cellElement.style.backgroundColor = '#293964';
+      e.cellElement.style.color = 'white';
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.textAlign = 'center';
+    }
+    if (e.rowType === 'data') {
+      if (e.column.dataField === 'pendientes' && e.data.pendientes > 0) {
+        e.cellElement.style.color = '#b71c1c';
+        e.cellElement.style.fontWeight = '700';
+      }
+      if (e.column.dataField === 'pctAvance') {
+        const p = e.data.pctAvance;
+        e.cellElement.style.fontWeight = '700';
+        e.cellElement.style.color = p >= 80 ? '#2E7D32' : p >= 50 ? '#E65100' : '#b71c1c';
+      }
+    }
+    if (e.rowType === 'totalFooter') {
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.backgroundColor = '#f0f3fa';
+    }
   }
 
   /** Índice DNI(dígitos) → estado agregado (gestionado/contactado/interesado). */

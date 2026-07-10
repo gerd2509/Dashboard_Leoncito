@@ -244,3 +244,32 @@ body {
   color: #1E3A5F !important;
   box-shadow: 0 8px 24px rgba(26,95,173,0.14) !important;
 }
+
+/* ── Toasts (MatSnackBar) del módulo Seguridad y otros ── */
+.toast-ok .mdc-snackbar__surface {
+  background: #2E7D32 !important;
+}
+.toast-error .mdc-snackbar__surface {
+  background: #b71c1c !important;
+}
+.toast-ok .mdc-snackbar__label,
+.toast-error .mdc-snackbar__label { color: #fff !important; font-weight: 600; }
+.toast-ok .mat-mdc-snack-bar-action,
+.toast-error .mat-mdc-snack-bar-action { color: #fff !important; }
+
+/* ── Popup de EDICIÓN de gestiones (Call/Realzza): Cancelar (rojo) a la izquierda,
+      Guardar (verde) a la derecha, con texto visible ── */
+.dx-datagrid-edit-popup .dx-popup-bottom .dx-toolbar-after {
+  display: flex;
+  flex-direction: row-reverse;   /* por defecto Guardar va 1º → lo mandamos a la derecha */
+}
+.dx-datagrid-edit-popup .dx-popup-bottom .dx-toolbar-after .dx-toolbar-item:first-child .dx-button {
+  background: #2E7D32 !important; border-color: #2E7D32 !important; border-radius: 8px;   /* Guardar (derecha) */
+}
+.dx-datagrid-edit-popup .dx-popup-bottom .dx-toolbar-after .dx-toolbar-item:nth-child(2) .dx-button {
+  background: #e53935 !important; border-color: #e53935 !important; border-radius: 8px;   /* Cancelar (izquierda) */
+}
+.dx-datagrid-edit-popup .dx-popup-bottom .dx-button { min-width: 120px; margin: 0 6px; }
+.dx-datagrid-edit-popup .dx-popup-bottom .dx-button .dx-button-text {
+  color: #fff !important; font-weight: 700; text-transform: none;
+}

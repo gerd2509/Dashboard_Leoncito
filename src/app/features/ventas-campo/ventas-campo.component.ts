@@ -483,16 +483,20 @@ export class VentasCampoComponent implements OnInit {
         return fechaNC >= fechaInicio && fechaNC <= fechaFin;
       })
       .map(nc => {
-        // Refacturación: existe una venta nueva (no NC) con el mismo DocIdentidad,
-        // en la misma fecha o posterior. Se usa >= (no >) para detectar la
-        // refacturación que ocurre el mismo día que la NC. Se excluye la venta
-        // original anulada comparando IDVENTA: la refacturación es una venta nueva
-        // con IDVENTA distinto al de la NC.
-        const esRefacturacion = !!nc.DocIdentidad && this.dataVentas.some(v =>
-          v.DocIdentidad === nc.DocIdentidad &&
-          v.IDVENTA !== nc.IDVENTA &&
-          v.FECHAVENTA >= nc.FECHAVENTA
-        );
+        // Refacturación: SOLO cuenta cuando la NC y su venta nueva ocurren en el
+        // MISMO MES (el seleccionado). Una NC de un mes anterior (arrastrada por
+        // AF al mes en curso) y refacturada ahora NO es refacturación → se resta.
+        // La venta nueva: mismo DocIdentidad, IDVENTA distinto, misma fecha o
+        // posterior (>=), y dentro del mes seleccionado.
+        const fNC = nc.FECHAVENTA as Date;
+        const ncDelMes = fNC.getFullYear() === anioSeleccionado && (fNC.getMonth() + 1) === mesSeleccionado;
+        const esRefacturacion = ncDelMes && !!nc.DocIdentidad && this.dataVentas.some(v => {
+          if (v.DocIdentidad !== nc.DocIdentidad) return false;
+          if (v.IDVENTA === nc.IDVENTA) return false;
+          if (v.FECHAVENTA < nc.FECHAVENTA) return false;
+          const f = v.FECHAVENTA as Date;
+          return f.getFullYear() === anioSeleccionado && (f.getMonth() + 1) === mesSeleccionado;
+        });
         return {
           ...nc,
           esRefacturacion,

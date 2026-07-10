@@ -202,11 +202,34 @@
         </div>
       </div>
 
+      <!-- Exportar por Sede / Zona -->
+      <div class="filtro-export" *ngIf="columnasFiltro.length">
+        <div class="fe-titulo"><mat-icon>filter_alt</mat-icon> Exportar por Sede / Zona</div>
+        <div class="fe-controles">
+          <div class="fe-campo">
+            <label>Columna</label>
+            <dx-select-box [items]="columnasFiltro" [(value)]="filtroCol"
+              (onValueChanged)="recomputarValoresFiltro()" stylingMode="outlined"
+              [width]="220" [searchEnabled]="true" placeholder="Elige columna (Sede/Zona)"></dx-select-box>
+          </div>
+          <div class="fe-campo">
+            <label>Sede / Zona</label>
+            <dx-select-box [items]="valoresFiltro" [(value)]="filtroValor"
+              stylingMode="outlined" [width]="260" [searchEnabled]="true"
+              placeholder="Elige el valor a exportar" noDataText="Sin valores"></dx-select-box>
+          </div>
+        </div>
+      </div>
+
       <!-- Descargar -->
       <div class="acciones">
         <button class="btn-descargar" (click)="descargar()">
           <mat-icon>download</mat-icon>
           {{ modo === 'call' ? 'Descargar base limpia + SINTELEFONOS' : 'Descargar base limpia' }}
+        </button>
+        <button class="btn-descargar filtrada" (click)="descargar(true)" [disabled]="!filtroValor">
+          <mat-icon>download</mat-icon>
+          Descargar solo «{{ filtroValor || '—' }}»
         </button>
       </div>
     </div>

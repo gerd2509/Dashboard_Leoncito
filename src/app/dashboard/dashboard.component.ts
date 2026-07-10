@@ -29,6 +29,9 @@ import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.c
 import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
 import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-gestion.component";
 import { RegistroGestionComponent } from "../features/registro-gestion/registro-gestion.component";
+import { RegistroSupervisorComponent } from "../features/control-supervisor/registro-supervisor/registro-supervisor.component";
+import { ControlSupervisorComponent } from "../features/control-supervisor/control-supervisor.component";
+import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
@@ -79,6 +82,9 @@ interface MenuItem {
     AvanceCarteraComponent,
     EmbudosGestionComponent,
     RegistroGestionComponent,
+    RegistroSupervisorComponent,
+    ControlSupervisorComponent,
+    ComparativoCarteraVentasComponent,
     CargaVentasComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -146,6 +152,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
     { icon: 'filter_alt',    label: 'Embudos de Gestión',         modulo: 'embudos-gestion' },
     { icon: 'assignment_turned_in', label: 'Registro de Gestión',  modulo: 'registro-gestion' },
+    { icon: 'fact_check',           label: 'Registro Supervisor',  modulo: 'registro-supervisor' },
+    { icon: 'event_available',      label: 'Control Supervisor',   modulo: 'control-supervisor' },
+    { icon: 'compare_arrows',       label: 'Comparativo Cartera Ventas Piso', modulo: 'comparativo-cartera-ventas' },
     { icon: 'cloud_upload',         label: 'Carga de Ventas',      modulo: 'carga-ventas', adminOnly: true },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
@@ -157,7 +166,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private brandSvc: BrandService,
   ) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
+    // Trae la matriz de permisos desde la BD (Neon) antes de armar el menú.
+    await this.permissions.cargarDesdeBackend();
     this.menuItemsVisibles = this.calcularMenuVisible();
 
     const u = this.auth.getUsuario();

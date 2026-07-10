@@ -1,0 +1,53 @@
+<div class="rs-wrap">
+  <div class="rs-card">
+    <div class="rs-head">
+      <mat-icon>fact_check</mat-icon>
+      <div>
+        <h2>Registro de Control — Supervisor</h2>
+        <p>Realzza · Supervisor: <b>{{ supervisor || '—' }}</b></p>
+      </div>
+    </div>
+
+    <div class="rs-grid">
+      <div class="rs-field">
+        <label>Asesor <span class="req">*</span></label>
+        <dx-select-box [dataSource]="asesores" [(value)]="m.asesor"
+          placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
+      </div>
+
+      <div class="rs-field">
+        <label>Tipo de base</label>
+        <dx-select-box [dataSource]="tiposBase" [(value)]="m.tipo_base"
+          placeholder="Selecciona el tipo de base" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+      </div>
+
+      <div class="rs-field">
+        <label>DNI del cliente <span class="req">*</span></label>
+        <dx-text-box [(value)]="m.dni_cliente" (onValueChanged)="soloNumeros('dni_cliente', 8)"
+          placeholder="8 dígitos" mode="tel" stylingMode="outlined" [maxLength]="8"></dx-text-box>
+      </div>
+
+      <div class="rs-field">
+        <label>Celular gestionado</label>
+        <dx-text-box [(value)]="m.celular" (onValueChanged)="soloNumeros('celular', 9)"
+          placeholder="9 dígitos" mode="tel" stylingMode="outlined" [maxLength]="9"></dx-text-box>
+      </div>
+
+      <div class="rs-field rs-full">
+        <label>Estado de gestión (control) <span class="req">*</span></label>
+        <dx-radio-group [items]="estados" [(value)]="m.estado_gestion" layout="horizontal"></dx-radio-group>
+      </div>
+
+      <div class="rs-field rs-full">
+        <label>Comentario</label>
+        <dx-text-area [(value)]="m.comentario" [height]="90"
+          placeholder="Observación del control (opcional)" stylingMode="outlined"></dx-text-area>
+      </div>
+    </div>
+
+    <button class="rs-btn" (click)="registrar()" [disabled]="guardando || !formValido">
+      <mat-icon>{{ guardando ? 'hourglass_empty' : 'save' }}</mat-icon>
+      {{ guardando ? 'Guardando…' : 'Registrar control' }}
+    </button>
+  </div>
+</div>

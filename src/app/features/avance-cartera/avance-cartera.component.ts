@@ -286,8 +286,8 @@ export class AvanceCarteraComponent implements OnInit {
     let data: any[] = [];
     try {
       data = this.modo === 'realzza'
-        ? await lastValueFrom(this.sheets.getSheetDataCampo())
-        : await lastValueFrom(this.sheets.getSheetData());
+        ? await lastValueFrom(this.sheets.getSheetDataCampo())   // Google Form (campo/realzza)
+        : await lastValueFrom(this.sheets.getSheetData());       // Google Form (call)
     } catch {
       throw new Error('No se pudo cargar la gestión (revisa la conexión al servidor).');
     }

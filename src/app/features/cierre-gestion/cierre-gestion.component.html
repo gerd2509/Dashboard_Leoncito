@@ -321,6 +321,88 @@
         </div>
         <!-- ════════════ FIN VISTA REALZZA ════════════ -->
 
+        <!-- ════════════ MONITOREO DEL SUPERVISOR (Realzza) ════════════ -->
+        <div class="mon-sup" *ngIf="mostrarMonitoreoRealzza">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <h3 class="titulosGrillas">🕵️ MONITOREO DEL SUPERVISOR — {{ supervisorRealzza }}</h3>
+            </div>
+            <p class="mon-sub">Re-verificación de los clientes marcados como <b>NO CONTACTO</b> por los asesores en la fecha seleccionada.</p>
+
+            <div class="mon-kpis">
+                <div class="mon-kpi"><span class="mk-num">{{ totalMonNoContacto }}</span><span class="mk-lbl">No contacto</span></div>
+                <div class="mon-kpi"><span class="mk-num">{{ totalMonSupervisados }}</span><span class="mk-lbl">Supervisados</span></div>
+                <div class="mon-kpi warn"><span class="mk-num">{{ totalMonSiContacto }}</span><span class="mk-lbl">Sí contactó ⚠️</span></div>
+                <div class="mon-kpi pend"><span class="mk-num">{{ totalMonPendientes }}</span><span class="mk-lbl">Pendientes</span></div>
+            </div>
+
+            <div class="focqus-elevation mon-table-wrap" *ngIf="monitoreoSupervisor.length > 0; else sinMon">
+                <table class="mon-table">
+                    <thead>
+                        <tr>
+                            <th style="width:36px;"></th><th>ASESOR</th><th>NO CONTACTO</th><th>SUPERVISADOS</th>
+                            <th>SÍ CONTACTÓ</th><th>CONFIRMADOS</th><th>PENDIENTES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <ng-container *ngFor="let r of monitoreoSupervisor">
+                            <tr class="mon-row" (click)="toggleMonitoreo(r.asesorId)">
+                                <td class="mon-exp"><mat-icon>{{ asesorMonitoreoExpandido === r.asesorId ? 'expand_less' : 'expand_more' }}</mat-icon></td>
+                                <td class="mon-asesor">{{ r.asesor }}</td>
+                                <td>{{ r.noContacto }}</td>
+                                <td>{{ r.supervisados }}</td>
+                                <td><span class="mon-badge si" [class.zero]="r.siContacto === 0">{{ r.siContacto }}</span></td>
+                                <td>{{ r.confirmados }}</td>
+                                <td><span class="mon-badge pend" [class.zero]="r.pendientes === 0">{{ r.pendientes }}</span></td>
+                            </tr>
+                            <tr *ngIf="asesorMonitoreoExpandido === r.asesorId" class="mon-detalle-row">
+                                <td colspan="7">
+                                    <div class="mon-det">
+                                        <div class="mon-det-head">
+                                            <span class="mdh-title"><mat-icon>fact_check</mat-icon> Detalle de {{ r.asesor }}</span>
+                                            <span class="mdh-chips">
+                                                <span class="mchip total">{{ r.detalle.length }} clientes</span>
+                                                <span class="mchip si" *ngIf="r.siContacto > 0">{{ r.siContacto }} sí contactó</span>
+                                                <span class="mchip ok" *ngIf="r.confirmados > 0">{{ r.confirmados }} confirmados</span>
+                                                <span class="mchip pend" *ngIf="r.pendientes > 0">{{ r.pendientes }} pendientes</span>
+                                            </span>
+                                        </div>
+                                        <div class="mon-det-scroll">
+                                            <table class="mon-detalle">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="c-dni">DNI</th>
+                                                        <th class="c-cel">Celular</th>
+                                                        <th class="c-res">Resultado del supervisor</th>
+                                                        <th class="c-hora">Hora</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr *ngFor="let d of r.detalle">
+                                                        <td class="c-dni mono">{{ d.dni || '—' }}</td>
+                                                        <td class="c-cel mono">{{ d.celular || '—' }}</td>
+                                                        <td class="c-res">
+                                                            <span class="res-badge" [ngClass]="claseResultado(d.resultado)">
+                                                                <mat-icon>{{ iconoResultado(d.resultado) }}</mat-icon>{{ d.resultado }}
+                                                            </span>
+                                                        </td>
+                                                        <td class="c-hora">{{ d.hora || '—' }}</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </ng-container>
+                    </tbody>
+                </table>
+            </div>
+            <ng-template #sinMon>
+                <div class="mon-empty">No hay clientes marcados como "no contacto" por los asesores en la fecha seleccionada.</div>
+            </ng-template>
+        </div>
+        <!-- ════════════ FIN MONITOREO SUPERVISOR ════════════ -->
+
         <h3 class="titulosGrillas mb-2" *ngIf="!soloRealzza">🌐 DETALLE AFILIACIONES VIRTUALES</h3>
 
         <div class="kommoGrid mb-4" *ngIf="!soloRealzza">

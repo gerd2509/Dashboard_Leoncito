@@ -1,0 +1,160 @@
+<div class="cc-page">
+
+  <!-- Barra de acciones -->
+  <div class="cc-panel cc-toolbar">
+    <form class="cc-form" [formGroup]="form">
+      <dx-date-box formControlName="mes" type="date" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" label="Mes de ventas" labelMode="floating"
+        stylingMode="filled" width="170" [openOnFieldClick]="true"></dx-date-box>
+
+      <dx-select-box *ngIf="sedesDisponibles.length" formControlName="sede" [dataSource]="sedesDisponibles"
+        label="Sede" labelMode="floating" stylingMode="filled" width="200" [showClearButton]="true"
+        placeholder="Todas las sedes" (onValueChanged)="aplicarSede()"></dx-select-box>
+
+      <label class="cc-btn cc-btn-dark">
+        <input type="file" accept=".xlsx,.xls" (change)="importar($event)" hidden />
+        <mat-icon>upload_file</mat-icon> Importar Excel de piso
+      </label>
+
+      <button class="cc-btn cc-btn-primary" (click)="recalcular()" [disabled]="!cartera.length || isLoading">
+        <mat-icon>sync</mat-icon> Actualizar
+      </button>
+
+      <button class="cc-btn cc-btn-ghost" (click)="exportar()" [disabled]="!ventasCartera.length">
+        <mat-icon>file_download</mat-icon> Exportar
+      </button>
+
+      <span class="cc-archivo" *ngIf="nombreArchivo"><mat-icon>description</mat-icon>{{ nombreArchivo }}</span>
+    </form>
+  </div>
+
+  <!-- KPIs -->
+  <div class="cc-kpis" *ngIf="yaCruzado">
+    <div class="kpi">
+      <div class="kpi-ic ic-total"><mat-icon>groups</mat-icon></div>
+      <div class="kpi-body"><span>{{ kAsignados | number }}</span><small>Cartera asignada</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ic ic-ok"><mat-icon>shopping_cart_checkout</mat-icon></div>
+      <div class="kpi-body"><span>{{ kVendidos | number }}</span><small>Ventas de cartera</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ic ic-conv"><mat-icon>percent</mat-icon></div>
+      <div class="kpi-body"><span>{{ formatPct(kConversion) }}</span><small>Conversión</small></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-ic ic-monto"><mat-icon>payments</mat-icon></div>
+      <div class="kpi-body"><span>{{ formatSoles(kMonto) }}</span><small>Monto vendido (neto)</small></div>
+    </div>
+  </div>
+
+  <div *ngIf="aviso" class="cc-aviso">{{ aviso }}</div>
+
+  <!-- Estado inicial (antes de importar) -->
+  <div class="cc-panel cc-grid-wrap" *ngIf="!yaCruzado">
+    <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
+    <div *ngIf="!isLoading" class="cc-empty">
+      <mat-icon>compare_arrows</mat-icon>
+      <p>Importa el <b>Excel de piso</b> (cartera) para ver las ventas netas que salieron de esa cartera.</p>
+      <small>Cruce por DNI · solo ventas netas (sin NC ni incautaciones) · avance por sede y detalle por vendedor.</small>
+    </div>
+  </div>
+
+  <!-- VISTA PRINCIPAL: avance por sede -->
+  <div class="cc-panel cc-resumen" *ngIf="mostrarResumen">
+    <div class="cc-sec-head">
+      <div>
+        <h3>Avance por sede</h3>
+        <span>Ventas netas que salieron de la cartera · clic en una sede para ver el detalle</span>
+      </div>
+    </div>
+    <div class="cc-table-scroll">
+      <table class="cc-table">
+        <thead>
+          <tr>
+            <th class="l">Sede</th>
+            <th>Cartera asignada</th>
+            <th>Ventas de cartera</th>
+            <th class="w-conv">Conversión</th>
+            <th class="r">Monto S/</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of resumenSedes" (click)="seleccionarSede(s.sede)">
+            <td class="l td-sede"><mat-icon>store</mat-icon>{{ s.sede }}</td>
+            <td>{{ s.asignados | number }}</td>
+            <td class="td-vend">{{ s.vendidos | number }}</td>
+            <td>
+              <div class="conv-cell">
+                <div class="bar"><div class="bar-fill" [ngClass]="barClase(s.conversion)" [style.width.%]="barPct(s.conversion)"></div></div>
+                <span class="conv-txt">{{ formatPct(s.conversion) }}</span>
+              </div>
+            </td>
+            <td class="r td-monto">{{ formatSoles(s.monto) }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td class="l">TOTAL</td>
+            <td>{{ kAsignados | number }}</td>
+            <td>{{ kVendidos | number }}</td>
+            <td>{{ formatPct(kConversion) }}</td>
+            <td class="r">{{ formatSoles(kMonto) }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- DETALLE: sede elegida (o sin columna de sede) -->
+  <div class="cc-panel cc-grid-wrap" *ngIf="yaCruzado && !mostrarResumen">
+    <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
+
+    <div class="cc-detail-head" *ngIf="yaCruzado && !mostrarResumen">
+      <button class="cc-btn cc-btn-ghost" *ngIf="sedeSeleccionada" (click)="volverAResumen()"><mat-icon>arrow_back</mat-icon> Sedes</button>
+      <h3><mat-icon>store</mat-icon>{{ sedeSeleccionada || 'Todas las sedes' }}</h3>
+      <span class="cc-detail-sub">Ventas de cartera por asesor asignado</span>
+      <button class="cc-btn cc-btn-ghost cc-btn-exp" *ngIf="ventasCartera.length" (click)="toggleExpandir()">
+        <mat-icon>{{ todoExpandido ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+        {{ todoExpandido ? 'Colapsar todo' : 'Expandir todo' }}
+      </button>
+    </div>
+
+    <div *ngIf="!ventasCartera.length && !isLoading" class="cc-empty">
+      <mat-icon>search_off</mat-icon>
+      <p>No hay ventas de cartera para {{ sedeSeleccionada ? ('la sede ' + sedeSeleccionada) : 'este mes' }}.</p>
+    </div>
+
+    <dx-data-grid *ngIf="ventasCartera.length" #grid [dataSource]="ventasCartera"
+      class="cc-grid" [showBorders]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+      [columnAutoWidth]="true" [wordWrapEnabled]="true" [hoverStateEnabled]="true"
+      (onCellPrepared)="onCellPrepared($event)">
+
+      <dxo-grouping [autoExpandAll]="false" [allowCollapsing]="true"></dxo-grouping>
+      <dxo-group-panel [visible]="true" emptyPanelText="Arrastra una columna aquí para agrupar (ej. Tipo de base, Tipo de cliente)"></dxo-group-panel>
+      <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar DNI, cliente…"></dxo-search-panel>
+      <dxo-scrolling mode="standard"></dxo-scrolling>
+      <dxo-paging [pageSize]="25"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[25, 50, 100]" [showInfo]="true"></dxo-pager>
+
+      <dxi-column dataField="vendedor" caption="Vendedor / Asesor asignado" [groupIndex]="0"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [visible]="!sedeSeleccionada" [allowGrouping]="true"></dxi-column>
+      <dxi-column dataField="tipoBase" caption="Tipo de base" [allowGrouping]="true"></dxi-column>
+      <dxi-column dataField="tipoCliente" caption="Tipo de cliente" [allowGrouping]="true"></dxi-column>
+      <dxi-column dataField="dni" caption="DNI" alignment="center" [width]="110"></dxi-column>
+      <dxi-column dataField="cliente" caption="Cliente"></dxi-column>
+      <dxi-column dataField="ops" caption="Ventas" dataType="number" alignment="center" [width]="80"></dxi-column>
+      <dxi-column dataField="monto" caption="Monto S/" dataType="number" alignment="right"
+        [format]="montoFormat"></dxi-column>
+
+      <dxo-summary>
+        <dxi-group-item column="dni" summaryType="count" displayFormat="{0} ventas"></dxi-group-item>
+        <dxi-group-item column="monto" summaryType="sum"
+          [valueFormat]="montoFormat" displayFormat="Total: {0}" [alignByColumn]="true"></dxi-group-item>
+        <dxi-total-item column="dni" summaryType="count" displayFormat="{0} ventas"></dxi-total-item>
+        <dxi-total-item column="monto" summaryType="sum"
+          [valueFormat]="montoFormat" displayFormat="Total: {0}"></dxi-total-item>
+      </dxo-summary>
+    </dx-data-grid>
+  </div>
+</div>

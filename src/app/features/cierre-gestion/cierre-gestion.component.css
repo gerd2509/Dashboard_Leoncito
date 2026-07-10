@@ -275,3 +275,122 @@
 .kpi-detail-pct { flex: 0 0 38px; text-align: right; font-size: 0.78rem; font-weight: 700; color: #7A9BB8; }
 
 .focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }
+
+/* ════════════ Monitoreo del Supervisor (Realzza) ════════════ */
+.mon-sup { margin: 22px 0 8px; }
+.mon-sub { color: #4A6A88; font-size: 13px; margin: 2px 0 12px; }
+
+.mon-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.mon-kpi {
+  background: #fff; border: 1px solid #e3edf6; border-left: 5px solid #7c93b8;
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.mon-kpi.warn { border-left-color: #E65100; }
+.mon-kpi.pend { border-left-color: #6b8299; }
+.mk-num { font-size: 24px; font-weight: 800; color: #1E3A5F; }
+.mon-kpi.warn .mk-num { color: #E65100; }
+.mk-lbl { font-size: 12px; font-weight: 600; color: #6b8299; text-transform: uppercase; letter-spacing: .03em; }
+
+.mon-table-wrap { padding: 0; overflow: hidden; border-radius: 10px; }
+.mon-table { width: 100%; border-collapse: collapse; }
+.mon-table thead th {
+  background: #293964; color: #fff; font-size: 12.5px; font-weight: 700;
+  padding: 10px 12px; text-align: center; border: 1px solid #1f2d4d;
+}
+.mon-table thead th:nth-child(2) { text-align: left; }
+.mon-row { cursor: pointer; transition: background .12s; }
+.mon-row:hover { background: #f0f6fc; }
+.mon-table tbody td {
+  padding: 9px 12px; text-align: center; font-weight: 600; font-size: 14px;
+  border: 1px solid #e3e9f2; color: #35506b;
+}
+.mon-asesor { text-align: left !important; font-weight: 700; color: #1A5FAD; }
+.mon-exp { color: #6b8299; }
+.mon-exp mat-icon { vertical-align: middle; }
+.mon-badge {
+  display: inline-block; min-width: 30px; padding: 2px 10px; border-radius: 999px;
+  font-weight: 800; font-size: 13px;
+}
+.mon-badge.si { background: #fdecdc; color: #E65100; }
+.mon-badge.pend { background: #eef1f5; color: #46586c; }
+.mon-badge.zero { background: #eafaf0; color: #2E7D32; }
+
+/* ── Detalle expandido por asesor ── */
+.mon-detalle-row > td { background: #eef3f9; padding: 0 !important; border: none !important; }
+.mon-det {
+  margin: 10px 14px 14px;
+  background: #fff;
+  border: 1px solid #dbe6f2;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(20, 49, 79, .06);
+}
+.mon-det-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 11px 16px;
+  background: #f7fafd;
+  border-bottom: 1px solid #e3ecf5;
+}
+.mdh-title {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13.5px; font-weight: 800; color: #1E3A5F;
+}
+.mdh-title mat-icon { font-size: 19px; width: 19px; height: 19px; color: #1A5FAD; }
+.mdh-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.mchip {
+  padding: 3px 11px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700;
+}
+.mchip.total { background: #e8eef6; color: #46586c; }
+.mchip.si    { background: #fdecdc; color: #C2410C; }
+.mchip.ok    { background: #eafaf0; color: #2E7D32; }
+.mchip.pend  { background: #eef1f5; color: #6b8299; }
+
+.mon-det-scroll { max-height: 340px; overflow-y: auto; }
+.mon-detalle { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.mon-detalle thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #eaf1f8; color: #35506b;
+  font-size: 11px; font-weight: 800;
+  padding: 9px 16px; text-align: left;
+  text-transform: uppercase; letter-spacing: .05em;
+  border-bottom: 1px solid #d5e2ef;
+}
+.mon-detalle tbody td {
+  padding: 9px 16px; text-align: left; font-size: 13px; font-weight: 500;
+  border-bottom: 1px solid #eef3f8; color: #35506b;
+}
+.mon-detalle tbody tr:last-child td { border-bottom: none; }
+.mon-detalle tbody tr:nth-child(even) { background: #fbfdff; }
+.mon-detalle tbody tr:hover { background: #f0f6fc; }
+.mon-detalle .mono {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-weight: 600; letter-spacing: .02em; color: #1E3A5F;
+}
+/* Anchos fijos: el resultado ya no estira la tabla */
+.mon-detalle .c-dni  { width: 140px; }
+.mon-detalle .c-cel  { width: 150px; }
+.mon-detalle .c-res  { width: auto; }
+.mon-detalle .c-hora { width: 110px; text-align: right; color: #6b8299; }
+
+.res-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: .02em;
+  border: 1px solid transparent;
+}
+.res-badge mat-icon { font-size: 15px; width: 15px; height: 15px; }
+.res-badge.res-si   { background: #fdecdc; color: #C2410C; border-color: #f6d3b4; }
+.res-badge.res-no   { background: #eafaf0; color: #2E7D32; border-color: #bfe6cc; }
+.res-badge.res-pend { background: #f1f4f8; color: #6b8299; border-color: #dde4ec; }
+.mon-empty {
+  background: #fff; border: 1px dashed #cdd9e6; border-radius: 10px;
+  padding: 22px; text-align: center; color: #97a9ba; font-style: italic;
+}

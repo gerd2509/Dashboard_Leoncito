@@ -1,0 +1,71 @@
+<div class="cs-toolbar">
+  <form class="cs-form" [formGroup]="form">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+      labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+      labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
+    <dx-select-box style="min-width: 260px;" formControlName="asesor" [dataSource]="asesoresDisponibles"
+      label="Asesor" labelMode="floating" stylingMode="underlined" [showClearButton]="true"
+      placeholder="Todos" (onValueChanged)="aplicarFiltroAsesor()"></dx-select-box>
+    <button mat-flat-button color="primary" (click)="cargar()">
+      <mat-icon>search</mat-icon> Actualizar
+    </button>
+  </form>
+
+  <div class="cs-kpis">
+    <div class="kpi kpi-total"><span>{{ kTotal }}</span><small>Supervisados</small></div>
+    <div class="kpi kpi-ok"><span>{{ kCoincide }}</span><small>Coinciden</small></div>
+    <div class="kpi kpi-bad"><span>{{ kDiscrepancia }}</span><small>Discrepancias</small></div>
+    <div class="kpi kpi-none"><span>{{ kSinGestion }}</span><small>Sin gestión</small></div>
+  </div>
+</div>
+
+<div *ngIf="error" class="cs-error">{{ error }}</div>
+
+<div class="cs-grid-wrap">
+  <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
+
+  <dx-scheduler
+    [dataSource]="citasFiltradas"
+    [currentDate]="currentDate"
+    [views]="['month', 'week', 'agenda']"
+    currentView="month"
+    [firstDayOfWeek]="1"
+    [height]="640"
+    [editing]="{ allowAdding: false, allowUpdating: false, allowDeleting: false, allowResizing: false, allowDragging: false }"
+    [showCurrentTimeIndicator]="false"
+    textExpr="text"
+    startDateExpr="startDate"
+    endDateExpr="endDate"
+    appointmentTooltipTemplate="tooltip">
+
+    <dxi-resource
+      [dataSource]="recursosResultado"
+      fieldExpr="resultado"
+      label="Resultado del control"
+      [useColorAsDefault]="true">
+    </dxi-resource>
+
+    <!-- Tooltip con el detalle del cruce -->
+    <div *dxTemplate="let model of 'tooltip'">
+      <div class="cs-tip">
+        <div class="cs-tip-head" [class.ok]="model.appointmentData.resultado === 'COINCIDE'"
+             [class.bad]="model.appointmentData.resultado === 'DISCREPANCIA'"
+             [class.none]="model.appointmentData.resultado === 'SIN GESTIÓN'">
+          {{ model.appointmentData.resultado }}
+        </div>
+        <div class="cs-tip-row"><b>Asesor:</b> {{ model.appointmentData.asesor || '—' }}</div>
+        <div class="cs-tip-row"><b>Tipo base:</b> {{ model.appointmentData.tipoBase || '—' }}</div>
+        <div class="cs-tip-row"><b>DNI:</b> {{ model.appointmentData.dni }} &nbsp; <b>Cel:</b> {{ model.appointmentData.celular || '—' }}</div>
+        <div class="cs-tip-row"><b>Estado supervisor:</b> {{ model.appointmentData.estadoSup }}</div>
+        <div class="cs-tip-row"><b>Estado asesor:</b> {{ model.appointmentData.estadoAsesor }}</div>
+        <div class="cs-tip-row" *ngIf="model.appointmentData.asesorGestion">
+          <b>Gestión hallada de:</b> {{ model.appointmentData.asesorGestion }}
+        </div>
+        <div class="cs-tip-row" *ngIf="model.appointmentData.comentario">
+          <b>Comentario:</b> {{ model.appointmentData.comentario }}
+        </div>
+      </div>
+    </div>
+  </dx-scheduler>
+</div>

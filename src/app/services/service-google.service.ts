@@ -35,6 +35,47 @@ export class SheetsService {
     return this.http.get<any[]>(this.apiUrlCampo);
   }
 
+  // 🆕 Gestión Realzza desde PostgreSQL (reemplaza el Google Form de campo).
+  // Devuelve las MISMAS cabeceras que la hoja, así que es drop-in de getSheetDataCampo().
+  getGestionRealzza(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any[]>(`${environment.apiBase}/gestion-realzza`, { params });
+  }
+
+  // 🆕 Gestión Call Center desde PostgreSQL (reemplaza el Google Form de call).
+  // Drop-in de getSheetData() / getSheetDataCallRango(): mismas cabeceras de la hoja.
+  getGestionCall(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any[]>(`${environment.apiBase}/gestion-call`, { params });
+  }
+
+  // ── Editar / eliminar gestiones (por id) ──
+  updateGestionRealzza(id: number, body: any): Observable<any> {
+    return this.http.put(`${environment.apiBase}/gestion-realzza/${id}`, body);
+  }
+  deleteGestionRealzza(id: number): Observable<any> {
+    return this.http.delete(`${environment.apiBase}/gestion-realzza/${id}`);
+  }
+  updateGestionCall(id: number, body: any): Observable<any> {
+    return this.http.put(`${environment.apiBase}/gestion-call/${id}`, body);
+  }
+  deleteGestionCall(id: number): Observable<any> {
+    return this.http.delete(`${environment.apiBase}/gestion-call/${id}`);
+  }
+
+  // ── Match de ventas (Excel) con la última gestión por DNI ──
+  // Devuelve { <dni>: { asesor, tipo_cliente|tipo_base, sede, ... } }.
+  matchGestionCall(dnis: string[]): Observable<Record<string, any>> {
+    return this.http.post<Record<string, any>>(`${environment.apiBase}/gestion-call/match`, { dnis });
+  }
+  matchGestionRealzza(dnis: string[]): Observable<Record<string, any>> {
+    return this.http.post<Record<string, any>>(`${environment.apiBase}/gestion-realzza/match`, { dnis });
+  }
+
   // Variantes con rango de fechas (mes) para no traer todo el histórico (usadas por Embudos).
   getSheetDataCallRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlCall, { params: this.rangoParams(rango) });

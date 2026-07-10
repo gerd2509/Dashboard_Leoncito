@@ -44,7 +44,7 @@ export class AgendamientosCampoComponent {
   }
 
   async cargasIniciales() {
-    this.datosOriginales = await lastValueFrom(this.service.getSheetDataCampo());
+    this.datosOriginales = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
     console.log(this.datosOriginales)
   }
 
@@ -105,7 +105,7 @@ export class AgendamientosCampoComponent {
     this.isLoading = true;
 
     try {
-      this.datosOriginales = await lastValueFrom(this.service.getSheetDataCampo());
+      this.datosOriginales = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
 
       const dia = fechaSeleccionada.getDate().toString().padStart(2, '0');
       const mes = (fechaSeleccionada.getMonth() + 1).toString().padStart(2, '0');

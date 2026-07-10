@@ -44,7 +44,7 @@ export class AgendamientosComponent {
   }
 
   async cargasIniciales() {
-    this.datosOriginales = await lastValueFrom(this.service.getSheetData());
+    this.datosOriginales = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
     console.log(this.datosOriginales)
   }
 
@@ -107,7 +107,7 @@ export class AgendamientosComponent {
     this.isLoading = true;
 
     try {
-      this.datosOriginales = await lastValueFrom(this.service.getSheetData());
+      this.datosOriginales = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
 
       const dia = fechaSeleccionada.getDate().toString().padStart(2, '0');
       const mes = (fechaSeleccionada.getMonth() + 1).toString().padStart(2, '0');

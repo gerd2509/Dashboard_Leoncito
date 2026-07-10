@@ -5,6 +5,7 @@ import { SheetsService } from '../../../services/service-google.service';
 import { ExcelExportService } from '../../../services/excel/excel.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
+import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 
 @Component({
@@ -52,6 +53,59 @@ export class GestionCampoRealzzaComponent implements OnInit {
     });
   }
 
+  // Campos del formulario de edición (para mostrar solo los que tienen datos).
+  private readonly camposEdicion = [
+    'Marca temporal', 'ASESOR REALZZA', 'DNI CLIENTE', 'CELULAR GESTIONADO', 'SEDE', 'TIPO DE BASE',
+    'ESTADO DE GESTIÓN', 'MEDIO DE PRIMER CONTACTO', 'RESULTADO DE GESTIÓN', 'PRODUCTO INTERÉS', 'MOTIVO INTERÉS',
+    'MOTIVO NO CONTACTO', 'MOTIVO AGENDAMIENTO', 'FECHA DE INTERÉS AGENDAMIENTO', 'HORA APROXIMADA INTERÉS AGENDAMIENTO',
+    'COMENTARIO ADICIONAL AGENDAMIENTO', 'FECHA DE INTERÉS DERIVACIÓN', 'HORA APROXIMADA INTERÉS DERIVACIÓN',
+    'COMENTARIO ADICIONAL DERIVACIÓN', 'MOTIVO NO INTERÉS', 'COMENTARIO ADICIONAL NO INTERÉS', 'MOTIVO NO ATENDIBLE',
+    'COMENTARIO ADICIONAL NO ATENDIBLE', 'MOTIVOS TERCERO RELACIONADO', 'FECHA DE RE-LLAMADA', 'HORA DE RELLAMADA',
+    'NÚMERO TITULAR ACTUAL', 'MOTIVO DE NO CIERRE', 'COMENTARIO VENTA NO CONCRETADA',
+  ];
+
+  // Al abrir el editar: mostrar en el formulario SOLO los campos con datos en ese registro.
+  onEditingStart(e: any): void {
+    const grid = this.dataGrid?.instance;
+    if (!grid) return;
+    const data = e?.data || {};
+    grid.beginUpdate();
+    for (const campo of this.camposEdicion) {
+      const tiene = data[campo] !== undefined && data[campo] !== null && String(data[campo]).trim() !== '';
+      grid.columnOption(campo, 'formItem.visible', tiene);
+    }
+    grid.endUpdate();
+  }
+
+  // ── Editar / eliminar registros del grid (persisten en la BD) ──
+  onRowUpdated(e: any): void {
+    const id = e?.key ?? e?.data?.id;
+    if (!id) return;
+    this.service.updateGestionRealzza(id, e.data).subscribe({
+      error: () => { alert('No se pudo guardar el cambio; se recargará la información.'); this.cargasIniciales(); },
+    });
+  }
+  // Confirmación propia (con título y botones de color) antes de eliminar.
+  onRowRemoving(e: any): void {
+    const dialog = custom({
+      title: 'Eliminar gestión — Realzza',
+      messageHtml: '<div style="padding:10px 6px;font-size:15px;color:#1E3A5F;">¿Eliminar esta gestión de forma permanente?</div>',
+      buttons: [
+        { text: 'Cancelar', type: 'danger', stylingMode: 'contained', onClick: () => false },
+        { text: 'Eliminar', type: 'success', stylingMode: 'contained', onClick: () => true },
+      ],
+    });
+    e.cancel = dialog.show().then((confirmado: boolean) => !confirmado);
+  }
+
+  onRowRemoved(e: any): void {
+    const id = e?.key ?? e?.data?.id;
+    if (!id) return;
+    this.service.deleteGestionRealzza(id).subscribe({
+      error: () => { alert('No se pudo eliminar; se recargará la información.'); this.cargasIniciales(); },
+    });
+  }
+
   // Devuelve la fecha dinámica según el motivo
   obtenerFechaInteres(item: any): string {
     const motivo = (item["MOTIVO INTERÉS"] || '').toString().trim().toUpperCase();
@@ -87,7 +141,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
   async cargasIniciales() {
     this.isLoading = true;
     try {
-      this.listData = await lastValueFrom(this.service.getSheetDataCampo());
+      this.listData = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
 
       // 🔹 Calculamos la columna dinámica desde el inicio
       this.listData = this.listData.map(item => ({
@@ -116,7 +170,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
         return;
       }
 
-      this.listData = await lastValueFrom(this.service.getSheetDataCampo());
+      this.listData = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
 
       // 🔹 Aplicamos la misma lógica de fecha dinámica al cargar nueva data
       this.listData = this.listData.map(item => ({

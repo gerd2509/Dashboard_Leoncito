@@ -102,6 +102,12 @@ export class LimpiezaBbddComponent {
   previewCall: DniCall[] = [];       // modo Call (con color)
   columnasNumero: string[] = [];
 
+  // ── Filtro de exportación por Sede / Zona ──
+  columnasFiltro: string[] = [];     // columnas base candidatas para filtrar
+  filtroCol = '';                    // columna elegida (auto: la que parezca Sede/Zona)
+  valoresFiltro: string[] = [];      // valores distintos de esa columna
+  filtroValor = '';                  // valor seleccionado a exportar
+
   // ──────────────────────────────────────────────────────────────────────────
   // Selección de modo
   // ──────────────────────────────────────────────────────────────────────────
@@ -156,6 +162,10 @@ export class LimpiezaBbddComponent {
     this.nombreArchivo = '';
     this.preview = [];
     this.previewCall = [];
+    this.columnasFiltro = [];
+    this.filtroCol = '';
+    this.valoresFiltro = [];
+    this.filtroValor = '';
     this.filasSalida = [];
     this.headersSalida = [];
     this.dnisCall = [];
@@ -297,6 +307,8 @@ export class LimpiezaBbddComponent {
       dni: String(f[dniHeader] ?? ''),
       numeros: colsNumero.map((c) => String(f[c] ?? '')).filter((v) => v !== ''),
     }));
+
+    this.prepararFiltros(headersBase);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -383,6 +395,37 @@ export class LimpiezaBbddComponent {
 
     // 5) Vista previa (primeros 10 DNIs, con color por estado).
     this.previewCall = dnis.slice(0, 10);
+
+    this.prepararFiltros(this.baseHeaders);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Filtro de exportación por Sede / Zona
+  // ──────────────────────────────────────────────────────────────────────────
+  /** Filas base del modo activo (para leer los valores de la columna de filtro). */
+  private filasBase(): Record<string, any>[] {
+    return this.modo === 'call' ? this.dnisCall.map((d) => d.base) : this.filasSalida;
+  }
+
+  /** Detecta la columna Sede/Zona y precarga los valores para el selector. */
+  private prepararFiltros(baseHeaders: string[]): void {
+    this.columnasFiltro = baseHeaders;
+    const detect = baseHeaders.find((h) => /sede|zona|tienda|agencia|oficina|canal/i.test(h));
+    this.filtroCol = detect ?? '';
+    this.recomputarValoresFiltro();
+  }
+
+  /** Recalcula los valores distintos de la columna de filtro elegida. */
+  recomputarValoresFiltro(): void {
+    this.filtroValor = '';
+    if (!this.filtroCol) { this.valoresFiltro = []; return; }
+    const set = new Set<string>();
+    for (const row of this.filasBase()) {
+      const v = String(row[this.filtroCol] ?? '').trim();
+      if (v) set.add(v);
+    }
+    this.valoresFiltro = Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+    if (this.valoresFiltro.length) this.filtroValor = this.valoresFiltro[0];
   }
 
   /** Trae la gestión Call Center del rango y arma DNI → (número → último estado). */
@@ -395,7 +438,7 @@ export class LimpiezaBbddComponent {
 
     let data: any[] = [];
     try {
-      data = await lastValueFrom(this.sheets.getSheetData());
+      data = await lastValueFrom(this.sheets.getSheetData()); // Google Form call
     } catch {
       throw new Error('No se pudo cargar la gestión Call Center (revisa la conexión al servidor).');
     }
@@ -508,13 +551,26 @@ export class LimpiezaBbddComponent {
   // ──────────────────────────────────────────────────────────────────────────
   // Descarga
   // ──────────────────────────────────────────────────────────────────────────
-  async descargar(): Promise<void> {
-    if (this.modo === 'call') return this.descargarCall();
-    return this.descargarSedes();
+  /** `soloSeleccion=true` exporta únicamente la sede/zona elegida en el filtro. */
+  async descargar(soloSeleccion = false): Promise<void> {
+    const filtro = soloSeleccion && this.filtroCol && this.filtroValor
+      ? { col: this.filtroCol, val: this.filtroValor }
+      : null;
+    if (this.modo === 'call') return this.descargarCall(filtro);
+    return this.descargarSedes(filtro);
   }
 
-  private async descargarSedes(): Promise<void> {
-    if (!this.filasSalida.length) return;
+  /** Sufijo del archivo: normal (_LIMPIA) o con el valor de la sede/zona filtrada. */
+  private sufijoDescarga(base: string, filtro: { col: string; val: string } | null): string {
+    if (!filtro) return base;
+    const v = filtro.val.toString().trim().replace(/[^\w\-]+/g, '_').toUpperCase().slice(0, 40);
+    return `_${v || 'FILTRO'}`;
+  }
+
+  private async descargarSedes(filtro: { col: string; val: string } | null): Promise<void> {
+    let filas = this.filasSalida;
+    if (filtro) filas = filas.filter((f) => String(f[filtro.col] ?? '').trim() === filtro.val);
+    if (!filas.length) { this.error = 'No hay filas para la selección elegida.'; return; }
 
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Base Limpia');
@@ -522,7 +578,7 @@ export class LimpiezaBbddComponent {
     const headerRow = worksheet.addRow(this.headersSalida);
     this.estilarCabecera(headerRow);
 
-    for (const fila of this.filasSalida) {
+    for (const fila of filas) {
       const valores = this.headersSalida.map((h) => fila[h] ?? '');
       const row = worksheet.addRow(valores);
       row.eachCell((cell) => { cell.alignment = { horizontal: 'left', vertical: 'middle' }; });
@@ -530,7 +586,7 @@ export class LimpiezaBbddComponent {
 
     this.autoAncho(worksheet);
     worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-    await this.guardar(workbook, '_LIMPIA');
+    await this.guardar(workbook, this.sufijoDescarga('_LIMPIA', filtro));
   }
 
   /**
@@ -538,11 +594,13 @@ export class LimpiezaBbddComponent {
    * teléfono originales (los NO CONTACTO se eliminan; los demás se realinean).
    * Los DNIs que quedan sin números van a la hoja SINTELEFONOS.
    */
-  private async descargarCall(): Promise<void> {
-    if (!this.dnisCall.length) return;
+  private async descargarCall(filtro: { col: string; val: string } | null): Promise<void> {
+    let lista = this.dnisCall;
+    if (filtro) lista = lista.filter((d) => String(d.base[filtro.col] ?? '').trim() === filtro.val);
+    if (!lista.length) { this.error = 'No hay DNIs para la selección elegida.'; return; }
 
     // Slots = columnas de teléfono originales (en su sitio) + extra si hiciera falta.
-    const conservadosPorDni = this.dnisCall.map((d) => ({
+    const conservadosPorDni = lista.map((d) => ({
       d, nums: this.numerosConservados(d).map((n) => n),
     }));
     const maxNums = conservadosPorDni.reduce((m, x) => Math.max(m, x.nums.length), 0);
@@ -593,7 +651,7 @@ export class LimpiezaBbddComponent {
     this.autoAncho(wsSin);
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     wsSin.views = [{ state: 'frozen', ySplit: 1 }];
-    await this.guardar(workbook, '_CALL_LIMPIA');
+    await this.guardar(workbook, this.sufijoDescarga('_CALL_LIMPIA', filtro));
   }
 
   private estilarCabecera(headerRow: any): void {

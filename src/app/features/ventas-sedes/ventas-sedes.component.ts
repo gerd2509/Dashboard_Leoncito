@@ -745,7 +745,12 @@ export class VentasSedesComponent implements OnInit {
         return fechaNC >= fechaInicio && fechaNC <= fechaFin;
       })
       .map(nc => {
-        const esRefacturacion = !!nc.DocIdentidad && this.dataVentas.some(v => {
+        // La refacturación SOLO cuenta si la NC es del mes en curso Y su venta
+        // nueva también. Una NC de un mes anterior (arrastrada por AF al mes en
+        // curso) refacturada ahora NO es refacturación → simplemente se resta.
+        const fNC = nc.FECHAVENTA as Date;
+        const ncDelMes = fNC.getFullYear() === anioSeleccionado && fNC.getMonth() + 1 === mesSeleccionado;
+        const esRefacturacion = ncDelMes && !!nc.DocIdentidad && this.dataVentas.some(v => {
           if (v.SedeKey !== nc.SedeKey) return false;
           if (v.DocIdentidad !== nc.DocIdentidad) return false;
           if (v.IDVENTA === nc.IDVENTA) return false;
@@ -910,7 +915,12 @@ export class VentasSedesComponent implements OnInit {
         : (nc.FECHAVENTA as Date);
       const anioBase = baseFecha.getFullYear();
       const mesBase = baseFecha.getMonth();
-      const esRefacturacion = !!nc.DocIdentidad && ventasSede.some(v => {
+      // Solo es refacturación si la NC pertenece de verdad a ese mes por su
+      // propia fecha (no arrastrada por AF desde un mes anterior) Y su venta
+      // nueva cae en ese mismo mes. Si no, la NC se resta.
+      const fNC = nc.FECHAVENTA as Date;
+      const ncDelMesBase = fNC.getFullYear() === anioBase && fNC.getMonth() === mesBase;
+      const esRefacturacion = ncDelMesBase && !!nc.DocIdentidad && ventasSede.some(v => {
         if (v.DocIdentidad !== nc.DocIdentidad) return false;
         if (v.IDVENTA === nc.IDVENTA) return false;
         if (v.FECHAVENTA < nc.FECHAVENTA) return false;

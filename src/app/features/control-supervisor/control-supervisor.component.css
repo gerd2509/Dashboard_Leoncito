@@ -1,0 +1,73 @@
+.cs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 2px 14px;
+}
+
+.cs-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.cs-kpis { display: flex; gap: 10px; flex-wrap: wrap; }
+.kpi {
+  min-width: 92px;
+  border-radius: 12px;
+  padding: 8px 14px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(30, 45, 80, .12);
+}
+.kpi span { display: block; font-size: 22px; font-weight: 800; line-height: 1.1; }
+.kpi small { font-size: 11px; opacity: .95; text-transform: uppercase; letter-spacing: .3px; }
+.kpi-total { background: #293964; }
+.kpi-ok    { background: #2E7D32; }
+.kpi-bad   { background: #c62828; }
+.kpi-none  { background: #607d8b; }
+
+.cs-error {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #b71c1c;
+  font-weight: 600;
+}
+
+.cs-grid-wrap { position: relative; }
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, .6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+/* Tooltip del scheduler */
+.cs-tip { padding: 4px 2px; min-width: 220px; font-size: 13px; color: #33445f; }
+.cs-tip-head {
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  color: #fff;
+  text-align: center;
+  letter-spacing: .3px;
+}
+.cs-tip-head.ok   { background: #2E7D32; }
+.cs-tip-head.bad  { background: #c62828; }
+.cs-tip-head.none { background: #607d8b; }
+.cs-tip-row { margin: 3px 0; }
+.cs-tip-row b { color: #1E3A5F; }
+
+@media (max-width: 720px) {
+  .cs-toolbar { flex-direction: column; align-items: stretch; }
+  .cs-kpis { justify-content: space-between; }
+}

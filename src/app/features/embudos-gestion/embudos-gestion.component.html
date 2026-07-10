@@ -73,6 +73,9 @@
             <span class="emb-mp" *ngIf="emb.kommoLeads && emb.marketPlace !== undefined">
               MARKET PLACE: {{ emb.marketPlace }}
             </span>
+            <button class="emb-expand" *ngIf="emb.detalle?.length" (click)="abrirDetalle(emb)" title="Detalle por asesor">
+              <mat-icon>groups</mat-icon>
+            </button>
             <button class="emb-expand" (click)="abrirEmbudo(emb)" title="Ampliar embudo">
               <mat-icon>open_in_full</mat-icon>
             </button>
@@ -149,6 +152,47 @@
           </div>
         </div>
       </div>
+    </ng-container>
+  </div>
+</dx-popup>
+
+<!-- Popup: detalle por asesor de una cartera -->
+<dx-popup [(visible)]="popupDetalleVisible" [showTitle]="true"
+          [title]="'Detalle por asesor — ' + (embudoDetalle?.titulo || '')"
+          [width]="'86%'" [height]="'86%'" [dragEnabled]="false" [hideOnOutsideClick]="true"
+          [showCloseButton]="true">
+  <div *dxTemplate="let d of 'content'">
+    <ng-container *ngIf="embudoDetalle as emb">
+      <p class="det-nota">
+        <mat-icon>info</mat-icon>
+        <b>FALTA</b> = asignados − gestionados (DNIs de la cartera sin gestión en {{ fecha | date:'MMMM yyyy' }}).
+      </p>
+      <dx-data-grid [dataSource]="emb.detalle || []" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        [hoverStateEnabled]="true" (onCellPrepared)="onCellPreparedDetalle($event)"
+        height="calc(86vh - 150px)">
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar asesor…"></dxo-search-panel>
+        <dxi-column dataField="asesor" caption="ASESOR" alignment="left" [minWidth]="180" [fixed]="true" />
+        <dxi-column dataField="asignados" caption="ASIGNADOS" alignment="center" dataType="number" [width]="110" />
+        <dxi-column dataField="gestionados" caption="GESTIONADOS" alignment="center" dataType="number" [width]="125" />
+        <dxi-column dataField="pendientes" caption="FALTA" alignment="center" dataType="number" [width]="95" [sortOrder]="'desc'" />
+        <dxi-column dataField="pctAvance" caption="% AVANCE" alignment="center" dataType="number" [width]="110" cellTemplate="avanceTpl" />
+        <dxi-column dataField="contactados" caption="CONTACTADOS" alignment="center" dataType="number" [width]="125" />
+        <dxi-column dataField="interesados" caption="INTERESADOS" alignment="center" dataType="number" [width]="125" />
+        <dxi-column dataField="ventas" caption="VENTAS" alignment="center" dataType="number" [width]="90" />
+        <div *dxTemplate="let cell of 'avanceTpl'">{{ cell.data.pctAvance | number:'1.1-1' }}%</div>
+        <dxo-summary>
+          <dxi-total-item column="asesor" displayFormat="TOTAL"></dxi-total-item>
+          <dxi-total-item column="asignados" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+          <dxi-total-item column="gestionados" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+          <dxi-total-item column="pendientes" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+          <dxi-total-item column="contactados" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+          <dxi-total-item column="interesados" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+          <dxi-total-item column="ventas" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        </dxo-summary>
+      </dx-data-grid>
     </ng-container>
   </div>
 </dx-popup>

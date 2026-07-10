@@ -88,7 +88,7 @@ export class AgendamientosKommoComponent {
 
     this.isLoading = true;
     try {
-      this.datosOriginales = await lastValueFrom(this.service.getSheetData());
+      this.datosOriginales = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
 
       const dia = fechaGestion.getDate().toString().padStart(2, '0');
       const mes = (fechaGestion.getMonth() + 1).toString().padStart(2, '0');
