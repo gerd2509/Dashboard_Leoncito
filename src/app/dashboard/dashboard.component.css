@@ -681,3 +681,81 @@
   justify-content: center;
   padding: 10px 0;
 }
+
+/* =====================================================
+   RESPONSIVE / MÓVIL — el sidebar pasa a ser un drawer
+   ===================================================== */
+.hamburger { display: none; }
+.sidebar-backdrop { display: none; }
+
+@media (max-width: 768px) {
+  /* El chevron de escritorio no aplica en móvil */
+  .toggle-panel { display: none !important; }
+
+  /* Botón hamburguesa en la topbar */
+  .hamburger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin-right: 6px;
+    border: none;
+    background: transparent;
+    color: #1A5FAD;
+    border-radius: 9px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .hamburger:active { background: #EEF2F8; }
+  .hamburger mat-icon { font-size: 27px; width: 27px; height: 27px; }
+
+  /* Sidebar → cajón deslizable por encima del contenido */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100%;
+    width: 84%;
+    max-width: 300px;
+    min-width: 0;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    z-index: 1200;
+    box-shadow: 4px 0 26px rgba(15, 25, 50, 0.35);
+  }
+  .dashboard-container:not(.menu-hidden) .sidebar { transform: translateX(0); }
+
+  /* En móvil no existe el modo "colapsado" (64px): siempre ancho completo */
+  .sidebar.collapsed { width: 84%; min-width: 0; }
+  .sidebar.collapsed .sidebar-content { padding: 14px 10px; }
+  .sidebar.collapsed .sidebar-content button span,
+  .sidebar.collapsed .menu-main span,
+  .sidebar.collapsed .menu-group .menu-main span { display: inline; opacity: 1; }
+  .sidebar.collapsed .menu-main,
+  .sidebar.collapsed .menu-group .menu-main { justify-content: flex-start; padding: 12px 14px; }
+  .sidebar.collapsed .menu-group .menu-main .arrow { display: inline; }
+
+  /* Fondo oscuro al abrir el drawer */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 25, 50, 0.45);
+    z-index: 1100;
+  }
+
+  /* Topbar y contenido compactos */
+  .topbar { padding: 0 12px; height: 52px; }
+  .titulo-modulo { font-size: 14px; }
+  .contenido { padding: 12px 12px; }
+  .topbar-user .user-nombre { display: none; }
+  .topbar-user .user-sede { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* Pantallas muy chicas: menú aún más ancho */
+@media (max-width: 420px) {
+  .sidebar, .sidebar.collapsed { width: 88%; }
+  .contenido { padding: 10px 8px; }
+}

@@ -44,6 +44,10 @@ export class ControlSupervisorComponent implements OnInit {
   asesoresDisponibles: string[] = [];
   currentDate = new Date();
 
+  // Vista del calendario controlada por botones propios (Día/Semana/Mes).
+  vistaActual: 'day' | 'week' | 'month' = 'month';
+  setVista(v: 'day' | 'week' | 'month'): void { this.vistaActual = v; }
+
   // KPIs
   kTotal = 0; kCoincide = 0; kDiscrepancia = 0; kSinGestion = 0;
 
@@ -180,5 +184,63 @@ export class ControlSupervisorComponent implements OnInit {
     this.kCoincide = this.citasFiltradas.filter(c => c.resultado === 'COINCIDE').length;
     this.kDiscrepancia = this.citasFiltradas.filter(c => c.resultado === 'DISCREPANCIA').length;
     this.kSinGestion = this.citasFiltradas.filter(c => c.resultado === 'SIN GESTIÓN').length;
+  }
+
+  // ── Popups de detalle (reemplazan el formulario feo por defecto) ─────────────
+  detalleVisible = false;
+  detalle: CitaControl | null = null;
+
+  diaVisible = false;
+  diaTitulo = '';
+  diaCitas: CitaControl[] = [];
+
+  // Anula el formulario de edición nativo de DevExtreme.
+  onFormOpening(e: any): void { e.cancel = true; }
+
+  // Click en una cita → abre el detalle propio (no el tooltip nativo).
+  onCitaClick(e: any): void {
+    e.cancel = true;
+    this.abrirDetalle(e.appointmentData);
+  }
+  onCitaDblClick(e: any): void {
+    e.cancel = true;
+    this.abrirDetalle(e.appointmentData);
+  }
+
+  abrirDetalle(c: CitaControl): void {
+    this.detalle = c;
+    this.detalleVisible = true;
+  }
+
+  // Click en un día → lista todos los controles de ese día.
+  onCeldaClick(e: any): void {
+    const fecha: Date = e?.cellData?.startDate;
+    if (!fecha) return;
+    const delDia = this.citasFiltradas.filter(c => this.mismaFecha(c.startDate, fecha));
+    if (!delDia.length) return;
+    this.diaCitas = [...delDia].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    this.diaTitulo = this.fechaLarga(fecha);
+    this.diaVisible = true;
+  }
+
+  // Desde el popup del día, abrir el detalle de una cita.
+  verDesdeDia(c: CitaControl): void {
+    this.diaVisible = false;
+    setTimeout(() => this.abrirDetalle(c), 120);
+  }
+
+  private mismaFecha(a: Date, b: Date): boolean {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+  private fechaLarga(d: Date): string {
+    const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  }
+  resultadoClase(r: string): string {
+    return r === 'COINCIDE' ? 'ok' : r === 'DISCREPANCIA' ? 'bad' : 'none';
+  }
+  horaDe(d: Date): string {
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 }

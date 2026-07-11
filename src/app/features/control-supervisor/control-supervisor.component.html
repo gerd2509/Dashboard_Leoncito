@@ -25,19 +25,39 @@
 <div class="cs-grid-wrap">
   <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
 
-  <dx-scheduler
+  <!-- Botones de vista propios (control total del diseño) -->
+  <div class="cs-cal-bar">
+    <span class="cs-cal-leyenda">
+      <i class="dot ok"></i> Coincide
+      <i class="dot bad"></i> Discrepancia
+      <i class="dot none"></i> Sin gestión
+    </span>
+    <div class="cs-views">
+      <button [class.active]="vistaActual === 'day'"   (click)="setVista('day')">Día</button>
+      <button [class.active]="vistaActual === 'week'"  (click)="setVista('week')">Semana</button>
+      <button [class.active]="vistaActual === 'month'" (click)="setVista('month')">Mes</button>
+    </div>
+  </div>
+
+  <dx-scheduler class="cs-scheduler"
     [dataSource]="citasFiltradas"
     [currentDate]="currentDate"
-    [views]="['month', 'week', 'agenda']"
-    currentView="month"
+    [views]="['month', 'week', 'day']"
+    [currentView]="vistaActual"
     [firstDayOfWeek]="1"
-    [height]="640"
+    [height]="780"
+    [useDropDownViewSwitcher]="false"
+    [maxAppointmentsPerCell]="3"
     [editing]="{ allowAdding: false, allowUpdating: false, allowDeleting: false, allowResizing: false, allowDragging: false }"
     [showCurrentTimeIndicator]="false"
     textExpr="text"
     startDateExpr="startDate"
     endDateExpr="endDate"
-    appointmentTooltipTemplate="tooltip">
+    appointmentTemplate="appt"
+    (onAppointmentClick)="onCitaClick($event)"
+    (onAppointmentDblClick)="onCitaDblClick($event)"
+    (onAppointmentFormOpening)="onFormOpening($event)"
+    (onCellClick)="onCeldaClick($event)">
 
     <dxi-resource
       [dataSource]="recursosResultado"
@@ -46,26 +66,62 @@
       [useColorAsDefault]="true">
     </dxi-resource>
 
-    <!-- Tooltip con el detalle del cruce -->
-    <div *dxTemplate="let model of 'tooltip'">
-      <div class="cs-tip">
-        <div class="cs-tip-head" [class.ok]="model.appointmentData.resultado === 'COINCIDE'"
-             [class.bad]="model.appointmentData.resultado === 'DISCREPANCIA'"
-             [class.none]="model.appointmentData.resultado === 'SIN GESTIÓN'">
-          {{ model.appointmentData.resultado }}
-        </div>
-        <div class="cs-tip-row"><b>Asesor:</b> {{ model.appointmentData.asesor || '—' }}</div>
-        <div class="cs-tip-row"><b>Tipo base:</b> {{ model.appointmentData.tipoBase || '—' }}</div>
-        <div class="cs-tip-row"><b>DNI:</b> {{ model.appointmentData.dni }} &nbsp; <b>Cel:</b> {{ model.appointmentData.celular || '—' }}</div>
-        <div class="cs-tip-row"><b>Estado supervisor:</b> {{ model.appointmentData.estadoSup }}</div>
-        <div class="cs-tip-row"><b>Estado asesor:</b> {{ model.appointmentData.estadoAsesor }}</div>
-        <div class="cs-tip-row" *ngIf="model.appointmentData.asesorGestion">
-          <b>Gestión hallada de:</b> {{ model.appointmentData.asesorGestion }}
-        </div>
-        <div class="cs-tip-row" *ngIf="model.appointmentData.comentario">
-          <b>Comentario:</b> {{ model.appointmentData.comentario }}
-        </div>
+    <!-- Cita compacta: DNI + estado, recortada para no desbordar la celda -->
+    <div *dxTemplate="let model of 'appt'">
+      <div class="cs-appt">
+        <span class="cs-appt-dni">{{ model.appointmentData.dni }}</span>
+        <span class="cs-appt-est">{{ model.appointmentData.estadoSup === 'NO CONTACTO' ? 'NC' : 'C' }}</span>
       </div>
     </div>
   </dx-scheduler>
 </div>
+
+<!-- ══ Popup: detalle de un control ══ -->
+<dx-popup [(visible)]="detalleVisible" [width]="420" [height]="'auto'" [showTitle]="false"
+  [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-detalle-popup" [maxWidth]="'94vw'">
+  <div *dxTemplate="let d of 'content'">
+    <div class="cs-det" *ngIf="detalle">
+      <div class="cs-det-head" [ngClass]="resultadoClase(detalle.resultado)">
+        <span class="cs-det-badge">{{ detalle.resultado }}</span>
+        <button class="cs-x" (click)="detalleVisible = false"><mat-icon>close</mat-icon></button>
+      </div>
+      <div class="cs-det-body">
+        <div class="cs-det-asesor"><mat-icon>badge</mat-icon>{{ detalle.asesor || '—' }}</div>
+        <div class="cs-det-grid">
+          <div><small>Tipo de base</small><b>{{ detalle.tipoBase || '—' }}</b></div>
+          <div><small>Fecha</small><b>{{ detalle.startDate | date:'dd/MM/yyyy HH:mm' }}</b></div>
+          <div><small>DNI</small><b>{{ detalle.dni }}</b></div>
+          <div><small>Celular</small><b>{{ detalle.celular || '—' }}</b></div>
+          <div><small>Estado supervisor</small><b>{{ detalle.estadoSup }}</b></div>
+          <div><small>Estado asesor</small><b>{{ detalle.estadoAsesor }}</b></div>
+        </div>
+        <div class="cs-det-line" *ngIf="detalle.asesorGestion">
+          <small>Gestión hallada de</small><b>{{ detalle.asesorGestion }}</b>
+        </div>
+        <div class="cs-det-coment" *ngIf="detalle.comentario">
+          <small>Comentario</small><p>{{ detalle.comentario }}</p>
+        </div>
+      </div>
+      <div class="cs-det-foot">
+        <button class="cs-btn-cerrar" (click)="detalleVisible = false">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</dx-popup>
+
+<!-- ══ Popup: todos los controles de un día ══ -->
+<dx-popup [(visible)]="diaVisible" [width]="460" [height]="'auto'" [maxHeight]="'82vh'" [maxWidth]="'94vw'"
+  [showTitle]="true" [title]="diaTitulo" [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-dia-popup">
+  <div *dxTemplate="let d of 'content'">
+    <div class="cs-dia-list">
+      <div class="cs-dia-item" *ngFor="let c of diaCitas" [ngClass]="resultadoClase(c.resultado)" (click)="verDesdeDia(c)">
+        <div class="cs-dia-dot"></div>
+        <div class="cs-dia-info">
+          <div class="cs-dia-top"><b>{{ c.asesor || '—' }}</b><span>{{ horaDe(c.startDate) }}</span></div>
+          <div class="cs-dia-sub">DNI {{ c.dni }} · {{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
+        </div>
+        <span class="cs-dia-res">{{ c.resultado }}</span>
+      </div>
+    </div>
+  </div>
+</dx-popup>

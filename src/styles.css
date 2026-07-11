@@ -273,3 +273,99 @@ body {
 .dx-datagrid-edit-popup .dx-popup-bottom .dx-button .dx-button-text {
   color: #fff !important; font-weight: 700; text-transform: none;
 }
+
+/* ============================================================
+   CONTROL SUPERVISOR — barra del calendario (dx-scheduler)
+   DevExtreme renderiza fuera del scope del componente → global.
+   ============================================================ */
+.cs-scheduler .dx-scheduler-header {
+  background: #eef3fb;
+  border: none;
+  border-bottom: 1px solid #d7deec;
+  padding: 8px 10px;
+  border-radius: 12px 12px 0 0;
+}
+.cs-scheduler .dx-scheduler-header .dx-toolbar { background: transparent; }
+
+/* Navegador ‹ Julio de 2026 › — SOLO las flechas van en azul; el mes va con
+   fondo transparente y texto oscuro (antes quedaba azul sobre azul = invisible). */
+.cs-scheduler .dx-scheduler-navigator-previous,
+.cs-scheduler .dx-scheduler-navigator-next {
+  background: #293964 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+.cs-scheduler .dx-scheduler-navigator-previous .dx-icon,
+.cs-scheduler .dx-scheduler-navigator-next .dx-icon { color: #fff !important; }
+.cs-scheduler .dx-scheduler-navigator-previous.dx-state-hover,
+.cs-scheduler .dx-scheduler-navigator-next.dx-state-hover { background: #1e2c52 !important; }
+
+.cs-scheduler .dx-scheduler-navigator .dx-button.dx-scheduler-navigator-caption {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.cs-scheduler .dx-scheduler-navigator-caption .dx-button-text,
+.cs-scheduler .dx-scheduler-navigator-caption .dx-button-content {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #1E3A5F !important;
+  text-transform: capitalize !important;
+}
+.cs-scheduler .dx-scheduler-navigator-caption.dx-state-hover { background: rgba(41,57,100,.08) !important; }
+
+/* El conmutador nativo de vistas se oculta: usamos botones propios (Día/Semana/Mes). */
+.cs-scheduler .dx-scheduler-view-switcher { display: none !important; }
+
+/* Botón "N más" (colector) bien visible */
+.cs-scheduler .dx-scheduler-appointment-collector {
+  background: #5b6b86 !important;
+  border-radius: 6px !important;
+  height: 20px !important;
+  margin: 1px 4px !important;
+}
+.cs-scheduler .dx-scheduler-appointment-collector .dx-button-text { color: #fff !important; font-weight: 700; font-size: 11px; }
+
+/* Citas del mes: que NO desborden la celda (DevExtreme les mete min-width) */
+.cs-scheduler .dx-scheduler-work-space-month .dx-scheduler-appointment,
+.cs-scheduler .dx-scheduler-appointment {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+  box-sizing: border-box;
+}
+.cs-scheduler .dx-scheduler-work-space-month .dx-scheduler-appointment {
+  height: 21px !important;
+  margin: 1px 4px !important;
+}
+.cs-scheduler .dx-scheduler-appointment .dx-scheduler-appointment-content { padding: 0 !important; }
+/* Las celdas del mes recortan lo que sobre */
+.cs-scheduler .dx-scheduler-work-space-month .dx-scheduler-date-table-cell { overflow: hidden; }
+
+/* Día de hoy resaltado */
+.cs-scheduler .dx-scheduler-date-table-current-date { background: rgba(41,57,100,.06); }
+
+/* ============================================================
+   AJUSTES GLOBALES PARA MÓVIL (≤768px)
+   Los grids/scheduler/pivot ya scrollean internamente; aquí solo
+   evitamos que popups y diálogos se salgan de la pantalla y
+   compactamos un poco la densidad.
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Popups y diálogos DevExtreme caben en la pantalla */
+  .dx-overlay-content.dx-popup-normal,
+  .dx-overlay-content.dx-resizable {
+    max-width: 96vw !important;
+    max-height: 92vh !important;
+  }
+  .dx-popup-content { padding: 12px !important; }
+
+  /* Grids un poco más compactos en celular */
+  .dx-datagrid { font-size: 12px !important; }
+  .dx-datagrid td, .dx-datagrid th { padding: 7px 8px !important; }
+
+  /* Toasts (MatSnackBar) sin pegarse a los bordes */
+  .mat-mdc-snack-bar-container { margin: 10px !important; }
+}

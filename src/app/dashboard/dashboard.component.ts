@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { AgendamientosComponent } from "../features/agendamientos/agendamientos.component";
@@ -92,6 +92,7 @@ interface MenuItem {
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   sidebarVisible = true;
+  isMobile = false;
   moduloSeleccionado = '';
   submenuAbierto: string | null = null;
   menuItemsVisibles: MenuItem[] = [];
@@ -167,6 +168,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit(): Promise<void> {
+    this.aplicarViewport();   // en celular el menú arranca cerrado (drawer)
+
     // Trae la matriz de permisos desde la BD (Neon) antes de armar el menú.
     await this.permissions.cargarDesdeBackend();
     this.menuItemsVisibles = this.calcularMenuVisible();
@@ -272,6 +275,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get usuario() { return this.auth.getUsuario(); }
 
+  // Ajusta el layout a móvil (≤768px): el sidebar pasa a ser un cajón (drawer)
+  // que arranca cerrado; en escritorio queda visible.
+  @HostListener('window:resize')
+  onResize(): void { this.aplicarViewport(); }
+
+  private aplicarViewport(): void {
+    const mobile = window.innerWidth <= 768;
+    if (mobile !== this.isMobile) {
+      this.isMobile = mobile;
+      this.sidebarVisible = !mobile;
+    }
+  }
+
   toggleSidebar() { this.sidebarVisible = !this.sidebarVisible; }
 
   toggleSubmenu(label: string): void {
@@ -292,6 +308,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectModule(modulo?: string) {
     this.moduloSeleccionado = modulo ?? '';
     this.celebrar();
+    if (this.isMobile) this.sidebarVisible = false;   // cierra el drawer al elegir
   }
 
   // Para ítems de nivel superior SIN submenú: además de seleccionar,

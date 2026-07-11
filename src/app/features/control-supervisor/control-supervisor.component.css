@@ -71,3 +71,143 @@
   .cs-toolbar { flex-direction: column; align-items: stretch; }
   .cs-kpis { justify-content: space-between; }
 }
+
+/* ── Cita compacta dentro del calendario ── */
+.cs-appt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 100%;
+  padding: 0 7px;
+  color: #fff;
+  overflow: hidden;
+}
+.cs-appt-dni {
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-appt-est {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, .25);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ── Barra propia sobre el calendario (leyenda + vistas) ── */
+.cs-cal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px 12px;
+  flex-wrap: wrap;
+}
+.cs-cal-leyenda {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #5b6b86;
+  font-weight: 600;
+}
+.cs-cal-leyenda .dot {
+  width: 11px; height: 11px; border-radius: 50%; display: inline-block; margin-left: 8px;
+}
+.cs-cal-leyenda .dot.ok   { background: #2E7D32; }
+.cs-cal-leyenda .dot.bad  { background: #c62828; }
+.cs-cal-leyenda .dot.none { background: #607d8b; }
+
+.cs-views {
+  display: inline-flex;
+  background: #e4ebf6;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.cs-views button {
+  border: none;
+  background: transparent;
+  color: #33445f;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 8px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cs-views button:hover { background: #d5deef; }
+.cs-views button.active {
+  background: #293964;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(41,57,100,.28);
+}
+
+/* ── Popup: detalle de un control ── */
+.cs-det { display: flex; flex-direction: column; }
+.cs-det-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px; color: #fff;
+}
+.cs-det-head.ok   { background: #2E7D32; }
+.cs-det-head.bad  { background: #c62828; }
+.cs-det-head.none { background: #607d8b; }
+.cs-det-badge { font-weight: 800; letter-spacing: .4px; font-size: 15px; }
+.cs-x {
+  background: rgba(255,255,255,.2); border: none; color: #fff;
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cs-x:hover { background: rgba(255,255,255,.34); }
+.cs-x mat-icon { font-size: 20px; height: 20px; width: 20px; }
+
+.cs-det-body { padding: 16px; }
+.cs-det-asesor {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; font-weight: 800; color: #1E3A5F; margin-bottom: 14px;
+}
+.cs-det-asesor mat-icon { color: #5b6b86; font-size: 22px; height: 22px; width: 22px; }
+.cs-det-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.cs-det-grid > div, .cs-det-line { display: flex; flex-direction: column; }
+.cs-det-grid small, .cs-det-line small, .cs-det-coment small {
+  font-size: 11px; color: #8a97ab; text-transform: uppercase; letter-spacing: .3px;
+}
+.cs-det-grid b, .cs-det-line b { font-size: 14px; color: #33445f; }
+.cs-det-line { margin-top: 12px; }
+.cs-det-coment { margin-top: 12px; }
+.cs-det-coment p {
+  margin: 3px 0 0; font-size: 14px; color: #33445f;
+  background: #f4f7fc; padding: 8px 10px; border-radius: 8px;
+}
+.cs-det-foot { padding: 4px 16px 16px; display: flex; justify-content: flex-end; }
+.cs-btn-cerrar {
+  background: #c62828; color: #fff; border: none; border-radius: 9px;
+  padding: 10px 28px; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.cs-btn-cerrar:hover { background: #a91f1f; }
+
+/* ── Popup: día completo ── */
+.cs-dia-list { display: flex; flex-direction: column; gap: 8px; padding: 2px; }
+.cs-dia-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 10px; background: #f6f8fc;
+  cursor: pointer; border-left: 4px solid #ccc; transition: background .12s;
+}
+.cs-dia-item:hover { background: #eaf2ff; }
+.cs-dia-item.ok   { border-left-color: #2E7D32; }
+.cs-dia-item.bad  { border-left-color: #c62828; }
+.cs-dia-item.none { border-left-color: #607d8b; }
+.cs-dia-info { flex: 1; min-width: 0; }
+.cs-dia-top { display: flex; justify-content: space-between; gap: 8px; }
+.cs-dia-top b { color: #1E3A5F; font-size: 14px; }
+.cs-dia-top span { color: #7a879c; font-size: 12px; }
+.cs-dia-sub { font-size: 12px; color: #6b7a90; margin-top: 2px; }
+.cs-dia-res { font-size: 11px; font-weight: 800; white-space: nowrap; }
+.cs-dia-item.ok .cs-dia-res   { color: #2E7D32; }
+.cs-dia-item.bad .cs-dia-res  { color: #c62828; }
+.cs-dia-item.none .cs-dia-res { color: #607d8b; }

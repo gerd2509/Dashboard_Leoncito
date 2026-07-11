@@ -1,4 +1,7 @@
-<div class="dashboard-container" [class.menu-hidden]="!sidebarVisible">
+<div class="dashboard-container" [class.menu-hidden]="!sidebarVisible" [class.is-mobile]="isMobile">
+
+  <!-- Fondo oscuro del drawer (solo móvil, al abrir el menú) -->
+  <div class="sidebar-backdrop" *ngIf="isMobile && sidebarVisible" (click)="toggleSidebar()"></div>
 
   <!-- Sidebar -->
   <aside class="sidebar" [class.collapsed]="!sidebarVisible">
@@ -88,6 +91,9 @@
   <!-- Contenido principal -->
   <div class="main-content">
     <header class="topbar">
+      <button class="hamburger" (click)="toggleSidebar()" aria-label="Menú">
+        <mat-icon>menu</mat-icon>
+      </button>
       <div class="titulo-modulo">{{ getTituloModulo() }}</div>
       <div class="topbar-user">
         <mat-icon>account_circle</mat-icon>
