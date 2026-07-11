@@ -93,10 +93,11 @@
           <div><small>DNI</small><b>{{ detalle.dni }}</b></div>
           <div><small>Celular</small><b>{{ detalle.celular || '—' }}</b></div>
           <div><small>Estado supervisor</small><b>{{ detalle.estadoSup }}</b></div>
-          <div><small>Estado asesor</small><b>{{ detalle.estadoAsesor }}</b></div>
+          <div><small>Estado asesor (última gestión)</small><b>{{ detalle.estadoAsesor }}</b></div>
         </div>
         <div class="cs-det-line" *ngIf="detalle.asesorGestion">
-          <small>Gestión hallada de</small><b>{{ detalle.asesorGestion }}</b>
+          <small>Última gestión Realzza de</small>
+          <b>{{ detalle.asesorGestion }}<span *ngIf="detalle.fechaGestion"> · {{ detalle.fechaGestion }}</span></b>
         </div>
         <div class="cs-det-coment" *ngIf="detalle.comentario">
           <small>Comentario</small><p>{{ detalle.comentario }}</p>

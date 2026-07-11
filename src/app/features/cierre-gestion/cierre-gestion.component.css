@@ -375,10 +375,20 @@
   font-weight: 600; letter-spacing: .02em; color: #1E3A5F;
 }
 /* Anchos fijos: el resultado ya no estira la tabla */
-.mon-detalle .c-dni  { width: 140px; }
-.mon-detalle .c-cel  { width: 150px; }
+.mon-detalle .c-dni  { width: 120px; }
+.mon-detalle .c-cel  { width: 130px; }
+.mon-detalle .c-base { width: 150px; color: #33445f; font-weight: 600; }
+.mon-detalle .c-est  { width: 130px; }
 .mon-detalle .c-res  { width: auto; }
-.mon-detalle .c-hora { width: 110px; text-align: right; color: #6b8299; }
+.mon-detalle .c-hora { width: 90px; text-align: right; color: #6b8299; }
+
+.est-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; letter-spacing: .02em;
+  background: #eef2f8; color: #5b6b86;
+}
+.est-badge.est-c  { background: #eafaf0; color: #2E7D32; }
+.est-badge.est-nc { background: #fdecec; color: #c0392b; }
 
 .res-badge {
   display: inline-flex; align-items: center; gap: 6px;

@@ -20,8 +20,9 @@ interface CitaControl {
   dni: string;
   celular: string;
   estadoSup: string;      // estado que puso el supervisor
-  estadoAsesor: string;   // estado en la gestión del asesor (o '—')
+  estadoAsesor: string;   // estado en la ÚLTIMA gestión del asesor (o '—')
   asesorGestion: string;  // asesor que figura en la gestión encontrada
+  fechaGestion: string;   // fecha de la última gestión hallada (o '')
   comentario: string;
 }
 
@@ -137,22 +138,34 @@ export class ControlSupervisorComponent implements OnInit {
     const cel = this.soloDigitos(c.celular);
     const estadoSup = (c.estado_gestion || '').toString().trim().toUpperCase();
 
+    // Cruce con gestión Realzza → ÚLTIMA gestión del cliente:
+    //  1) si hay celular, priorizamos las gestiones con ese mismo celular;
+    //  2) tomamos la más reciente por fecha (última gestión);
+    //  3) preferimos la última que ocurrió EN o ANTES del control del supervisor
+    //     (es la gestión que el supervisor estaba verificando); si no hay
+    //     ninguna anterior, usamos la más reciente disponible.
     const candidatos = idxDni.get(dni) || [];
     let hit: any = null;
     if (candidatos.length) {
-      // Preferir el que coincide en celular; si no, el más reciente.
-      hit = (cel && candidatos.find(x => x.celular && x.celular === cel))
-        || [...candidatos].sort((a, b) => (b.fecha?.getTime() || 0) - (a.fecha?.getTime() || 0))[0];
+      let pool = candidatos;
+      if (cel) {
+        const conCel = candidatos.filter(x => x.celular && x.celular === cel);
+        if (conCel.length) pool = conCel;
+      }
+      const ordenado = [...pool].sort((a, b) => (b.fecha?.getTime() || 0) - (a.fecha?.getTime() || 0));
+      hit = (start ? ordenado.find(x => x.fecha && x.fecha.getTime() <= start.getTime()) : null) || ordenado[0];
     }
 
     let resultado: Resultado;
     let estadoAsesor = '—';
     let asesorGestion = '';
+    let fechaGestion = '';
     if (!hit) {
       resultado = 'SIN GESTIÓN';
     } else {
       estadoAsesor = hit.estado || '—';
       asesorGestion = hit.asesor || '';
+      fechaGestion = hit.fecha ? `${String(hit.fecha.getDate()).padStart(2, '0')}/${String(hit.fecha.getMonth() + 1).padStart(2, '0')}/${hit.fecha.getFullYear()} ${this.horaDe(hit.fecha)}` : '';
       resultado = estadoAsesor === estadoSup ? 'COINCIDE' : 'DISCREPANCIA';
     }
 
@@ -169,6 +182,7 @@ export class ControlSupervisorComponent implements OnInit {
       estadoSup,
       estadoAsesor,
       asesorGestion,
+      fechaGestion,
       comentario: c.comentario || '',
     };
   }

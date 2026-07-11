@@ -8,16 +8,17 @@ import { AuthService } from '../../services/auth.service';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
 
-// Monitoreo del supervisor: por asesor, cuántos "no contacto" fueron re-verificados.
+// Monitoreo del supervisor: por asesor, cuántas gestiones (contacto y no contacto)
+// fueron re-verificadas por el supervisor y si coinciden o no.
 interface MonitoreoAsesor {
   asesorId: string;
   asesor: string;
-  noContacto: number;
-  supervisados: number;
-  siContacto: number;    // el asesor dijo "no contacto" pero el supervisor SÍ ubicó (discrepancia)
-  confirmados: number;   // el supervisor también no ubicó
-  pendientes: number;    // el supervisor aún no lo llama
-  detalle: { dni: string; celular: string; resultado: string; hora: string }[];
+  total: number;         // registros del asesor considerados (contacto + no contacto)
+  supervisados: number;  // confirmados + discrepancias
+  discrepancias: number; // el supervisor encontró un estado distinto al del asesor
+  confirmados: number;   // el supervisor verificó el MISMO estado
+  pendientes: number;    // el supervisor aún no lo revisa
+  detalle: { dni: string; celular: string; tipoBase: string; estadoAsesor: string; resultado: string; hora: string }[];
 }
 
 @Component({
@@ -614,44 +615,50 @@ export class CierreGestionComponent implements OnInit {
 
     const resultado: MonitoreoAsesor[] = [];
     this.asesoresRealzza.forEach(asesor => {
-      const noContactoRecs = delDia.filter(item =>
-        (item['ASESOR REALZZA'] || '').toString().toUpperCase().trim() === asesor.viewValue.toUpperCase().trim() &&
-        (item['ESTADO DE GESTIÓN'] || '').toString().toUpperCase().trim() === 'NO CONTACTO');
+      // Ahora se consideran TANTO contacto como no contacto del asesor.
+      const recs = delDia.filter(item => {
+        const est = (item['ESTADO DE GESTIÓN'] || '').toString().toUpperCase().trim();
+        return (item['ASESOR REALZZA'] || '').toString().toUpperCase().trim() === asesor.viewValue.toUpperCase().trim()
+          && (est === 'NO CONTACTO' || est === 'CONTACTO');
+      });
 
       const vistos = new Set<string>();
       const detalle: MonitoreoAsesor['detalle'] = [];
-      let siContacto = 0, confirmados = 0, pendientes = 0;
+      let discrepancias = 0, confirmados = 0, pendientes = 0;
 
-      noContactoRecs.forEach(item => {
+      recs.forEach(item => {
         const dni = this.soloDigitos(item['DNI CLIENTE']);
         const cel = this.soloDigitos(item['CELULAR GESTIONADO']);
         const claveCliente = dni || cel;
         if (!claveCliente || vistos.has(claveCliente)) return;   // un cliente por asesor
         vistos.add(claveCliente);
 
+        const estadoAsesor = (item['ESTADO DE GESTIÓN'] || '').toString().toUpperCase().trim();
+        const tipoBase = (item['TIPO DE BASE'] || '').toString().trim();
+
         const hit = (dni && supPorDni.get(dni)) || (cel && supPorCel.get(cel)) || null;
         let resultadoTxt: string;
         if (!hit) { resultadoTxt = 'PENDIENTE'; pendientes++; }
-        else if (hit.estado === 'NO CONTACTO') { resultadoTxt = 'CONFIRMADO NO CONTACTO'; confirmados++; }
-        else { resultadoTxt = 'SÍ CONTACTÓ'; siContacto++; }
+        else if (hit.estado === estadoAsesor) { resultadoTxt = 'CONFIRMADO'; confirmados++; }
+        else { resultadoTxt = 'DISCREPANCIA'; discrepancias++; }
 
-        detalle.push({ dni, celular: cel, resultado: resultadoTxt, hora: hit ? hit.hora : '' });
+        detalle.push({ dni, celular: cel, tipoBase, estadoAsesor, resultado: resultadoTxt, hora: hit ? hit.hora : '' });
       });
 
       resultado.push({
         asesorId: asesor.value,
         asesor: this.nombreCorto(asesor),
-        noContacto: detalle.length,
-        supervisados: siContacto + confirmados,
-        siContacto, confirmados, pendientes,
+        total: detalle.length,
+        supervisados: discrepancias + confirmados,
+        discrepancias, confirmados, pendientes,
         detalle,
       });
     });
 
-    // Solo asesores con "no contacto"; primero los que tienen más discrepancias.
+    // Solo asesores con registros; primero los que tienen más discrepancias.
     this.monitoreoSupervisor = resultado
-      .filter(r => r.noContacto > 0)
-      .sort((a, b) => b.siContacto - a.siContacto || b.noContacto - a.noContacto);
+      .filter(r => r.total > 0)
+      .sort((a, b) => b.discrepancias - a.discrepancias || b.total - a.total);
   }
 
   toggleMonitoreo(asesorId: string): void {
@@ -659,10 +666,10 @@ export class CierreGestionComponent implements OnInit {
   }
 
   claseResultado(r: string): string {
-    return r === 'SÍ CONTACTÓ' ? 'res-si' : r === 'CONFIRMADO NO CONTACTO' ? 'res-no' : 'res-pend';
+    return r === 'DISCREPANCIA' ? 'res-si' : r === 'CONFIRMADO' ? 'res-no' : 'res-pend';
   }
   iconoResultado(r: string): string {
-    return r === 'SÍ CONTACTÓ' ? 'phone_in_talk' : r === 'CONFIRMADO NO CONTACTO' ? 'check_circle' : 'schedule';
+    return r === 'DISCREPANCIA' ? 'priority_high' : r === 'CONFIRMADO' ? 'check_circle' : 'schedule';
   }
 
   private soloDigitos(v: any): string {
@@ -676,9 +683,9 @@ export class CierreGestionComponent implements OnInit {
   }
 
   // Totales para la cabecera del panel de monitoreo.
-  get totalMonNoContacto(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.noContacto, 0); }
+  get totalMonRegistros(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.total, 0); }
   get totalMonSupervisados(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.supervisados, 0); }
-  get totalMonSiContacto(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.siContacto, 0); }
+  get totalMonDiscrepancias(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.discrepancias, 0); }
   get totalMonPendientes(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.pendientes, 0); }
 
   // TIMERS

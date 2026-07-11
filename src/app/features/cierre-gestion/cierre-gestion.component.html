@@ -329,9 +329,9 @@
             <p class="mon-sub">Re-verificación de los clientes marcados como <b>NO CONTACTO</b> por los asesores en la fecha seleccionada.</p>
 
             <div class="mon-kpis">
-                <div class="mon-kpi"><span class="mk-num">{{ totalMonNoContacto }}</span><span class="mk-lbl">No contacto</span></div>
+                <div class="mon-kpi"><span class="mk-num">{{ totalMonRegistros }}</span><span class="mk-lbl">Registros</span></div>
                 <div class="mon-kpi"><span class="mk-num">{{ totalMonSupervisados }}</span><span class="mk-lbl">Supervisados</span></div>
-                <div class="mon-kpi warn"><span class="mk-num">{{ totalMonSiContacto }}</span><span class="mk-lbl">Sí contactó ⚠️</span></div>
+                <div class="mon-kpi warn"><span class="mk-num">{{ totalMonDiscrepancias }}</span><span class="mk-lbl">Discrepancias ⚠️</span></div>
                 <div class="mon-kpi pend"><span class="mk-num">{{ totalMonPendientes }}</span><span class="mk-lbl">Pendientes</span></div>
             </div>
 
@@ -339,8 +339,8 @@
                 <table class="mon-table">
                     <thead>
                         <tr>
-                            <th style="width:36px;"></th><th>ASESOR</th><th>NO CONTACTO</th><th>SUPERVISADOS</th>
-                            <th>SÍ CONTACTÓ</th><th>CONFIRMADOS</th><th>PENDIENTES</th>
+                            <th style="width:36px;"></th><th>ASESOR</th><th>REGISTROS</th><th>SUPERVISADOS</th>
+                            <th>DISCREPANCIAS</th><th>CONFIRMADOS</th><th>PENDIENTES</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -348,9 +348,9 @@
                             <tr class="mon-row" (click)="toggleMonitoreo(r.asesorId)">
                                 <td class="mon-exp"><mat-icon>{{ asesorMonitoreoExpandido === r.asesorId ? 'expand_less' : 'expand_more' }}</mat-icon></td>
                                 <td class="mon-asesor">{{ r.asesor }}</td>
-                                <td>{{ r.noContacto }}</td>
+                                <td>{{ r.total }}</td>
                                 <td>{{ r.supervisados }}</td>
-                                <td><span class="mon-badge si" [class.zero]="r.siContacto === 0">{{ r.siContacto }}</span></td>
+                                <td><span class="mon-badge si" [class.zero]="r.discrepancias === 0">{{ r.discrepancias }}</span></td>
                                 <td>{{ r.confirmados }}</td>
                                 <td><span class="mon-badge pend" [class.zero]="r.pendientes === 0">{{ r.pendientes }}</span></td>
                             </tr>
@@ -361,7 +361,7 @@
                                             <span class="mdh-title"><mat-icon>fact_check</mat-icon> Detalle de {{ r.asesor }}</span>
                                             <span class="mdh-chips">
                                                 <span class="mchip total">{{ r.detalle.length }} clientes</span>
-                                                <span class="mchip si" *ngIf="r.siContacto > 0">{{ r.siContacto }} sí contactó</span>
+                                                <span class="mchip si" *ngIf="r.discrepancias > 0">{{ r.discrepancias }} discrepancias</span>
                                                 <span class="mchip ok" *ngIf="r.confirmados > 0">{{ r.confirmados }} confirmados</span>
                                                 <span class="mchip pend" *ngIf="r.pendientes > 0">{{ r.pendientes }} pendientes</span>
                                             </span>
@@ -372,6 +372,8 @@
                                                     <tr>
                                                         <th class="c-dni">DNI</th>
                                                         <th class="c-cel">Celular</th>
+                                                        <th class="c-base">Tipo de base</th>
+                                                        <th class="c-est">Estado asesor</th>
                                                         <th class="c-res">Resultado del supervisor</th>
                                                         <th class="c-hora">Hora</th>
                                                     </tr>
@@ -380,6 +382,12 @@
                                                     <tr *ngFor="let d of r.detalle">
                                                         <td class="c-dni mono">{{ d.dni || '—' }}</td>
                                                         <td class="c-cel mono">{{ d.celular || '—' }}</td>
+                                                        <td class="c-base">{{ d.tipoBase || '—' }}</td>
+                                                        <td class="c-est">
+                                                            <span class="est-badge" [class.est-c]="d.estadoAsesor === 'CONTACTO'" [class.est-nc]="d.estadoAsesor === 'NO CONTACTO'">
+                                                                {{ d.estadoAsesor }}
+                                                            </span>
+                                                        </td>
                                                         <td class="c-res">
                                                             <span class="res-badge" [ngClass]="claseResultado(d.resultado)">
                                                                 <mat-icon>{{ iconoResultado(d.resultado) }}</mat-icon>{{ d.resultado }}
