@@ -3,6 +3,7 @@ import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
 import { DX_COMMON_MODULES } from '../../dx_common_modules';
 import { SheetsService } from '../../../services/service-google.service';
 import { ExcelExportService } from '../../../services/excel/excel.service';
+import { AuthService } from '../../../services/auth.service';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { lastValueFrom } from 'rxjs';
@@ -17,6 +18,7 @@ import { lastValueFrom } from 'rxjs';
 export class GestionKommoComponent implements OnInit {
   protected service = inject(SheetsService);
   protected excelService = inject(ExcelExportService);
+  private auth = inject(AuthService);
 
   formGestion: UntypedFormGroup;
   dataFiltrada: any[] = [];
@@ -24,6 +26,7 @@ export class GestionKommoComponent implements OnInit {
   isLoading = false;
 
   tiendaSeleccionada: string = '';
+  tiendaBloqueada = false;   // true para gerente/supervisor Realzza (solo ven Realzza)
   asesoresFiltrados: any[] = [];
   labelAsesor: string = 'Asesor';
 
@@ -46,16 +49,20 @@ export class GestionKommoComponent implements OnInit {
     { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' }
   ];
 
+  // Asesores Realzza — mismos nombres que el módulo Ventas Campo (fuente única).
   asesoresRealzza = [
-    { value: 'RZ1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'RZ2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'RZ3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'RZ4', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
-    { value: 'RZ5', viewValue: 'SAMAME HUAMAN ARIADNE' },
-    { value: 'RZ6', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'RZ7', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
-    { value: 'RZ8', viewValue: 'SERNAQUE DAVILA JUAN ALBERTO' },
-    { value: 'RZ9', viewValue: 'CARRANZA ALARCON TREYCI JOHANA' },
+    { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
+    { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
+    { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
+    { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
+    { value: 'AV5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
+    { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
+    { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
+    { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
+    { value: 'AV9', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
+    { value: 'AV10', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
+    { value: 'AV11', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
+    { value: 'AV12', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
   ];
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
@@ -71,6 +78,21 @@ export class GestionKommoComponent implements OnInit {
 
   async ngOnInit() {
     await this.cargarDatos();
+    this.aplicarPerfilUsuario();
+  }
+
+  // Si entra un gerente/supervisor de Realzza: preselecciona la tienda REALZZA,
+  // configura columnas/asesores de Realzza, bloquea el combo y carga su data.
+  private aplicarPerfilUsuario(): void {
+    const u = this.auth.getUsuario();
+    if (!u || u.rol === 'admin') return;
+    const esRealzza = (u.sede || '').toString().toLowerCase().includes('realzza');
+    if (!esRealzza) return;
+
+    this.tiendaBloqueada = true;
+    this.formGestion.get('tienda')?.setValue('REALZZA');
+    this.onTiendaChanged({ value: 'REALZZA' });
+    this.aplicarFiltros();   // carga la data de Realzza
   }
 
   async cargarDatos() {

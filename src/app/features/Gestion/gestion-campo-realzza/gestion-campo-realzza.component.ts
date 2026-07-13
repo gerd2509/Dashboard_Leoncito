@@ -28,19 +28,21 @@ export class GestionCampoRealzzaComponent implements OnInit {
   isLoading = false;
   filtroDerivacionActivo: boolean = false;
 
+  // Asesores Realzza — mismos nombres que el módulo Ventas Campo (fuente única).
   asesores = [
     { value: '', viewValue: 'SELECCIONE ASESOR' },
-    { value: 'AV1', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'AV2', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'AV3', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'AV4', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'AV5', viewValue: 'NAVARRO CASTAÑEDA MARISA GLADYS' },
-    { value: 'AV6', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
-    { value: 'AV7', viewValue: 'ORDINOLA LEON SILVANA MARTINA' },
-    { value: 'AV8', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
-    { value: 'AV9', viewValue: 'ARROBAS LOZADA DORA YVONNE' },
-    { value: 'AV10', viewValue: 'SERNAQUE DAVILA JUAN ALBERTO' },
-    { value: 'AV11', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' }
+    { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
+    { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
+    { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
+    { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
+    { value: 'AV5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
+    { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
+    { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
+    { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
+    { value: 'AV9', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
+    { value: 'AV10', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
+    { value: 'AV11', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
+    { value: 'AV12', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
   ];
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;

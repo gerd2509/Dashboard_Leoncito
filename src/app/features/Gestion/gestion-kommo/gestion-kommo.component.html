@@ -2,7 +2,7 @@
     <dx-select-box style="width: 250px;"
         [items]="[{value: '', text: 'SELECCIONE'}, {value: 'LEONCITO', text: 'LEONCITO'}, {value: 'REALZZA', text: 'REALZZA'}]"
         displayExpr="text" valueExpr="value" formControlName="tienda" label="Tienda" labelMode="floating"
-        stylingMode="underlined" (onValueChanged)="onTiendaChanged($event)">
+        stylingMode="underlined" [readOnly]="tiendaBloqueada" (onValueChanged)="onTiendaChanged($event)">
     </dx-select-box>
 
     <dx-date-box formControlName="fechaInicio" type="date" label="Fecha Inicio" labelMode="floating"
