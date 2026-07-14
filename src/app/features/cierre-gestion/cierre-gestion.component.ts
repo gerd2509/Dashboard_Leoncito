@@ -185,10 +185,8 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
     { value: 'RZ6', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    // { value: 'RZ8', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
-    { value: 'RZ9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'RZ10', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
-    { value: 'RZ11', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
+    { value: 'RZ8', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
+    { value: 'RZ9', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
   ];
 
   asesores1 = this.asesoresCall;
@@ -223,8 +221,7 @@ export class CierreGestionComponent implements OnInit {
     'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
     // Realzza
     'RZ1':  'ERNESTO',  'RZ2':  'NATALY',   'RZ3':  'TATIANA', 'RZ4':  'YUDITH',
-    'RZ5':  'ANYELA',   'RZ6':  'FELICITA', 'RZ7': 'MERLY',   'RZ8': 'CESAR',
-    'RZ9': 'ANA RUT', 'RZ10': 'LUCIA', 'RZ11': 'DENNIS'
+    'RZ5':  'ANYELA',   'RZ6':  'FELICITA', 'RZ7': 'MERLY', 'RZ8': 'ANA RUT', 'RZ9': 'DENNIS'
   };
 
   // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo

@@ -39,10 +39,8 @@ export class GestionCampoRealzzaComponent implements OnInit {
     { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
     { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
     { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'AV9', viewValue: 'RIQUERO ULCO CESAR JEFFERSON' },
-    { value: 'AV10', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'AV11', viewValue: 'BUSTAMANTE BANCES LUCIA NICOLL' },
-    { value: 'AV12', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
+    { value: 'AV9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
+    { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
   ];
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;

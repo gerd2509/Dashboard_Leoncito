@@ -95,6 +95,26 @@
   font-weight: 600;
 }
 
+.cc-desglose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #eef3fb;
+  font-size: 13px;
+  color: #33445f;
+}
+.cc-desglose-lbl { font-weight: 700; color: #1E3A5F; }
+.cc-desglose-item {
+  background: #fff;
+  border: 1px solid #d7deec;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.cc-desglose-item b { color: #1a3a6b; }
+
 /* ── Resumen por sede (avance) ── */
 .cc-sec-head {
   display: flex;

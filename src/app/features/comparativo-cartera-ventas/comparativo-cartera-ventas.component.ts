@@ -69,6 +69,9 @@ export class ComparativoCarteraVentasComponent {
   // Vista principal: avance por sede.
   resumenSedes: ResumenSede[] = [];
 
+  // Desglose por estado de las ventas cruzadas (Cancelado / Activo / Pronto Pago…).
+  desgloseEstados: { estado: string; cantidad: number; monto: number }[] = [];
+
   // Sedes para el selector + cartera asignada por sede.
   sedesDisponibles: string[] = [];
   private asignadosPorSede = new Map<string, number>();
@@ -93,6 +96,29 @@ export class ComparativoCarteraVentasComponent {
   }
   private soloDigitos(v: any): string {
     return (v ?? '').toString().replace(/\D/g, '').replace(/^0+/, '');
+  }
+
+  // Sedes que NO son piso → se excluyen del cruce (fragmentos, sin tildes/MAYÚS).
+  // Cubre: incautados, La Victoria, Realzza, almacenes, oficinas, fábrica, insumos,
+  // productos terminados, distribuciones y Chiclayo (no es piso).
+  private readonly SEDES_EXCLUIDAS = [
+    'INCAUTAD', 'LA VICTORIA', 'REALZZA', 'ALMACEN', 'OFICINA', 'FABRICA',
+    'INSUMOS', 'PRODUCTOS TERMINADOS', 'DISTRIBUCIONES', 'CHICLAYO',
+  ];
+  // Estados que NO son venta real → se excluyen (sin tildes).
+  private readonly ESTADOS_EXCLUIDOS = [
+    'NOTA DE CREDITO', 'INCAUTACION', 'CLASIFICADO A PERDIDA', 'CLASIFICADO A LEGAL',
+    'ERROR DEL SISTEMA', 'MORAS MAL COBRADAS',
+  ];
+  private sinTildes(v: any): string {
+    return (v ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  }
+  private sedeExcluida(sede: any): boolean {
+    const s = this.sinTildes(sede);
+    return this.SEDES_EXCLUIDAS.some(x => s.includes(x));
+  }
+  private estadoExcluido(estado: any): boolean {
+    return this.ESTADOS_EXCLUIDOS.includes(this.sinTildes(estado));
   }
   private detectar(headers: string[], exactos: string[], fragmentos: string[]): string | null {
     const H = headers.map(h => ({ raw: h, n: this.norm(h).replace(/\s+/g, '') }));
@@ -168,16 +194,21 @@ export class ComparativoCarteraVentasComponent {
 
       const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes: nMes }));
 
-      // Índice de VENTAS NETAS por DNI (excluye NC e Incautaciones y monto <= 0).
+      // Índice de VENTAS REALES DE PISO por DNI:
+      //  - solo sedes de piso (se excluyen La Victoria, Incautados, Realzza, almacenes,
+      //    oficinas, fábrica, insumos, productos terminados, distribuciones y Chiclayo),
+      //  - solo estados de venta real (se excluyen NC, incautación, clasificado a
+      //    pérdida/legal, error del sistema, moras mal cobradas), y monto > 0.
       const idx = new Map<string, { monto: number; ops: number; nombre: string }>();
+      const ventasValidas: { dni: string; estado: string; monto: number }[] = [];
       (ventas || []).forEach(v => {
-        const estado = (v.estado_venta || '').toString().trim().toUpperCase();
-        const esNC = estado === 'NOTA DE CRÉDITO' || estado === 'NOTA DE CREDITO';
-        const esINC = estado === 'INCAUTACIÓN' || estado === 'INCAUTACION';
+        if (this.sedeExcluida(v.sede)) return;
+        if (this.estadoExcluido(v.estado_venta)) return;
         const monto = Number(v.monto_consolidado) || 0;
-        if (esNC || esINC || monto <= 0) return;
+        if (monto <= 0) return;
         const dni = this.soloDigitos(v.doc_identidad);
         if (!dni) return;
+        ventasValidas.push({ dni, estado: this.sinTildes(v.estado_venta), monto });
         const cur = idx.get(dni) || { monto: 0, ops: 0, nombre: '' };
         cur.monto += monto;
         cur.ops += 1;
@@ -213,6 +244,19 @@ export class ComparativoCarteraVentasComponent {
         });
       }
       this.carteraUnica = carteraUnica;
+
+      // Desglose por estado de las ventas que cruzaron con la cartera (ej. cuántas PRONTO PAGO).
+      const porEstado = new Map<string, { cantidad: number; monto: number }>();
+      for (const vv of ventasValidas) {
+        if (!vistos.has(vv.dni)) continue;   // solo ventas de clientes de la cartera
+        const cur = porEstado.get(vv.estado) || { cantidad: 0, monto: 0 };
+        cur.cantidad++; cur.monto += vv.monto;
+        porEstado.set(vv.estado, cur);
+      }
+      this.desgloseEstados = Array.from(porEstado.entries())
+        .map(([estado, d]) => ({ estado, cantidad: d.cantidad, monto: Math.round(d.monto) }))
+        .sort((a, b) => b.cantidad - a.cantidad);
+      console.log('🔎 Ventas cruzadas por estado:', this.desgloseEstados);
 
       // CAP por sede: solo asesores ACTIVOS que pertenecen a cada sede.
       await this.cargarCap();

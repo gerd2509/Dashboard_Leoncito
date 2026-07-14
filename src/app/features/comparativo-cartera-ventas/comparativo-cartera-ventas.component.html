@@ -50,6 +50,14 @@
 
   <div *ngIf="aviso" class="cc-aviso">{{ aviso }}</div>
 
+  <!-- Desglose por estado de las ventas cruzadas (incluye PRONTO PAGO) -->
+  <div *ngIf="yaCruzado && desgloseEstados.length" class="cc-desglose">
+    <span class="cc-desglose-lbl">Ventas cruzadas por estado:</span>
+    <span class="cc-desglose-item" *ngFor="let e of desgloseEstados">
+      {{ e.estado }} <b>{{ e.cantidad }}</b> · {{ formatSoles(e.monto) }}
+    </span>
+  </div>
+
   <!-- Estado inicial (antes de importar) -->
   <div class="cc-panel cc-grid-wrap" *ngIf="!yaCruzado">
     <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>

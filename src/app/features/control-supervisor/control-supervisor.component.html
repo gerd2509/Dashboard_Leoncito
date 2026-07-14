@@ -102,7 +102,8 @@
 
 <!-- ══ Popup: detalle de un control ══ -->
 <dx-popup [(visible)]="detalleVisible" [width]="430" [height]="'auto'" [showTitle]="false"
-  [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-detalle-popup" [maxWidth]="'94vw'">
+  [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-detalle-popup" [maxWidth]="'94vw'"
+  (onHidden)="onDetalleHidden()">
   <div *dxTemplate="let d of 'content'">
     <div class="cs-det" *ngIf="detalle">
       <div class="cs-det-head" [ngClass]="claseColor(detalle.color)">
@@ -121,8 +122,17 @@
           <div><small>Estado supervisor</small><b>{{ detalle.estadoSup }}</b></div>
           <div><small>Estado asesor (última gestión)</small><b>{{ detalle.estadoAsesor }}</b></div>
         </div>
+        <div class="cs-det-line" *ngIf="detalle.fuenteGestion">
+          <small>Cruzado con</small><b>{{ detalle.fuenteGestion }}</b>
+        </div>
+        <div class="cs-det-aviso" *ngIf="detalle.avisoTipo">
+          <mat-icon>warning</mat-icon> {{ detalle.avisoTipo }}
+        </div>
+        <div class="cs-det-aviso" *ngIf="detalle.avisoCelular">
+          <mat-icon>phone_disabled</mat-icon> {{ detalle.avisoCelular }}
+        </div>
         <div class="cs-det-line" *ngIf="detalle.asesorGestion">
-          <small>Última gestión Realzza de</small>
+          <small>Última gestión de</small>
           <b>{{ detalle.asesorGestion }}<span *ngIf="detalle.fechaGestion"> · {{ detalle.fechaGestion }}</span></b>
         </div>
         <div class="cs-det-coment" *ngIf="detalle.comentario">
@@ -152,17 +162,51 @@
 </dx-popup>
 
 <!-- ══ Popup: todos los controles de un día ══ -->
-<dx-popup [(visible)]="diaVisible" [width]="480" [height]="'auto'" [maxHeight]="'82vh'" [maxWidth]="'94vw'"
+<dx-popup [(visible)]="diaVisible" [width]="620" [height]="'auto'" [maxHeight]="'84vh'" [maxWidth]="'96vw'"
   [showTitle]="true" [title]="diaTitulo" [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-dia-popup">
   <div *dxTemplate="let d of 'content'">
-    <div class="cs-dia-list">
-      <div class="cs-dia-item" *ngFor="let c of diaCitas" [ngClass]="claseColor(c.color)" (click)="verDesdeDia(c)">
-        <div class="cs-dia-info">
-          <div class="cs-dia-top"><b>{{ c.asesor || '—' }}</b><span>{{ horaDe(c.startDate) }}</span></div>
-          <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">Gestión · DNI {{ c.dni }} · {{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
-          <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE'">🛒 Market Place · última pub. {{ c.fechaPublicacion || '—' }}</div>
+    <!-- Resumen del día -->
+    <div class="cs-dia-resumen">
+      <span class="cs-dia-chip total">{{ diaCitas.length }} registros · {{ diaGrupos.length }} asesor(es)</span>
+      <span class="cs-dia-chip bad" *ngIf="diaDiscrepancias > 0">{{ diaDiscrepancias }} discrepancia(s)</span>
+      <span class="cs-dia-chip obs" *ngIf="diaObs > 0"><mat-icon>warning</mat-icon> {{ diaObs }} con observación</span>
+    </div>
+
+    <!-- Agrupado por asesor -->
+    <div class="cs-dia-grupos">
+      <div class="cs-dia-grupo" *ngFor="let g of diaGrupos">
+        <div class="cs-dia-asesor" [class.con-obs]="g.obs > 0 || g.discrepancias > 0" (click)="toggleAsesor(g.asesor)">
+          <mat-icon class="cs-dia-exp">{{ estaExpandido(g.asesor) ? 'expand_less' : 'expand_more' }}</mat-icon>
+          <mat-icon class="cs-dia-person">person</mat-icon>
+          <span class="cs-dia-asesor-nom">{{ g.asesor }}</span>
+          <span class="cs-dia-metrics">
+            <span class="m total">{{ g.total }} gest.</span>
+            <span class="m bad" *ngIf="g.discrepancias > 0">{{ g.discrepancias }} disc.</span>
+            <span class="m obs" *ngIf="g.obs > 0"><mat-icon>warning</mat-icon>{{ g.obs }}</span>
+          </span>
         </div>
-        <span class="cs-dia-res">{{ c.tipo === 'MARKET_PLACE' ? c.estadoMp : c.resultado }}</span>
+
+        <div class="cs-dia-items" *ngIf="estaExpandido(g.asesor)">
+          <div class="cs-dia-item" *ngFor="let c of g.citas" [ngClass]="claseColor(c.color)"
+               [class.con-obs]="tieneAviso(c)" (click)="verDesdeDia(c)">
+            <div class="cs-dia-info">
+              <div class="cs-dia-top">
+                <b *ngIf="c.tipo === 'GESTION'">DNI {{ c.dni }}</b>
+                <b *ngIf="c.tipo === 'MARKET_PLACE'"><mat-icon class="inl">storefront</mat-icon> Market Place</b>
+                <span class="cs-dia-hora">{{ horaDe(c.startDate) }}</span>
+              </div>
+              <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">{{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
+              <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE'">última pub. {{ c.fechaPublicacion || '—' }}</div>
+              <div class="cs-dia-obs" *ngIf="tieneAviso(c)">
+                <mat-icon>warning</mat-icon> {{ avisoTexto(c) }}
+              </div>
+            </div>
+            <div class="cs-dia-right">
+              <span class="cs-dia-badge">{{ c.tipo === 'MARKET_PLACE' ? c.estadoMp : c.resultado }}</span>
+              <mat-icon class="cs-dia-flag" *ngIf="tieneAviso(c)">error</mat-icon>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

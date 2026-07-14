@@ -27,6 +27,9 @@ interface CitaControl {
   estadoAsesor?: string;   // estado en la ÚLTIMA gestión del asesor (o '—')
   asesorGestion?: string;  // asesor que figura en la gestión encontrada
   fechaGestion?: string;   // fecha de la última gestión hallada (o '')
+  fuenteGestion?: string;  // "Gestión Realzza" | "Gestión Kommo (Realzza)"
+  avisoTipo?: string;      // aviso si la clasificación kommo/market place no calza
+  avisoCelular?: string;   // aviso si el celular registrado difiere del de la gestión
   // Market Place:
   estadoMp?: string;       // AL DÍA / DESACTUALIZADO / ACTUALIZADO
   fechaPublicacion?: string;
@@ -113,14 +116,16 @@ export class ControlSupervisorComponent implements OnInit {
     try {
       const desde = new Date(this.form.value.fechaInicio); desde.setHours(0, 0, 0, 0);
       const hasta = new Date(this.form.value.fechaFin); hasta.setHours(23, 59, 59, 999);
-      this.currentDate = new Date(desde);
+      // El calendario se centra en la fecha fin (para que Día/Semana caigan en datos).
+      this.currentDate = new Date(this.form.value.fechaFin);
 
-      const [controles, gestion] = await Promise.all([
+      const [controles, gestion, kommo] = await Promise.all([
         lastValueFrom(this.srv.listar({ desde, hasta })),
         lastValueFrom(this.sheets.getSheetDataCampo()),   // gestión Realzza (Google Form)
+        lastValueFrom(this.sheets.getSheetKOMMO()),        // gestión Kommo (Realzza + Call)
       ]);
 
-      // Índice de gestiones del asesor por DNI → lista de {celular, estado, asesor, fecha}
+      // Índice de gestiones Realzza por DNI → lista de {celular, estado, asesor, fecha}
       const idxDni = new Map<string, Array<{ celular: string; estado: string; asesor: string; fecha: Date | null }>>();
       (gestion || []).forEach((g: any) => {
         const dni = this.soloDigitos(g['DNI CLIENTE']);
@@ -135,8 +140,25 @@ export class ControlSupervisorComponent implements OnInit {
         idxDni.set(dni, arr);
       });
 
+      // Índice de gestión KOMMO (lado tienda Realzza) por DNI, con la marca MARKET PLACE R:
+      //   MARKET PLACE R = NO → es KOMMO ; = SÍ → es MARKET PLACE.
+      const idxKommo = new Map<string, Array<{ celular: string; estado: string; asesor: string; fecha: Date | null; mp: string }>>();
+      (kommo || []).forEach((g: any) => {
+        const dni = this.soloDigitos(g['DNI CLIENTE REALZZA']);
+        if (!dni) return;
+        const arr = idxKommo.get(dni) || [];
+        arr.push({
+          celular: this.soloDigitos(g['CELULAR GESTIONADO REALZZA']),
+          estado: (g['ESTADO DE GESTIÓN REALZZA'] || '').toString().trim().toUpperCase(),
+          asesor: (g['ASESOR REALZZA'] || '').toString().trim(),
+          fecha: this.parseMarca(g['Marca temporal']),
+          mp: this.siNo(g['MARKET PLACE R']),
+        });
+        idxKommo.set(dni, arr);
+      });
+
       this.citas = (controles || [])
-        .map(c => (c.tipo_control === 'MARKET_PLACE' ? this.armarCitaMp(c) : this.armarCita(c, idxDni)))
+        .map(c => (c.tipo_control === 'MARKET_PLACE' ? this.armarCitaMp(c) : this.armarCita(c, idxDni, idxKommo)))
         .filter((c): c is CitaControl => c !== null);
       this.asesoresDisponibles = Array.from(new Set(this.citas.map(c => c.asesor).filter(Boolean))).sort();
       this.aplicarFiltroAsesor();
@@ -151,7 +173,10 @@ export class ControlSupervisorComponent implements OnInit {
   }
 
   // Cruza un control con la gestión del asesor (por DNI y, si hay, celular).
-  private armarCita(c: ControlSupervisor, idxDni: Map<string, any[]>): CitaControl | null {
+  // Si el tipo de base es KOMMO o MARKET PLACE, cruza con la gestión KOMMO (tienda
+  // Realzza) filtrando por la columna MARKET PLACE R (NO=kommo, SÍ=market place);
+  // en cualquier otro caso cruza con la gestión Realzza normal.
+  private armarCita(c: ControlSupervisor, idxDni: Map<string, any[]>, idxKommo: Map<string, any[]>): CitaControl | null {
     const start = this.parseMarca(c.marca_temporal);
     if (!start) return null;
     const end = new Date(start.getTime() + 30 * 60 * 1000);
@@ -160,21 +185,31 @@ export class ControlSupervisorComponent implements OnInit {
     const cel = this.soloDigitos(c.celular);
     const estadoSup = (c.estado_gestion || '').toString().trim().toUpperCase();
 
-    // Cruce con gestión Realzza → ÚLTIMA gestión del cliente:
-    //  1) si hay celular, priorizamos las gestiones con ese mismo celular;
-    //  2) tomamos la más reciente por fecha (última gestión);
-    //  3) preferimos la última que ocurrió EN o ANTES del control del supervisor
-    //     (es la gestión que el supervisor estaba verificando); si no hay
-    //     ninguna anterior, usamos la más reciente disponible.
-    const candidatos = idxDni.get(dni) || [];
+    // Fuente del cruce según el tipo de base registrado por el supervisor.
+    const tb = (c.tipo_base || '').toString().trim().toUpperCase();
+    const esMarketPlace = tb === 'MARKET PLACE';
+    const esKommo = tb === 'KOMMO';
+    const esKommoMp = esMarketPlace || esKommo;
+    let candidatos: any[];
+    let fuenteGestion: string;
+    if (esKommoMp) {
+      // Cruza contra TODAS las gestiones Kommo del cliente (sin filtrar por MP);
+      // luego se compara el estado y se avisa si la clasificación (MARKET PLACE R)
+      // de la gestión no calza con lo que registró el supervisor.
+      candidatos = idxKommo.get(dni) || [];
+      fuenteGestion = 'Gestión Kommo (Realzza)';
+    } else {
+      candidatos = idxDni.get(dni) || [];
+      fuenteGestion = 'Gestión Realzza';
+    }
+
+    // SIEMPRE la ÚLTIMA gestión del cliente por DNI: la más reciente EN o ANTES de
+    // la fecha del control (la que el supervisor estaba verificando); si no hay
+    // ninguna anterior, la más reciente disponible. El celular NO restringe la
+    // elección (para no quedarnos con un registro viejo): si difiere, se avisa aparte.
     let hit: any = null;
     if (candidatos.length) {
-      let pool = candidatos;
-      if (cel) {
-        const conCel = candidatos.filter(x => x.celular && x.celular === cel);
-        if (conCel.length) pool = conCel;
-      }
-      const ordenado = [...pool].sort((a, b) => (b.fecha?.getTime() || 0) - (a.fecha?.getTime() || 0));
+      const ordenado = [...candidatos].sort((a, b) => (b.fecha?.getTime() || 0) - (a.fecha?.getTime() || 0));
       hit = (start ? ordenado.find(x => x.fecha && x.fecha.getTime() <= start.getTime()) : null) || ordenado[0];
     }
 
@@ -182,6 +217,8 @@ export class ControlSupervisorComponent implements OnInit {
     let estadoAsesor = '—';
     let asesorGestion = '';
     let fechaGestion = '';
+    let avisoTipo = '';
+    let avisoCelular = '';
     if (!hit) {
       resultado = 'SIN GESTIÓN';
     } else {
@@ -189,6 +226,21 @@ export class ControlSupervisorComponent implements OnInit {
       asesorGestion = hit.asesor || '';
       fechaGestion = hit.fecha ? `${String(hit.fecha.getDate()).padStart(2, '0')}/${String(hit.fecha.getMonth() + 1).padStart(2, '0')}/${hit.fecha.getFullYear()} ${this.horaDe(hit.fecha)}` : '';
       resultado = estadoAsesor === estadoSup ? 'COINCIDE' : 'DISCREPANCIA';
+
+      // Kommo/Market Place: avisar si la clasificación de la gestión no calza.
+      if (esKommoMp) {
+        const gestMkt = hit.mp === 'SI';
+        fuenteGestion = `Gestión Kommo (Realzza) · gestión: ${gestMkt ? 'MARKET PLACE' : 'KOMMO'}`;
+        if (gestMkt !== esMarketPlace) {
+          avisoTipo = `La gestión figura como ${gestMkt ? 'MARKET PLACE' : 'KOMMO'}, pero se registró como ${esMarketPlace ? 'MARKET PLACE' : 'KOMMO'}`;
+        }
+      }
+
+      // Avisar si el celular registrado por el supervisor difiere del de la gestión.
+      const celGest = (hit.celular || '').toString();
+      if (cel && celGest && cel !== celGest) {
+        avisoCelular = `El celular registrado (${c.celular}) no coincide con el de la gestión (${celGest})`;
+      }
     }
 
     return {
@@ -207,8 +259,17 @@ export class ControlSupervisorComponent implements OnInit {
       estadoAsesor,
       asesorGestion,
       fechaGestion,
+      fuenteGestion,
+      avisoTipo,
+      avisoCelular,
       comentario: c.comentario || '',
     };
+  }
+
+  // Normaliza SÍ/NO (sin tildes) para la columna MARKET PLACE R.
+  private siNo(v: any): string {
+    const s = (v ?? '').toString().trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return s === 'SI' ? 'SI' : s === 'NO' ? 'NO' : s;
   }
 
   // Control de Market Place → cita coloreada por el estado de las publicaciones.
@@ -263,17 +324,45 @@ export class ControlSupervisorComponent implements OnInit {
   diaVisible = false;
   diaTitulo = '';
   diaCitas: CitaControl[] = [];
+  diaGrupos: { asesor: string; citas: CitaControl[]; total: number; discrepancias: number; obs: number }[] = [];
+  private asesorExpandido = new Set<string>();
+  private detalleDesdeDia = false;   // true si el detalle se abrió desde la lista del día
+
+  toggleAsesor(a: string): void {
+    this.asesorExpandido.has(a) ? this.asesorExpandido.delete(a) : this.asesorExpandido.add(a);
+  }
+  estaExpandido(a: string): boolean { return this.asesorExpandido.has(a); }
+
+  // Agrupa las citas del día por asesor, con métricas por grupo.
+  private construirGruposDia(): void {
+    const map = new Map<string, CitaControl[]>();
+    for (const c of this.diaCitas) {
+      const a = c.asesor || '—';
+      if (!map.has(a)) map.set(a, []);
+      map.get(a)!.push(c);
+    }
+    this.diaGrupos = Array.from(map.entries()).map(([asesor, citas]) => ({
+      asesor, citas,
+      total: citas.length,
+      discrepancias: citas.filter(c => c.resultado === 'DISCREPANCIA').length,
+      obs: citas.filter(c => this.tieneAviso(c)).length,
+    })).sort((a, b) => b.discrepancias - a.discrepancias || b.obs - a.obs || b.total - a.total);
+    // Arrancan COLAPSADOS: se ve la lista de asesores y se despliega al hacer clic.
+    this.asesorExpandido = new Set();
+  }
 
   // Anula el formulario de edición nativo de DevExtreme.
   onFormOpening(e: any): void { e.cancel = true; }
 
-  // Click en una cita → abre el detalle propio (no el tooltip nativo).
+  // Click en una cita del calendario → abre el detalle (no viene de la lista del día).
   onCitaClick(e: any): void {
     e.cancel = true;
+    this.detalleDesdeDia = false;
     this.abrirDetalle(e.appointmentData);
   }
   onCitaDblClick(e: any): void {
     e.cancel = true;
+    this.detalleDesdeDia = false;
     this.abrirDetalle(e.appointmentData);
   }
 
@@ -282,19 +371,36 @@ export class ControlSupervisorComponent implements OnInit {
     this.detalleVisible = true;
   }
 
+  // Al cerrar el detalle: si venía de la lista del día, se vuelve a esa lista.
+  onDetalleHidden(): void {
+    if (this.detalleDesdeDia) {
+      this.detalleDesdeDia = false;
+      setTimeout(() => (this.diaVisible = true), 140);
+    }
+  }
+
   // Click en un día → lista todos los controles de ese día.
   onCeldaClick(e: any): void {
     const fecha: Date = e?.cellData?.startDate;
     if (!fecha) return;
+    this.currentDate = new Date(fecha);   // navega el calendario a ese día (útil al pasar a Día/Semana)
     const delDia = this.citasFiltradas.filter(c => this.mismaFecha(c.startDate, fecha));
     if (!delDia.length) return;
     this.diaCitas = [...delDia].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    this.construirGruposDia();
     this.diaTitulo = this.fechaLarga(fecha);
     this.diaVisible = true;
   }
 
-  // Desde el popup del día, abrir el detalle de una cita.
+  // ¿La cita tiene alguna observación (celular o tipo distinto)?
+  tieneAviso(c: CitaControl): boolean { return !!(c.avisoTipo || c.avisoCelular); }
+  avisoTexto(c: CitaControl): string { return [c.avisoTipo, c.avisoCelular].filter(Boolean).join(' · '); }
+  get diaObs(): number { return this.diaCitas.filter(c => this.tieneAviso(c)).length; }
+  get diaDiscrepancias(): number { return this.diaCitas.filter(c => c.resultado === 'DISCREPANCIA').length; }
+
+  // Desde el popup del día, abrir el detalle de una cita (al cerrar vuelve a la lista).
   verDesdeDia(c: CitaControl): void {
+    this.detalleDesdeDia = true;
     this.diaVisible = false;
     setTimeout(() => this.abrirDetalle(c), 120);
   }
@@ -304,8 +410,8 @@ export class ControlSupervisorComponent implements OnInit {
   }
   private fechaLarga(d: Date): string {
     const dias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-    return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} ${d.getFullYear()}`;
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} del ${d.getFullYear()}`;
   }
   // Clase CSS por color/estado (gestión y market place).
   claseColor(id: string): string {
