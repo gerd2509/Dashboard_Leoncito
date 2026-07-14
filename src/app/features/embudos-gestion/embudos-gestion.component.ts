@@ -18,6 +18,14 @@ const CANDIDATOS_DNI = [
 // Fragmentos para el fallback (cabecera que CONTENGA alguno).
 const FRAG_DNI = ['dni', 'docidentidad', 'documento', 'identidad'];
 
+// Columnas de teléfono en la cartera (mismas que Avance de Cartera) para cruzar
+// también por celular (últimos 9 dígitos), no solo por DNI.
+const COLUMNAS_TELEFONO = [
+  'CEL actual', 'Telefono', 'Fax', 'Movil', 'Nextel',
+  'ProvedorExterno1', 'ProvedorExterno2', 'ProvedorExterno3',
+];
+const FRAG_TEL = ['celular', 'telefono', 'movil', 'cel', 'fono', 'whatsapp'];
+
 // Candidatos y fragmentos para la columna de ASESOR en las hojas de cartera.
 const CANDIDATOS_ASESOR = [
   'ASESOR', 'Asesor', 'asesor', 'ASESOR ASIGNADO', 'ASESOR CONTACT', 'ASESOR DE VENTA', 'ASESORVENTA',
@@ -52,6 +60,8 @@ interface Embudo {
 
 // Estado agregado por DNI en una gestión.
 interface EstadoDni { gestionado: boolean; contactado: boolean; interesado: boolean; }
+// Índice de la gestión por DNI y por teléfono.
+interface IndiceGestion { porDni: Map<string, EstadoDni>; porTel: Map<string, EstadoDni>; }
 
 @Component({
   selector: 'app-embudos-gestion',
@@ -185,7 +195,7 @@ export class EmbudosGestionComponent {
     // TODAS las carteras (incluida "cartera kommo") cruzan contra la gestión del modo
     // (Call Center en modo Call / Realzza en modo Realzza). La gestión Kommo solo se
     // usa para el embudo KOMMO (LEADS).
-    const idxModo = this.indexar(dataModo, 'DNI CLIENTE', 'ESTADO DE GESTIÓN', 'RESULTADO DE GESTIÓN');
+    const idxModo = this.indexar(dataModo, 'DNI CLIENTE', 'CELULAR GESTIONADO', 'ESTADO DE GESTIÓN', 'RESULTADO DE GESTIÓN');
 
     // 4) Un embudo por cartera.
     const embudos: Embudo[] = [];
@@ -197,25 +207,34 @@ export class EmbudosGestionComponent {
       const dniCol = this.buscarHeader(headers, CANDIDATOS_DNI) ?? this.buscarIncluye(headers, FRAG_DNI);
       if (!dniCol) continue;
       const asesorCol = this.buscarHeader(headers, CANDIDATOS_ASESOR) ?? this.buscarIncluye(headers, FRAG_ASESOR);
+      const telCols = this.telColsDe(headers);
 
-      const dnis = Array.from(new Set(rows.map(r => this.dig(r[dniCol])).filter(d => d)));
+      // Clientes ÚNICOS por DNI, con sus teléfonos (para cruzar por DNI + celular).
+      const clientes = new Map<string, Set<string>>();
+      for (const r of rows) {
+        const dni = this.dig(r[dniCol]);
+        if (!dni) continue;
+        let tels = clientes.get(dni);
+        if (!tels) { tels = new Set(); clientes.set(dni, tels); }
+        for (const tc of telCols) for (const n of this.extraerNumeros(r[tc])) tels.add(n.slice(-9));
+      }
 
       let gestionados = 0, contactados = 0, interesados = 0, ventasDni = 0;
-      for (const d of dnis) {
-        const e = idxModo.get(d);
-        if (e?.gestionado) gestionados++;
-        if (e?.contactado) contactados++;
-        if (e?.interesado) interesados++;
-        if (ventasSet.has(d)) ventasDni++;
-      }
+      clientes.forEach((tels, dni) => {
+        const e = this.estadoCliente(dni, tels, idxModo);
+        if (e.gestionado) gestionados++;
+        if (e.contactado) contactados++;
+        if (e.interesado) interesados++;
+        if (ventasSet.has(dni)) ventasDni++;
+      });
       // En Realzza, la "cartera kommo" toma sus ventas de VENTAS con TipoBase = BBDD KOMMO
       // (en vez del cruce por DNI). Las demás carteras siguen por cruce de DNI.
       const esCarteraKommo = this.norm(hoja).includes('kommo');
       const ventas = (this.modo === 'realzza' && esCarteraKommo) ? ventasBbddKommo : ventasDni;
-      const emb = this.armarEmbudo(hoja, dnis.length, gestionados, contactados, interesados, ventas, this.paleta[ci++ % this.paleta.length], false);
+      const emb = this.armarEmbudo(hoja, clientes.size, gestionados, contactados, interesados, ventas, this.paleta[ci++ % this.paleta.length], false);
       emb.hoja = hoja;
       // Detalle por asesor (solo si la cartera trae una columna de asesor).
-      emb.detalle = asesorCol ? this.calcularDetalleAsesor(rows, dniCol, asesorCol, idxModo, ventasSet) : [];
+      emb.detalle = asesorCol ? this.calcularDetalleAsesor(rows, dniCol, asesorCol, telCols, idxModo, ventasSet) : [];
       embudos.push(emb);
     }
 
@@ -281,27 +300,31 @@ export class EmbudosGestionComponent {
    * contactados / interesados / ventas / % avance. Ordena por los que más faltan.
    */
   private calcularDetalleAsesor(rows: Record<string, any>[], dniCol: string, asesorCol: string,
-                                idxModo: Map<string, EstadoDni>, ventasSet: Set<string>): DetalleAsesor[] {
-    const porAsesor = new Map<string, Set<string>>();
+                                telCols: string[], idxModo: IndiceGestion, ventasSet: Set<string>): DetalleAsesor[] {
+    // Por asesor → clientes únicos (DNI) con sus teléfonos.
+    const porAsesor = new Map<string, Map<string, Set<string>>>();
     for (const r of rows) {
       const dni = this.dig(r[dniCol]);
       if (!dni) continue;
       const asesor = (r[asesorCol] ?? '').toString().trim().toUpperCase() || 'SIN ASESOR';
-      if (!porAsesor.has(asesor)) porAsesor.set(asesor, new Set());
-      porAsesor.get(asesor)!.add(dni);
+      let clientes = porAsesor.get(asesor);
+      if (!clientes) { clientes = new Map(); porAsesor.set(asesor, clientes); }
+      let tels = clientes.get(dni);
+      if (!tels) { tels = new Set(); clientes.set(dni, tels); }
+      for (const tc of telCols) for (const n of this.extraerNumeros(r[tc])) tels.add(n.slice(-9));
     }
 
     const detalle: DetalleAsesor[] = [];
-    porAsesor.forEach((dnis, asesor) => {
+    porAsesor.forEach((clientes, asesor) => {
       let g = 0, c = 0, i = 0, v = 0;
-      dnis.forEach(d => {
-        const e = idxModo.get(d);
-        if (e?.gestionado) g++;
-        if (e?.contactado) c++;
-        if (e?.interesado) i++;
-        if (ventasSet.has(d)) v++;
+      clientes.forEach((tels, dni) => {
+        const e = this.estadoCliente(dni, tels, idxModo);
+        if (e.gestionado) g++;
+        if (e.contactado) c++;
+        if (e.interesado) i++;
+        if (ventasSet.has(dni)) v++;
       });
-      const asignados = dnis.size;
+      const asignados = clientes.size;
       detalle.push({
         asesor, asignados, gestionados: g, pendientes: asignados - g,
         contactados: c, interesados: i, ventas: v,
@@ -336,20 +359,54 @@ export class EmbudosGestionComponent {
     }
   }
 
-  /** Índice DNI(dígitos) → estado agregado (gestionado/contactado/interesado). */
-  private indexar(data: any[], colDni: string, colEstado: string, colResultado: string): Map<string, EstadoDni> {
-    const map = new Map<string, EstadoDni>();
+  /** Índice de la gestión por DNI y por teléfono (últimos 9 dígitos) → estado agregado. */
+  private indexar(data: any[], colDni: string, colCel: string, colEstado: string, colResultado: string): IndiceGestion {
+    const porDni = new Map<string, EstadoDni>();
+    const porTel = new Map<string, EstadoDni>();
+    const upd = (map: Map<string, EstadoDni>, key: string, contacto: boolean, interes: boolean) => {
+      let e = map.get(key);
+      if (!e) { e = { gestionado: true, contactado: false, interesado: false }; map.set(key, e); }
+      if (contacto) e.contactado = true;
+      if (interes) e.interesado = true;
+    };
     for (const item of data) {
+      const contacto = (item[colEstado] || '').toString().trim().toUpperCase() === 'CONTACTO';
+      const interes = (item[colResultado] || '').toString().trim().toUpperCase() === 'INTERESADO';
       const dni = this.dig(item[colDni]);
-      if (!dni) continue;
-      const estado = (item[colEstado] || '').toString().trim().toUpperCase();
-      const resultado = (item[colResultado] || '').toString().trim().toUpperCase();
-      let e = map.get(dni);
-      if (!e) { e = { gestionado: true, contactado: false, interesado: false }; map.set(dni, e); }
-      if (estado === 'CONTACTO') e.contactado = true;
-      if (resultado === 'INTERESADO') e.interesado = true;
+      if (dni) upd(porDni, dni, contacto, interes);
+      const tel = this.dig(item[colCel]).slice(-9);
+      if (tel.length >= 9) upd(porTel, tel, contacto, interes);
     }
-    return map;
+    return { porDni, porTel };
+  }
+
+  /** Estado de un cliente cruzando su DNI y sus teléfonos contra la gestión. */
+  private estadoCliente(dni: string, telefonos: Set<string>, idx: IndiceGestion): EstadoDni {
+    let gestionado = false, contactado = false, interesado = false;
+    const aplicar = (e?: EstadoDni) => {
+      if (!e) return;
+      gestionado = true;
+      if (e.contactado) contactado = true;
+      if (e.interesado) interesado = true;
+    };
+    aplicar(idx.porDni.get(dni));
+    telefonos.forEach(t => { if (t.length >= 9) aplicar(idx.porTel.get(t)); });
+    return { gestionado, contactado, interesado };
+  }
+
+  // Detecta las columnas de teléfono de una cartera (exactas o por fragmento).
+  private telColsDe(headers: string[]): string[] {
+    const cols = new Set<string>();
+    COLUMNAS_TELEFONO.forEach(c => { const h = this.buscarHeader(headers, [c]); if (h) cols.add(h); });
+    this.buscarTodosIncluye(headers, FRAG_TEL).forEach(h => cols.add(h));
+    return Array.from(cols);
+  }
+
+  // Extrae los teléfonos (solo dígitos) de una celda que puede traer varios separados.
+  private extraerNumeros(valor: any): string[] {
+    const t = (valor ?? '').toString().trim();
+    if (!t) return [];
+    return t.split(/[\/,;\n\r|]+/).map((p: string) => p.replace(/\D/g, '')).filter((p: string) => p.length > 0);
   }
 
   // ── Helpers ──
@@ -363,6 +420,9 @@ export class EmbudosGestionComponent {
   }
   private buscarIncluye(headers: string[], fragmentos: string[]): string | undefined {
     return headers.find(h => { const n = this.norm(h); return fragmentos.some(f => n.includes(f)); });
+  }
+  private buscarTodosIncluye(headers: string[], fragmentos: string[]): string[] {
+    return headers.filter(h => { const n = this.norm(h); return fragmentos.some(f => n.includes(f)); });
   }
   private norm(s: any): string {
     return (s ?? '').toString().toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');

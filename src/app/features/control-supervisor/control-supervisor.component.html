@@ -4,7 +4,7 @@
       labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
     <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
       labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
-    <dx-select-box style="min-width: 260px;" formControlName="asesor" [dataSource]="asesoresDisponibles"
+    <dx-select-box style="min-width: 240px;" formControlName="asesor" [dataSource]="asesoresDisponibles"
       label="Asesor" labelMode="floating" stylingMode="underlined" [showClearButton]="true"
       placeholder="Todos" (onValueChanged)="aplicarFiltroAsesor()"></dx-select-box>
     <button mat-flat-button color="primary" (click)="cargar()">
@@ -12,11 +12,26 @@
     </button>
   </form>
 
-  <div class="cs-kpis">
+  <!-- Filtro por tipo de control -->
+  <div class="cs-tipo">
+    <button [class.active]="vista === 'TODO'" (click)="setVistaTipo('TODO')">Todo</button>
+    <button [class.active]="vista === 'GESTION'" (click)="setVistaTipo('GESTION')"><mat-icon>support_agent</mat-icon> Gestión</button>
+    <button [class.active]="vista === 'MARKET_PLACE'" (click)="setVistaTipo('MARKET_PLACE')"><mat-icon>storefront</mat-icon> Market Place</button>
+  </div>
+</div>
+
+<div class="cs-kpis-wrap">
+  <div class="cs-kpis" *ngIf="vista !== 'MARKET_PLACE'">
     <div class="kpi kpi-total"><span>{{ kTotal }}</span><small>Supervisados</small></div>
     <div class="kpi kpi-ok"><span>{{ kCoincide }}</span><small>Coinciden</small></div>
     <div class="kpi kpi-bad"><span>{{ kDiscrepancia }}</span><small>Discrepancias</small></div>
     <div class="kpi kpi-none"><span>{{ kSinGestion }}</span><small>Sin gestión</small></div>
+  </div>
+  <div class="cs-kpis" *ngIf="vista !== 'GESTION'">
+    <div class="kpi kpi-mp"><span>{{ kMpTotal }}</span><small>MP revisados</small></div>
+    <div class="kpi kpi-mpok"><span>{{ kAlDia }}</span><small>Al día</small></div>
+    <div class="kpi kpi-mpbad"><span>{{ kDesactualizado }}</span><small>Desactualizados</small></div>
+    <div class="kpi kpi-mpupd"><span>{{ kActualizado }}</span><small>Actualizados</small></div>
   </div>
 </div>
 
@@ -25,12 +40,15 @@
 <div class="cs-grid-wrap">
   <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
 
-  <!-- Botones de vista propios (control total del diseño) -->
+  <!-- Barra: leyenda + botones de vista propios -->
   <div class="cs-cal-bar">
     <span class="cs-cal-leyenda">
-      <i class="dot ok"></i> Coincide
-      <i class="dot bad"></i> Discrepancia
-      <i class="dot none"></i> Sin gestión
+      <ng-container *ngIf="vista !== 'MARKET_PLACE'">
+        <i class="dot ok"></i> Coincide <i class="dot bad"></i> Discrepancia <i class="dot none"></i> Sin gestión
+      </ng-container>
+      <ng-container *ngIf="vista !== 'GESTION'">
+        <i class="dot mp-ok"></i> Al día <i class="dot mp-bad"></i> Desactualizado <i class="dot mp-upd"></i> Actualizado
+      </ng-container>
     </span>
     <div class="cs-views">
       <button [class.active]="vistaActual === 'day'"   (click)="setVista('day')">Día</button>
@@ -60,32 +78,40 @@
     (onCellClick)="onCeldaClick($event)">
 
     <dxi-resource
-      [dataSource]="recursosResultado"
-      fieldExpr="resultado"
-      label="Resultado del control"
+      [dataSource]="recursosColor"
+      fieldExpr="color"
+      label="Estado"
       [useColorAsDefault]="true">
     </dxi-resource>
 
-    <!-- Cita compacta: DNI + estado, recortada para no desbordar la celda -->
+    <!-- Cita compacta (gestión: DNI + C/NC · market place: 🛒 asesor + estado) -->
     <div *dxTemplate="let model of 'appt'">
       <div class="cs-appt">
-        <span class="cs-appt-dni">{{ model.appointmentData.dni }}</span>
-        <span class="cs-appt-est">{{ model.appointmentData.estadoSup === 'NO CONTACTO' ? 'NC' : 'C' }}</span>
+        <ng-container *ngIf="model.appointmentData.tipo === 'MARKET_PLACE'; else gest">
+          <span class="cs-appt-dni">🛒 {{ model.appointmentData.asesor }}</span>
+          <span class="cs-appt-est">{{ mpCorto(model.appointmentData.estadoMp) }}</span>
+        </ng-container>
+        <ng-template #gest>
+          <span class="cs-appt-dni">{{ model.appointmentData.dni }}</span>
+          <span class="cs-appt-est">{{ model.appointmentData.estadoSup === 'NO CONTACTO' ? 'NC' : 'C' }}</span>
+        </ng-template>
       </div>
     </div>
   </dx-scheduler>
 </div>
 
 <!-- ══ Popup: detalle de un control ══ -->
-<dx-popup [(visible)]="detalleVisible" [width]="420" [height]="'auto'" [showTitle]="false"
+<dx-popup [(visible)]="detalleVisible" [width]="430" [height]="'auto'" [showTitle]="false"
   [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-detalle-popup" [maxWidth]="'94vw'">
   <div *dxTemplate="let d of 'content'">
     <div class="cs-det" *ngIf="detalle">
-      <div class="cs-det-head" [ngClass]="resultadoClase(detalle.resultado)">
-        <span class="cs-det-badge">{{ detalle.resultado }}</span>
+      <div class="cs-det-head" [ngClass]="claseColor(detalle.color)">
+        <span class="cs-det-badge">{{ detalle.tipo === 'MARKET_PLACE' ? ('🛒 ' + detalle.estadoMp) : detalle.resultado }}</span>
         <button class="cs-x" (click)="detalleVisible = false"><mat-icon>close</mat-icon></button>
       </div>
-      <div class="cs-det-body">
+
+      <!-- Detalle GESTIÓN -->
+      <div class="cs-det-body" *ngIf="detalle.tipo === 'GESTION'">
         <div class="cs-det-asesor"><mat-icon>badge</mat-icon>{{ detalle.asesor || '—' }}</div>
         <div class="cs-det-grid">
           <div><small>Tipo de base</small><b>{{ detalle.tipoBase || '—' }}</b></div>
@@ -103,6 +129,21 @@
           <small>Comentario</small><p>{{ detalle.comentario }}</p>
         </div>
       </div>
+
+      <!-- Detalle MARKET PLACE -->
+      <div class="cs-det-body" *ngIf="detalle.tipo === 'MARKET_PLACE'">
+        <div class="cs-det-asesor"><mat-icon>storefront</mat-icon>{{ detalle.asesor || '—' }}</div>
+        <div class="cs-det-grid">
+          <div><small>Revisado el</small><b>{{ detalle.startDate | date:'dd/MM/yyyy HH:mm' }}</b></div>
+          <div><small>Última publicación</small><b>{{ detalle.fechaPublicacion || 'sin publicaciones' }}</b></div>
+          <div><small>Días sin publicar</small><b>{{ detalle.diasSinPublicar === null ? '—' : detalle.diasSinPublicar }}</b></div>
+          <div><small>Estado</small><b>{{ detalle.estadoMp }}</b></div>
+        </div>
+        <div class="cs-det-coment" *ngIf="detalle.comentario">
+          <small>Comentario</small><p>{{ detalle.comentario }}</p>
+        </div>
+      </div>
+
       <div class="cs-det-foot">
         <button class="cs-btn-cerrar" (click)="detalleVisible = false">Cerrar</button>
       </div>
@@ -111,17 +152,17 @@
 </dx-popup>
 
 <!-- ══ Popup: todos los controles de un día ══ -->
-<dx-popup [(visible)]="diaVisible" [width]="460" [height]="'auto'" [maxHeight]="'82vh'" [maxWidth]="'94vw'"
+<dx-popup [(visible)]="diaVisible" [width]="480" [height]="'auto'" [maxHeight]="'82vh'" [maxWidth]="'94vw'"
   [showTitle]="true" [title]="diaTitulo" [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-dia-popup">
   <div *dxTemplate="let d of 'content'">
     <div class="cs-dia-list">
-      <div class="cs-dia-item" *ngFor="let c of diaCitas" [ngClass]="resultadoClase(c.resultado)" (click)="verDesdeDia(c)">
-        <div class="cs-dia-dot"></div>
+      <div class="cs-dia-item" *ngFor="let c of diaCitas" [ngClass]="claseColor(c.color)" (click)="verDesdeDia(c)">
         <div class="cs-dia-info">
           <div class="cs-dia-top"><b>{{ c.asesor || '—' }}</b><span>{{ horaDe(c.startDate) }}</span></div>
-          <div class="cs-dia-sub">DNI {{ c.dni }} · {{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
+          <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">Gestión · DNI {{ c.dni }} · {{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
+          <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE'">🛒 Market Place · última pub. {{ c.fechaPublicacion || '—' }}</div>
         </div>
-        <span class="cs-dia-res">{{ c.resultado }}</span>
+        <span class="cs-dia-res">{{ c.tipo === 'MARKET_PLACE' ? c.estadoMp : c.resultado }}</span>
       </div>
     </div>
   </div>

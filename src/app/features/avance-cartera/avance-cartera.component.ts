@@ -266,18 +266,36 @@ export class AvanceCarteraComponent implements OnInit {
       };
     });
 
-    this.clientes = clientes;
-    this.calcularGlobales(clientes);
+    // Deduplicar por DNI (un cliente cuenta una sola vez, igual que Embudos).
+    const unicos = this.dedupPorDni(clientes);
+    this.clientes = unicos;
+    this.calcularGlobales(unicos);
     if (this.modo === 'piso') {
-      this.construirResumenSedes(clientes);
+      this.construirResumenSedes(unicos);
       this.resumenAsesores = [];
     } else {
-      this.resumenAsesores = this.agregarPorAsesor(clientes);
+      this.resumenAsesores = this.agregarPorAsesor(unicos);
       this.resumenSedes = [];
     }
-    this.construirPorDia(clientes);
+    this.construirPorDia(unicos);
     this.construirDistribucion();
     this.construirProyeccion();
+  }
+
+  /** Deduplica la cartera por DNI (por sede+DNI en modo Piso). Si un DNI repetido
+   *  quedó gestionado en alguna fila, se conserva esa (gana el "gestionado"). Las
+   *  filas sin DNI se mantienen individuales. */
+  private dedupPorDni(clientes: ClienteCartera[]): ClienteCartera[] {
+    const map = new Map<string, ClienteCartera>();
+    const sinDni: ClienteCartera[] = [];
+    for (const c of clientes) {
+      if (!c.dni) { sinDni.push(c); continue; }
+      const key = this.modo === 'piso' ? `${c.sedeKey}|${c.dni}` : c.dni;
+      const prev = map.get(key);
+      if (!prev) map.set(key, c);
+      else if (prev.estado === 'PENDIENTE' && c.estado !== 'PENDIENTE') map.set(key, c);
+    }
+    return [...map.values(), ...sinDni];
   }
 
   /** Gestión Call/Realzza → índice por DNI y por teléfono del mes seleccionado. */

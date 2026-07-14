@@ -8,6 +8,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ExcelExportService } from '../../services/excel/excel.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
+import { SedeConfigService } from '../../services/sede-config.service';
 
 interface FilaCartera {
   dni: string;
@@ -47,6 +49,8 @@ interface ResumenSede {
 export class ComparativoCarteraVentasComponent {
   private ventasSrv = inject(CargaVentasService);
   private excelSrv = inject(ExcelExportService);
+  private cap = inject(CapSedesService);
+  private sedeCfg = inject(SedeConfigService);
   private snack = inject(MatSnackBar);
 
   @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
@@ -69,6 +73,11 @@ export class ComparativoCarteraVentasComponent {
   sedesDisponibles: string[] = [];
   private asignadosPorSede = new Map<string, number>();
   private totalAsignados = 0;
+
+  // Cartera deduplicada (para recontar asignados por CAP) + CAP por sede.
+  private carteraUnica: FilaCartera[] = [];
+  private capPorSede = new Map<string, Set<string>>();   // sedeKey → nombres normalizados activos
+  capAplicado = false;   // true cuando el detalle está filtrado por el CAP de la sede
 
   // KPIs
   kAsignados = 0; kVendidos = 0; kMonto = 0;
@@ -179,6 +188,7 @@ export class ComparativoCarteraVentasComponent {
       // Recorre la cartera (dedup por DNI). Solo los que tienen venta neta quedan.
       const vistos = new Set<string>();
       const convertidos: VentaCartera[] = [];
+      const carteraUnica: FilaCartera[] = [];
       const asignadosPorSede = new Map<string, number>();
       let totalAsignados = 0;
       for (const r of this.cartera) {
@@ -188,6 +198,7 @@ export class ComparativoCarteraVentasComponent {
         totalAsignados++;
         const sede = r.sede || 'SIN SEDE';
         asignadosPorSede.set(sede, (asignadosPorSede.get(sede) || 0) + 1);
+        carteraUnica.push({ dni: r.dni, vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente, sede });
         const hit = idx.get(dni);
         if (!hit) continue;
         convertidos.push({
@@ -201,6 +212,10 @@ export class ComparativoCarteraVentasComponent {
           monto: hit.monto,
         });
       }
+      this.carteraUnica = carteraUnica;
+
+      // CAP por sede: solo asesores ACTIVOS que pertenecen a cada sede.
+      await this.cargarCap();
 
       // Ventas de cartera agrupadas por sede (para el resumen / avance).
       const vendidosPorSede = new Map<string, { vendidos: number; monto: number }>();
@@ -233,15 +248,53 @@ export class ComparativoCarteraVentasComponent {
     }
   }
 
-  // Filtra la vista (y los KPIs) por la sede elegida en el selector.
+  // Construye el mapa CAP: sedeKey → nombres normalizados de asesores ACTIVOS.
+  private async cargarCap(): Promise<void> {
+    try {
+      const rows = await this.cap.cargar();
+      const map = new Map<string, Set<string>>();
+      for (const r of rows) {
+        if (r.estado !== 'ACTIVO') continue;
+        if (!map.has(r.sedeKey)) map.set(r.sedeKey, new Set());
+        map.get(r.sedeKey)!.add(this.normNombre(r.vendedor));
+      }
+      this.capPorSede = map;
+    } catch {
+      this.capPorSede = new Map();   // sin CAP → no se filtra (fallback)
+    }
+  }
+
+  private normNombre(v: any): string {
+    return (v ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // Filtra la vista (y los KPIs) por la sede elegida. En el detalle de una sede,
+  // solo se muestran los asesores que pertenecen a esa sede según el CAP.
   aplicarSede(): void {
     const sede = (this.form.value.sede || '').toString();
-    const vista = sede ? this.convertidosAll.filter(c => c.sede === sede) : this.convertidosAll;
+    this.capAplicado = false;
+
+    if (!sede) {
+      this.ventasCartera = this.convertidosAll;
+      this.kAsignados = this.totalAsignados;
+      this.kVendidos = this.ventasCartera.length;
+      this.kMonto = Math.round(this.ventasCartera.reduce((s, c) => s + c.monto, 0));
+      this.todoExpandido = false;
+      return;
+    }
+
+    // CAP de la sede (si no hay, no se filtra por asesor → fallback).
+    const cap = this.capPorSede.get(this.sedeCfg.normalizar(sede));
+    const conCap = !!cap && cap.size > 0;
+    this.capAplicado = conCap;
+    const enCap = (vendedor: string) => !conCap || cap!.has(this.normNombre(vendedor));
+
+    const vista = this.convertidosAll.filter(c => c.sede === sede && enCap(c.vendedor));
     this.ventasCartera = vista;
-    this.kAsignados = sede ? (this.asignadosPorSede.get(sede) || 0) : this.totalAsignados;
+    this.kAsignados = this.carteraUnica.filter(c => c.sede === sede && enCap(c.vendedor)).length;
     this.kVendidos = vista.length;
     this.kMonto = Math.round(vista.reduce((s, c) => s + c.monto, 0));
-    this.todoExpandido = false;   // el grid vuelve a colapsar al cambiar de datos
+    this.todoExpandido = false;
   }
 
   get sedeSeleccionada(): string { return (this.form.value.sede || '').toString(); }

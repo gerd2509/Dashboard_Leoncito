@@ -11,19 +11,26 @@ type Resultado = 'COINCIDE' | 'DISCREPANCIA' | 'SIN GESTIÓN';
 
 interface CitaControl {
   id: number;
+  tipo: 'GESTION' | 'MARKET_PLACE';
+  color: string;          // id del recurso para colorear (resultado o estado MP)
   text: string;
   startDate: Date;
   endDate: Date;
-  resultado: Resultado;
   asesor: string;
-  tipoBase: string;
-  dni: string;
-  celular: string;
-  estadoSup: string;      // estado que puso el supervisor
-  estadoAsesor: string;   // estado en la ÚLTIMA gestión del asesor (o '—')
-  asesorGestion: string;  // asesor que figura en la gestión encontrada
-  fechaGestion: string;   // fecha de la última gestión hallada (o '')
   comentario: string;
+  // Gestión:
+  resultado?: Resultado;
+  tipoBase?: string;
+  dni?: string;
+  celular?: string;
+  estadoSup?: string;      // estado que puso el supervisor
+  estadoAsesor?: string;   // estado en la ÚLTIMA gestión del asesor (o '—')
+  asesorGestion?: string;  // asesor que figura en la gestión encontrada
+  fechaGestion?: string;   // fecha de la última gestión hallada (o '')
+  // Market Place:
+  estadoMp?: string;       // AL DÍA / DESACTUALIZADO / ACTUALIZADO
+  fechaPublicacion?: string;
+  diasSinPublicar?: number | null;
 }
 
 @Component({
@@ -49,14 +56,22 @@ export class ControlSupervisorComponent implements OnInit {
   vistaActual: 'day' | 'week' | 'month' = 'month';
   setVista(v: 'day' | 'week' | 'month'): void { this.vistaActual = v; }
 
-  // KPIs
+  // KPIs de gestión.
   kTotal = 0; kCoincide = 0; kDiscrepancia = 0; kSinGestion = 0;
+  // KPIs de market place.
+  kMpTotal = 0; kAlDia = 0; kDesactualizado = 0; kActualizado = 0;
 
-  // Recursos de color por resultado del cruce.
-  readonly recursosResultado = [
-    { id: 'COINCIDE',      text: 'Coincide',                  color: '#2E7D32' },
-    { id: 'DISCREPANCIA',  text: 'Discrepancia',              color: '#c62828' },
-    { id: 'SIN GESTIÓN',   text: 'Sin gestión del asesor',    color: '#78909c' },
+  // Vista: qué controles mostrar en el calendario.
+  vista: 'TODO' | 'GESTION' | 'MARKET_PLACE' = 'TODO';
+
+  // Recursos de color: gestión (resultado del cruce) + market place (estado).
+  readonly recursosColor = [
+    { id: 'COINCIDE',      text: 'Coincide',               color: '#2E7D32' },
+    { id: 'DISCREPANCIA',  text: 'Discrepancia',           color: '#c62828' },
+    { id: 'SIN GESTIÓN',   text: 'Sin gestión del asesor', color: '#78909c' },
+    { id: 'AL DÍA',        text: 'MP al día',              color: '#1565C0' },
+    { id: 'DESACTUALIZADO',text: 'MP desactualizado',      color: '#E65100' },
+    { id: 'ACTUALIZADO',   text: 'MP actualizado',         color: '#6A1B9A' },
   ];
 
   constructor(private fb: UntypedFormBuilder) {
@@ -67,6 +82,11 @@ export class ControlSupervisorComponent implements OnInit {
       fechaFin: [hoy],
       asesor: [''],
     });
+  }
+
+  setVistaTipo(v: 'TODO' | 'GESTION' | 'MARKET_PLACE'): void {
+    this.vista = v;
+    this.aplicarFiltroAsesor();
   }
 
   async ngOnInit(): Promise<void> {
@@ -115,7 +135,9 @@ export class ControlSupervisorComponent implements OnInit {
         idxDni.set(dni, arr);
       });
 
-      this.citas = (controles || []).map(c => this.armarCita(c, idxDni)).filter((c): c is CitaControl => c !== null);
+      this.citas = (controles || [])
+        .map(c => (c.tipo_control === 'MARKET_PLACE' ? this.armarCitaMp(c) : this.armarCita(c, idxDni)))
+        .filter((c): c is CitaControl => c !== null);
       this.asesoresDisponibles = Array.from(new Set(this.citas.map(c => c.asesor).filter(Boolean))).sort();
       this.aplicarFiltroAsesor();
     } catch (e) {
@@ -171,6 +193,8 @@ export class ControlSupervisorComponent implements OnInit {
 
     return {
       id: c.id,
+      tipo: 'GESTION',
+      color: resultado,
       text: `${c.dni_cliente} · ${estadoSup}`,
       startDate: start,
       endDate: end,
@@ -187,17 +211,49 @@ export class ControlSupervisorComponent implements OnInit {
     };
   }
 
+  // Control de Market Place → cita coloreada por el estado de las publicaciones.
+  private armarCitaMp(c: ControlSupervisor): CitaControl | null {
+    const start = this.parseMarca(c.marca_temporal);
+    if (!start) return null;
+    const end = new Date(start.getTime() + 30 * 60 * 1000);
+    const estadoMp = (c.estado_mp || '').toString().trim().toUpperCase();
+    const fpub = this.parseMarca(c.fecha_publicacion);
+    const dias = fpub ? Math.max(0, Math.floor((start.getTime() - fpub.getTime()) / 86400000)) : null;
+
+    return {
+      id: c.id,
+      tipo: 'MARKET_PLACE',
+      color: estadoMp || 'DESACTUALIZADO',
+      text: `MP · ${estadoMp}`,
+      startDate: start,
+      endDate: end,
+      asesor: (c.asesor || '').toString().trim(),
+      comentario: c.comentario || '',
+      estadoMp,
+      fechaPublicacion: c.fecha_publicacion || '',
+      diasSinPublicar: dias,
+    };
+  }
+
   aplicarFiltroAsesor(): void {
     const asesor = (this.form.value.asesor || '').toString().trim();
-    this.citasFiltradas = asesor ? this.citas.filter(c => c.asesor === asesor) : [...this.citas];
+    this.citasFiltradas = this.citas.filter(c =>
+      (!asesor || c.asesor === asesor) &&
+      (this.vista === 'TODO' || c.tipo === this.vista));
     this.recalcularKpis();
   }
 
   private recalcularKpis(): void {
-    this.kTotal = this.citasFiltradas.length;
-    this.kCoincide = this.citasFiltradas.filter(c => c.resultado === 'COINCIDE').length;
-    this.kDiscrepancia = this.citasFiltradas.filter(c => c.resultado === 'DISCREPANCIA').length;
-    this.kSinGestion = this.citasFiltradas.filter(c => c.resultado === 'SIN GESTIÓN').length;
+    const g = this.citasFiltradas.filter(c => c.tipo === 'GESTION');
+    this.kTotal = g.length;
+    this.kCoincide = g.filter(c => c.resultado === 'COINCIDE').length;
+    this.kDiscrepancia = g.filter(c => c.resultado === 'DISCREPANCIA').length;
+    this.kSinGestion = g.filter(c => c.resultado === 'SIN GESTIÓN').length;
+    const m = this.citasFiltradas.filter(c => c.tipo === 'MARKET_PLACE');
+    this.kMpTotal = m.length;
+    this.kAlDia = m.filter(c => c.estadoMp === 'AL DÍA').length;
+    this.kDesactualizado = m.filter(c => c.estadoMp === 'DESACTUALIZADO').length;
+    this.kActualizado = m.filter(c => c.estadoMp === 'ACTUALIZADO').length;
   }
 
   // ── Popups de detalle (reemplazan el formulario feo por defecto) ─────────────
@@ -251,10 +307,22 @@ export class ControlSupervisorComponent implements OnInit {
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
     return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]} ${d.getFullYear()}`;
   }
-  resultadoClase(r: string): string {
-    return r === 'COINCIDE' ? 'ok' : r === 'DISCREPANCIA' ? 'bad' : 'none';
+  // Clase CSS por color/estado (gestión y market place).
+  claseColor(id: string): string {
+    switch (id) {
+      case 'COINCIDE': return 'ok';
+      case 'DISCREPANCIA': return 'bad';
+      case 'SIN GESTIÓN': return 'none';
+      case 'AL DÍA': return 'mp-ok';
+      case 'DESACTUALIZADO': return 'mp-bad';
+      case 'ACTUALIZADO': return 'mp-upd';
+      default: return 'none';
+    }
   }
   horaDe(d: Date): string {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+  mpCorto(estado: string): string {
+    return estado === 'AL DÍA' ? 'OK' : estado === 'ACTUALIZADO' ? 'ACT' : estado === 'DESACTUALIZADO' ? 'DESACT' : '';
   }
 }

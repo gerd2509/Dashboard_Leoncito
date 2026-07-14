@@ -30,11 +30,84 @@
 .rs-head h2 { margin: 0; font-size: 19px; color: #1E3A5F; font-weight: 800; }
 .rs-head p  { margin: 2px 0 0; font-size: 13px; color: #6b7a90; }
 
+/* Pestañas Gestión / Market Place */
+.rs-tabs {
+  display: flex;
+  gap: 8px;
+  background: #eef2f8;
+  padding: 4px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.rs-tabs button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  background: transparent;
+  color: #5b6b86;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.rs-tabs button mat-icon { font-size: 20px; height: 20px; width: 20px; }
+.rs-tabs button.active {
+  background: #293964;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(41, 57, 100, .25);
+}
+
 .rs-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px 18px;
 }
+
+/* Aviso de la regla de 4 días */
+.rs-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #eef5fc;
+  color: #1a5fad;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.rs-hint mat-icon { font-size: 19px; height: 19px; width: 19px; flex-shrink: 0; margin-top: 1px; }
+
+.rs-checks { padding-top: 2px; }
+
+/* Estado calculado de Market Place */
+.rs-estado {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #f1f4f8;
+}
+.rs-estado-badge {
+  font-weight: 800;
+  font-size: 14px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: #607d8b;
+}
+.rs-estado-dias { font-size: 12.5px; color: #566; }
+.rs-estado.ok  { background: #eafaf0; }
+.rs-estado.ok  .rs-estado-badge { background: #2E7D32; }
+.rs-estado.bad { background: #fdecec; }
+.rs-estado.bad .rs-estado-badge { background: #c62828; }
+.rs-estado.upd { background: #f3ecfb; }
+.rs-estado.upd .rs-estado-badge { background: #6A1B9A; }
+.rs-estado.none { color: #8a97ab; font-size: 13px; }
 .rs-full { grid-column: 1 / -1; }
 
 .rs-field { display: flex; flex-direction: column; gap: 6px; }

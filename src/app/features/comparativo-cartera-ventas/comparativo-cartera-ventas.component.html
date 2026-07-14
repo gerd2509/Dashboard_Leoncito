@@ -113,7 +113,9 @@
     <div class="cc-detail-head" *ngIf="yaCruzado && !mostrarResumen">
       <button class="cc-btn cc-btn-ghost" *ngIf="sedeSeleccionada" (click)="volverAResumen()"><mat-icon>arrow_back</mat-icon> Sedes</button>
       <h3><mat-icon>store</mat-icon>{{ sedeSeleccionada || 'Todas las sedes' }}</h3>
-      <span class="cc-detail-sub">Ventas de cartera por asesor asignado</span>
+      <span class="cc-detail-sub">
+        Ventas de cartera por asesor asignado<ng-container *ngIf="capAplicado"> · solo asesores del CAP de la sede</ng-container>
+      </span>
       <button class="cc-btn cc-btn-ghost cc-btn-exp" *ngIf="ventasCartera.length" (click)="toggleExpandir()">
         <mat-icon>{{ todoExpandido ? 'unfold_less' : 'unfold_more' }}</mat-icon>
         {{ todoExpandido ? 'Colapsar todo' : 'Expandir todo' }}

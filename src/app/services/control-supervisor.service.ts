@@ -3,14 +3,19 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
-/** Lo que el supervisor registra al controlar una gestión del asesor. */
+/** Lo que el supervisor registra: control de GESTIÓN o de MARKET_PLACE. */
 export interface ControlSupervisorPayload {
   registrado_por?: string;
+  tipo_control?: 'GESTION' | 'MARKET_PLACE';
   asesor: string;
   tipo_base?: string;
-  dni_cliente: string;
+  // Gestión (contacto/no contacto de un cliente):
+  dni_cliente?: string;
   celular?: string;
-  estado_gestion: string;   // CONTACTO / NO CONTACTO
+  estado_gestion?: string;    // CONTACTO / NO CONTACTO
+  // Market Place (revisión de publicaciones del vendedor):
+  fecha_publicacion?: string; // última publicación vista (d/m/yyyy)
+  estado_mp?: string;         // AL DÍA / DESACTUALIZADO / ACTUALIZADO
   comentario?: string;
 }
 
