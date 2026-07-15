@@ -108,6 +108,38 @@
 .rs-estado.upd { background: #f3ecfb; }
 .rs-estado.upd .rs-estado-badge { background: #6A1B9A; }
 .rs-estado.none { color: #8a97ab; font-size: 13px; }
+
+/* Fotos / pruebas */
+.rs-fotos-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+/* Prefijo .rs-fotos-btns para ganar a la regla global ".rs-field label". */
+.rs-fotos-btns .rs-foto-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #293964; color: #ffffff; border: none;
+  padding: 10px 16px; border-radius: 9px;
+  font-size: 13.5px; font-weight: 700; cursor: pointer;
+  transition: filter .15s;
+}
+.rs-fotos-btns .rs-foto-btn:hover { filter: brightness(1.1); }
+.rs-fotos-btns .rs-foto-btn.ghost { background: #e4ebf6; color: #1E3A5F; }
+.rs-fotos-btns .rs-foto-btn mat-icon { font-size: 19px; height: 19px; width: 19px; color: inherit; }
+.rs-fotos-info { font-size: 12.5px; color: #6b7a90; font-weight: 600; }
+.rs-fotos-warn { color: #c62828; }
+
+.rs-fotos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.rs-foto { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(30,45,80,.14); }
+.rs-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rs-foto-x {
+  position: absolute; top: 4px; right: 4px;
+  width: 24px; height: 24px; border: none; border-radius: 50%;
+  background: rgba(0,0,0,.6); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.rs-foto-x mat-icon { font-size: 16px; height: 16px; width: 16px; }
 .rs-full { grid-column: 1 / -1; }
 
 .rs-field { display: flex; flex-direction: column; gap: 6px; }

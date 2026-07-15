@@ -234,6 +234,43 @@
   margin: 3px 0 0; font-size: 14px; color: #33445f;
   background: #f4f7fc; padding: 8px 10px; border-radius: 8px;
 }
+/* Fotos en el detalle */
+.cs-det-fotos { margin-top: 12px; }
+.cs-det-fotos small { font-size: 11px; color: #8a97ab; text-transform: uppercase; letter-spacing: .3px; }
+.cs-det-fotos-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  gap: 8px; margin-top: 6px;
+}
+.cs-det-fotos-grid img {
+  width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px;
+  cursor: pointer; box-shadow: 0 2px 6px rgba(30,45,80,.14); transition: transform .1s;
+}
+.cs-det-fotos-grid img:hover { transform: scale(1.04); }
+
+/* Tag de foto en la lista del día */
+.cs-dia-foto-tag {
+  display: inline-flex; align-items: center; gap: 2px;
+  margin-left: 6px; color: #6A1B9A; font-weight: 800; font-size: 11px;
+}
+.cs-dia-foto-tag mat-icon { font-size: 14px; height: 14px; width: 14px; }
+
+/* Visor de foto a pantalla completa */
+.cs-foto-visor {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(0,0,0,.88);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.cs-foto-visor img { max-width: 96vw; max-height: 92vh; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.6); }
+.cs-foto-visor-x {
+  position: fixed; top: 18px; right: 18px;
+  width: 42px; height: 42px; border: none; border-radius: 50%;
+  background: rgba(255,255,255,.16); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.cs-foto-visor-x:hover { background: rgba(255,255,255,.3); }
+.cs-foto-visor-x mat-icon { font-size: 24px; height: 24px; width: 24px; }
+
 .cs-det-foot { padding: 4px 16px 16px; display: flex; justify-content: flex-end; }
 .cs-btn-cerrar {
   background: #c62828; color: #fff; border: none; border-radius: 9px;
@@ -242,6 +279,28 @@
 .cs-btn-cerrar:hover { background: #a91f1f; }
 
 /* ── Popup: día completo ── */
+.cs-dia-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -4px -4px 14px;
+  padding: 12px 14px;
+  background: #293964;
+  border-radius: 10px;
+}
+.cs-dia-head-fecha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+}
+.cs-dia-head-fecha mat-icon { font-size: 20px; height: 20px; width: 20px; }
+.cs-x-dark { background: rgba(255, 255, 255, .18); }
+.cs-x-dark:hover { background: rgba(255, 255, 255, .3); }
+
 .cs-dia-resumen { display: flex; flex-wrap: wrap; gap: 8px; padding: 2px 2px 12px; }
 .cs-dia-chip {
   display: inline-flex; align-items: center; gap: 5px;

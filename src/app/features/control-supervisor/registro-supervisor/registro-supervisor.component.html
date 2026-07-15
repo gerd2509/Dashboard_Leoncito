@@ -99,6 +99,33 @@
         <dx-text-area [(value)]="mp.comentario" [height]="80"
           placeholder="Observación de la revisión (opcional)" stylingMode="outlined"></dx-text-area>
       </div>
+
+      <!-- Fotos / pruebas -->
+      <div class="rs-field rs-full">
+        <label>Fotos de la publicación (pruebas)</label>
+        <div class="rs-fotos-btns">
+          <label class="rs-foto-btn">
+            <input type="file" accept="image/*" capture="environment" (change)="onFotosSeleccionadas($event)" hidden />
+            <mat-icon>photo_camera</mat-icon> Tomar foto
+          </label>
+          <label class="rs-foto-btn ghost">
+            <input type="file" accept="image/*" multiple (change)="onFotosSeleccionadas($event)" hidden />
+            <mat-icon>add_photo_alternate</mat-icon> Subir foto(s)
+          </label>
+          <span class="rs-fotos-info" *ngIf="mp.fotos.length">
+            {{ mp.fotos.length }} foto(s) · {{ fotosMb }} MB
+            <span class="rs-fotos-warn" *ngIf="fotosMb > MAX_FOTOS_MB"> · supera {{ MAX_FOTOS_MB }} MB</span>
+          </span>
+          <span class="rs-fotos-info" *ngIf="procesandoFotos">procesando…</span>
+        </div>
+
+        <div class="rs-fotos-grid" *ngIf="mp.fotos.length">
+          <div class="rs-foto" *ngFor="let f of mp.fotos; let i = index">
+            <img [src]="f" alt="prueba" />
+            <button class="rs-foto-x" (click)="quitarFoto(i)"><mat-icon>close</mat-icon></button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <button class="rs-btn" (click)="registrar()" [disabled]="guardando || !formValido">

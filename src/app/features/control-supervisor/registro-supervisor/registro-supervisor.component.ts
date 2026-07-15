@@ -50,9 +50,13 @@ export class RegistroSupervisorComponent {
   g = { asesor: '', tipo_base: '', dni_cliente: '', celular: '', estado_gestion: '', comentario: '' };
 
   // Modelo de control de MARKET PLACE.
-  mp: { asesor: string; fechaPub: Date | null; sinPub: boolean; sePublico: boolean; comentario: string } = {
-    asesor: '', fechaPub: null, sinPub: false, sePublico: false, comentario: '',
+  mp: { asesor: string; fechaPub: Date | null; sinPub: boolean; sePublico: boolean; comentario: string; fotos: string[] } = {
+    asesor: '', fechaPub: null, sinPub: false, sePublico: false, comentario: '', fotos: [],
   };
+
+  // Tamaño máximo total de las fotos (aprox., para no exceder el límite del backend).
+  readonly MAX_FOTOS_MB = 9;
+  procesandoFotos = false;
 
   get supervisor(): string { return this.auth.getUsuario()?.nombre ?? ''; }
 
@@ -83,6 +87,63 @@ export class RegistroSupervisorComponent {
   // El check "se le hizo publicar" solo aplica cuando está fuera de rango.
   get fueraDeRango(): boolean { const d = this.diasSinPublicar; return d !== null && d > this.margenMp; }
 
+  // ── Fotos (pruebas) ──────────────────────────────────────────────────────────
+  // Tamaño aproximado (MB) de todas las fotos ya comprimidas.
+  get fotosMb(): number {
+    const bytes = this.mp.fotos.reduce((s, d) => s + d.length * 0.75, 0);
+    return Math.round((bytes / (1024 * 1024)) * 10) / 10;
+  }
+
+  async onFotosSeleccionadas(event: any): Promise<void> {
+    const files: FileList = event.target?.files;
+    if (!files || !files.length) return;
+    this.procesandoFotos = true;
+    for (const f of Array.from(files)) {
+      if (!f.type.startsWith('image/')) { this.toast(`"${f.name}" no es una imagen.`, true); continue; }
+      try {
+        const dataUri = await this.comprimirImagen(f);
+        this.mp.fotos.push(dataUri);
+      } catch {
+        this.toast(`No se pudo procesar "${f.name}".`, true);
+      }
+    }
+    this.procesandoFotos = false;
+    if (this.fotosMb > this.MAX_FOTOS_MB) {
+      this.toast(`Las fotos superan ${this.MAX_FOTOS_MB} MB (llevas ${this.fotosMb} MB). Quita algunas antes de registrar.`, true);
+    }
+    if (event.target) event.target.value = '';
+  }
+
+  quitarFoto(i: number): void { this.mp.fotos.splice(i, 1); }
+
+  // Redimensiona a máx 1000px y comprime a JPEG (~0.6) → data-URI base64.
+  private comprimirImagen(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject();
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject();
+        img.onload = () => {
+          const MAX = 1000;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width >= height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) { reject(); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
+        };
+        img.src = reader.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   private get errores(): string[] {
     const e: string[] = [];
     if (this.tipo === 'GESTION') {
@@ -101,6 +162,10 @@ export class RegistroSupervisorComponent {
   registrar(): void {
     const errs = this.errores;
     if (errs.length) { this.toast(errs[0], true); return; }
+    if (this.tipo === 'MARKET_PLACE' && this.fotosMb > this.MAX_FOTOS_MB) {
+      this.toast(`Las fotos pesan ${this.fotosMb} MB (máx ${this.MAX_FOTOS_MB} MB). Quita algunas.`, true);
+      return;
+    }
     this.guardando = true;
 
     let payload: ControlSupervisorPayload;
@@ -114,6 +179,7 @@ export class RegistroSupervisorComponent {
         fecha_publicacion: this.mp.sinPub ? '' : this.fechaDMY(this.mp.fechaPub),
         estado_mp: this.estadoMp,
         comentario: this.mp.comentario,
+        fotos: this.mp.fotos,
       };
     }
 
@@ -134,7 +200,7 @@ export class RegistroSupervisorComponent {
     if (this.tipo === 'GESTION') {
       this.g = { asesor: this.g.asesor, tipo_base: this.g.tipo_base, dni_cliente: '', celular: '', estado_gestion: '', comentario: '' };
     } else {
-      this.mp = { asesor: this.mp.asesor, fechaPub: null, sinPub: false, sePublico: false, comentario: '' };
+      this.mp = { asesor: this.mp.asesor, fechaPub: null, sinPub: false, sePublico: false, comentario: '', fotos: [] };
     }
   }
 

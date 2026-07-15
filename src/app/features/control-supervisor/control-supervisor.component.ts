@@ -34,6 +34,7 @@ interface CitaControl {
   estadoMp?: string;       // AL DÍA / DESACTUALIZADO / ACTUALIZADO
   fechaPublicacion?: string;
   diasSinPublicar?: number | null;
+  fotos?: string[];        // pruebas (imágenes base64)
 }
 
 @Component({
@@ -293,6 +294,7 @@ export class ControlSupervisorComponent implements OnInit {
       estadoMp,
       fechaPublicacion: c.fecha_publicacion || '',
       diasSinPublicar: dias,
+      fotos: Array.isArray(c.fotos) ? c.fotos : [],
     };
   }
 
@@ -324,6 +326,7 @@ export class ControlSupervisorComponent implements OnInit {
   diaVisible = false;
   diaTitulo = '';
   diaCitas: CitaControl[] = [];
+  fotoAmpliada: string | null = null;   // visor de foto a pantalla completa
   diaGrupos: { asesor: string; citas: CitaControl[]; total: number; discrepancias: number; obs: number }[] = [];
   private asesorExpandido = new Set<string>();
   private detalleDesdeDia = false;   // true si el detalle se abrió desde la lista del día
@@ -394,6 +397,7 @@ export class ControlSupervisorComponent implements OnInit {
 
   // ¿La cita tiene alguna observación (celular o tipo distinto)?
   tieneAviso(c: CitaControl): boolean { return !!(c.avisoTipo || c.avisoCelular); }
+  tieneFotos(c: CitaControl): boolean { return !!(c.fotos && c.fotos.length); }
   avisoTexto(c: CitaControl): string { return [c.avisoTipo, c.avisoCelular].filter(Boolean).join(' · '); }
   get diaObs(): number { return this.diaCitas.filter(c => this.tieneAviso(c)).length; }
   get diaDiscrepancias(): number { return this.diaCitas.filter(c => c.resultado === 'DISCREPANCIA').length; }

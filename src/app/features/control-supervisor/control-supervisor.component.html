@@ -152,6 +152,12 @@
         <div class="cs-det-coment" *ngIf="detalle.comentario">
           <small>Comentario</small><p>{{ detalle.comentario }}</p>
         </div>
+        <div class="cs-det-fotos" *ngIf="detalle.fotos?.length">
+          <small>Pruebas ({{ detalle.fotos!.length }})</small>
+          <div class="cs-det-fotos-grid">
+            <img *ngFor="let f of detalle.fotos" [src]="f" alt="prueba" (click)="fotoAmpliada = f" />
+          </div>
+        </div>
       </div>
 
       <div class="cs-det-foot">
@@ -163,8 +169,14 @@
 
 <!-- ══ Popup: todos los controles de un día ══ -->
 <dx-popup [(visible)]="diaVisible" [width]="620" [height]="'auto'" [maxHeight]="'84vh'" [maxWidth]="'96vw'"
-  [showTitle]="true" [title]="diaTitulo" [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-dia-popup">
+  [showTitle]="false" [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-dia-popup">
   <div *dxTemplate="let d of 'content'">
+    <!-- Encabezado propio (evita el título nativo que se corta en la 1ª apertura) -->
+    <div class="cs-dia-head">
+      <span class="cs-dia-head-fecha"><mat-icon>event</mat-icon>{{ diaTitulo }}</span>
+      <button class="cs-x cs-x-dark" (click)="diaVisible = false"><mat-icon>close</mat-icon></button>
+    </div>
+
     <!-- Resumen del día -->
     <div class="cs-dia-resumen">
       <span class="cs-dia-chip total">{{ diaCitas.length }} registros · {{ diaGrupos.length }} asesor(es)</span>
@@ -196,7 +208,10 @@
                 <span class="cs-dia-hora">{{ horaDe(c.startDate) }}</span>
               </div>
               <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">{{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
-              <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE'">última pub. {{ c.fechaPublicacion || '—' }}</div>
+              <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE'">
+                última pub. {{ c.fechaPublicacion || '—' }}
+                <span class="cs-dia-foto-tag" *ngIf="tieneFotos(c)"><mat-icon>photo_camera</mat-icon>{{ c.fotos!.length }}</span>
+              </div>
               <div class="cs-dia-obs" *ngIf="tieneAviso(c)">
                 <mat-icon>warning</mat-icon> {{ avisoTexto(c) }}
               </div>
@@ -211,3 +226,9 @@
     </div>
   </div>
 </dx-popup>
+
+<!-- ══ Visor de foto a pantalla completa ══ -->
+<div class="cs-foto-visor" *ngIf="fotoAmpliada" (click)="fotoAmpliada = null">
+  <button class="cs-foto-visor-x"><mat-icon>close</mat-icon></button>
+  <img [src]="fotoAmpliada" alt="prueba" (click)="$event.stopPropagation()" />
+</div>

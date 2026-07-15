@@ -17,6 +17,7 @@ export interface ControlSupervisorPayload {
   fecha_publicacion?: string; // última publicación vista (d/m/yyyy)
   estado_mp?: string;         // AL DÍA / DESACTUALIZADO / ACTUALIZADO
   comentario?: string;
+  fotos?: string[];           // pruebas (imágenes base64 data-URI)
 }
 
 /** Fila devuelta por la BD (incluye id + marca temporal d/m/yyyy H:mm:ss). */
