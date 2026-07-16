@@ -39,7 +39,7 @@ export class RegistroSupervisorComponent {
 
   readonly asesores = ASESORES_REALZZA;
   // En Gestión solo aplican estos tipos de base.
-  readonly tiposBase = ['BBDD', 'KOMMO', 'BBDD KOMMO'];
+  readonly tiposBase = ['BBDD', 'KOMMO', 'BBDD KOMMO', "MARKET PLACE"];
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
   readonly estadosLead = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE', 'OTRO'];
 
