@@ -22,7 +22,7 @@
 
 <div class="cs-kpis-wrap">
   <div class="cs-kpis" *ngIf="vista !== 'MARKET_PLACE'">
-    <div class="kpi kpi-total"><span>{{ kTotal }}</span><small>Supervisados</small></div>
+    <div class="kpi kpi-total"><span>{{ citasFiltradas.length }}</span><small>Supervisados</small></div>
     <div class="kpi kpi-ok"><span>{{ kCoincide }}</span><small>Coinciden</small></div>
     <div class="kpi kpi-bad"><span>{{ kDiscrepancia }}</span><small>Discrepancias</small></div>
     <div class="kpi kpi-none"><span>{{ kSinGestion }}</span><small>Sin gestión</small></div>
@@ -88,8 +88,8 @@
     <div *dxTemplate="let model of 'appt'">
       <div class="cs-appt">
         <ng-container *ngIf="model.appointmentData.tipo === 'MARKET_PLACE'; else gest">
-          <span class="cs-appt-dni">🛒 {{ model.appointmentData.asesor }}</span>
-          <span class="cs-appt-est">{{ mpCorto(model.appointmentData.estadoMp) }}</span>
+          <span class="cs-appt-dni">{{ esKommoPlataforma(model.appointmentData) ? '🌐' : '🛒' }} {{ model.appointmentData.asesor }}</span>
+          <span class="cs-appt-est">{{ esKommoPlataforma(model.appointmentData) ? 'KP' : mpCorto(model.appointmentData.estadoMp) }}</span>
         </ng-container>
         <ng-template #gest>
           <span class="cs-appt-dni">{{ model.appointmentData.dni }}</span>
@@ -107,7 +107,7 @@
   <div *dxTemplate="let d of 'content'">
     <div class="cs-det" *ngIf="detalle">
       <div class="cs-det-head" [ngClass]="claseColor(detalle.color)">
-        <span class="cs-det-badge">{{ detalle.tipo === 'MARKET_PLACE' ? ('🛒 ' + detalle.estadoMp) : detalle.resultado }}</span>
+        <span class="cs-det-badge">{{ badgeDe(detalle) }}</span>
         <button class="cs-x" (click)="detalleVisible = false"><mat-icon>close</mat-icon></button>
       </div>
 
@@ -140,15 +140,26 @@
         </div>
       </div>
 
-      <!-- Detalle MARKET PLACE -->
+      <!-- Detalle MARKET PLACE / KOMMO PLATAFORMA -->
       <div class="cs-det-body" *ngIf="detalle.tipo === 'MARKET_PLACE'">
         <div class="cs-det-asesor"><mat-icon>storefront</mat-icon>{{ detalle.asesor || '—' }}</div>
-        <div class="cs-det-grid">
+
+        <!-- Market Place -->
+        <div class="cs-det-grid" *ngIf="detalle.mpSubtipo !== 'KOMMO PLATAFORMA'">
           <div><small>Revisado el</small><b>{{ detalle.startDate | date:'dd/MM/yyyy HH:mm' }}</b></div>
           <div><small>Última publicación</small><b>{{ detalle.fechaPublicacion || 'sin publicaciones' }}</b></div>
           <div><small>Días sin publicar</small><b>{{ detalle.diasSinPublicar === null ? '—' : detalle.diasSinPublicar }}</b></div>
           <div><small>Estado</small><b>{{ detalle.estadoMp }}</b></div>
         </div>
+
+        <!-- Kommo Plataforma -->
+        <div class="cs-det-grid" *ngIf="detalle.mpSubtipo === 'KOMMO PLATAFORMA'">
+          <div><small>Tipo</small><b>Kommo Plataforma</b></div>
+          <div><small>Revisado el</small><b>{{ detalle.startDate | date:'dd/MM/yyyy HH:mm' }}</b></div>
+          <div><small>Cliente</small><b>{{ detalle.cliente || '—' }}</b></div>
+          <div><small>Estado del lead</small><b>{{ detalle.estadoLead }}</b></div>
+        </div>
+
         <div class="cs-det-coment" *ngIf="detalle.comentario">
           <small>Comentario</small><p>{{ detalle.comentario }}</p>
         </div>
@@ -177,14 +188,18 @@
       <button class="cs-x cs-x-dark" (click)="diaVisible = false"><mat-icon>close</mat-icon></button>
     </div>
 
-    <!-- Resumen del día -->
+    <!-- Resumen del día + cuota -->
     <div class="cs-dia-resumen">
       <span class="cs-dia-chip total">{{ diaCitas.length }} registros · {{ diaGrupos.length }} asesor(es)</span>
       <span class="cs-dia-chip bad" *ngIf="diaDiscrepancias > 0">{{ diaDiscrepancias }} discrepancia(s)</span>
       <span class="cs-dia-chip obs" *ngIf="diaObs > 0"><mat-icon>warning</mat-icon> {{ diaObs }} con observación</span>
+      <span class="cs-dia-meta" [ngClass]="claseMetaDia">
+        <mat-icon>{{ diaCitas.length >= metaDia ? 'check_circle' : 'flag' }}</mat-icon>
+        {{ diaCitas.length }} / {{ metaDia }} cuota
+      </span>
     </div>
 
-    <!-- Agrupado por asesor -->
+    <!-- Agrupado por asesor → tipo de base -->
     <div class="cs-dia-grupos">
       <div class="cs-dia-grupo" *ngFor="let g of diaGrupos">
         <div class="cs-dia-asesor" [class.con-obs]="g.obs > 0 || g.discrepancias > 0" (click)="toggleAsesor(g.asesor)">
@@ -198,27 +213,47 @@
           </span>
         </div>
 
-        <div class="cs-dia-items" *ngIf="estaExpandido(g.asesor)">
-          <div class="cs-dia-item" *ngFor="let c of g.citas" [ngClass]="claseColor(c.color)"
-               [class.con-obs]="tieneAviso(c)" (click)="verDesdeDia(c)">
-            <div class="cs-dia-info">
-              <div class="cs-dia-top">
-                <b *ngIf="c.tipo === 'GESTION'">DNI {{ c.dni }}</b>
-                <b *ngIf="c.tipo === 'MARKET_PLACE'"><mat-icon class="inl">storefront</mat-icon> Market Place</b>
-                <span class="cs-dia-hora">{{ horaDe(c.startDate) }}</span>
-              </div>
-              <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">{{ c.estadoSup }} · {{ c.tipoBase || '—' }}</div>
-              <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE'">
-                última pub. {{ c.fechaPublicacion || '—' }}
-                <span class="cs-dia-foto-tag" *ngIf="tieneFotos(c)"><mat-icon>photo_camera</mat-icon>{{ c.fotos!.length }}</span>
-              </div>
-              <div class="cs-dia-obs" *ngIf="tieneAviso(c)">
-                <mat-icon>warning</mat-icon> {{ avisoTexto(c) }}
-              </div>
+        <!-- Sub-desplegable por tipo de base -->
+        <div class="cs-dia-tipos" *ngIf="estaExpandido(g.asesor)">
+          <div class="cs-dia-tipo" *ngFor="let t of g.tipos">
+            <div class="cs-dia-tipo-head" (click)="toggleTipo(keyTipo(g.asesor, t.tipoBase))">
+              <mat-icon class="cs-dia-exp2">{{ estaTipoExpandido(keyTipo(g.asesor, t.tipoBase)) ? 'expand_less' : 'expand_more' }}</mat-icon>
+              <span class="cs-dia-tipo-nom">{{ t.tipoBase }}</span>
+              <span class="cs-dia-metrics">
+                <span class="m total">{{ t.total }}</span>
+                <span class="m bad" *ngIf="t.discrepancias > 0">{{ t.discrepancias }}</span>
+                <span class="m obs" *ngIf="t.obs > 0"><mat-icon>warning</mat-icon>{{ t.obs }}</span>
+              </span>
             </div>
-            <div class="cs-dia-right">
-              <span class="cs-dia-badge">{{ c.tipo === 'MARKET_PLACE' ? c.estadoMp : c.resultado }}</span>
-              <mat-icon class="cs-dia-flag" *ngIf="tieneAviso(c)">error</mat-icon>
+
+            <div class="cs-dia-items" *ngIf="estaTipoExpandido(keyTipo(g.asesor, t.tipoBase))">
+              <div class="cs-dia-item" *ngFor="let c of t.citas" [ngClass]="claseColor(c.color)"
+                   [class.con-obs]="tieneAviso(c)" (click)="verDesdeDia(c)">
+                <div class="cs-dia-info">
+                  <div class="cs-dia-top">
+                    <b *ngIf="c.tipo === 'GESTION'">DNI {{ c.dni }}</b>
+                    <b *ngIf="c.tipo === 'MARKET_PLACE' && !esKommoPlataforma(c)"><mat-icon class="inl">storefront</mat-icon> Market Place</b>
+                    <b *ngIf="esKommoPlataforma(c)"><mat-icon class="inl">public</mat-icon> {{ c.cliente || 'Kommo Plataforma' }}</b>
+                    <span class="cs-dia-hora">{{ horaDe(c.startDate) }}</span>
+                  </div>
+                  <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">{{ c.estadoSup }}</div>
+                  <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE' && !esKommoPlataforma(c)">
+                    última pub. {{ c.fechaPublicacion || '—' }}
+                    <span class="cs-dia-foto-tag" *ngIf="tieneFotos(c)"><mat-icon>photo_camera</mat-icon>{{ c.fotos!.length }}</span>
+                  </div>
+                  <div class="cs-dia-sub" *ngIf="esKommoPlataforma(c)">
+                    Kommo Plataforma
+                    <span class="cs-dia-foto-tag" *ngIf="tieneFotos(c)"><mat-icon>photo_camera</mat-icon>{{ c.fotos!.length }}</span>
+                  </div>
+                  <div class="cs-dia-obs" *ngIf="tieneAviso(c)">
+                    <mat-icon>warning</mat-icon> {{ avisoTexto(c) }}
+                  </div>
+                </div>
+                <div class="cs-dia-right">
+                  <span class="cs-dia-badge">{{ badgeDe(c) }}</span>
+                  <mat-icon class="cs-dia-flag" *ngIf="tieneAviso(c)">error</mat-icon>
+                </div>
+              </div>
             </div>
           </div>
         </div>

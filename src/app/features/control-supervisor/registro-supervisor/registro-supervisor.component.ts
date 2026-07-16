@@ -38,8 +38,14 @@ export class RegistroSupervisorComponent {
   private snack = inject(MatSnackBar);
 
   readonly asesores = ASESORES_REALZZA;
-  readonly tiposBase = TIPO_BASE;
+  // En Gestión solo aplican estos tipos de base.
+  readonly tiposBase = ['BBDD', 'KOMMO', 'BBDD KOMMO'];
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
+  readonly estadosLead = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE', 'OTRO'];
+
+  // Subtipo dentro de la pestaña Market Place.
+  mpSubtipo: 'MARKET PLACE' | 'KOMMO PLATAFORMA' = 'MARKET PLACE';
+  setMpSubtipo(v: 'MARKET PLACE' | 'KOMMO PLATAFORMA'): void { this.mpSubtipo = v; }
   readonly margenMp = MARGEN_MP_DIAS;
 
   guardando = false;
@@ -49,9 +55,13 @@ export class RegistroSupervisorComponent {
   // Modelo de control de GESTIÓN.
   g = { asesor: '', tipo_base: '', dni_cliente: '', celular: '', estado_gestion: '', comentario: '' };
 
-  // Modelo de control de MARKET PLACE.
-  mp: { asesor: string; fechaPub: Date | null; sinPub: boolean; sePublico: boolean; comentario: string; fotos: string[] } = {
-    asesor: '', fechaPub: null, sinPub: false, sePublico: false, comentario: '', fotos: [],
+  // Modelo de control de MARKET PLACE / KOMMO PLATAFORMA.
+  mp: {
+    asesor: string; fechaPub: Date | null; sinPub: boolean; sePublico: boolean;
+    cliente: string; estadoLead: string; comentario: string; fotos: string[];
+  } = {
+    asesor: '', fechaPub: null, sinPub: false, sePublico: false,
+    cliente: '', estadoLead: '', comentario: '', fotos: [],
   };
 
   // Tamaño máximo total de las fotos (aprox., para no exceder el límite del backend).
@@ -151,6 +161,9 @@ export class RegistroSupervisorComponent {
       if (!/^\d{8}$/.test(this.g.dni_cliente || '')) e.push('El DNI debe tener 8 dígitos.');
       if (this.g.celular && !/^\d{9}$/.test(this.g.celular)) e.push('El celular debe tener 9 dígitos.');
       if (!this.g.estado_gestion) e.push('Selecciona el estado de gestión.');
+    } else if (this.mpSubtipo === 'KOMMO PLATAFORMA') {
+      if (!this.mp.asesor) e.push('Selecciona el asesor.');
+      if (!this.mp.estadoLead) e.push('Selecciona el estado del lead.');
     } else {
       if (!this.mp.asesor) e.push('Selecciona el asesor.');
       if (!this.mp.sinPub && !this.mp.fechaPub) e.push('Indica la fecha de la última publicación (o marca "sin publicaciones").');
@@ -171,9 +184,21 @@ export class RegistroSupervisorComponent {
     let payload: ControlSupervisorPayload;
     if (this.tipo === 'GESTION') {
       payload = { tipo_control: 'GESTION', registrado_por: this.supervisor, ...this.g };
+    } else if (this.mpSubtipo === 'KOMMO PLATAFORMA') {
+      payload = {
+        tipo_control: 'MARKET_PLACE',
+        mp_subtipo: 'KOMMO PLATAFORMA',
+        registrado_por: this.supervisor,
+        asesor: this.mp.asesor,
+        cliente: this.mp.cliente,
+        estado_lead: this.mp.estadoLead,
+        comentario: this.mp.comentario,
+        fotos: this.mp.fotos,
+      };
     } else {
       payload = {
         tipo_control: 'MARKET_PLACE',
+        mp_subtipo: 'MARKET PLACE',
         registrado_por: this.supervisor,
         asesor: this.mp.asesor,
         fecha_publicacion: this.mp.sinPub ? '' : this.fechaDMY(this.mp.fechaPub),
@@ -200,7 +225,7 @@ export class RegistroSupervisorComponent {
     if (this.tipo === 'GESTION') {
       this.g = { asesor: this.g.asesor, tipo_base: this.g.tipo_base, dni_cliente: '', celular: '', estado_gestion: '', comentario: '' };
     } else {
-      this.mp = { asesor: this.mp.asesor, fechaPub: null, sinPub: false, sePublico: false, comentario: '', fotos: [] };
+      this.mp = { asesor: this.mp.asesor, fechaPub: null, sinPub: false, sePublico: false, cliente: '', estadoLead: '', comentario: '', fotos: [] };
     }
   }
 

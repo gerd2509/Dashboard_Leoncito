@@ -51,49 +51,87 @@
       </div>
     </div>
 
-    <!-- ══ MARKET PLACE ══ -->
+    <!-- ══ MARKET PLACE / KOMMO PLATAFORMA ══ -->
     <div class="rs-grid" *ngIf="tipo === 'MARKET_PLACE'">
+      <!-- Selector de subtipo -->
       <div class="rs-field rs-full">
-        <div class="rs-hint">
-          <mat-icon>info</mat-icon>
-          Revisa las publicaciones del vendedor. Margen máximo: <b>{{ margenMp }} días</b>.
-          Si la última publicación tiene más de {{ margenMp }} días o no hay nada nuevo, hazlo publicar.
+        <div class="rs-subtabs">
+          <button [class.active]="mpSubtipo === 'MARKET PLACE'" (click)="setMpSubtipo('MARKET PLACE')">Market Place</button>
+          <button [class.active]="mpSubtipo === 'KOMMO PLATAFORMA'" (click)="setMpSubtipo('KOMMO PLATAFORMA')">Kommo Plataforma</button>
         </div>
       </div>
 
-      <div class="rs-field">
-        <label>Asesor <span class="req">*</span></label>
-        <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor"
-          placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
-      </div>
-
-      <div class="rs-field">
-        <label>Fecha de la última publicación <span class="req" *ngIf="!mp.sinPub">*</span></label>
-        <dx-date-box [(value)]="mp.fechaPub" type="date" displayFormat="dd/MM/yyyy"
-          [disabled]="mp.sinPub" [max]="hoy" placeholder="dd/mm/aaaa" stylingMode="outlined" [openOnFieldClick]="true"></dx-date-box>
-      </div>
-
-      <div class="rs-field rs-full rs-checks">
-        <dx-check-box text="No tiene publicaciones nuevas / nunca publicó" [(value)]="mp.sinPub"></dx-check-box>
-      </div>
-
-      <!-- Estado calculado -->
-      <div class="rs-field rs-full">
-        <label>Estado de publicaciones</label>
-        <div class="rs-estado" [ngClass]="claseMp" *ngIf="estadoMp; else sinEstado">
-          <span class="rs-estado-badge">{{ estadoMp }}</span>
-          <span class="rs-estado-dias" *ngIf="diasSinPublicar !== null && !mp.sinPub">
-            última publicación hace {{ diasSinPublicar }} día(s)
-          </span>
-          <span class="rs-estado-dias" *ngIf="mp.sinPub">sin publicaciones nuevas</span>
+      <!-- ── MARKET PLACE ── -->
+      <ng-container *ngIf="mpSubtipo === 'MARKET PLACE'">
+        <div class="rs-field rs-full">
+          <div class="rs-hint">
+            <mat-icon>info</mat-icon>
+            Revisa las publicaciones del vendedor. Margen máximo: <b>{{ margenMp }} días</b>.
+            Si la última publicación tiene más de {{ margenMp }} días o no hay nada nuevo, hazlo publicar.
+          </div>
         </div>
-        <ng-template #sinEstado><div class="rs-estado none">Indica la fecha o marca "sin publicaciones".</div></ng-template>
-      </div>
 
-      <div class="rs-field rs-full rs-checks" *ngIf="fueraDeRango">
-        <dx-check-box text="Se le hizo publicar ahora (regularizado)" [(value)]="mp.sePublico"></dx-check-box>
-      </div>
+        <div class="rs-field">
+          <label>Asesor <span class="req">*</span></label>
+          <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor"
+            placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
+        </div>
 
+        <div class="rs-field">
+          <label>Fecha de la última publicación <span class="req" *ngIf="!mp.sinPub">*</span></label>
+          <dx-date-box [(value)]="mp.fechaPub" type="date" displayFormat="dd/MM/yyyy"
+            [disabled]="mp.sinPub" [max]="hoy" placeholder="dd/mm/aaaa" stylingMode="outlined" [openOnFieldClick]="true"></dx-date-box>
+        </div>
+
+        <div class="rs-field rs-full rs-checks">
+          <dx-check-box text="No tiene publicaciones nuevas / nunca publicó" [(value)]="mp.sinPub"></dx-check-box>
+        </div>
+
+        <div class="rs-field rs-full">
+          <label>Estado de publicaciones</label>
+          <div class="rs-estado" [ngClass]="claseMp" *ngIf="estadoMp; else sinEstado">
+            <span class="rs-estado-badge">{{ estadoMp }}</span>
+            <span class="rs-estado-dias" *ngIf="diasSinPublicar !== null && !mp.sinPub">
+              última publicación hace {{ diasSinPublicar }} día(s)
+            </span>
+            <span class="rs-estado-dias" *ngIf="mp.sinPub">sin publicaciones nuevas</span>
+          </div>
+          <ng-template #sinEstado><div class="rs-estado none">Indica la fecha o marca "sin publicaciones".</div></ng-template>
+        </div>
+
+        <div class="rs-field rs-full rs-checks" *ngIf="fueraDeRango">
+          <dx-check-box text="Se le hizo publicar ahora (regularizado)" [(value)]="mp.sePublico"></dx-check-box>
+        </div>
+      </ng-container>
+
+      <!-- ── KOMMO PLATAFORMA ── -->
+      <ng-container *ngIf="mpSubtipo === 'KOMMO PLATAFORMA'">
+        <div class="rs-field rs-full">
+          <div class="rs-hint">
+            <mat-icon>info</mat-icon>
+            Revisa el lead del vendedor en Kommo Plataforma y registra su estado.
+          </div>
+        </div>
+
+        <div class="rs-field">
+          <label>Asesor <span class="req">*</span></label>
+          <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor"
+            placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+
+        <div class="rs-field">
+          <label>Nombre del cliente (Kommo Plataforma)</label>
+          <dx-text-box [(value)]="mp.cliente" placeholder="Nombre del cliente/lead" stylingMode="outlined"></dx-text-box>
+        </div>
+
+        <div class="rs-field rs-full">
+          <label>Estado del lead <span class="req">*</span></label>
+          <dx-select-box [dataSource]="estadosLead" [(value)]="mp.estadoLead"
+            placeholder="Selecciona el estado" stylingMode="outlined"></dx-select-box>
+        </div>
+      </ng-container>
+
+      <!-- Comentario (ambos subtipos) -->
       <div class="rs-field rs-full">
         <label>Comentario</label>
         <dx-text-area [(value)]="mp.comentario" [height]="80"

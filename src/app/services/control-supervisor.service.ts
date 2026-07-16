@@ -13,9 +13,12 @@ export interface ControlSupervisorPayload {
   dni_cliente?: string;
   celular?: string;
   estado_gestion?: string;    // CONTACTO / NO CONTACTO
-  // Market Place (revisión de publicaciones del vendedor):
-  fecha_publicacion?: string; // última publicación vista (d/m/yyyy)
-  estado_mp?: string;         // AL DÍA / DESACTUALIZADO / ACTUALIZADO
+  // Market Place / Kommo Plataforma (revisión de publicaciones del vendedor):
+  mp_subtipo?: string;        // MARKET PLACE | KOMMO PLATAFORMA
+  fecha_publicacion?: string; // última publicación vista (d/m/yyyy) — market place
+  estado_mp?: string;         // AL DÍA / DESACTUALIZADO / ACTUALIZADO — market place
+  cliente?: string;           // nombre del cliente — kommo plataforma
+  estado_lead?: string;       // LEAD RESPONDIDO / CLIENTE SOLO DIO DNI / ... — kommo plataforma
   comentario?: string;
   fotos?: string[];           // pruebas (imágenes base64 data-URI)
 }

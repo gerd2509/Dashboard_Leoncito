@@ -30,10 +30,13 @@ interface CitaControl {
   fuenteGestion?: string;  // "Gestión Realzza" | "Gestión Kommo (Realzza)"
   avisoTipo?: string;      // aviso si la clasificación kommo/market place no calza
   avisoCelular?: string;   // aviso si el celular registrado difiere del de la gestión
-  // Market Place:
-  estadoMp?: string;       // AL DÍA / DESACTUALIZADO / ACTUALIZADO
+  // Market Place / Kommo Plataforma:
+  mpSubtipo?: string;      // MARKET PLACE | KOMMO PLATAFORMA
+  estadoMp?: string;       // AL DÍA / DESACTUALIZADO / ACTUALIZADO (market place)
   fechaPublicacion?: string;
   diasSinPublicar?: number | null;
+  cliente?: string;        // nombre del cliente (kommo plataforma)
+  estadoLead?: string;     // LEAD RESPONDIDO / ... (kommo plataforma)
   fotos?: string[];        // pruebas (imágenes base64)
 }
 
@@ -76,6 +79,10 @@ export class ControlSupervisorComponent implements OnInit {
     { id: 'AL DÍA',        text: 'MP al día',              color: '#1565C0' },
     { id: 'DESACTUALIZADO',text: 'MP desactualizado',      color: '#E65100' },
     { id: 'ACTUALIZADO',   text: 'MP actualizado',         color: '#6A1B9A' },
+    { id: 'LEAD RESPONDIDO',       text: 'Lead respondido',        color: '#2E7D32' },
+    { id: 'CLIENTE SOLO DIO DNI',  text: 'Solo dio DNI',           color: '#E65100' },
+    { id: 'CLIENTE AÚN NO RESPONDE', text: 'Aún no responde',      color: '#c62828' },
+    { id: 'OTRO',          text: 'Otro (Kommo Plataforma)', color: '#546E7A' },
   ];
 
   constructor(private fb: UntypedFormBuilder) {
@@ -273,28 +280,46 @@ export class ControlSupervisorComponent implements OnInit {
     return s === 'SI' ? 'SI' : s === 'NO' ? 'NO' : s;
   }
 
-  // Control de Market Place → cita coloreada por el estado de las publicaciones.
+  // Control de Market Place / Kommo Plataforma → cita coloreada por su estado.
   private armarCitaMp(c: ControlSupervisor): CitaControl | null {
     const start = this.parseMarca(c.marca_temporal);
     if (!start) return null;
     const end = new Date(start.getTime() + 30 * 60 * 1000);
+    const sub = (c.mp_subtipo || 'MARKET PLACE').toString().trim().toUpperCase();
+    const fotos = Array.isArray(c.fotos) ? c.fotos : [];
+
+    if (sub === 'KOMMO PLATAFORMA') {
+      const estadoLead = (c.estado_lead || '').toString().trim().toUpperCase();
+      return {
+        id: c.id, tipo: 'MARKET_PLACE', mpSubtipo: 'KOMMO PLATAFORMA',
+        color: estadoLead || 'OTRO',
+        text: `KP · ${estadoLead}`,
+        startDate: start, endDate: end,
+        asesor: (c.asesor || '').toString().trim(),
+        tipoBase: 'KOMMO PLATAFORMA',
+        comentario: c.comentario || '',
+        cliente: c.cliente || '',
+        estadoLead,
+        fotos,
+      };
+    }
+
     const estadoMp = (c.estado_mp || '').toString().trim().toUpperCase();
     const fpub = this.parseMarca(c.fecha_publicacion);
     const dias = fpub ? Math.max(0, Math.floor((start.getTime() - fpub.getTime()) / 86400000)) : null;
 
     return {
-      id: c.id,
-      tipo: 'MARKET_PLACE',
+      id: c.id, tipo: 'MARKET_PLACE', mpSubtipo: 'MARKET PLACE',
       color: estadoMp || 'DESACTUALIZADO',
       text: `MP · ${estadoMp}`,
-      startDate: start,
-      endDate: end,
+      startDate: start, endDate: end,
       asesor: (c.asesor || '').toString().trim(),
+      tipoBase: 'MARKET PLACE',
       comentario: c.comentario || '',
       estadoMp,
       fechaPublicacion: c.fecha_publicacion || '',
       diasSinPublicar: dias,
-      fotos: Array.isArray(c.fotos) ? c.fotos : [],
+      fotos,
     };
   }
 
@@ -327,31 +352,61 @@ export class ControlSupervisorComponent implements OnInit {
   diaTitulo = '';
   diaCitas: CitaControl[] = [];
   fotoAmpliada: string | null = null;   // visor de foto a pantalla completa
-  diaGrupos: { asesor: string; citas: CitaControl[]; total: number; discrepancias: number; obs: number }[] = [];
+  diaGrupos: {
+    asesor: string; total: number; discrepancias: number; obs: number;
+    tipos: { tipoBase: string; citas: CitaControl[]; total: number; discrepancias: number; obs: number }[];
+  }[] = [];
   private asesorExpandido = new Set<string>();
+  private tipoExpandido = new Set<string>();
   private detalleDesdeDia = false;   // true si el detalle se abrió desde la lista del día
+
+  // Cuota diaria de supervisiones que debe ingresar el supervisor.
+  readonly metaDia = 50;
+  get claseMetaDia(): string {
+    const n = this.diaCitas.length;
+    return n >= this.metaDia ? 'meta-ok' : n >= this.metaDia * 0.6 ? 'meta-mid' : 'meta-low';
+  }
 
   toggleAsesor(a: string): void {
     this.asesorExpandido.has(a) ? this.asesorExpandido.delete(a) : this.asesorExpandido.add(a);
   }
   estaExpandido(a: string): boolean { return this.asesorExpandido.has(a); }
+  keyTipo(asesor: string, tipoBase: string): string { return asesor + '¦' + tipoBase; }
+  toggleTipo(k: string): void {
+    this.tipoExpandido.has(k) ? this.tipoExpandido.delete(k) : this.tipoExpandido.add(k);
+  }
+  estaTipoExpandido(k: string): boolean { return this.tipoExpandido.has(k); }
 
-  // Agrupa las citas del día por asesor, con métricas por grupo.
+  // Agrupa las citas del día por asesor y, dentro, por TIPO DE BASE (doble desplegable).
   private construirGruposDia(): void {
-    const map = new Map<string, CitaControl[]>();
+    const porAsesor = new Map<string, CitaControl[]>();
     for (const c of this.diaCitas) {
       const a = c.asesor || '—';
-      if (!map.has(a)) map.set(a, []);
-      map.get(a)!.push(c);
+      if (!porAsesor.has(a)) porAsesor.set(a, []);
+      porAsesor.get(a)!.push(c);
     }
-    this.diaGrupos = Array.from(map.entries()).map(([asesor, citas]) => ({
-      asesor, citas,
-      total: citas.length,
-      discrepancias: citas.filter(c => c.resultado === 'DISCREPANCIA').length,
-      obs: citas.filter(c => this.tieneAviso(c)).length,
-    })).sort((a, b) => b.discrepancias - a.discrepancias || b.obs - a.obs || b.total - a.total);
-    // Arrancan COLAPSADOS: se ve la lista de asesores y se despliega al hacer clic.
+    this.diaGrupos = Array.from(porAsesor.entries()).map(([asesor, citas]) => {
+      const porTipo = new Map<string, CitaControl[]>();
+      for (const c of citas) {
+        const tb = (c.tipoBase || '—').toString().trim().toUpperCase() || '—';
+        if (!porTipo.has(tb)) porTipo.set(tb, []);
+        porTipo.get(tb)!.push(c);
+      }
+      const tipos = Array.from(porTipo.entries()).map(([tipoBase, cs]) => ({
+        tipoBase, citas: cs, total: cs.length,
+        discrepancias: cs.filter(x => x.resultado === 'DISCREPANCIA').length,
+        obs: cs.filter(x => this.tieneAviso(x)).length,
+      })).sort((a, b) => b.total - a.total || a.tipoBase.localeCompare(b.tipoBase));
+      return {
+        asesor, total: citas.length,
+        discrepancias: citas.filter(c => c.resultado === 'DISCREPANCIA').length,
+        obs: citas.filter(c => this.tieneAviso(c)).length,
+        tipos,
+      };
+    }).sort((a, b) => b.discrepancias - a.discrepancias || b.obs - a.obs || b.total - a.total);
+    // Arrancan COLAPSADOS (asesor y tipo base): se despliega al hacer clic.
     this.asesorExpandido = new Set();
+    this.tipoExpandido = new Set();
   }
 
   // Anula el formulario de edición nativo de DevExtreme.
@@ -426,6 +481,10 @@ export class ControlSupervisorComponent implements OnInit {
       case 'AL DÍA': return 'mp-ok';
       case 'DESACTUALIZADO': return 'mp-bad';
       case 'ACTUALIZADO': return 'mp-upd';
+      case 'LEAD RESPONDIDO': return 'ok';
+      case 'CLIENTE SOLO DIO DNI': return 'mp-bad';
+      case 'CLIENTE AÚN NO RESPONDE': return 'bad';
+      case 'OTRO': return 'none';
       default: return 'none';
     }
   }
@@ -435,4 +494,10 @@ export class ControlSupervisorComponent implements OnInit {
   mpCorto(estado: string): string {
     return estado === 'AL DÍA' ? 'OK' : estado === 'ACTUALIZADO' ? 'ACT' : estado === 'DESACTUALIZADO' ? 'DESACT' : '';
   }
+  // Texto del badge de resultado/estado según el tipo de cita.
+  badgeDe(c: CitaControl): string {
+    if (c.tipo !== 'MARKET_PLACE') return c.resultado || '';
+    return c.mpSubtipo === 'KOMMO PLATAFORMA' ? (c.estadoLead || '') : (c.estadoMp || '');
+  }
+  esKommoPlataforma(c: CitaControl): boolean { return c.mpSubtipo === 'KOMMO PLATAFORMA'; }
 }

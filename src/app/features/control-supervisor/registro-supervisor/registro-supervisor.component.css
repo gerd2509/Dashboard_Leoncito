@@ -68,6 +68,28 @@
   gap: 16px 18px;
 }
 
+/* Sub-pestañas Market Place / Kommo Plataforma */
+.rs-subtabs {
+  display: flex;
+  gap: 6px;
+  background: #eef2f8;
+  padding: 4px;
+  border-radius: 10px;
+}
+.rs-subtabs button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #5b6b86;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.rs-subtabs button.active { background: #6A1B9A; color: #fff; }
+
 /* Aviso de la regla de 4 días */
 .rs-hint {
   display: flex;

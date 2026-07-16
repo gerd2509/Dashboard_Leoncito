@@ -311,6 +311,28 @@
 .cs-dia-chip.bad   { background: #fdecec; color: #c62828; }
 .cs-dia-chip.obs   { background: #fff6e5; color: #8a5a00; }
 
+/* Cuota diaria (50) */
+.cs-dia-meta {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 800; padding: 5px 12px; border-radius: 999px;
+  margin-left: auto;
+}
+.cs-dia-meta mat-icon { font-size: 15px; height: 15px; width: 15px; }
+.cs-dia-meta.meta-ok  { background: #eafaf0; color: #2E7D32; }
+.cs-dia-meta.meta-mid { background: #fff1de; color: #b25f00; }
+.cs-dia-meta.meta-low { background: #fdecec; color: #c62828; }
+
+/* Sub-desplegable por tipo de base */
+.cs-dia-tipos { padding: 8px 10px; background: #fafbfe; display: flex; flex-direction: column; gap: 8px; }
+.cs-dia-tipo { border: 1px solid #e6ecf5; border-radius: 9px; overflow: hidden; background: #fff; }
+.cs-dia-tipo-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 11px; background: #f2f5fb; cursor: pointer;
+}
+.cs-dia-tipo-head:hover { background: #e9eff8; }
+.cs-dia-exp2 { color: #7a879c; font-size: 19px; height: 19px; width: 19px; }
+.cs-dia-tipo-nom { flex: 1; font-weight: 800; color: #33445f; font-size: 12.5px; letter-spacing: .2px; }
+
 /* Agrupado por asesor */
 .cs-dia-grupos { display: flex; flex-direction: column; gap: 10px; padding: 2px; }
 .cs-dia-grupo { border: 1px solid #e3e9f2; border-radius: 12px; overflow: hidden; }
