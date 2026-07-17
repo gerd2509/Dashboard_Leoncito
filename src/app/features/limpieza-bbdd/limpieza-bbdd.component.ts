@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { SheetsService } from '../../services/service-google.service';
+import { environment } from '../../../environments/environment';
 
 /** Columnas que contienen teléfonos a consolidar (orden de salida, izquierda → derecha). */
 const COLUMNAS_TELEFONO = [
@@ -195,6 +196,12 @@ export class LimpiezaBbddComponent {
     this.procesando = true;
     void listo;
 
+    // Modo Sedes con microservicio activo → delega el dedup al cruce-service.
+    if (this.modo === 'sedes' && environment.cruceBase) {
+      void this.limpiarSedesRemoto(file);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -227,6 +234,53 @@ export class LimpiezaBbddComponent {
       this.procesando = false;
     };
     reader.readAsArrayBuffer(file);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // MODO SEDES (remoto) — el dedup lo hace el microservicio cruce-service.
+  // Mismo resultado que limpiarSedes(), pero sin procesar en el navegador.
+  // ──────────────────────────────────────────────────────────────────────────
+  private async limpiarSedesRemoto(file: File): Promise<void> {
+    try {
+      const fd = new FormData();
+      fd.append('archivo', file, file.name);
+      const resp = await fetch(`${environment.cruceBase}/limpieza/sedes`, { method: 'POST', body: fd });
+      const r = await resp.json();
+      if (!resp.ok || !r?.ok) {
+        throw new Error(r?.message || 'El microservicio no pudo procesar el archivo.');
+      }
+
+      const headers: string[] = r.headers ?? [];
+      const filas: Record<string, any>[] = r.filas ?? [];
+      const s = r.stats ?? {};
+      const nCols = Math.max(1, s.maxNumerosPorDni ?? 1);
+      // Las columnas de teléfono van al final; el resto son columnas base.
+      const colsNumero = headers.slice(headers.length - nCols);
+      const headersBase = headers.slice(0, headers.length - nCols);
+
+      this.headersSalida = headers;
+      this.filasSalida = filas;
+      this.columnasNumero = colsNumero;
+
+      this.totalFilasLeidas = s.totalFilasLeidas ?? filas.length;
+      this.totalDnis = s.totalDnis ?? filas.length;
+      this.numerosAntes = s.numerosAntes ?? 0;
+      this.numerosUnicos = s.numerosUnicos ?? 0;
+      this.duplicadosEliminados = s.duplicadosEliminados ?? 0;
+      this.maxNumerosPorDni = nCols;
+
+      this.preview = (r.preview ?? []).map((p: any) => ({
+        dni: String(p.dni ?? ''),
+        numeros: (p.numeros ?? []).map((x: any) => String(x)),
+      }));
+
+      this.prepararFiltros(headersBase);
+      this.listoParaDescargar = true;
+    } catch (err: any) {
+      this.error = err?.message ?? 'No se pudo conectar con el microservicio de limpieza.';
+    } finally {
+      this.procesando = false;
+    }
   }
 
   // ──────────────────────────────────────────────────────────────────────────
