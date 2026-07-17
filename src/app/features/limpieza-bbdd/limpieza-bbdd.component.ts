@@ -147,13 +147,13 @@ export class LimpiezaBbddComponent {
       return;
     }
     const file = evt.dataTransfer?.files?.[0];
-    if (file) this.procesarArchivo(file);
+    if (file) void this.procesarArchivo(file);
   }
 
   onFileChange(evt: Event): void {
     const target = evt.target as HTMLInputElement;
     const file = target.files?.[0];
-    if (file) this.procesarArchivo(file);
+    if (file) void this.procesarArchivo(file);
     target.value = '';
   }
 
@@ -189,58 +189,65 @@ export class LimpiezaBbddComponent {
   // ──────────────────────────────────────────────────────────────────────────
   // Lectura del archivo
   // ──────────────────────────────────────────────────────────────────────────
-  private procesarArchivo(file: File): void {
-    const listo = this.listoParaDescargar;
+  private async procesarArchivo(file: File): Promise<void> {
     this.reiniciar();
     this.nombreArchivo = file.name;
     this.procesando = true;
-    void listo;
 
-    // Modo Sedes con microservicio activo → delega el dedup al cruce-service.
+    // Modo Sedes con microservicio activo → delega el dedup al micro.
+    // Si el micro falla (dormido/caído), cae al procesamiento local (fallback).
     if (this.modo === 'sedes' && environment.cruceBase) {
-      void this.limpiarSedesRemoto(file);
-      return;
+      const ok = await this.limpiarSedesRemoto(file);
+      if (ok) { this.procesando = false; return; }
+      // Micro no disponible → continúa abajo procesando en el navegador.
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
-          defval: '',
-          raw: false,
-        });
-
-        if (!filas.length) {
-          throw new Error('El archivo no contiene filas de datos.');
-        }
-
-        if (this.modo === 'call') {
-          await this.limpiarCall(filas);
-        } else {
-          this.limpiarSedes(filas);
-        }
-        this.listoParaDescargar = true;
-      } catch (err: any) {
-        this.error = err?.message ?? 'No se pudo procesar el archivo.';
-      } finally {
-        this.procesando = false;
+    try {
+      const filas = await this.leerFilasExcel(file);
+      if (!filas.length) {
+        throw new Error('El archivo no contiene filas de datos.');
       }
-    };
-    reader.onerror = () => {
-      this.error = 'Error al leer el archivo.';
+      if (this.modo === 'call') {
+        await this.limpiarCall(filas);
+      } else {
+        this.limpiarSedes(filas);
+      }
+      this.listoParaDescargar = true;
+    } catch (err: any) {
+      this.error = err?.message ?? 'No se pudo procesar el archivo.';
+    } finally {
       this.procesando = false;
-    };
-    reader.readAsArrayBuffer(file);
+    }
+  }
+
+  /** Lee la 1ª hoja del Excel y devuelve las filas como objetos. */
+  private leerFilasExcel(file: File): Promise<Record<string, any>[]> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const filas = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, {
+            defval: '',
+            raw: false,
+          });
+          resolve(filas);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Error al leer el archivo.'));
+      reader.readAsArrayBuffer(file);
+    });
   }
 
   // ──────────────────────────────────────────────────────────────────────────
   // MODO SEDES (remoto) — el dedup lo hace el microservicio cruce-service.
   // Mismo resultado que limpiarSedes(), pero sin procesar en el navegador.
   // ──────────────────────────────────────────────────────────────────────────
-  private async limpiarSedesRemoto(file: File): Promise<void> {
+  private async limpiarSedesRemoto(file: File): Promise<boolean> {
     try {
       const fd = new FormData();
       fd.append('archivo', file, file.name);
@@ -276,10 +283,11 @@ export class LimpiezaBbddComponent {
 
       this.prepararFiltros(headersBase);
       this.listoParaDescargar = true;
+      return true;
     } catch (err: any) {
-      this.error = err?.message ?? 'No se pudo conectar con el microservicio de limpieza.';
-    } finally {
-      this.procesando = false;
+      // No mostramos error: procesarArchivo hará el fallback local en el navegador.
+      console.warn('cruce-service no disponible, se procesa en el navegador (fallback):', err?.message);
+      return false;
     }
   }
 

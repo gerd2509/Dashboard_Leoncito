@@ -3,7 +3,7 @@
 export const environment = {
   production: true,
   apiBase: 'https://api-leoncito.onrender.com',
-  // Microservicio de cruces/limpieza. Vacío = procesa en el navegador (default).
-  // Cuando lo despliegues, pon aquí su URL (ej: https://cruce-service.onrender.com).
-  cruceBase: '',
+  // Microservicio de cruces/limpieza (limpiezaBD_sedes-service en Render).
+  // Vacío = procesa en el navegador. Con URL = usa el micro (con fallback local).
+  cruceBase: 'https://limpiezabd-sedes-service.onrender.com',
 };
