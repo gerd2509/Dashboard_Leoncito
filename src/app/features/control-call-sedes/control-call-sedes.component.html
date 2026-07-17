@@ -18,6 +18,13 @@
     <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
 </form>
 
+<!-- El roster de asesores sale del CAP: si no carga, no hay tabla que mostrar -->
+<div class="cap-error" *ngIf="capError">
+    <mat-icon>error_outline</mat-icon>
+    <span>No se pudo cargar el <b>CAP</b> (roster de asesores), por eso la tabla está vacía.</span>
+    <button mat-flat-button color="primary" (click)="reintentarCap()" [disabled]="isLoading">Reintentar</button>
+</div>
+
 <div class="grid-container">
     <div class="grid-overlay" *ngIf="isLoading">
         <mat-spinner diameter="40"></mat-spinner>

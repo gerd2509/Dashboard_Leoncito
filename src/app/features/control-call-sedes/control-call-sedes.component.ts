@@ -40,6 +40,7 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   // Roster de vendedores ACTIVOS por sede (CAP) → nombres correctos.
   private capPorSede = new Map<string, string[]>();
+  capError = false;   // true si el CAP no cargó (sin roster no hay tabla)
 
   formCtrl: UntypedFormGroup;
   isLoading = false;
@@ -85,21 +86,48 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.configurarSedeSegunUsuario();
-    // Carga los datos y renderiza YA (roster dinámico como fallback).
-    await this.cargarDatos();
+    // CAP y data se cargan EN PARALELO y recién ahí se calcula, para que el roster
+    // salga SIEMPRE del CAP. (Antes el CAP iba en segundo plano y el primer render
+    // usaba el fallback dinámico → nombres cortos/duplicados sacados del sheet.)
+    this.isLoading = true;
+    try {
+      await Promise.all([this.cargarRosterCap(), this.cargarListData()]);
+      this.calcular();
+    } finally {
+      this.isLoading = false;
+    }
     this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
-
-    // El CAP se carga en segundo plano; al llegar, recalcula con los nombres correctos.
-    this.cargarRosterCap();
   }
 
-  // Roster de vendedores ACTIVOS por sede desde el CAP (no bloquea el render).
+  // Roster de vendedores ACTIVOS por sede desde el CAP (fuente única de nombres).
   private async cargarRosterCap(): Promise<void> {
     await this.cap.cargar();
     for (const s of this.sedesDisponibles) {
       this.capPorSede.set(s.key, await this.cap.vendedoresActivos(s.key));
     }
-    if (this.listData.length) this.calcular();
+    this.capError = this.cap.error;
+  }
+
+  /** Reintenta cargar el CAP (cuando falló) y recalcula. */
+  async reintentarCap(): Promise<void> {
+    this.isLoading = true;
+    try {
+      this.cap.invalidar();
+      await this.cargarRosterCap();
+      this.calcular();
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  // Solo trae la data del form (sin calcular).
+  private async cargarListData(): Promise<void> {
+    try {
+      this.listData = await lastValueFrom(this.sheetsService.getSheetDataFerre());
+    } catch (e) {
+      console.error('Error al cargar datos de gestión de sedes:', e);
+      this.listData = [];
+    }
   }
 
   ngOnDestroy() {
@@ -170,12 +198,10 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
     // Filas que pertenecen a la sede seleccionada = tienen su columna de asesor con valor
     const filasSede = this.listData.filter(r => (r[col] ?? '').toString().trim() !== '');
 
-    // Asesores de la sede: roster ACTIVO del CAP (nombres correctos). Si el CAP no
-    // está disponible, cae al listado dinámico distinto de la columna de asesor.
-    const roster = this.capPorSede.get(this.sedeKey) ?? [];
-    const asesores = roster.length
-      ? roster
-      : Array.from(new Set(filasSede.map(r => (r[col] ?? '').toString().trim().toUpperCase()))).filter(a => a).sort();
+    // Asesores de la sede: SIEMPRE el roster ACTIVO del CAP (nombres correctos).
+    // Ya NO hay fallback dinámico: el sheet trae nombres cortos/duplicados
+    // históricos y ensuciaba la tabla. Si el CAP no carga, se avisa (capError).
+    const asesores = this.capPorSede.get(this.sedeKey) ?? [];
 
     // Solo las filas del día seleccionado
     const filasDia = filasSede.filter(r => this.esMismaFecha(r['Marca temporal'], fecha));

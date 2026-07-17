@@ -31,6 +31,7 @@ import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-ges
 import { RegistroGestionComponent } from "../features/registro-gestion/registro-gestion.component";
 import { RegistroSupervisorComponent } from "../features/control-supervisor/registro-supervisor/registro-supervisor.component";
 import { ControlSupervisorComponent } from "../features/control-supervisor/control-supervisor.component";
+import { GestionSupervisorComponent } from "../features/control-supervisor/gestion-supervisor/gestion-supervisor.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
@@ -84,6 +85,7 @@ interface MenuItem {
     RegistroGestionComponent,
     RegistroSupervisorComponent,
     ControlSupervisorComponent,
+    GestionSupervisorComponent,
     ComparativoCarteraVentasComponent,
     CargaVentasComponent,
   ],
@@ -128,7 +130,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Post Venta',  icon: 'storefront', modulo: 'gestion-post-venta' },
         { label: 'KOMMO',       icon: 'public',        modulo: 'gestion-kommo' },
         { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
-        { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' }
+        { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' },
+        { label: 'SUPERVISOR',  icon: 'fact_check',    modulo: 'gestion-supervisor' }
       ]
     },
     { icon: 'done_all',    label: 'Cierre Gestión',      modulo: 'cierre' },

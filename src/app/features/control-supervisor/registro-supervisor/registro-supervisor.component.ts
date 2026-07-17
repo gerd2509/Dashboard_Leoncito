@@ -234,12 +234,13 @@ export class RegistroSupervisorComponent {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
   }
 
+  /** Toast de confirmación / error (arriba a la derecha), como en el resto de la app. */
   private toast(msg: string, error = false): void {
-    this.snack.open(msg, 'Cerrar', {
-      duration: error ? 5000 : 2800,
-      horizontalPosition: 'center',
+    this.snack.open(msg, 'OK', {
+      duration: error ? 5000 : 3500,
+      horizontalPosition: 'end',
       verticalPosition: 'top',
-      panelClass: error ? ['snack-error'] : ['snack-ok'],
+      panelClass: error ? 'toast-error' : 'toast-ok',
     });
   }
 }

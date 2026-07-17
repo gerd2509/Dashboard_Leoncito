@@ -172,6 +172,8 @@
       </div>
 
       <div class="cs-det-foot">
+        <button class="cs-btn-del" (click)="eliminarDetalle()"><mat-icon>delete</mat-icon> Eliminar</button>
+        <button class="cs-btn-edit" (click)="abrirEditar()"><mat-icon>edit</mat-icon> Editar</button>
         <button class="cs-btn-cerrar" (click)="detalleVisible = false">Cerrar</button>
       </div>
     </div>
@@ -188,15 +190,30 @@
       <button class="cs-x cs-x-dark" (click)="diaVisible = false"><mat-icon>close</mat-icon></button>
     </div>
 
-    <!-- Resumen del día + cuota -->
+    <!-- Resumen del día + filtros clicables + cuota -->
     <div class="cs-dia-resumen">
-      <span class="cs-dia-chip total">{{ diaCitas.length }} registros · {{ diaGrupos.length }} asesor(es)</span>
-      <span class="cs-dia-chip bad" *ngIf="diaDiscrepancias > 0">{{ diaDiscrepancias }} discrepancia(s)</span>
-      <span class="cs-dia-chip obs" *ngIf="diaObs > 0"><mat-icon>warning</mat-icon> {{ diaObs }} con observación</span>
+      <button class="cs-dia-chip total" [class.activo]="filtroDia === 'TODOS'" (click)="toggleFiltroDia('TODOS')">
+        {{ diaCitas.length }} registros · {{ diaGrupos.length }} asesor(es)
+      </button>
+      <button class="cs-dia-chip bad" [class.activo]="filtroDia === 'DISCREPANCIA'"
+              *ngIf="diaDiscrepancias > 0" (click)="toggleFiltroDia('DISCREPANCIA')">
+        {{ diaDiscrepancias }} discrepancia(s)
+      </button>
+      <button class="cs-dia-chip obs" [class.activo]="filtroDia === 'OBS'"
+              *ngIf="diaObs > 0" (click)="toggleFiltroDia('OBS')">
+        <mat-icon>warning</mat-icon> {{ diaObs }} con observación
+      </button>
+      <button class="cs-dia-chip sing" [class.activo]="filtroDia === 'SIN_GESTION'"
+              *ngIf="diaSinGestion > 0" (click)="toggleFiltroDia('SIN_GESTION')">
+        <mat-icon>help</mat-icon> {{ diaSinGestion }} sin gestión
+      </button>
       <span class="cs-dia-meta" [ngClass]="claseMetaDia">
         <mat-icon>{{ diaCitas.length >= metaDia ? 'check_circle' : 'flag' }}</mat-icon>
         {{ diaCitas.length }} / {{ metaDia }} cuota
       </span>
+    </div>
+    <div class="cs-dia-filtrando" *ngIf="filtroDia !== 'TODOS'">
+      <mat-icon>filter_alt</mat-icon> Filtrando · toca el mismo chip (o "registros") para ver todo
     </div>
 
     <!-- Agrupado por asesor → tipo de base -->
@@ -257,6 +274,88 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</dx-popup>
+
+<!-- ══ Popup: editar registro ══ -->
+<dx-popup [(visible)]="editVisible" [width]="480" [height]="'auto'" [maxWidth]="'94vw'" [maxHeight]="'88vh'"
+  [showTitle]="false" [dragEnabled]="false" [hideOnOutsideClick]="false" class="cs-edit-popup">
+  <div *dxTemplate="let d of 'content'">
+    <div class="cs-det" *ngIf="editando">
+      <div class="cs-det-head edit">
+        <span class="cs-det-badge"><mat-icon class="inl">edit</mat-icon> Editar registro</span>
+        <button class="cs-x" (click)="editVisible = false"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="cs-det-body cs-edit-form">
+        <div class="cs-ed-field">
+          <label>Asesor</label>
+          <dx-select-box [dataSource]="asesoresLista" [(value)]="editando.asesor"
+            [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+
+        <!-- Gestión -->
+        <ng-container *ngIf="editando.tipo === 'GESTION'">
+          <div class="cs-ed-field">
+            <label>Tipo de base</label>
+            <dx-select-box [dataSource]="tiposBaseLista" [(value)]="editando.tipo_base"
+              [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="cs-ed-row">
+            <div class="cs-ed-field">
+              <label>DNI</label>
+              <dx-text-box [(value)]="editando.dni_cliente" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box>
+            </div>
+            <div class="cs-ed-field">
+              <label>Celular</label>
+              <dx-text-box [(value)]="editando.celular" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box>
+            </div>
+          </div>
+          <div class="cs-ed-field">
+            <label>Estado de gestión</label>
+            <dx-radio-group [items]="estadosGestion" [(value)]="editando.estado_gestion" layout="horizontal"></dx-radio-group>
+          </div>
+        </ng-container>
+
+        <!-- Market Place -->
+        <ng-container *ngIf="editando.tipo === 'MARKET_PLACE' && editando.mpSubtipo !== 'KOMMO PLATAFORMA'">
+          <div class="cs-ed-row">
+            <div class="cs-ed-field">
+              <label>Última publicación (d/m/aaaa)</label>
+              <dx-text-box [(value)]="editando.fecha_publicacion" placeholder="14/7/2026" stylingMode="outlined"></dx-text-box>
+            </div>
+            <div class="cs-ed-field">
+              <label>Estado MP</label>
+              <dx-select-box [dataSource]="estadosMpLista" [(value)]="editando.estado_mp" stylingMode="outlined"></dx-select-box>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Kommo Plataforma -->
+        <ng-container *ngIf="editando.mpSubtipo === 'KOMMO PLATAFORMA'">
+          <div class="cs-ed-field">
+            <label>Cliente</label>
+            <dx-text-box [(value)]="editando.cliente" stylingMode="outlined"></dx-text-box>
+          </div>
+          <div class="cs-ed-field">
+            <label>Estado del lead</label>
+            <dx-select-box [dataSource]="estadosLeadLista" [(value)]="editando.estado_lead" stylingMode="outlined"></dx-select-box>
+          </div>
+        </ng-container>
+
+        <div class="cs-ed-field">
+          <label>Comentario</label>
+          <dx-text-area [(value)]="editando.comentario" [height]="70" stylingMode="outlined"></dx-text-area>
+        </div>
+      </div>
+
+      <div class="cs-det-foot">
+        <button class="cs-btn-cerrar" (click)="editVisible = false">Cancelar</button>
+        <button class="cs-btn-save" (click)="guardarEdicion()" [disabled]="guardandoEdit">
+          <mat-icon>save</mat-icon> {{ guardandoEdit ? 'Guardando…' : 'Guardar' }}
+        </button>
       </div>
     </div>
   </div>

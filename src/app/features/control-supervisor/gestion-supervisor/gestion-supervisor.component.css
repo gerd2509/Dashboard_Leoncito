@@ -1,0 +1,61 @@
+.gs-toolbar { padding: 6px 2px 14px; }
+.gs-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.gs-error {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fdecec;
+  color: #b71c1c;
+  font-weight: 600;
+}
+
+.gs-grid-wrap { position: relative; min-height: 240px; }
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, .6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.gs-fotos-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: #f3ecfb;
+  color: #6A1B9A;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.gs-fotos-btn:hover { background: #e7d9f7; }
+.gs-fotos-btn mat-icon { font-size: 15px; height: 15px; width: 15px; }
+.gs-sin { color: #b7c2d4; }
+
+/* Visor de foto a pantalla completa */
+.gs-foto-visor {
+  position: fixed; inset: 0; z-index: 3000;
+  background: rgba(0, 0, 0, .88);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.gs-foto-visor img { max-width: 96vw; max-height: 92vh; border-radius: 8px; box-shadow: 0 8px 40px rgba(0,0,0,.6); }
+.gs-foto-visor-x {
+  position: fixed; top: 18px; right: 18px;
+  width: 42px; height: 42px; border: none; border-radius: 50%;
+  background: rgba(255,255,255,.16); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.gs-foto-visor-x:hover { background: rgba(255,255,255,.3); }
+.gs-foto-visor-x mat-icon { font-size: 24px; height: 24px; width: 24px; }

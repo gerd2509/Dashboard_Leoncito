@@ -1,0 +1,91 @@
+<div class="gs-toolbar">
+  <form class="gs-form" [formGroup]="form">
+    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+      labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
+    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+      labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
+    <dx-select-box style="min-width: 230px;" formControlName="asesor" [dataSource]="asesoresDisponibles"
+      label="Asesor" labelMode="floating" stylingMode="underlined" [showClearButton]="true"
+      placeholder="Todos" (onValueChanged)="aplicarFiltros()"></dx-select-box>
+    <dx-select-box style="min-width: 190px;" formControlName="tipo" [dataSource]="tipos"
+      displayExpr="label" valueExpr="value" label="Tipo" labelMode="floating" stylingMode="underlined"
+      (onValueChanged)="aplicarFiltros()"></dx-select-box>
+    <button mat-flat-button color="primary" (click)="cargar()"><mat-icon>search</mat-icon> Actualizar</button>
+    <button mat-flat-button (click)="exportar()" [disabled]="!vista.length"><mat-icon>file_download</mat-icon> Exportar</button>
+  </form>
+</div>
+
+<div *ngIf="error" class="gs-error">{{ error }}</div>
+
+<div class="gs-grid-wrap">
+  <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
+
+  <dx-data-grid #grid [dataSource]="vista" keyExpr="id" class="focqus-elevation mt-2"
+    [allowColumnReordering]="true"
+    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+    [columnAutoWidth]="true" [wordWrapEnabled]="true" [hoverStateEnabled]="true"
+    [selection]="{ mode: 'single' }"
+    (onCellPrepared)="onCellPrepared($event)"
+    (onRowUpdated)="onRowUpdated($event)"
+    (onRowRemoving)="onRowRemoving($event)"
+    (onRowRemoved)="onRowRemoved($event)"
+    (onEditingStart)="onEditingStart($event)">
+
+    <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true"
+      [texts]="{ saveRowChanges: 'Guardar', cancelRowChanges: 'Cancelar', confirmDeleteMessage: '' }">
+      <dxo-popup title="Editar registro del supervisor" [showTitle]="true" [showCloseButton]="true"
+        [width]="720" [height]="560"></dxo-popup>
+      <dxo-form [colCount]="2" labelLocation="top"></dxo-form>
+    </dxo-editing>
+
+    <dxo-search-panel [visible]="true" [width]="280" placeholder="Buscar DNI, cliente, asesor…"></dxo-search-panel>
+    <dxo-filter-row [visible]="true"></dxo-filter-row>
+    <dxo-paging [pageSize]="10"></dxo-paging>
+    <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" [showInfo]="true"></dxo-pager>
+
+    <dxi-column dataField="id" [visible]="false" [allowEditing]="false" [formItem]="{ visible: false }"></dxi-column>
+    <dxi-column dataField="marca_temporal" caption="Fecha / Hora" [allowEditing]="false"></dxi-column>
+    <dxi-column dataField="tipoLabel" caption="Tipo" [allowEditing]="false"></dxi-column>
+    <dxi-column dataField="asesor" caption="Asesor">
+      <dxo-lookup [dataSource]="asesoresDisponibles"></dxo-lookup>
+    </dxi-column>
+    <dxi-column dataField="tipo_base" caption="Tipo de base">
+      <dxo-lookup [dataSource]="tiposBase"></dxo-lookup>
+    </dxi-column>
+    <dxi-column dataField="dni_cliente" caption="DNI" alignment="center"></dxi-column>
+    <dxi-column dataField="celular" caption="Celular" alignment="center"></dxi-column>
+    <dxi-column dataField="estado_gestion" caption="Estado gestión">
+      <dxo-lookup [dataSource]="estados"></dxo-lookup>
+    </dxi-column>
+    <dxi-column dataField="fecha_publicacion" caption="Última publicación"></dxi-column>
+    <dxi-column dataField="estado_mp" caption="Estado MP">
+      <dxo-lookup [dataSource]="estadosMp"></dxo-lookup>
+    </dxi-column>
+    <dxi-column dataField="cliente" caption="Cliente (KP)"></dxi-column>
+    <dxi-column dataField="estado_lead" caption="Estado lead">
+      <dxo-lookup [dataSource]="estadosLead"></dxo-lookup>
+    </dxi-column>
+    <dxi-column dataField="comentario" caption="Comentario"></dxi-column>
+    <dxi-column dataField="nFotos" caption="Fotos" alignment="center" [allowEditing]="false"
+      [formItem]="{ visible: false }" cellTemplate="fotosTpl"></dxi-column>
+    <dxi-column dataField="registrado_por" caption="Registrado por" [allowEditing]="false" [visible]="false"></dxi-column>
+    <dxi-column dataField="mp_subtipo" [visible]="false" [formItem]="{ visible: false }"></dxi-column>
+
+    <div *dxTemplate="let cell of 'fotosTpl'">
+      <button class="gs-fotos-btn" *ngIf="cell.data.nFotos > 0" (click)="verFotos(cell.data)">
+        <mat-icon>photo_camera</mat-icon> {{ cell.data.nFotos }}
+      </button>
+      <span *ngIf="!cell.data.nFotos" class="gs-sin">—</span>
+    </div>
+
+    <dxo-summary>
+      <dxi-total-item column="marca_temporal" summaryType="count" displayFormat="Registros: {0}"></dxi-total-item>
+    </dxo-summary>
+  </dx-data-grid>
+</div>
+
+<!-- Visor de foto -->
+<div class="gs-foto-visor" *ngIf="fotoAmpliada" (click)="fotoAmpliada = null">
+  <button class="gs-foto-visor-x"><mat-icon>close</mat-icon></button>
+  <img [src]="fotoAmpliada" alt="prueba" (click)="$event.stopPropagation()" />
+</div>

@@ -2,6 +2,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 import { ControlSupervisorService, ControlSupervisor } from '../../services/control-supervisor.service';
 import { SheetsService } from '../../services/service-google.service';
@@ -49,6 +51,19 @@ interface CitaControl {
 export class ControlSupervisorComponent implements OnInit {
   private srv = inject(ControlSupervisorService);
   private sheets = inject(SheetsService);
+  private snack = inject(MatSnackBar);
+
+  // Listas para el formulario de edición rápida.
+  readonly asesoresLista = [
+    'ACOSTA JIMENEZ MARIELA NATALY', 'PEREZ TINEO MARICIELO TATIANA', 'RIVAS PURISACA KAREN YUDITH',
+    'BERNAL BAZAN BRENDA NICOLL', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'MONTALVO LUYO ERNESTO ADOLFO',
+    'SANTAMARIA GUZMAN MERLY BRIGHITE', 'UCHOFEN VIGO FELICITA', 'RIQUERO ULCO CESAR JEFFERSON',
+    'BUSTAMANTE CHALAN ANA RUT', 'BUSTAMANTE BANCES LUCIA NICOLL', 'LLONTOP DAVILA DENNIS CHRISTIAN',
+  ];
+  readonly estadosGestion = ['CONTACTO', 'NO CONTACTO'];
+  readonly tiposBaseLista = ['BBDD', 'KOMMO', 'BBDD KOMMO', 'MARKET PLACE'];
+  readonly estadosMpLista = ['AL DÍA', 'DESACTUALIZADO', 'ACTUALIZADO'];
+  readonly estadosLeadLista = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE', 'OTRO'];
 
   form: UntypedFormGroup;
   isLoading = false;
@@ -380,7 +395,7 @@ export class ControlSupervisorComponent implements OnInit {
   // Agrupa las citas del día por asesor y, dentro, por TIPO DE BASE (doble desplegable).
   private construirGruposDia(): void {
     const porAsesor = new Map<string, CitaControl[]>();
-    for (const c of this.diaCitas) {
+    for (const c of this.citasDelDiaFiltradas) {
       const a = c.asesor || '—';
       if (!porAsesor.has(a)) porAsesor.set(a, []);
       porAsesor.get(a)!.push(c);
@@ -404,9 +419,13 @@ export class ControlSupervisorComponent implements OnInit {
         tipos,
       };
     }).sort((a, b) => b.discrepancias - a.discrepancias || b.obs - a.obs || b.total - a.total);
-    // Arrancan COLAPSADOS (asesor y tipo base): se despliega al hacer clic.
-    this.asesorExpandido = new Set();
-    this.tipoExpandido = new Set();
+    // Sin filtro arrancan COLAPSADOS; con un filtro activo se despliegan todos
+    // para ver directo los registros que cumplen (discrepancia / obs / sin gestión).
+    const filtrando = this.filtroDia !== 'TODOS';
+    this.asesorExpandido = filtrando ? new Set(this.diaGrupos.map(g => g.asesor)) : new Set();
+    this.tipoExpandido = filtrando
+      ? new Set(this.diaGrupos.flatMap(g => g.tipos.map(t => this.keyTipo(g.asesor, t.tipoBase))))
+      : new Set();
   }
 
   // Anula el formulario de edición nativo de DevExtreme.
@@ -429,6 +448,83 @@ export class ControlSupervisorComponent implements OnInit {
     this.detalleVisible = true;
   }
 
+  // ── Editar / eliminar rápido desde el detalle ───────────────────────────────
+  editVisible = false;
+  guardandoEdit = false;
+  editando: any = null;
+
+  abrirEditar(): void {
+    const d = this.detalle;
+    if (!d) return;
+    this.editando = {
+      id: d.id, tipo: d.tipo, mpSubtipo: d.mpSubtipo,
+      asesor: d.asesor || '', tipo_base: d.tipoBase || '', dni_cliente: d.dni || '', celular: d.celular || '',
+      estado_gestion: d.estadoSup || '', fecha_publicacion: d.fechaPublicacion || '',
+      estado_mp: d.estadoMp || '', cliente: d.cliente || '', estado_lead: d.estadoLead || '',
+      comentario: d.comentario || '',
+    };
+    this.detalleDesdeDia = false;    // al cerrar el detalle no reabrimos la lista
+    this.detalleVisible = false;
+    setTimeout(() => (this.editVisible = true), 120);
+  }
+
+  guardarEdicion(): void {
+    const e = this.editando;
+    if (!e) return;
+    this.guardandoEdit = true;
+    const body: any = { asesor: e.asesor, comentario: e.comentario };
+    if (e.tipo === 'GESTION') {
+      body.tipo_base = e.tipo_base; body.dni_cliente = e.dni_cliente;
+      body.celular = e.celular; body.estado_gestion = e.estado_gestion;
+    } else if (e.mpSubtipo === 'KOMMO PLATAFORMA') {
+      body.cliente = e.cliente; body.estado_lead = e.estado_lead;
+    } else {
+      body.fecha_publicacion = e.fecha_publicacion; body.estado_mp = e.estado_mp;
+    }
+    this.srv.actualizar(e.id, body).subscribe({
+      next: async () => {
+        this.guardandoEdit = false; this.editVisible = false;
+        this.toast('✔ Registro actualizado.');
+        await this.cargar();
+      },
+      error: () => { this.guardandoEdit = false; this.toast('❌ No se pudo guardar el cambio.', true); },
+    });
+  }
+
+  eliminarDetalle(): void {
+    const d = this.detalle;
+    if (!d) return;
+    const dialog = custom({
+      title: 'Eliminar registro del supervisor',
+      messageHtml: '<div style="padding:10px 6px;font-size:15px;color:#1E3A5F;">¿Eliminar este registro de forma permanente?</div>',
+      buttons: [
+        { text: 'Cancelar', type: 'danger', stylingMode: 'contained', onClick: () => false },
+        { text: 'Eliminar', type: 'success', stylingMode: 'contained', onClick: () => true },
+      ],
+    });
+    dialog.show().then((ok: boolean) => {
+      if (!ok) return;
+      this.srv.eliminar(d.id).subscribe({
+        next: async () => {
+          this.detalleDesdeDia = false; this.detalleVisible = false;
+          this.toast('✔ Registro eliminado.');
+          await this.cargar();
+        },
+        error: () => this.toast('❌ No se pudo eliminar.', true),
+      });
+    });
+  }
+
+  /** Toast de confirmación / error (arriba a la derecha), como en el resto de la app. */
+  private toast(msg: string, error = false): void {
+    this.snack.open(msg, 'OK', {
+      duration: 3500,
+      horizontalPosition: 'end',
+      verticalPosition: 'top',
+      panelClass: error ? 'toast-error' : 'toast-ok',
+    });
+  }
+
   // Al cerrar el detalle: si venía de la lista del día, se vuelve a esa lista.
   onDetalleHidden(): void {
     if (this.detalleDesdeDia) {
@@ -445,6 +541,7 @@ export class ControlSupervisorComponent implements OnInit {
     const delDia = this.citasFiltradas.filter(c => this.mismaFecha(c.startDate, fecha));
     if (!delDia.length) return;
     this.diaCitas = [...delDia].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+    this.filtroDia = 'TODOS';   // cada día abre sin filtro
     this.construirGruposDia();
     this.diaTitulo = this.fechaLarga(fecha);
     this.diaVisible = true;
@@ -456,6 +553,22 @@ export class ControlSupervisorComponent implements OnInit {
   avisoTexto(c: CitaControl): string { return [c.avisoTipo, c.avisoCelular].filter(Boolean).join(' · '); }
   get diaObs(): number { return this.diaCitas.filter(c => this.tieneAviso(c)).length; }
   get diaDiscrepancias(): number { return this.diaCitas.filter(c => c.resultado === 'DISCREPANCIA').length; }
+  get diaSinGestion(): number { return this.diaCitas.filter(c => c.resultado === 'SIN GESTIÓN').length; }
+
+  // Filtro rápido dentro del popup del día (chips clicables).
+  filtroDia: 'TODOS' | 'DISCREPANCIA' | 'OBS' | 'SIN_GESTION' = 'TODOS';
+  toggleFiltroDia(f: 'TODOS' | 'DISCREPANCIA' | 'OBS' | 'SIN_GESTION'): void {
+    this.filtroDia = (this.filtroDia === f) ? 'TODOS' : f;
+    this.construirGruposDia();
+  }
+  private get citasDelDiaFiltradas(): CitaControl[] {
+    switch (this.filtroDia) {
+      case 'DISCREPANCIA': return this.diaCitas.filter(c => c.resultado === 'DISCREPANCIA');
+      case 'OBS':          return this.diaCitas.filter(c => this.tieneAviso(c));
+      case 'SIN_GESTION':  return this.diaCitas.filter(c => c.resultado === 'SIN GESTIÓN');
+      default:             return this.diaCitas;
+    }
+  }
 
   // Desde el popup del día, abrir el detalle de una cita (al cerrar vuelve a la lista).
   verDesdeDia(c: CitaControl): void {

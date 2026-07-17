@@ -80,6 +80,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'registro-gestion',             label: 'Registro de Gestión',                     sedeScoped: true },
   { key: 'registro-supervisor',          label: 'Registro Supervisor — Realzza' },
   { key: 'control-supervisor',           label: 'Control Supervisor — Realzza' },
+  { key: 'gestion-supervisor',           label: 'Gestión Supervisor — Realzza', grupo: 'Gestión' },
   { key: 'comparativo-cartera-ventas',   label: 'Comparativo Cartera Ventas Piso' },
 ];
 
@@ -91,7 +92,7 @@ const CALL_MODULES = [
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
-  'registro-supervisor', 'control-supervisor',
+  'registro-supervisor', 'control-supervisor', 'gestion-supervisor',
 ];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
@@ -101,7 +102,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v17';
+const STORAGE_KEY = 'gd_permissions_v18';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
