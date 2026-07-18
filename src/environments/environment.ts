@@ -8,5 +8,5 @@ export const environment = {
   cruceBase: 'https://limpiezabd-sedes-service.onrender.com',
   // Microservicio de ventas/margen (ventas-service). Vacío = usa sheets-api (apiBase).
   // Cuando lo despliegues en Render, pon aquí su URL.
-  ventasBase: '',
+  ventasBase: 'https://ventas-margen-service.onrender.com',
 };
