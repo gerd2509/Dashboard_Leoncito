@@ -6,4 +6,7 @@ export const environment = {
   // Microservicio de cruces/limpieza (limpiezaBD_sedes-service en Render).
   // Vacío = procesa en el navegador. Con URL = usa el micro (con fallback local).
   cruceBase: 'https://limpiezabd-sedes-service.onrender.com',
+  // Microservicio de ventas/margen (ventas-service). Vacío = usa sheets-api (apiBase).
+  // Cuando lo despliegues en Render, pon aquí su URL.
+  ventasBase: '',
 };

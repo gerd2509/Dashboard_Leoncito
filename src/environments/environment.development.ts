@@ -5,4 +5,7 @@ export const environment = {
   // Microservicio de cruces/limpieza. Vacío = procesa en el navegador (default).
   // Para probar el microservicio en local, arráncalo y pon: 'http://localhost:4002'.
   cruceBase: 'http://localhost:4002',
+  // Microservicio de ventas/margen. Vacío = usa sheets-api (apiBase).
+  // Con el micro corriendo en local: 'http://localhost:4003'.
+  ventasBase: 'http://localhost:4003',
 };

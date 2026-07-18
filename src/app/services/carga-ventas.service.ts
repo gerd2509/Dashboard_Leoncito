@@ -43,7 +43,8 @@ export interface EstadoVentas {
 @Injectable({ providedIn: 'root' })
 export class CargaVentasService {
   private http = inject(HttpClient);
-  private root = environment.apiBase;
+  // ventas-service si está configurado; si no, cae al monolito sheets-api.
+  private root = environment.ventasBase || environment.apiBase;
 
   private pathDe(tipo: CargaTipo): string {
     return tipo === 'margen' ? 'margen-ventas' : 'ventas';
