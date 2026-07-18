@@ -55,7 +55,8 @@ export interface GestionRealzzaPayload {
 @Injectable({ providedIn: 'root' })
 export class RegistroGestionService {
   private http = inject(HttpClient);
-  private url = `${environment.apiBase}/gestion`;
+  // gestion-service si está configurado; si no, cae al monolito sheets-api.
+  private url = `${environment.gestionBase || environment.apiBase}/gestion`;
 
   registrar(payload: GestionPayload): Observable<any> {
     return this.http.post(this.url, payload);

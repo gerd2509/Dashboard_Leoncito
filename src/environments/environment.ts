@@ -9,4 +9,7 @@ export const environment = {
   // Microservicio de ventas/margen (ventas-service). Vacío = usa sheets-api (apiBase).
   // Cuando lo despliegues en Render, pon aquí su URL.
   ventasBase: 'https://ventas-margen-service.onrender.com',
+  // Microservicio de gestión (registro + control supervisor). Vacío = usa sheets-api.
+  // Cuando lo despliegues en Render, pon aquí su URL.
+  gestionBase: '',
 };

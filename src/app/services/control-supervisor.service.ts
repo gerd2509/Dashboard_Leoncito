@@ -32,7 +32,8 @@ export interface ControlSupervisor extends ControlSupervisorPayload {
 @Injectable({ providedIn: 'root' })
 export class ControlSupervisorService {
   private http = inject(HttpClient);
-  private url = `${environment.apiBase}/control-supervisor`;
+  // gestion-service si está configurado; si no, cae al monolito sheets-api.
+  private url = `${environment.gestionBase || environment.apiBase}/control-supervisor`;
 
   /** Registra un control del supervisor (escribe en la tabla control_supervisor). */
   registrar(payload: ControlSupervisorPayload): Observable<any> {

@@ -8,4 +8,7 @@ export const environment = {
   // Microservicio de ventas/margen. Vacío = usa sheets-api (apiBase).
   // Con el micro corriendo en local: 'http://localhost:4003'.
   ventasBase: 'http://localhost:4003',
+  // Microservicio de gestión (registro + control supervisor). Vacío = usa sheets-api.
+  // Con el micro corriendo en local: 'http://localhost:4004'.
+  gestionBase: 'http://localhost:4004',
 };
