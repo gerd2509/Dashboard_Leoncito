@@ -44,8 +44,8 @@ export class RegistroSupervisorComponent {
   readonly estadosLead = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE', 'OTRO'];
 
   // Subtipo dentro de la pestaña Market Place.
-  mpSubtipo: 'MARKET PLACE' | 'KOMMO PLATAFORMA' = 'MARKET PLACE';
-  setMpSubtipo(v: 'MARKET PLACE' | 'KOMMO PLATAFORMA'): void { this.mpSubtipo = v; }
+  mpSubtipo: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA' = 'MARKET PLACE PLATAFORMA';
+  setMpSubtipo(v: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA'): void { this.mpSubtipo = v; }
   readonly margenMp = MARGEN_MP_DIAS;
 
   guardando = false;
@@ -198,7 +198,7 @@ export class RegistroSupervisorComponent {
     } else {
       payload = {
         tipo_control: 'MARKET_PLACE',
-        mp_subtipo: 'MARKET PLACE',
+        mp_subtipo: 'MARKET PLACE PLATAFORMA',
         registrado_por: this.supervisor,
         asesor: this.mp.asesor,
         fecha_publicacion: this.mp.sinPub ? '' : this.fechaDMY(this.mp.fechaPub),

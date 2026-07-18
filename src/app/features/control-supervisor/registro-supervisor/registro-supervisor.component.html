@@ -56,13 +56,13 @@
       <!-- Selector de subtipo -->
       <div class="rs-field rs-full">
         <div class="rs-subtabs">
-          <button [class.active]="mpSubtipo === 'MARKET PLACE'" (click)="setMpSubtipo('MARKET PLACE')">Market Place</button>
+          <button [class.active]="mpSubtipo === 'MARKET PLACE PLATAFORMA'" (click)="setMpSubtipo('MARKET PLACE PLATAFORMA')">Market Place Plataforma</button>
           <button [class.active]="mpSubtipo === 'KOMMO PLATAFORMA'" (click)="setMpSubtipo('KOMMO PLATAFORMA')">Kommo Plataforma</button>
         </div>
       </div>
 
-      <!-- ── MARKET PLACE ── -->
-      <ng-container *ngIf="mpSubtipo === 'MARKET PLACE'">
+      <!-- ── MARKET PLACE PLATAFORMA ── -->
+      <ng-container *ngIf="mpSubtipo === 'MARKET PLACE PLATAFORMA'">
         <div class="rs-field rs-full">
           <div class="rs-hint">
             <mat-icon>info</mat-icon>

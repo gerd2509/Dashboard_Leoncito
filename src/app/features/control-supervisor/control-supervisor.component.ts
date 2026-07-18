@@ -324,12 +324,12 @@ export class ControlSupervisorComponent implements OnInit {
     const dias = fpub ? Math.max(0, Math.floor((start.getTime() - fpub.getTime()) / 86400000)) : null;
 
     return {
-      id: c.id, tipo: 'MARKET_PLACE', mpSubtipo: 'MARKET PLACE',
+      id: c.id, tipo: 'MARKET_PLACE', mpSubtipo: 'MARKET PLACE PLATAFORMA',
       color: estadoMp || 'DESACTUALIZADO',
       text: `MP · ${estadoMp}`,
       startDate: start, endDate: end,
       asesor: (c.asesor || '').toString().trim(),
-      tipoBase: 'MARKET PLACE',
+      tipoBase: 'MARKET PLACE PLATAFORMA',
       comentario: c.comentario || '',
       estadoMp,
       fechaPublicacion: c.fecha_publicacion || '',

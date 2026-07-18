@@ -40,7 +40,7 @@ export class GestionSupervisorComponent implements OnInit {
   readonly tipos = [
     { value: '', label: 'Todos' },
     { value: 'GESTION', label: 'Gestión' },
-    { value: 'MARKET PLACE', label: 'Market Place' },
+    { value: 'MARKET PLACE PLATAFORMA', label: 'Market Place Plataforma' },
     { value: 'KOMMO PLATAFORMA', label: 'Kommo Plataforma' },
   ];
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
@@ -78,7 +78,7 @@ export class GestionSupervisorComponent implements OnInit {
   private aFila(r: ControlSupervisor): FilaSup {
     const sub = (r.mp_subtipo || '').toString().trim().toUpperCase();
     const tipoLabel = r.tipo_control === 'MARKET_PLACE'
-      ? (sub === 'KOMMO PLATAFORMA' ? 'KOMMO PLATAFORMA' : 'MARKET PLACE')
+      ? (sub === 'KOMMO PLATAFORMA' ? 'KOMMO PLATAFORMA' : 'MARKET PLACE PLATAFORMA')
       : 'GESTION';
     return { ...r, tipoLabel, nFotos: Array.isArray(r.fotos) ? r.fotos.length : 0 };
   }
@@ -138,7 +138,7 @@ export class GestionSupervisorComponent implements OnInit {
     const soloKp = ['cliente', 'estado_lead'];
     grid.beginUpdate();
     soloGestion.forEach(c => grid.columnOption(c, 'formItem.visible', t === 'GESTION'));
-    soloMp.forEach(c => grid.columnOption(c, 'formItem.visible', t === 'MARKET PLACE'));
+    soloMp.forEach(c => grid.columnOption(c, 'formItem.visible', t === 'MARKET PLACE PLATAFORMA'));
     soloKp.forEach(c => grid.columnOption(c, 'formItem.visible', t === 'KOMMO PLATAFORMA'));
     grid.endUpdate();
   }

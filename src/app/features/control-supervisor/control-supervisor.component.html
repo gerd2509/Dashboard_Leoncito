@@ -249,7 +249,7 @@
                 <div class="cs-dia-info">
                   <div class="cs-dia-top">
                     <b *ngIf="c.tipo === 'GESTION'">DNI {{ c.dni }}</b>
-                    <b *ngIf="c.tipo === 'MARKET_PLACE' && !esKommoPlataforma(c)"><mat-icon class="inl">storefront</mat-icon> Market Place</b>
+                    <b *ngIf="c.tipo === 'MARKET_PLACE' && !esKommoPlataforma(c)"><mat-icon class="inl">storefront</mat-icon> Market Place Plataforma</b>
                     <b *ngIf="esKommoPlataforma(c)"><mat-icon class="inl">public</mat-icon> {{ c.cliente || 'Kommo Plataforma' }}</b>
                     <span class="cs-dia-hora">{{ horaDe(c.startDate) }}</span>
                   </div>
