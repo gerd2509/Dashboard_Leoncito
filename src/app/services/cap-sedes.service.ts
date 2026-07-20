@@ -81,6 +81,17 @@ export class CapSedesService {
     return Array.from(new Set(filas.map(r => r.vendedor.toUpperCase()))).sort();
   }
 
+  /** Mapa vendedor(UPPER) → supervisor, para una sede (solo activos). */
+  async supervisoresPorVendedor(sedeKey: string): Promise<Map<string, string>> {
+    const filas = await this.filasSede(sedeKey, true);
+    const m = new Map<string, string>();
+    for (const r of filas) {
+      const nom = r.vendedor.toUpperCase();
+      if (!m.has(nom)) m.set(nom, (r.supervisor || 'SIN SUPERVISOR').toUpperCase());
+    }
+    return m;
+  }
+
   /** Vendedores activos de una sede agrupados por CANAL, en orden (RECP... primero). */
   async vendedoresPorCanal(sedeKey: string): Promise<{ canal: string; vendedores: string[] }[]> {
     const filas = await this.filasSede(sedeKey, true);

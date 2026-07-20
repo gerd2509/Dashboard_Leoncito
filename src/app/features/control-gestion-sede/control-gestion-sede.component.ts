@@ -10,6 +10,7 @@ import { CapSedesService } from '../../services/cap-sedes.service';
 
 interface AsesorRow {
   asesor: string;
+  supervisor: string;   // supervisor del CAP (para agrupar el detalle por sede)
   llamadaContacto: number;
   llamadaNoContacto: number;
   cartaContacto: number;
@@ -86,6 +87,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   private sedesObjetivo: { key: string; nombre: string }[] = [];
   // Roster de vendedores ACTIVOS por sede, tomado del CAP (nombres correctos).
   private capPorSede = new Map<string, string[]>();
+  // Mapa vendedor(UPPER) → supervisor por sede (del CAP), para agrupar el detalle.
+  private supPorSede = new Map<string, Map<string, string>>();
 
   private intervaloCincoMin: any = null;
 
@@ -131,6 +134,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     await this.cap.cargar();
     for (const s of this.sedesObjetivo) {
       this.capPorSede.set(s.key, await this.cap.vendedoresActivos(s.key));
+      this.supPorSede.set(s.key, await this.cap.supervisoresPorVendedor(s.key));
     }
     if (this.listData.length) this.calcular();
   }
@@ -200,6 +204,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const asesores = this.capPorSede.get(sede.key)?.length
         ? this.capPorSede.get(sede.key)!
         : (cfg?.asesores ?? []);
+      const supMap = this.supPorSede.get(sede.key);
       const valorSede = cfg?.valorSede ?? sede.nombre;
 
       // Filtrar filas de esta sede + fecha seleccionada
@@ -224,6 +229,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
         return {
           asesor: asesorNombre,
+          supervisor: supMap?.get(asesorNombre) ?? 'SIN SUPERVISOR',
           llamadaContacto, llamadaNoContacto,
           cartaContacto, cartaNoContacto,
           totalContacto, total,
