@@ -46,8 +46,11 @@
     padding: 8px 10px;
 }
 .ev-card-head mat-icon { color: #1A5FAD; }
+.ev-card-head .ev-titulo { flex: 1; }
+.ev-expand { color: #1A5FAD; }
 
-.ev-chart { height: 420px; width: 100%; }
+.ev-chart { height: 560px; width: 100%; }
+.ev-chart-popup { height: 100%; width: 100%; }
 
 .ev-loading, .ev-vacio {
     display: flex;

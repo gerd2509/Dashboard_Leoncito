@@ -8,8 +8,8 @@ import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 
 interface PuntoSerie {
-  dia: string;       // 'YYYY-MM-DD' (clave)
   fecha: string;     // etiqueta 'dd/MM' para el eje X
+  serie: string;     // nombre de la serie (sede) — para la línea por sede
   registros: number; // gestiones reales (DNIs distintos) de ese día
 }
 
@@ -38,7 +38,9 @@ export class EvolucionRegistrosComponent implements OnInit {
 
   sedeOptions: { value: string; label: string }[] = [];
   puntos: PuntoSerie[] = [];
+  multiSerie = false;   // true = una línea por sede (Global); false = una sola línea
   tituloSerie = 'Global';
+  popupVisible = false; // gráfico ampliado en popup
   totalRango = 0;
   promedioDia = 0;
   maxDia = 0;
@@ -109,42 +111,60 @@ export class EvolucionRegistrosComponent implements OnInit {
     const desdeK = this.ymd(desde);
     const hastaK = this.ymd(hasta);
 
-    // Columnas de asesor a considerar: todas (global) o solo la sede elegida.
-    const cols = sedeSel === 'GLOBAL'
-      ? this.sedesCall.map(s => s.col)
-      : this.sedesCall.filter(s => s.key === sedeSel).map(s => s.col);
+    // Sedes en alcance: todas (Global) o solo la elegida.
+    const scope = sedeSel === 'GLOBAL' ? this.sedesCall : this.sedesCall.filter(s => s.key === sedeSel);
     this.tituloSerie = sedeSel === 'GLOBAL'
-      ? 'Global (todas las sedes)'
+      ? 'Global — una línea por sede'
       : (this.sedesCall.find(s => s.key === sedeSel)?.nombre ?? 'Sede');
 
-    // día 'YYYY-MM-DD' → conjunto de DNIs (gestiones reales = 1 por DNI).
-    const porDia = new Map<string, Set<string>>();
+    // Días del rango (para rellenar con 0 los días sin registros).
+    const dias: string[] = [];
+    const d = new Date(desde); d.setHours(0, 0, 0, 0);
+    const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
+    let guard = 0;
+    while (d <= fin && guard < 366) { dias.push(this.ymd(d)); d.setDate(d.getDate() + 1); guard++; }
+    const etiqueta = (k: string) => `${k.slice(8, 10)}/${k.slice(5, 7)}`;   // 'YYYY-MM-DD' → 'dd/MM'
+
+    // sedeKey → (día → Set<DNI>) y unión global (día → Set<DNI>) para los KPIs.
+    const porSede = new Map<string, Map<string, Set<string>>>();
+    const global = new Map<string, Set<string>>();
     this.listData.forEach((r, i) => {
-      if (!cols.some(c => (r[c] ?? '').toString().trim() !== '')) return;   // no es de la(s) sede(s)
       const dia = this.diaKey(r['Marca temporal']);
       if (!dia || dia < desdeK || dia > hastaK) return;
       const dni = this.soloDigitos(r['DNI CLIENTE']);
       const clave = dni ? `dni:${dni}` : `row:${i}`;   // sin DNI → cuenta individual
-      if (!porDia.has(dia)) porDia.set(dia, new Set());
-      porDia.get(dia)!.add(clave);
+      for (const s of scope) {
+        if ((r[s.col] ?? '').toString().trim() === '') continue;   // la fila no es de esta sede
+        if (!porSede.has(s.key)) porSede.set(s.key, new Map());
+        const m = porSede.get(s.key)!;
+        if (!m.has(dia)) m.set(dia, new Set());
+        m.get(dia)!.add(clave);
+        if (!global.has(dia)) global.set(dia, new Set());
+        global.get(dia)!.add(clave);
+      }
     });
 
-    // Un punto por cada día del rango (relleno con 0 los días sin registros).
+    // Puntos (formato largo: una fila por día×serie). Global = una serie por sede
+    // con datos; sede concreta = una sola serie.
     const puntos: PuntoSerie[] = [];
-    const d = new Date(desde); d.setHours(0, 0, 0, 0);
-    const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
-    let guard = 0;
-    while (d <= fin && guard < 366) {
-      const k = this.ymd(d);
-      puntos.push({ dia: k, fecha: `${this.p2(d.getDate())}/${this.p2(d.getMonth() + 1)}`, registros: porDia.get(k)?.size ?? 0 });
-      d.setDate(d.getDate() + 1);
-      guard++;
+    const sedesConDatos = scope.filter(s => {
+      const m = porSede.get(s.key);
+      return m && [...m.values()].some(set => set.size > 0);
+    });
+    const series = sedeSel === 'GLOBAL' ? sedesConDatos : scope;
+    for (const s of series) {
+      const m = porSede.get(s.key) ?? new Map<string, Set<string>>();
+      for (const k of dias) puntos.push({ fecha: etiqueta(k), serie: s.nombre, registros: m.get(k)?.size ?? 0 });
     }
-
     this.puntos = puntos;
-    this.totalRango = puntos.reduce((s, p) => s + p.registros, 0);
-    this.maxDia = puntos.reduce((m, p) => Math.max(m, p.registros), 0);
-    this.promedioDia = puntos.length ? Math.round(this.totalRango / puntos.length) : 0;
+    this.multiSerie = sedeSel === 'GLOBAL' && series.length > 1;
+
+    // KPIs: siempre la TOTALIDAD del alcance (unión de DNIs por día).
+    let total = 0, max = 0;
+    for (const k of dias) { const n = global.get(k)?.size ?? 0; total += n; max = Math.max(max, n); }
+    this.totalRango = total;
+    this.maxDia = max;
+    this.promedioDia = dias.length ? Math.round(total / dias.length) : 0;
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

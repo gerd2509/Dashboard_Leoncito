@@ -25,18 +25,25 @@
     <div class="ev-card">
         <div class="ev-card-head">
             <mat-icon>show_chart</mat-icon>
-            <span>Gestiones reales por día — {{ tituloSerie }}</span>
+            <span class="ev-titulo">Gestiones reales por día — {{ tituloSerie }}</span>
+            <button mat-icon-button type="button" class="ev-expand" (click)="popupVisible = true" matTooltip="Ampliar">
+                <mat-icon>open_in_full</mat-icon>
+            </button>
         </div>
 
         <div *ngIf="isLoading" class="ev-loading">Cargando…</div>
 
-        <dx-chart *ngIf="!isLoading" [dataSource]="puntos" [redrawOnResize]="true" class="ev-chart">
-            <dxo-common-series-settings argumentField="fecha" type="line">
-                <dxo-point [visible]="true" [size]="7"></dxo-point>
-                <dxo-label [visible]="true" backgroundColor="#1A5FAD"></dxo-label>
+        <dx-chart *ngIf="!isLoading" [dataSource]="puntos" [redrawOnResize]="true" palette="Material" class="ev-chart">
+            <dxo-common-series-settings argumentField="fecha" valueField="registros" type="line">
+                <dxo-point [visible]="true" [size]="6"></dxo-point>
+                <!-- Número visible en cada punto (siempre, también con varias líneas) -->
+                <dxo-label [visible]="true">
+                    <dxo-font [size]="11"></dxo-font>
+                </dxo-label>
             </dxo-common-series-settings>
 
-            <dxi-series valueField="registros" name="Registros" color="#1A5FAD"></dxi-series>
+            <!-- Una serie (línea) por sede automáticamente, según el campo 'serie' -->
+            <dxo-series-template nameField="serie"></dxo-series-template>
 
             <dxo-argument-axis>
                 <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
@@ -46,12 +53,34 @@
             </dxo-value-axis>
 
             <dxo-tooltip [enabled]="true"></dxo-tooltip>
-            <dxo-legend [visible]="false"></dxo-legend>
+            <dxo-legend [visible]="multiSerie" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
         </dx-chart>
 
         <div *ngIf="!isLoading && totalRango === 0" class="ev-vacio">
             <mat-icon>info</mat-icon> No hay gestiones registradas en el rango/sede seleccionados.
         </div>
     </div>
+
+    <!-- Popup: gráfico ampliado -->
+    <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="'Gestiones reales por día — ' + tituloSerie"
+        [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" height="88%">
+        <div *dxTemplate="let d of 'content'" class="ev-chart-popup">
+            <dx-chart [dataSource]="puntos" [redrawOnResize]="true" palette="Material" class="ev-chart-popup">
+                <dxo-common-series-settings argumentField="fecha" valueField="registros" type="line">
+                    <dxo-point [visible]="true" [size]="7"></dxo-point>
+                    <dxo-label [visible]="true"><dxo-font [size]="12"></dxo-font></dxo-label>
+                </dxo-common-series-settings>
+                <dxo-series-template nameField="serie"></dxo-series-template>
+                <dxo-argument-axis>
+                    <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
+                </dxo-argument-axis>
+                <dxo-value-axis [allowDecimals]="false">
+                    <dxo-title text="N° de gestiones (DNIs)"></dxo-title>
+                </dxo-value-axis>
+                <dxo-tooltip [enabled]="true"></dxo-tooltip>
+                <dxo-legend [visible]="multiSerie" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+            </dx-chart>
+        </div>
+    </dx-popup>
 
 </div>
