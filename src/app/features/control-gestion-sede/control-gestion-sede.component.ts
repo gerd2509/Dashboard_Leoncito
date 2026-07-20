@@ -40,8 +40,10 @@ interface SedeBloque {
   metaCartasMensual: number;
   metaDiariaLlamadas: number;
   metaDiariaCartas: number;
+  metaDiariaAfiliaciones: number;
   pctLlamadas: number;   // % cumplimiento llamadas vs meta diaria (0-100+)
   pctCartas: number;     // % cumplimiento cartas   vs meta diaria (0-100+)
+  pctAfiliaciones: number | null;  // % cumplimiento afiliaciones (null = sin meta → "—")
 }
 
 interface ZonaGrupo {
@@ -53,8 +55,10 @@ interface ZonaGrupo {
   afiliaciones: number;
   metaDiariaLlamadas: number;
   metaDiariaCartas: number;
+  metaDiariaAfiliaciones: number;
   pctLlamadas: number;
   pctCartas: number;
+  pctAfiliaciones: number | null;
 }
 
 @Component({
@@ -73,13 +77,17 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   // ── Resumen agrupado por zona ──
   resumenGrupos: ZonaGrupo[] = [];
-  resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, afiliaciones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, pctLlamadas: 0, pctCartas: 0 };
+  resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, afiliaciones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, metaDiariaAfiliaciones: 0, pctLlamadas: 0, pctCartas: 0, pctAfiliaciones: null as number | null };
 
   // ── Afiliaciones (se importan de un Excel y se guardan en el navegador) ──
-  private afiliacionesMap = new Map<string, number>();   // normNombre → nº afiliaciones
-  afiliacionesInfo: { archivo: string; fecha: string; total: number } | null = null;
+  // normNombre → { 'YYYY-MM-DD': nº afiliaciones }. Se cuenta por la FECHO REGISTRO
+  // del Excel y se muestra según la fecha seleccionada en el componente.
+  private afiliacionesData = new Map<string, Record<string, number>>();
+  afiliacionesInfo: { archivo: string; fecha: string; total: number; sinFecha: number } | null = null;
   afiliacionesError = '';
-  private readonly AFI_KEY = 'cgs_afiliaciones_v1';
+  private readonly AFI_KEY = 'cgs_afiliaciones_v2';
+  // Meta diaria de afiliaciones POR ASESOR (la de la sede = nº asesores × esto).
+  private readonly META_AFI_ASESOR = 4;
   diasDelMes = 30;
   private readonly ordenZonas = ['CENTRO', 'NORTE', 'SUR'];
   // Orden exacto de las sedes dentro de cada zona (como se muestra en el resumen).
@@ -170,8 +178,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       metaCartasMensual: this.sedeConfig.getConfig(sede.key)?.metaCartasMensual ?? 0,
       metaDiariaLlamadas: 0,
       metaDiariaCartas: 0,
+      metaDiariaAfiliaciones: 0,
       pctLlamadas: 0,
       pctCartas: 0,
+      pctAfiliaciones: null,
     }));
   }
 
@@ -204,6 +214,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   private calcular() {
     const fecha = this.formCtrl.value.fechaGestion as Date;
+    const claveFechaSel = this.claveFecha(fecha);   // afiliaciones del día seleccionado
     const yaExpandida = new Set(this.sedesBloques.filter(b => b.expandida).map(b => b.key));
     const soloUna = this.sedesObjetivo.length === 1;
 
@@ -246,7 +257,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           cartaContacto, cartaNoContacto,
           totalContacto, total,
           porcentaje: total > 0 ? totalContacto / total : 0,
-          afiliaciones: this.afiliacionesMap.get(objetivo) ?? 0,
+          afiliaciones: this.afiliacionesData.get(objetivo)?.[claveFechaSel] ?? 0,
         };
       })
       // Se muestran los asesores con gestión en el día O con afiliaciones importadas.
@@ -261,10 +272,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const totalAfiliaciones     = filas.reduce((s, f) => s + f.afiliaciones, 0);
 
       // Metas: mensual (config) → diaria = mensual / días del mes
-      const metaLlamadasMensual = cfg?.metaLlamadasMensual ?? 0;
-      const metaCartasMensual   = cfg?.metaCartasMensual ?? 0;
-      const metaDiariaLlamadas  = this.diasDelMes > 0 ? Math.round(metaLlamadasMensual / this.diasDelMes) : 0;
-      const metaDiariaCartas    = this.diasDelMes > 0 ? Math.round(metaCartasMensual   / this.diasDelMes) : 0;
+      const metaLlamadasMensual    = cfg?.metaLlamadasMensual ?? 0;
+      const metaCartasMensual      = cfg?.metaCartasMensual ?? 0;
+      const metaDiariaLlamadas     = this.diasDelMes > 0 ? Math.round(metaLlamadasMensual / this.diasDelMes) : 0;
+      const metaDiariaCartas       = this.diasDelMes > 0 ? Math.round(metaCartasMensual   / this.diasDelMes) : 0;
+      // Afiliaciones: meta diaria de la sede = nº asesores del roster × meta por asesor (4).
+      const metaDiariaAfiliaciones = asesores.length * this.META_AFI_ASESOR;
 
       return {
         key: sede.key,
@@ -284,9 +297,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         metaCartasMensual,
         metaDiariaLlamadas,
         metaDiariaCartas,
+        metaDiariaAfiliaciones,
         // % cumplimiento = gestiones del día / meta diaria
         pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((totalLlamadas / metaDiariaLlamadas) * 100) : 0,
         pctCartas:   metaDiariaCartas   > 0 ? Math.round((totalCartas   / metaDiariaCartas)   * 100) : 0,
+        pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((totalAfiliaciones / metaDiariaAfiliaciones) * 100) : null,
       };
     });
 
@@ -307,13 +322,16 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const cartas             = sedes.reduce((s, b) => s + b.totalCartas, 0);
       const metaDiariaLlamadas = sedes.reduce((s, b) => s + b.metaDiariaLlamadas, 0);
       const metaDiariaCartas   = sedes.reduce((s, b) => s + b.metaDiariaCartas, 0);
+      const metaDiariaAfiliaciones = sedes.reduce((s, b) => s + b.metaDiariaAfiliaciones, 0);
       const gestiones          = sedes.reduce((s, b) => s + b.totalGestiones, 0);
       const afiliaciones       = sedes.reduce((s, b) => s + b.totalAfiliaciones, 0);
 
       grupos.push({
-        zona, sedes, llamadas, cartas, gestiones, afiliaciones, metaDiariaLlamadas, metaDiariaCartas,
+        zona, sedes, llamadas, cartas, gestiones, afiliaciones,
+        metaDiariaLlamadas, metaDiariaCartas, metaDiariaAfiliaciones,
         pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((llamadas / metaDiariaLlamadas) * 100) : 0,
         pctCartas:   metaDiariaCartas   > 0 ? Math.round((cartas   / metaDiariaCartas)   * 100) : 0,
+        pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((afiliaciones / metaDiariaAfiliaciones) * 100) : null,
       });
     }
     this.resumenGrupos = grupos;
@@ -323,12 +341,14 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const cartas             = this.sedesBloques.reduce((s, b) => s + b.totalCartas, 0);
     const metaDiariaLlamadas = this.sedesBloques.reduce((s, b) => s + b.metaDiariaLlamadas, 0);
     const metaDiariaCartas   = this.sedesBloques.reduce((s, b) => s + b.metaDiariaCartas, 0);
+    const metaDiariaAfiliaciones = this.sedesBloques.reduce((s, b) => s + b.metaDiariaAfiliaciones, 0);
     const gestiones          = this.sedesBloques.reduce((s, b) => s + b.totalGestiones, 0);
     const afiliaciones       = this.sedesBloques.reduce((s, b) => s + b.totalAfiliaciones, 0);
     this.resumenTotalGen = {
-      llamadas, cartas, gestiones, afiliaciones, metaDiariaLlamadas, metaDiariaCartas,
+      llamadas, cartas, gestiones, afiliaciones, metaDiariaLlamadas, metaDiariaCartas, metaDiariaAfiliaciones,
       pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((llamadas / metaDiariaLlamadas) * 100) : 0,
       pctCartas:   metaDiariaCartas   > 0 ? Math.round((cartas   / metaDiariaCartas)   * 100) : 0,
+      pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((afiliaciones / metaDiariaAfiliaciones) * 100) : null,
     };
 
     // Rangos para la escala de 3 colores (solo sobre las filas de sede)
@@ -451,19 +471,20 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   // ──────────────────────────────────────────────────────────────────────────
   // AFILIACIONES — se importan de un Excel y se guardan en el navegador (localStorage).
-  // Cruce por nombre del vendedor (columna "ASESOR DE VENTA"): cada fila = 1 afiliación.
+  // Cruce por nombre del vendedor ("ASESOR DE VENTA") y conteo por día ("FECHO
+  // REGISTRO"): cada fila = 1 afiliación; se muestran según la fecha seleccionada.
   // ──────────────────────────────────────────────────────────────────────────
   private cargarAfiliacionesLocal(): void {
     try {
       const raw = localStorage.getItem(this.AFI_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      this.afiliacionesMap = new Map(Object.entries(data.conteo || {}).map(([k, v]) => [k, Number(v)]));
-      this.afiliacionesInfo = { archivo: data.archivo || '', fecha: data.fecha || '', total: data.total || 0 };
+      this.afiliacionesData = new Map(Object.entries(data.porNombre || {}).map(([k, v]) => [k, v as Record<string, number>]));
+      this.afiliacionesInfo = { archivo: data.archivo || '', fecha: data.fecha || '', total: data.total || 0, sinFecha: data.sinFecha || 0 };
     } catch { /* localStorage corrupto: se ignora */ }
   }
 
-  /** Importa el Excel de afiliaciones (cuenta filas por "ASESOR DE VENTA"). */
+  /** Importa el Excel de afiliaciones (cuenta por "ASESOR DE VENTA" y "FECHO REGISTRO"). */
   onImportarAfiliaciones(evt: Event): void {
     const input = evt.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -478,24 +499,31 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         const filas = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
         if (!filas.length) throw new Error('El archivo no tiene filas.');
 
-        // Columna del asesor: "ASESOR DE VENTA" (tolera acentos/mayúsculas).
         const headers = Object.keys(filas[0]);
+        // Columna del asesor: "ASESOR DE VENTA".
         const colAsesor = headers.find(h => this.normNombre(h) === this.normNombre('ASESOR DE VENTA'))
           ?? headers.find(h => this.normNombre(h).includes('asesor'));
         if (!colAsesor) throw new Error('No se encontró la columna "ASESOR DE VENTA" en el Excel.');
+        // Columna de fecha: "FECHO REGISTRO".
+        const colFecha = headers.find(h => this.normNombre(h) === this.normNombre('FECHO REGISTRO'))
+          ?? headers.find(h => this.normNombre(h).includes('fecho') || this.normNombre(h).includes('fecha'));
+        if (!colFecha) throw new Error('No se encontró la columna de fecha ("FECHO REGISTRO") para contar por día.');
 
-        const conteo: Record<string, number> = {};
-        let total = 0;
+        const porNombre: Record<string, Record<string, number>> = {};
+        let total = 0, sinFecha = 0;
         for (const r of filas) {
           const nombre = this.normNombre(r[colAsesor]);
           if (!nombre) continue;
-          conteo[nombre] = (conteo[nombre] || 0) + 1;
+          const clave = this.claveFecha(r[colFecha]);
+          if (!clave) { sinFecha++; continue; }   // sin fecha válida → no se puede atribuir a un día
           total++;
+          (porNombre[nombre] ??= {});
+          porNombre[nombre][clave] = (porNombre[nombre][clave] || 0) + 1;
         }
 
-        this.afiliacionesMap = new Map(Object.entries(conteo));
-        this.afiliacionesInfo = { archivo: file.name, fecha: new Date().toLocaleString('es-PE'), total };
-        localStorage.setItem(this.AFI_KEY, JSON.stringify({ ...this.afiliacionesInfo, conteo }));
+        this.afiliacionesData = new Map(Object.entries(porNombre));
+        this.afiliacionesInfo = { archivo: file.name, fecha: new Date().toLocaleString('es-PE'), total, sinFecha };
+        localStorage.setItem(this.AFI_KEY, JSON.stringify({ ...this.afiliacionesInfo, porNombre }));
 
         if (this.listData.length) this.calcular();   // refresca las tablas con las afiliaciones
       } catch (err: any) {
@@ -507,9 +535,30 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     reader.readAsArrayBuffer(file);
   }
 
+  /** Convierte un valor de fecha (Date, serial Excel, dd/mm/yyyy o ISO) a 'YYYY-MM-DD'. */
+  private claveFecha(v: any): string {
+    if (v === null || v === undefined || v === '') return '';
+    if (v instanceof Date && !isNaN(v.getTime())) return this.ymd(v);
+    if (typeof v === 'number') {
+      const d = new Date(Math.round((v - 25569) * 86400 * 1000)); // serial Excel → UTC
+      if (isNaN(d.getTime())) return '';
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+    }
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);   // dd/mm/yyyy
+    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);                  // yyyy-mm-dd
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? '' : this.ymd(d);
+  }
+  private ymd(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   /** Borra las afiliaciones guardadas en el navegador. */
   limpiarAfiliaciones(): void {
-    this.afiliacionesMap.clear();
+    this.afiliacionesData.clear();
     this.afiliacionesInfo = null;
     this.afiliacionesError = '';
     localStorage.removeItem(this.AFI_KEY);
