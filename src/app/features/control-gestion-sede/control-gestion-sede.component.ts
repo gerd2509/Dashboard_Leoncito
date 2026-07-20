@@ -70,7 +70,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   resumenGrupos: ZonaGrupo[] = [];
   resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, pctLlamadas: 0, pctCartas: 0 };
   diasDelMes = 30;
-  private readonly ordenZonas = ['NORTE', 'SUR'];
+  private readonly ordenZonas = ['CENTRO', 'NORTE', 'SUR'];
+  // Orden exacto de las sedes dentro de cada zona (como se muestra en el resumen).
+  private readonly ordenSedes = [
+    'lambayeque', 'ferrenafe',                          // CENTRO
+    'morrope', 'mochumi', 'jayanca', 'motupe', 'olmos', // NORTE
+    'cayalti', 'oyotun', 'chongoyape',                  // SUR
+  ];
 
   // Valores de % cumplimiento por sede → para la escala de 3 colores (rojo/amarillo/verde)
   private valoresPctLlamadas: number[] = [];
@@ -98,7 +104,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
 
     if (esGlobal) {
-      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo();
+      // Orden por zona (CENTRO → NORTE → SUR) para que las tarjetas de detalle
+      // coincidan con el resumen agrupado.
+      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
+        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
     } else {
       const cfg = this.sedeConfig.getConfig(u.sede);
       this.sedesObjetivo = cfg
@@ -263,12 +272,14 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.construirResumen();
   }
 
-  /** Agrupa las sedes por zona (NORTE/SUR) y prepara los valores para la escala de color. */
+  /** Agrupa las sedes por zona (CENTRO/NORTE/SUR) y prepara los valores para la escala de color. */
   private construirResumen() {
     const grupos: ZonaGrupo[] = [];
 
     for (const zona of this.ordenZonas) {
-      const sedes = this.sedesBloques.filter(b => b.zona === zona);
+      const sedes = this.sedesBloques
+        .filter(b => b.zona === zona)
+        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
       if (!sedes.length) continue;
 
       const llamadas           = sedes.reduce((s, b) => s + b.totalLlamadas, 0);

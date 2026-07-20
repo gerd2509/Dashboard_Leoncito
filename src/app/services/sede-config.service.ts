@@ -4,7 +4,7 @@ export interface SedeConfig {
   nombre: string;          // Nombre para mostrar en UI: 'Ferreñafe'
   valorSede: string;       // Valor exacto en la columna 'TIENDA SEDE' del sheet
   columnaAsesor: string;   // Columna del asesor en el sheet: 'ASESOR DE VENTA FERREÑAFE'
-  zona: 'NORTE' | 'SUR';   // Zona a la que pertenece la sede (para el resumen agrupado)
+  zona: 'CENTRO' | 'NORTE' | 'SUR';   // Zona a la que pertenece la sede (para el resumen agrupado)
   metaCartasMensual: number;    // Meta mensual de cartas (la diaria = mensual / días del mes)
   metaLlamadasMensual: number;  // Meta mensual de llamadas (la diaria = mensual / días del mes)
   asesores: string[];      // Nombres completos de los asesores (tal cual el sheet)
@@ -66,7 +66,7 @@ const SEDES: Record<string, SedeConfig> = {
     nombre: 'Ferreñafe',
     valorSede: 'Ferreñafe',
     columnaAsesor: 'ASESOR DE VENTA FERREÑAFE',
-    zona: 'SUR',
+    zona: 'CENTRO',
     metaCartasMensual: 1820,
     metaLlamadasMensual: 7280,
     asesores: [
@@ -111,7 +111,7 @@ const SEDES: Record<string, SedeConfig> = {
     nombre: 'Mochumi',
     valorSede: 'Mochumi',
     columnaAsesor: 'ASESOR DE VENTA MOCHUMI',
-    zona: 'SUR',
+    zona: 'NORTE',
     metaCartasMensual: 1170,
     metaLlamadasMensual: 4680,
     asesores: [
@@ -135,7 +135,7 @@ const SEDES: Record<string, SedeConfig> = {
     nombre: 'Morrope',
     valorSede: 'Morrope',
     columnaAsesor: 'ASESOR DE VENTA MORROPE',
-    zona: 'SUR',
+    zona: 'NORTE',
     metaCartasMensual: 1170,
     metaLlamadasMensual: 4680,
     asesores: [
@@ -161,7 +161,7 @@ const SEDES: Record<string, SedeConfig> = {
     nombre: 'Lambayeque',
     valorSede: 'Lambayeque',
     columnaAsesor: 'ASESOR DE VENTA LAMBAYEQUE',
-    zona: 'SUR',
+    zona: 'CENTRO',
     metaCartasMensual: 2080,
     metaLlamadasMensual: 8320,
     asesores: [
