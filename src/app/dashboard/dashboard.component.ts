@@ -22,6 +22,7 @@ import { ControlGestionSedeComponent } from "../features/control-gestion-sede/co
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
 import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
+import { EvolucionRegistrosComponent } from "../features/evolucion-registros/evolucion-registros.component";
 import { SeguridadComponent } from "../features/seguridad/seguridad.component";
 import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.component";
 import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
@@ -76,6 +77,7 @@ interface MenuItem {
     GestionSedeComponent,
     GestionCallSedesComponent,
     ControlCallSedesComponent,
+    EvolucionRegistrosComponent,
     SeguridadComponent,
     LimpiezaBbddComponent,
     GpsRutaComponent,
@@ -152,6 +154,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { icon: 'post_add',    label: 'Post Venta',                   modulo: 'post-venta' },
     { icon: 'location_city', label: 'Control Gestión Sede',       modulo: 'control-gestion-sede' },
     { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
+    { icon: 'insights',      label: 'Evolución de Registros',     modulo: 'evolucion-registros' },
     { icon: 'dashboard',     label: 'Pizarra de Metas',           modulo: 'pizarra-metas' },
     { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
     { icon: 'filter_alt',    label: 'Embudos de Gestión',         modulo: 'embudos-gestion' },

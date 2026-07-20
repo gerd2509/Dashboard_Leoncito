@@ -1,0 +1,57 @@
+<div class="ev-wrap">
+
+    <!-- Controles -->
+    <form class="ev-form" [formGroup]="formCtrl">
+        <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating"
+            stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+        <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating"
+            stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+        <dx-select-box formControlName="sede" [dataSource]="sedeOptions" valueExpr="value" displayExpr="label"
+            label="Sede" labelMode="floating" stylingMode="underlined" [width]="220"></dx-select-box>
+        <button mat-flat-button type="button" (click)="actualizar()" [disabled]="isLoading">
+            <mat-icon>{{ isLoading ? 'hourglass_empty' : 'insights' }}</mat-icon>
+            {{ isLoading ? 'Cargando...' : 'Actualizar' }}
+        </button>
+    </form>
+
+    <!-- KPIs -->
+    <div class="ev-kpis" *ngIf="!isLoading">
+        <div class="ev-kpi"><span class="ev-kpi-num">{{ totalRango }}</span><span class="ev-kpi-lbl">TOTAL RANGO</span></div>
+        <div class="ev-kpi"><span class="ev-kpi-num">{{ promedioDia }}</span><span class="ev-kpi-lbl">PROMEDIO / DÍA</span></div>
+        <div class="ev-kpi"><span class="ev-kpi-num">{{ maxDia }}</span><span class="ev-kpi-lbl">MÁXIMO / DÍA</span></div>
+    </div>
+
+    <!-- Gráfico de líneas -->
+    <div class="ev-card">
+        <div class="ev-card-head">
+            <mat-icon>show_chart</mat-icon>
+            <span>Gestiones reales por día — {{ tituloSerie }}</span>
+        </div>
+
+        <div *ngIf="isLoading" class="ev-loading">Cargando…</div>
+
+        <dx-chart *ngIf="!isLoading" [dataSource]="puntos" [redrawOnResize]="true" class="ev-chart">
+            <dxo-common-series-settings argumentField="fecha" type="line">
+                <dxo-point [visible]="true" [size]="7"></dxo-point>
+                <dxo-label [visible]="true" backgroundColor="#1A5FAD"></dxo-label>
+            </dxo-common-series-settings>
+
+            <dxi-series valueField="registros" name="Registros" color="#1A5FAD"></dxi-series>
+
+            <dxo-argument-axis>
+                <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
+            </dxo-argument-axis>
+            <dxo-value-axis [allowDecimals]="false">
+                <dxo-title text="N° de gestiones (DNIs)"></dxo-title>
+            </dxo-value-axis>
+
+            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+            <dxo-legend [visible]="false"></dxo-legend>
+        </dx-chart>
+
+        <div *ngIf="!isLoading && totalRango === 0" class="ev-vacio">
+            <mat-icon>info</mat-icon> No hay gestiones registradas en el rango/sede seleccionados.
+        </div>
+    </div>
+
+</div>

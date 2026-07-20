@@ -75,6 +75,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',                    sedeScoped: true },
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',    grupo: 'Gestión', sedeScoped: true },
   { key: 'control-call-sedes',           label: 'Control Call Sedes',                      sedeScoped: true },
+  { key: 'evolucion-registros',          label: 'Evolución de Registros',                  sedeScoped: true },
   { key: 'pizarra-metas',                label: 'Pizarra de Metas',                        sedeScoped: true },
   { key: 'avance-cartera',               label: 'Avance de Cartera' },
   { key: 'embudos-gestion',              label: 'Embudos de Gestión' },
@@ -88,6 +89,7 @@ export const ALL_MODULES: ModuleConfig[] = [
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
+  'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas',
 ];
@@ -108,7 +110,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-zona':    [...ZONA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v19';
+const STORAGE_KEY = 'gd_permissions_v20';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
