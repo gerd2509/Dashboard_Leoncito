@@ -326,8 +326,9 @@ export class CierreGestionComponent implements OnInit {
   // LOGICA CONTACTABILIDAD
   calcularContactabilidadCall() {
     // Contactabilidad Leoncito (llamadas): TODOS los asesores, tengan o no gestión.
+    // dedupePorDni=true → un DNI cuenta como 1 gestión aunque tenga varios teléfonos.
     this.dataContactabilidadCall = this
-      .procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT');
+      .procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT', true);
   }
 
   calcularContactabilidadRealzza() {
@@ -360,7 +361,7 @@ export class CierreGestionComponent implements OnInit {
       .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true);
   }
 
-  private procesarContactabilidad(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string): any[] {
+  private procesarContactabilidad(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string, dedupePorDni = false): any[] {
     const fechaSeleccionada = this.obtenerFechaSeleccionada();
     if (!fechaSeleccionada) return [];
 
@@ -373,10 +374,33 @@ export class CierreGestionComponent implements OnInit {
         this.esMismaFecha(item['Marca temporal'], dia, mes, anio)
       );
 
-      const registrosContacto = registrosAsesor.filter(r => r['ESTADO DE GESTIÓN'] === 'CONTACTO');
-      const cortaLlamada = registrosContacto.filter(r => r['MOTIVO NO INTERÉS'] === 'CORTA LLAMADA').length;
-      const contacto = registrosContacto.length - cortaLlamada;
-      const noContacto = registrosAsesor.filter(r => r['ESTADO DE GESTIÓN'] === 'NO CONTACTO').length;
+      let contacto = 0, cortaLlamada = 0, noContacto = 0;
+
+      if (dedupePorDni) {
+        // Gestiones REALES: 1 registro por DNI aunque tenga varios teléfonos
+        // gestionados. El estado del DNI = mejor resultado entre sus gestiones
+        // (CONTACTO > CORTA LLAMADA > NO CONTACTO).
+        const porDni = new Map<string, string>();
+        registrosAsesor.forEach((r, i) => {
+          const cat = this.categoriaContacto(r);
+          if (!cat) return;
+          const dni = this.soloDigitos(r['DNI CLIENTE']);
+          const clave = dni ? `dni:${dni}` : `row:${i}`;   // sin DNI → cuenta individual
+          const prev = porDni.get(clave);
+          if (!prev || this.rankCategoria(cat) > this.rankCategoria(prev)) porDni.set(clave, cat);
+        });
+        porDni.forEach(cat => {
+          if (cat === 'CONTACTO') contacto++;
+          else if (cat === 'CORTA') cortaLlamada++;
+          else noContacto++;
+        });
+      } else {
+        const registrosContacto = registrosAsesor.filter(r => r['ESTADO DE GESTIÓN'] === 'CONTACTO');
+        cortaLlamada = registrosContacto.filter(r => r['MOTIVO NO INTERÉS'] === 'CORTA LLAMADA').length;
+        contacto = registrosContacto.length - cortaLlamada;
+        noContacto = registrosAsesor.filter(r => r['ESTADO DE GESTIÓN'] === 'NO CONTACTO').length;
+      }
+
       const total = contacto + cortaLlamada + noContacto;
 
       resultado.push({
@@ -398,6 +422,21 @@ export class CierreGestionComponent implements OnInit {
       ? Math.round((sumaTotalContactos / sumaTotalGestion) * 100) : 0;
 
     return resultado;
+  }
+
+  // Categoría de contactabilidad de una fila (para contar por DNI):
+  // 'CONTACTO' (contacto real), 'CORTA' (corta llamada), 'NOCONTACTO', o null (no cuenta).
+  private categoriaContacto(r: any): 'CONTACTO' | 'CORTA' | 'NOCONTACTO' | null {
+    const estado = r['ESTADO DE GESTIÓN'];
+    if (estado === 'CONTACTO') {
+      return r['MOTIVO NO INTERÉS'] === 'CORTA LLAMADA' ? 'CORTA' : 'CONTACTO';
+    }
+    if (estado === 'NO CONTACTO') return 'NOCONTACTO';
+    return null;
+  }
+  // Prioridad para elegir el mejor resultado de un DNI: contacto > corta > no contacto.
+  private rankCategoria(cat: string): number {
+    return cat === 'CONTACTO' ? 3 : cat === 'CORTA' ? 2 : 1;
   }
 
   // Devuelve true si la celda de Market Place (L o R) marca SI
