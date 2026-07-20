@@ -7,10 +7,10 @@ import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 
-interface PuntoSerie {
-  fecha: string;     // etiqueta 'dd/MM' para el eje X
-  serie: string;     // nombre de la serie (sede) — para la línea por sede
-  registros: number; // gestiones reales (DNIs distintos) de ese día
+interface SerieSede {
+  key: string;       // valueField del punto (clave de sede)
+  nombre: string;    // nombre de la serie (leyenda)
+  color: string;     // color fijo de la sede
 }
 
 interface SedeCall {
@@ -37,7 +37,8 @@ export class EvolucionRegistrosComponent implements OnInit {
   isLoading = false;
 
   sedeOptions: { value: string; label: string }[] = [];
-  puntos: PuntoSerie[] = [];
+  puntos: any[] = [];               // formato ancho: { fecha, <sedeKey>: n, ... } por día
+  seriesActivas: SerieSede[] = [];  // una serie (línea) por sede a dibujar
   multiSerie = false;   // true = una línea por sede (Global); false = una sola línea
   tituloSerie = 'Global';
   popupVisible = false; // gráfico ampliado en popup
@@ -47,6 +48,10 @@ export class EvolucionRegistrosComponent implements OnInit {
 
   private listData: any[] = [];
   private sedesCall: SedeCall[] = [];
+
+  // Color FIJO por sede (mismo color en Global y al verla individualmente).
+  private readonly PALETA = ['#1A5FAD', '#E65100', '#2E7D32', '#6A1B9A', '#C62828', '#00838F', '#F9A825', '#5D4037'];
+  private coloresSede = new Map<string, string>();   // sedeKey → color
 
   constructor(
     private fb: UntypedFormBuilder,
@@ -68,6 +73,8 @@ export class EvolucionRegistrosComponent implements OnInit {
       const valorSede = cfg?.valorSede ?? s.nombre;
       return { key: s.key, nombre: s.nombre, col: `ASESOR ${valorSede.toUpperCase()}` };
     });
+    // Color fijo por sede (por su orden en la lista completa → mismo color siempre).
+    todas.forEach((s, i) => this.coloresSede.set(s.key, this.PALETA[i % this.PALETA.length]));
 
     if (esGlobal) {
       this.sedesCall = todas;
@@ -144,20 +151,24 @@ export class EvolucionRegistrosComponent implements OnInit {
       }
     });
 
-    // Puntos (formato largo: una fila por día×serie). Global = una serie por sede
-    // con datos; sede concreta = una sola serie.
-    const puntos: PuntoSerie[] = [];
+    // Series a dibujar: Global = una por sede con datos; sede concreta = esa sola.
+    // Cada sede con su color fijo (mismo en Global y en individual).
     const sedesConDatos = scope.filter(s => {
       const m = porSede.get(s.key);
       return m && [...m.values()].some(set => set.size > 0);
     });
     const series = sedeSel === 'GLOBAL' ? sedesConDatos : scope;
-    for (const s of series) {
-      const m = porSede.get(s.key) ?? new Map<string, Set<string>>();
-      for (const k of dias) puntos.push({ fecha: etiqueta(k), serie: s.nombre, registros: m.get(k)?.size ?? 0 });
-    }
-    this.puntos = puntos;
+    this.seriesActivas = series.map(s => ({
+      key: s.key, nombre: s.nombre, color: this.coloresSede.get(s.key) ?? '#1A5FAD',
+    }));
     this.multiSerie = sedeSel === 'GLOBAL' && series.length > 1;
+
+    // Puntos en formato ancho: una fila por día con un valor por cada serie/sede.
+    this.puntos = dias.map(k => {
+      const row: any = { fecha: etiqueta(k) };
+      for (const s of series) row[s.key] = porSede.get(s.key)?.get(k)?.size ?? 0;
+      return row;
+    });
 
     // KPIs: siempre la TOTALIDAD del alcance (unión de DNIs por día).
     let total = 0, max = 0;

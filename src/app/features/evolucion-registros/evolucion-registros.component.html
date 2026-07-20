@@ -33,8 +33,8 @@
 
         <div *ngIf="isLoading" class="ev-loading">Cargando…</div>
 
-        <dx-chart *ngIf="!isLoading" [dataSource]="puntos" [redrawOnResize]="true" palette="Material" class="ev-chart">
-            <dxo-common-series-settings argumentField="fecha" valueField="registros" type="line">
+        <dx-chart *ngIf="!isLoading" [dataSource]="puntos" [redrawOnResize]="true" class="ev-chart">
+            <dxo-common-series-settings argumentField="fecha" type="line">
                 <dxo-point [visible]="true" [size]="6"></dxo-point>
                 <!-- Número visible en cada punto (siempre, también con varias líneas) -->
                 <dxo-label [visible]="true">
@@ -42,8 +42,8 @@
                 </dxo-label>
             </dxo-common-series-settings>
 
-            <!-- Una serie (línea) por sede automáticamente, según el campo 'serie' -->
-            <dxo-series-template nameField="serie"></dxo-series-template>
+            <!-- Una serie (línea) por sede, con su color fijo -->
+            <dxi-series *ngFor="let s of seriesActivas" [valueField]="s.key" [name]="s.nombre" [color]="s.color"></dxi-series>
 
             <dxo-argument-axis>
                 <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
@@ -65,12 +65,12 @@
     <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="'Gestiones reales por día — ' + tituloSerie"
         [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" height="88%">
         <div *dxTemplate="let d of 'content'" class="ev-chart-popup">
-            <dx-chart [dataSource]="puntos" [redrawOnResize]="true" palette="Material" class="ev-chart-popup">
-                <dxo-common-series-settings argumentField="fecha" valueField="registros" type="line">
+            <dx-chart [dataSource]="puntos" [redrawOnResize]="true" class="ev-chart-popup">
+                <dxo-common-series-settings argumentField="fecha" type="line">
                     <dxo-point [visible]="true" [size]="7"></dxo-point>
                     <dxo-label [visible]="true"><dxo-font [size]="12"></dxo-font></dxo-label>
                 </dxo-common-series-settings>
-                <dxo-series-template nameField="serie"></dxo-series-template>
+                <dxi-series *ngFor="let s of seriesActivas" [valueField]="s.key" [name]="s.nombre" [color]="s.color"></dxi-series>
                 <dxo-argument-axis>
                     <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
                 </dxo-argument-axis>
