@@ -24,6 +24,7 @@ export interface Perfil {
 export const PERFILES: Perfil[] = [
   { key: 'call',    label: 'Sedes Call', detalle: 'Ferreñafe, Olmos, Motupe… (+ supervisión "Todas")' },
   { key: 'realzza', label: 'Realzza',    detalle: 'Campo / Tienda Realzza' },
+  { key: 'zona',    label: 'Gerencia por Zona', detalle: 'Solo Control Gestión Sede, de su zona (Centro/Norte/Sur)' },
 ];
 
 // Roles configurables en la matriz (admin es acceso total, no configurable).
@@ -95,14 +96,19 @@ const REALZZA_MODULES = [
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor',
 ];
 
+// Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
+const ZONA_MODULES = ['control-gestion-sede'];
+
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],
   'supervisor-call':    [...CALL_MODULES],
   'gerente-realzza':    [...REALZZA_MODULES],
   'supervisor-realzza': [...REALZZA_MODULES],
+  'gerente-zona':       [...ZONA_MODULES],
+  'supervisor-zona':    [...ZONA_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v18';
+const STORAGE_KEY = 'gd_permissions_v19';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
@@ -156,6 +162,7 @@ export class PermissionsService {
   perfilDe(sede: string): string {
     const s = this.sedeCfg.normalizar(sede);
     if (s === 'realzza') return 'realzza';
+    if (s === 'centro' || s === 'norte' || s === 'sur') return 'zona';  // gerencia por zona
     return 'call';
   }
 

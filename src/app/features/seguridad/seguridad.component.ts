@@ -77,6 +77,10 @@ export class SeguridadComponent implements OnInit {
     this.sedeOptions = [
       { value: 'todas', label: 'Todas' },
       { value: 'realzza', label: 'Realzza' },
+      // Gerencia por zona (ve solo Control Gestión Sede de esa zona).
+      { value: 'centro', label: 'Zona Centro' },
+      { value: 'norte', label: 'Zona Norte' },
+      { value: 'sur', label: 'Zona Sur' },
       ...this.sedeCfg.getSedesParaCombo().map(s => ({ value: s.key, label: s.nombre })),
     ];
     this.cargarUsuarios();

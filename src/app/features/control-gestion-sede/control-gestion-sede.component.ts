@@ -125,15 +125,23 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const u = this.auth.getUsuario();
     const esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
 
+    const sedeU = (u?.sede || '').toString().trim().toUpperCase();
+    const esZona = ['CENTRO', 'NORTE', 'SUR'].includes(sedeU);
+
     if (esGlobal) {
       // Orden por zona (CENTRO → NORTE → SUR) para que las tarjetas de detalle
       // coincidan con el resumen agrupado.
       this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
         .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
+    } else if (esZona) {
+      // Gerente de zona: SOLO las sedes de su zona (Norte/Centro/Sur).
+      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
+        .filter(s => (this.sedeConfig.getConfig(s.key)?.zona ?? '') === sedeU)
+        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
     } else {
-      const cfg = this.sedeConfig.getConfig(u.sede);
+      const cfg = this.sedeConfig.getConfig(u!.sede);
       this.sedesObjetivo = cfg
-        ? [{ key: this.sedeConfig.normalizar(u.sede), nombre: cfg.nombre }]
+        ? [{ key: this.sedeConfig.normalizar(u!.sede), nombre: cfg.nombre }]
         : [];
     }
 
