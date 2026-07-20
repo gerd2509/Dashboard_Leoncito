@@ -6,6 +6,20 @@
         <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
         {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
     </button>
+
+    <!-- Afiliaciones: se importan de un Excel y se guardan en el navegador -->
+    <input #afiInput type="file" accept=".xlsx,.xls,.csv" hidden (change)="onImportarAfiliaciones($event)">
+    <button mat-stroked-button type="button" (click)="afiInput.click()">
+        <mat-icon>upload_file</mat-icon> Importar afiliaciones
+    </button>
+    <span class="afi-info" *ngIf="afiliacionesInfo">
+        <mat-icon class="afi-ok">check_circle</mat-icon>
+        {{ afiliacionesInfo.total }} afiliaciones · {{ afiliacionesInfo.archivo }} · {{ afiliacionesInfo.fecha }}
+        <button mat-icon-button type="button" (click)="limpiarAfiliaciones()" matTooltip="Quitar afiliaciones">
+            <mat-icon>close</mat-icon>
+        </button>
+    </span>
+    <span class="afi-error" *ngIf="afiliacionesError">⚠ {{ afiliacionesError }}</span>
 </form>
 
 <div class="grid-container">
@@ -35,6 +49,7 @@
                             <th>LLAMADAS</th>
                             <th>CARTAS</th>
                             <th>TOTAL</th>
+                            <th>AFILIACIONES</th>
                             <th>% LLAMADAS</th>
                             <th>% CARTAS</th>
                         </tr>
@@ -47,6 +62,7 @@
                             <td>{{ g.llamadas }}</td>
                             <td>{{ g.cartas }}</td>
                             <td class="td-total">{{ g.gestiones }}</td>
+                            <td class="td-afi">{{ g.afiliaciones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(g.pctLlamadas)" [style.color]="textoLlamadas(g.pctLlamadas)">{{ g.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(g.pctCartas)"     [style.color]="textoCartas(g.pctCartas)">{{ g.pctCartas }}%</td>
                         </tr>
@@ -56,6 +72,7 @@
                             <td>{{ b.totalLlamadas }}</td>
                             <td>{{ b.totalCartas }}</td>
                             <td class="td-total">{{ b.totalGestiones }}</td>
+                            <td class="td-afi">{{ b.totalAfiliaciones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(b.pctLlamadas)" [style.color]="textoLlamadas(b.pctLlamadas)">{{ b.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(b.pctCartas)"     [style.color]="textoCartas(b.pctCartas)">{{ b.pctCartas }}%</td>
                         </tr>
@@ -67,6 +84,7 @@
                             <td>{{ resumenTotalGen.llamadas }}</td>
                             <td>{{ resumenTotalGen.cartas }}</td>
                             <td class="td-total">{{ resumenTotalGen.gestiones }}</td>
+                            <td class="td-afi">{{ resumenTotalGen.afiliaciones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(resumenTotalGen.pctLlamadas)" [style.color]="textoLlamadas(resumenTotalGen.pctLlamadas)">{{ resumenTotalGen.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(resumenTotalGen.pctCartas)"     [style.color]="textoCartas(resumenTotalGen.pctCartas)">{{ resumenTotalGen.pctCartas }}%</td>
                         </tr>
@@ -123,8 +141,9 @@
                         <dxi-column dataField="cartaNoContacto" caption="No Contacto" alignment="center" [width]="110" />
                     </dxi-column>
 
-                    <dxi-column dataField="total"      caption="TOTAL" alignment="center" [width]="80" />
-                    <dxi-column dataField="porcentaje" caption="%"     alignment="center" [width]="80"
+                    <dxi-column dataField="total"        caption="TOTAL"        alignment="center" [width]="80" />
+                    <dxi-column dataField="afiliaciones" caption="AFILIACIONES" alignment="center" [width]="120" />
+                    <dxi-column dataField="porcentaje"   caption="%"            alignment="center" [width]="80"
                         [format]="{ type: 'percent', precision: 0 }" />
 
                     <dxo-summary>
@@ -134,6 +153,7 @@
                         <dxi-group-item column="cartaContacto"     summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
                         <dxi-group-item column="cartaNoContacto"   summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
                         <dxi-group-item column="total"             summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
+                        <dxi-group-item column="afiliaciones"      summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
 
                         <dxi-total-item alignment="right"  column="asesor"            [displayFormat]="'TOTAL'" />
                         <dxi-total-item alignment="center" column="llamadaContacto"   summaryType="sum" displayFormat="{0}" />
@@ -141,6 +161,7 @@
                         <dxi-total-item alignment="center" column="cartaContacto"     summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="cartaNoContacto"   summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="total"             summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="afiliaciones"      summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="porcentaje"        [displayFormat]="bloque.porcentaje + '%'" />
                     </dxo-summary>
                 </dx-data-grid>

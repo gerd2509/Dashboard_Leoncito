@@ -7,6 +7,7 @@ import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
+import * as XLSX from 'xlsx';
 
 interface AsesorRow {
   asesor: string;
@@ -18,6 +19,7 @@ interface AsesorRow {
   totalContacto: number;
   total: number;
   porcentaje: number;
+  afiliaciones: number;   // del Excel importado (cruce por nombre)
 }
 
 interface SedeBloque {
@@ -32,6 +34,7 @@ interface SedeBloque {
   totalCartasContacto: number;
   totalContactos: number;
   totalGestiones: number;
+  totalAfiliaciones: number;
   porcentaje: number;
   metaLlamadasMensual: number;
   metaCartasMensual: number;
@@ -47,6 +50,7 @@ interface ZonaGrupo {
   llamadas: number;
   cartas: number;
   gestiones: number;
+  afiliaciones: number;
   metaDiariaLlamadas: number;
   metaDiariaCartas: number;
   pctLlamadas: number;
@@ -69,7 +73,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   // ── Resumen agrupado por zona ──
   resumenGrupos: ZonaGrupo[] = [];
-  resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, pctLlamadas: 0, pctCartas: 0 };
+  resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, afiliaciones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, pctLlamadas: 0, pctCartas: 0 };
+
+  // ── Afiliaciones (se importan de un Excel y se guardan en el navegador) ──
+  private afiliacionesMap = new Map<string, number>();   // normNombre → nº afiliaciones
+  afiliacionesInfo: { archivo: string; fecha: string; total: number } | null = null;
+  afiliacionesError = '';
+  private readonly AFI_KEY = 'cgs_afiliaciones_v1';
   diasDelMes = 30;
   private readonly ordenZonas = ['CENTRO', 'NORTE', 'SUR'];
   // Orden exacto de las sedes dentro de cada zona (como se muestra en el resumen).
@@ -103,6 +113,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
+    this.cargarAfiliacionesLocal();   // afiliaciones guardadas en el navegador (si hay)
     const u = this.auth.getUsuario();
     const esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
 
@@ -153,6 +164,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       totalCartasContacto: 0,
       totalContactos: 0,
       totalGestiones: 0,
+      totalAfiliaciones: 0,
       porcentaje: 0,
       metaLlamadasMensual: this.sedeConfig.getConfig(sede.key)?.metaLlamadasMensual ?? 0,
       metaCartasMensual: this.sedeConfig.getConfig(sede.key)?.metaCartasMensual ?? 0,
@@ -234,10 +246,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           cartaContacto, cartaNoContacto,
           totalContacto, total,
           porcentaje: total > 0 ? totalContacto / total : 0,
+          afiliaciones: this.afiliacionesMap.get(objetivo) ?? 0,
         };
       })
-      // Solo asesores que tienen gestión en el día (se ocultan los que están en 0).
-      .filter(f => f.total > 0);
+      // Se muestran los asesores con gestión en el día O con afiliaciones importadas.
+      .filter(f => f.total > 0 || f.afiliaciones > 0);
 
       const totalLlamadas         = filas.reduce((s, f) => s + f.llamadaContacto + f.llamadaNoContacto, 0);
       const totalCartas           = filas.reduce((s, f) => s + f.cartaContacto   + f.cartaNoContacto,   0);
@@ -245,6 +258,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const totalCartasContacto   = filas.reduce((s, f) => s + f.cartaContacto,   0);
       const totalContactos        = filas.reduce((s, f) => s + f.totalContacto, 0);
       const totalGestiones        = filas.reduce((s, f) => s + f.total, 0);
+      const totalAfiliaciones     = filas.reduce((s, f) => s + f.afiliaciones, 0);
 
       // Metas: mensual (config) → diaria = mensual / días del mes
       const metaLlamadasMensual = cfg?.metaLlamadasMensual ?? 0;
@@ -264,6 +278,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         totalCartasContacto,
         totalContactos,
         totalGestiones,
+        totalAfiliaciones,
         porcentaje: totalGestiones > 0 ? Math.round((totalContactos / totalGestiones) * 100) : 0,
         metaLlamadasMensual,
         metaCartasMensual,
@@ -293,9 +308,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const metaDiariaLlamadas = sedes.reduce((s, b) => s + b.metaDiariaLlamadas, 0);
       const metaDiariaCartas   = sedes.reduce((s, b) => s + b.metaDiariaCartas, 0);
       const gestiones          = sedes.reduce((s, b) => s + b.totalGestiones, 0);
+      const afiliaciones       = sedes.reduce((s, b) => s + b.totalAfiliaciones, 0);
 
       grupos.push({
-        zona, sedes, llamadas, cartas, gestiones, metaDiariaLlamadas, metaDiariaCartas,
+        zona, sedes, llamadas, cartas, gestiones, afiliaciones, metaDiariaLlamadas, metaDiariaCartas,
         pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((llamadas / metaDiariaLlamadas) * 100) : 0,
         pctCartas:   metaDiariaCartas   > 0 ? Math.round((cartas   / metaDiariaCartas)   * 100) : 0,
       });
@@ -308,8 +324,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const metaDiariaLlamadas = this.sedesBloques.reduce((s, b) => s + b.metaDiariaLlamadas, 0);
     const metaDiariaCartas   = this.sedesBloques.reduce((s, b) => s + b.metaDiariaCartas, 0);
     const gestiones          = this.sedesBloques.reduce((s, b) => s + b.totalGestiones, 0);
+    const afiliaciones       = this.sedesBloques.reduce((s, b) => s + b.totalAfiliaciones, 0);
     this.resumenTotalGen = {
-      llamadas, cartas, gestiones, metaDiariaLlamadas, metaDiariaCartas,
+      llamadas, cartas, gestiones, afiliaciones, metaDiariaLlamadas, metaDiariaCartas,
       pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((llamadas / metaDiariaLlamadas) * 100) : 0,
       pctCartas:   metaDiariaCartas   > 0 ? Math.round((cartas   / metaDiariaCartas)   * 100) : 0,
     };
@@ -430,5 +447,72 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   private normNombre(s: any): string {
     return (s ?? '').toString().toLowerCase().normalize('NFD')
       .replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AFILIACIONES — se importan de un Excel y se guardan en el navegador (localStorage).
+  // Cruce por nombre del vendedor (columna "ASESOR DE VENTA"): cada fila = 1 afiliación.
+  // ──────────────────────────────────────────────────────────────────────────
+  private cargarAfiliacionesLocal(): void {
+    try {
+      const raw = localStorage.getItem(this.AFI_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      this.afiliacionesMap = new Map(Object.entries(data.conteo || {}).map(([k, v]) => [k, Number(v)]));
+      this.afiliacionesInfo = { archivo: data.archivo || '', fecha: data.fecha || '', total: data.total || 0 };
+    } catch { /* localStorage corrupto: se ignora */ }
+  }
+
+  /** Importa el Excel de afiliaciones (cuenta filas por "ASESOR DE VENTA"). */
+  onImportarAfiliaciones(evt: Event): void {
+    const input = evt.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.afiliacionesError = '';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target?.result as ArrayBuffer), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '' });
+        if (!filas.length) throw new Error('El archivo no tiene filas.');
+
+        // Columna del asesor: "ASESOR DE VENTA" (tolera acentos/mayúsculas).
+        const headers = Object.keys(filas[0]);
+        const colAsesor = headers.find(h => this.normNombre(h) === this.normNombre('ASESOR DE VENTA'))
+          ?? headers.find(h => this.normNombre(h).includes('asesor'));
+        if (!colAsesor) throw new Error('No se encontró la columna "ASESOR DE VENTA" en el Excel.');
+
+        const conteo: Record<string, number> = {};
+        let total = 0;
+        for (const r of filas) {
+          const nombre = this.normNombre(r[colAsesor]);
+          if (!nombre) continue;
+          conteo[nombre] = (conteo[nombre] || 0) + 1;
+          total++;
+        }
+
+        this.afiliacionesMap = new Map(Object.entries(conteo));
+        this.afiliacionesInfo = { archivo: file.name, fecha: new Date().toLocaleString('es-PE'), total };
+        localStorage.setItem(this.AFI_KEY, JSON.stringify({ ...this.afiliacionesInfo, conteo }));
+
+        if (this.listData.length) this.calcular();   // refresca las tablas con las afiliaciones
+      } catch (err: any) {
+        this.afiliacionesError = err?.message ?? 'No se pudo leer el Excel.';
+      }
+      input.value = '';
+    };
+    reader.onerror = () => { this.afiliacionesError = 'Error al leer el archivo.'; input.value = ''; };
+    reader.readAsArrayBuffer(file);
+  }
+
+  /** Borra las afiliaciones guardadas en el navegador. */
+  limpiarAfiliaciones(): void {
+    this.afiliacionesMap.clear();
+    this.afiliacionesInfo = null;
+    this.afiliacionesError = '';
+    localStorage.removeItem(this.AFI_KEY);
+    if (this.listData.length) this.calcular();
   }
 }
