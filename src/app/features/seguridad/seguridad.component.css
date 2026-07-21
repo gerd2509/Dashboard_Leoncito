@@ -227,6 +227,8 @@
   overflow: auto;
   box-shadow: 0 2px 16px rgba(0,0,0,0.08);
   margin-bottom: 14px;
+  flex: 1;            /* toma el alto restante del contenedor */
+  min-height: 0;      /* permite el scroll interno en flexbox */
 }
 
 .seg-table {
@@ -524,7 +526,7 @@ td.col-modulo {
 .seg-shell {
   display: flex;
   gap: 0;
-  min-height: calc(100vh - 90px);
+  height: calc(100vh - 90px);   /* alto fijo → el contenido scrollea dentro, no desborda */
   background: #eef2f7;
   border-radius: 14px;
   overflow: hidden;
@@ -557,7 +559,7 @@ td.col-modulo {
 .seg-side-item.activo { background: #1A5FAD; color: #fff; }
 .seg-side-item mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
-.seg-main { flex: 1; min-width: 0; padding: 18px 22px; }
+.seg-main { flex: 1; min-width: 0; padding: 18px 22px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .seg-breadcrumb {
   display: flex; align-items: center; gap: 4px;
   font-size: 13px; color: #6b8299; margin-bottom: 14px;
@@ -568,7 +570,10 @@ td.col-modulo {
 .seg-card {
   background: #fff; border: 1px solid #e6edf5; border-radius: 12px;
   padding: 16px 18px; box-shadow: 0 3px 10px rgba(20,49,79,.04);
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
 }
+/* Grid de usuarios: que no desborde el contenedor */
+.usr-grid { flex: 1; min-height: 0; }
 .seg-card-tools {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; flex-wrap: wrap; margin-bottom: 14px;

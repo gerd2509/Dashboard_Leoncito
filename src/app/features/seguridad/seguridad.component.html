@@ -37,36 +37,33 @@
         <mat-icon>error_outline</mat-icon> {{ errorU }}
       </div>
 
-      <div class="seg-table-wrap" *ngIf="!cargandoU">
-        <table class="seg-table usr-table">
-          <thead>
-            <tr>
-              <th>Usuario</th><th>Nombre</th><th>Rol</th><th>Sede</th>
-              <th class="ut-center">Estado</th><th class="ut-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let u of usuarios" class="row-modulo" (dblclick)="editarUsuario(u)">
-              <td class="usr-user">{{ u.usuario }}</td>
-              <td>{{ u.nombre }}</td>
-              <td>{{ rolLabel(u.rol) }}</td>
-              <td>{{ sedeLabel(u.sede) }}</td>
-              <td class="ut-center">
-                <span class="estado-chip" [class.on]="u.activo">{{ u.activo ? 'Activo' : 'Inactivo' }}</span>
-              </td>
-              <td class="ut-center usr-acc">
-                <button (click)="editarUsuario(u)" title="Editar"><mat-icon>edit</mat-icon></button>
-                <button (click)="toggleEstadoUsuario(u)" [title]="u.activo ? 'Desactivar' : 'Activar'">
-                  <mat-icon>{{ u.activo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
-                </button>
-              </td>
-            </tr>
-            <tr *ngIf="usuarios.length === 0">
-              <td colspan="6" class="ut-empty">No hay usuarios registrados.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <dx-data-grid *ngIf="!cargandoU" [dataSource]="usuarios" class="usr-grid"
+        [showBorders]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" (onRowDblClick)="onUsuarioDblClick($event)">
+
+        <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar usuario…"></dxo-search-panel>
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]"
+          [showInfo]="true" [showNavigationButtons]="true"></dxo-pager>
+
+        <dxi-column dataField="usuario" caption="Usuario" [minWidth]="120"></dxi-column>
+        <dxi-column dataField="nombre"  caption="Nombre"  [minWidth]="160"></dxi-column>
+        <dxi-column dataField="rol"  caption="Rol"  [minWidth]="110" [calculateCellValue]="rolCell"></dxi-column>
+        <dxi-column dataField="sede" caption="Sede" [minWidth]="120" [calculateCellValue]="sedeCell"></dxi-column>
+        <dxi-column dataField="activo" caption="Estado" alignment="center" [width]="110" cellTemplate="estadoTpl"></dxi-column>
+        <dxi-column caption="Acciones" alignment="center" [width]="120" [allowSorting]="false"
+          [allowFiltering]="false" [allowSearch]="false" cellTemplate="accTpl"></dxi-column>
+
+        <div *dxTemplate="let d of 'estadoTpl'">
+          <span class="estado-chip" [class.on]="d.data.activo">{{ d.data.activo ? 'Activo' : 'Inactivo' }}</span>
+        </div>
+        <div *dxTemplate="let d of 'accTpl'" class="usr-acc">
+          <button (click)="editarUsuario(d.data)" title="Editar"><mat-icon>edit</mat-icon></button>
+          <button (click)="toggleEstadoUsuario(d.data)" [title]="d.data.activo ? 'Desactivar' : 'Activar'">
+            <mat-icon>{{ d.data.activo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
+          </button>
+        </div>
+      </dx-data-grid>
       <div class="ut-loading" *ngIf="cargandoU">Cargando usuarios…</div>
     </div>
 

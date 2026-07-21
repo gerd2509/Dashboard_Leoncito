@@ -9,6 +9,7 @@ import {
 } from '../../services/permissions.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { UsuariosService, UsuarioDB } from '../../services/usuarios.service';
+import { DX_COMMON_MODULES } from '../dx_common_modules';
 
 interface PermisoFila {
   modulo: ModuleConfig;
@@ -18,7 +19,7 @@ interface PermisoFila {
 @Component({
   selector: 'app-seguridad',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatSnackBarModule],
+  imports: [CommonModule, FormsModule, MatIconModule, MatSnackBarModule, ...DX_COMMON_MODULES],
   templateUrl: './seguridad.component.html',
   styleUrl: './seguridad.component.css'
 })
@@ -68,6 +69,11 @@ export class SeguridadComponent implements OnInit {
     { value: 'vendedor', label: 'Vendedor' },
   ];
   sedeOptions: { value: string; label: string }[] = [];
+
+  // Para el dx-data-grid de usuarios: mostrar/buscar por etiqueta (no por el código).
+  rolCell   = (row: UsuarioDB) => this.rolLabel(row?.rol);
+  sedeCell  = (row: UsuarioDB) => this.sedeLabel(row?.sede);
+  onUsuarioDblClick = (e: any) => { if (e?.data) this.editarUsuario(e.data); };
 
   ngOnInit(): void {
     this.construirFilas();
