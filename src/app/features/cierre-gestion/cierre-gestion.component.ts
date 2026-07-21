@@ -192,8 +192,8 @@ export class CierreGestionComponent implements OnInit {
   asesores1 = this.asesoresCall;
 
   // ── Sublistas fijas para KOMMO (se muestran siempre, tengan o no registros) ──
-  // Leoncito / Call KOMMO: solo KAREN, ESMERALDA, KELLY, BRENDA
-  private readonly kommoCallIds = ['CC5', 'CC15', 'CC8', 'CC12'];
+  // Leoncito / Call KOMMO: KAREN, ESMERALDA, KELLY, BRENDA, FABRICIO
+  private readonly kommoCallIds = ['CC5', 'CC15', 'CC8', 'CC12', 'CC22'];
   // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH
   private readonly kommoRealzzaIds = ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8'];
 

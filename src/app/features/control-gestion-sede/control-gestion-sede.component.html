@@ -49,8 +49,8 @@
                             <th class="th-sede">SEDE</th>
                             <th>LLAMADAS</th>
                             <th>CARTAS</th>
-                            <th>TOTAL</th>
                             <th>AFILIACIONES</th>
+                            <th>TOTAL</th>
                             <th>% LLAMADAS</th>
                             <th>% CARTAS</th>
                             <th>% AFILIACIONES</th>
@@ -63,8 +63,8 @@
                             <td class="td-sede">{{ g.zona }}</td>
                             <td>{{ g.llamadas }}</td>
                             <td>{{ g.cartas }}</td>
-                            <td class="td-total">{{ g.gestiones }}</td>
                             <td class="td-afi">{{ g.afiliaciones }}</td>
+                            <td class="td-total">{{ g.gestiones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(g.pctLlamadas)" [style.color]="textoLlamadas(g.pctLlamadas)">{{ g.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(g.pctCartas)"     [style.color]="textoCartas(g.pctCartas)">{{ g.pctCartas }}%</td>
                             <td class="td-pct" [style.background]="g.pctAfiliaciones === null ? '' : colorCartas(g.pctAfiliaciones)" [style.color]="g.pctAfiliaciones === null ? '' : textoCartas(g.pctAfiliaciones)">{{ g.pctAfiliaciones === null ? '—' : g.pctAfiliaciones + '%' }}</td>
@@ -74,8 +74,8 @@
                             <td class="td-sede td-sede-hijo">{{ b.nombre }}</td>
                             <td>{{ b.totalLlamadas }}</td>
                             <td>{{ b.totalCartas }}</td>
-                            <td class="td-total">{{ b.totalGestiones }}</td>
                             <td class="td-afi">{{ b.totalAfiliaciones }}</td>
+                            <td class="td-total">{{ b.totalGestiones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(b.pctLlamadas)" [style.color]="textoLlamadas(b.pctLlamadas)">{{ b.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(b.pctCartas)"     [style.color]="textoCartas(b.pctCartas)">{{ b.pctCartas }}%</td>
                             <td class="td-pct" [style.background]="b.pctAfiliaciones === null ? '' : colorCartas(b.pctAfiliaciones)" [style.color]="b.pctAfiliaciones === null ? '' : textoCartas(b.pctAfiliaciones)">{{ b.pctAfiliaciones === null ? '—' : b.pctAfiliaciones + '%' }}</td>
@@ -87,8 +87,8 @@
                             <td class="td-sede">TOTAL GENERAL</td>
                             <td>{{ resumenTotalGen.llamadas }}</td>
                             <td>{{ resumenTotalGen.cartas }}</td>
-                            <td class="td-total">{{ resumenTotalGen.gestiones }}</td>
                             <td class="td-afi">{{ resumenTotalGen.afiliaciones }}</td>
+                            <td class="td-total">{{ resumenTotalGen.gestiones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(resumenTotalGen.pctLlamadas)" [style.color]="textoLlamadas(resumenTotalGen.pctLlamadas)">{{ resumenTotalGen.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(resumenTotalGen.pctCartas)"     [style.color]="textoCartas(resumenTotalGen.pctCartas)">{{ resumenTotalGen.pctCartas }}%</td>
                             <td class="td-pct" [style.background]="resumenTotalGen.pctAfiliaciones === null ? '' : colorCartas(resumenTotalGen.pctAfiliaciones)" [style.color]="resumenTotalGen.pctAfiliaciones === null ? '' : textoCartas(resumenTotalGen.pctAfiliaciones)">{{ resumenTotalGen.pctAfiliaciones === null ? '—' : resumenTotalGen.pctAfiliaciones + '%' }}</td>
@@ -97,6 +97,10 @@
                 </table>
             </ng-template>
         </div>
+    </div>
+
+    <div class="cgs-toolbar" *ngIf="!isLoading && sedesBloques.length">
+        <dx-check-box text="Ver detalle: contacto / no contacto" [(value)]="verDetalle"></dx-check-box>
     </div>
 
     <div class="sedes-wrap mt-3">
@@ -136,12 +140,17 @@
                     <dxi-column dataField="supervisor" caption="SUPERVISOR" [groupIndex]="0" [allowSorting]="true" />
                     <dxi-column dataField="asesor" caption="ASESOR" [minWidth]="220" [allowSorting]="true" />
 
-                    <dxi-column caption="📞 LLAMADA TELEFÓNICA" alignment="center">
+                    <!-- Vista SIMPLE (por defecto): total de llamadas y cartas -->
+                    <dxi-column dataField="llamadas" caption="📞 LLAMADAS" alignment="center" [width]="130" [visible]="!verDetalle" />
+                    <dxi-column dataField="cartas"   caption="✉️ CARTAS"   alignment="center" [width]="130" [visible]="!verDetalle" />
+
+                    <!-- Vista DETALLE (con el check): contacto / no contacto -->
+                    <dxi-column caption="📞 LLAMADA TELEFÓNICA" alignment="center" [visible]="verDetalle">
                         <dxi-column dataField="llamadaContacto"   caption="Contacto"    alignment="center" [width]="100" />
                         <dxi-column dataField="llamadaNoContacto" caption="No Contacto" alignment="center" [width]="110" />
                     </dxi-column>
 
-                    <dxi-column caption="✉️ ENTREGA DE CARTA" alignment="center">
+                    <dxi-column caption="✉️ ENTREGA DE CARTA" alignment="center" [visible]="verDetalle">
                         <dxi-column dataField="cartaContacto"   caption="Contacto"    alignment="center" [width]="100" />
                         <dxi-column dataField="cartaNoContacto" caption="No Contacto" alignment="center" [width]="110" />
                     </dxi-column>
@@ -151,6 +160,8 @@
 
                     <dxo-summary>
                         <!-- Totales por supervisor (fila de grupo), alineados por columna -->
+                        <dxi-group-item column="llamadas"          summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
+                        <dxi-group-item column="cartas"            summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
                         <dxi-group-item column="llamadaContacto"   summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
                         <dxi-group-item column="llamadaNoContacto" summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
                         <dxi-group-item column="cartaContacto"     summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
@@ -159,6 +170,8 @@
                         <dxi-group-item column="total"             summaryType="sum" [alignByColumn]="true" displayFormat="{0}" />
 
                         <dxi-total-item alignment="right"  column="asesor"            [displayFormat]="'TOTAL'" />
+                        <dxi-total-item alignment="center" column="llamadas"          summaryType="sum" displayFormat="{0}" />
+                        <dxi-total-item alignment="center" column="cartas"            summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="llamadaContacto"   summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="llamadaNoContacto" summaryType="sum" displayFormat="{0}" />
                         <dxi-total-item alignment="center" column="cartaContacto"     summaryType="sum" displayFormat="{0}" />

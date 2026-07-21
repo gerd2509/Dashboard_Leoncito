@@ -297,6 +297,13 @@
     height: 20px;
 }
 
+/* ── Toolbar detalle (checkbox contacto/no contacto) ── */
+.cgs-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 4px 0;
+}
+
 /* ── Afiliaciones (import Excel) ── */
 .afi-info {
     display: inline-flex;

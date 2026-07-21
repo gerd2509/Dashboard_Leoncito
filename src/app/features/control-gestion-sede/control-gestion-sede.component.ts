@@ -12,6 +12,8 @@ import * as XLSX from 'xlsx';
 interface AsesorRow {
   asesor: string;
   supervisor: string;   // supervisor del CAP (para agrupar el detalle por sede)
+  llamadas: number;     // total llamadas (contacto + no contacto) — vista simple
+  cartas: number;       // total cartas   (contacto + no contacto) — vista simple
   llamadaContacto: number;
   llamadaNoContacto: number;
   cartaContacto: number;
@@ -72,6 +74,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   formCtrl: UntypedFormGroup;
   isLoading = false;
   resumenVisible = true;
+  verDetalle = false;   // false = LLAMADAS/CARTAS en total; true = detalle contacto/no contacto
 
   sedesBloques: SedeBloque[] = [];
 
@@ -261,6 +264,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         return {
           asesor: asesorNombre,
           supervisor: supMap?.get(asesorNombre) ?? 'SIN SUPERVISOR',
+          llamadas: llamadaContacto + llamadaNoContacto,
+          cartas: cartaContacto + cartaNoContacto,
           llamadaContacto, llamadaNoContacto,
           cartaContacto, cartaNoContacto,
           totalContacto, total,
