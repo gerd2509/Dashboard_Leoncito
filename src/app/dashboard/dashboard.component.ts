@@ -133,10 +133,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'KOMMO',       icon: 'public',        modulo: 'gestion-kommo' },
         { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
         { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' },
-        { label: 'SUPERVISOR',  icon: 'fact_check',    modulo: 'gestion-supervisor' }
+        { label: 'REGISTRO',    icon: 'assignment_turned_in', modulo: 'registro-gestion' }
       ]
     },
-    { icon: 'done_all',    label: 'Cierre Gestión',      modulo: 'cierre' },
     {
       icon: 'shopping_cart', label: 'Ventas',
       submenu: [
@@ -144,25 +143,46 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'REALZZA',      icon: 'storefront', modulo: 'ventas-campo' },
         { label: 'SEDES',        icon: 'location_city', modulo: 'ventas-sedes' },
         { label: 'COMPARATIVO',  icon: 'balance',    modulo: 'ventas-comparativo' },
-        { label: 'EVOLUTIVO',    icon: 'balance',    modulo: 'evolucion-tipo-cliente' }
+        { label: 'EVOLUTIVO',    icon: 'balance',    modulo: 'evolucion-tipo-cliente' },
+        { label: 'PLAZO AV',     icon: 'storefront', modulo: 'ventas-plazo-av' }
       ]
     },
-    { icon: 'storefront',  label: 'Ventas - Plazo AV',            modulo: 'ventas-plazo-av' },
-    { icon: 'sync_alt',    label: 'Conversor CSV',                modulo: 'conversor-csv' },
-    { icon: 'cleaning_services', label: 'Limpieza BBDD',          modulo: 'limpieza-bbdd' },
-    { icon: 'route',       label: 'Optimizar Rutas GPS',          modulo: 'gps-ruta' },
-    { icon: 'post_add',    label: 'Post Venta',                   modulo: 'post-venta' },
-    { icon: 'location_city', label: 'Control Gestión Sede',       modulo: 'control-gestion-sede' },
-    { icon: 'call',          label: 'Control Call Sedes',         modulo: 'control-call-sedes' },
-    { icon: 'insights',      label: 'Evolución de Registros',     modulo: 'evolucion-registros' },
-    { icon: 'dashboard',     label: 'Pizarra de Metas',           modulo: 'pizarra-metas' },
-    { icon: 'trending_up',   label: 'Avance de Cartera',          modulo: 'avance-cartera' },
-    { icon: 'filter_alt',    label: 'Embudos de Gestión',         modulo: 'embudos-gestion' },
-    { icon: 'assignment_turned_in', label: 'Registro de Gestión',  modulo: 'registro-gestion' },
-    { icon: 'fact_check',           label: 'Registro Supervisor',  modulo: 'registro-supervisor' },
-    { icon: 'event_available',      label: 'Control Supervisor',   modulo: 'control-supervisor' },
-    { icon: 'compare_arrows',       label: 'Comparativo Cartera Ventas Piso', modulo: 'comparativo-cartera-ventas' },
-    { icon: 'cloud_upload',         label: 'Carga de Ventas',      modulo: 'carga-ventas', adminOnly: true },
+    {
+      icon: 'location_city', label: 'Control & Sedes',
+      submenu: [
+        { label: 'Control Gestión Sede', icon: 'location_city', modulo: 'control-gestion-sede' },
+        { label: 'Control Call Sedes',   icon: 'call',          modulo: 'control-call-sedes' },
+        { label: 'Evolución de Registros', icon: 'insights',    modulo: 'evolucion-registros' },
+        { label: 'Pizarra de Metas',     icon: 'dashboard',     modulo: 'pizarra-metas' }
+      ]
+    },
+    {
+      icon: 'fact_check', label: 'Supervisión Realzza',
+      submenu: [
+        { label: 'Registro Supervisor', icon: 'fact_check',       modulo: 'registro-supervisor' },
+        { label: 'Control Supervisor',  icon: 'event_available',  modulo: 'control-supervisor' },
+        { label: 'Gestión Supervisor',  icon: 'fact_check',       modulo: 'gestion-supervisor' }
+      ]
+    },
+    {
+      icon: 'analytics', label: 'Análisis',
+      submenu: [
+        { label: 'Cierre Gestión',        icon: 'done_all',       modulo: 'cierre' },
+        { label: 'Avance de Cartera',     icon: 'trending_up',    modulo: 'avance-cartera' },
+        { label: 'Embudos de Gestión',    icon: 'filter_alt',     modulo: 'embudos-gestion' },
+        { label: 'Comparativo Cartera Ventas Piso', icon: 'compare_arrows', modulo: 'comparativo-cartera-ventas' },
+        { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' }
+      ]
+    },
+    {
+      icon: 'build', label: 'Herramientas',
+      submenu: [
+        { label: 'Conversor CSV',        icon: 'sync_alt',           modulo: 'conversor-csv' },
+        { label: 'Limpieza BBDD',        icon: 'cleaning_services',  modulo: 'limpieza-bbdd' },
+        { label: 'Optimizar Rutas GPS',  icon: 'route',              modulo: 'gps-ruta' },
+        { label: 'Carga de Ventas',      icon: 'cloud_upload',       modulo: 'carga-ventas' }
+      ]
+    },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 
@@ -249,9 +269,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
             .map(s => ({
               ...s,
               label:
-                s.modulo === 'gestion-sede'        ? `PISO ${sedeUpper}` :
-                s.modulo === 'gestion-call-sedes'  ? `CALL ${sedeUpper}` :
-                s.modulo === 'ventas-sedes'        ? `SEDE ${sedeUpper}` :
+                s.modulo === 'gestion-sede'         ? `PISO ${sedeUpper}` :
+                s.modulo === 'gestion-call-sedes'   ? `CALL ${sedeUpper}` :
+                s.modulo === 'ventas-sedes'         ? `SEDE ${sedeUpper}` :
+                s.modulo === 'control-gestion-sede' ? `Control Gestión ${nombreSede}` :
+                s.modulo === 'control-call-sedes'   ? `Control Call ${nombreSede}` :
                 s.label,
             }));
           return subs.length ? { ...item, submenu: subs } : null;
@@ -268,8 +290,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Orden solicitado al iniciar sesión (por perfil de sede). Los ítems no
     // listados conservan su orden original al final.
     const orden = [
-      'control-gestion-sede', 'control-call-sedes', 'pizarra-metas', 'avance-cartera',
-      'Gestión', 'Ventas', 'Agendamientos',
+      'Control & Sedes', 'Supervisión Realzza', 'Gestión', 'Ventas',
+      'Agendamientos', 'Análisis', 'Herramientas',
     ];
     const pos = (it: MenuItem): number => {
       const id = it.modulo ?? it.label;
