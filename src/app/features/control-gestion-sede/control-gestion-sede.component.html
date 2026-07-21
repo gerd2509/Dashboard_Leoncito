@@ -99,6 +99,53 @@
         </div>
     </div>
 
+    <!-- ── EVOLUCIÓN POR RANGO (combo: Llamadas barras + Cartas/Afiliaciones líneas) ── -->
+    <div class="resumen-bloque mt-3">
+        <div class="resumen-header" (click)="toggleEvo()">
+            <div class="sede-header-left">
+                <mat-icon class="chevron" [class.open]="evoVisible">expand_more</mat-icon>
+                <mat-icon class="sede-ico">insights</mat-icon>
+                <span class="sede-nombre">EVOLUCIÓN (RANGO)</span>
+            </div>
+        </div>
+
+        <div class="resumen-body" *ngIf="evoVisible">
+            <form class="ev-form" [formGroup]="evoForm">
+                <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating"
+                    stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+                <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating"
+                    stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+                <dx-select-box formControlName="scope" [dataSource]="evoScopeOptions" valueExpr="value"
+                    displayExpr="label" label="Ámbito" labelMode="floating" stylingMode="underlined" [width]="220"></dx-select-box>
+                <button mat-flat-button type="button" (click)="cargarEvolucion()" [disabled]="evoLoading">
+                    <mat-icon>{{ evoLoading ? 'hourglass_empty' : 'insights' }}</mat-icon>
+                    {{ evoLoading ? 'Cargando...' : 'Ver evolución' }}
+                </button>
+            </form>
+
+            <div *ngIf="evoLoading" class="ev-cargando">
+                <div class="skeleton skeleton-row" *ngFor="let r of [1,2,3,4]"></div>
+            </div>
+
+            <dx-chart *ngIf="!evoLoading && evoDatos.length" [dataSource]="evoDatos" [redrawOnResize]="true"
+                [title]="'Evolución Llamadas / Cartas / Afiliaciones — ' + evoTitulo" class="ev-combo">
+                <dxo-common-series-settings argumentField="fecha"></dxo-common-series-settings>
+                <dxi-value-axis name="izq" position="left"><dxo-title text="Llamadas"></dxo-title></dxi-value-axis>
+                <dxi-value-axis name="der" position="right"><dxo-title text="Cartas / Afiliaciones"></dxo-title></dxi-value-axis>
+                <dxi-series valueField="llamadas"     name="Llamadas"     type="bar"  axis="izq" color="#C0632A"></dxi-series>
+                <dxi-series valueField="cartas"       name="Cartas"       type="line" axis="der" color="#4E8A83"><dxo-point [size]="6"></dxo-point></dxi-series>
+                <dxi-series valueField="afiliaciones" name="Afiliaciones" type="line" axis="der" color="#1F3B6E"><dxo-point [size]="6"></dxo-point></dxi-series>
+                <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
+                <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+                <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
+            </dx-chart>
+
+            <div *ngIf="!evoLoading && !evoDatos.length" class="ev-vacio-cgs">
+                <mat-icon>info</mat-icon> Elige el rango y el ámbito, y pulsa "Ver evolución".
+            </div>
+        </div>
+    </div>
+
     <div class="cgs-toolbar" *ngIf="!isLoading && sedesBloques.length">
         <dx-check-box text="Ver detalle: contacto / no contacto" [(value)]="verDetalle"></dx-check-box>
     </div>

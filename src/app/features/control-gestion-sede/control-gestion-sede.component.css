@@ -297,6 +297,26 @@
     height: 20px;
 }
 
+/* ── Evolución por rango (combo) ── */
+.ev-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+}
+.ev-combo { height: 480px; width: 100%; padding: 0 8px 8px; }
+.ev-cargando { padding: 10px 12px; }
+.ev-vacio-cgs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    color: #607D8B;
+    font-size: 14px;
+}
+.ev-vacio-cgs mat-icon { color: #90A4AE; }
+
 /* ── Toolbar detalle (checkbox contacto/no contacto) ── */
 .cgs-toolbar {
     display: flex;

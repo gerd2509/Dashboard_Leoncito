@@ -76,6 +76,14 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   resumenVisible = true;
   verDetalle = false;   // false = LLAMADAS/CARTAS en total; true = detalle contacto/no contacto
 
+  // ── Evolución por rango (combo barras+líneas: Llamadas / Cartas / Afiliaciones) ──
+  evoVisible = false;
+  evoLoading = false;
+  evoForm!: UntypedFormGroup;
+  evoScopeOptions: { value: string; label: string }[] = [];   // Global / Zona / Sede (por perfil)
+  evoDatos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
+  evoTitulo = '';
+
   sedesBloques: SedeBloque[] = [];
 
   // ── Resumen agrupado por zona ──
@@ -121,6 +129,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     private cap: CapSedesService,
   ) {
     this.formCtrl = this.fb.group({ fechaGestion: [new Date()] });
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    this.evoForm = this.fb.group({ desde: [inicioMes], hasta: [hoy], scope: ['GLOBAL'] });
   }
 
   async ngOnInit() {
@@ -147,6 +158,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         ? [{ key: this.sedeConfig.normalizar(u!.sede), nombre: cfg.nombre }]
         : [];
     }
+
+    this.construirEvoScope();   // opciones de ámbito para la evolución (Global/Zona/Sede)
 
     // Mostrar headers de inmediato (skeleton) para que no se vea vacío al cargar
     this.inicializarBloquesSkeleton();
@@ -576,5 +589,116 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.afiliacionesError = '';
     localStorage.removeItem(this.AFI_KEY);
     if (this.listData.length) this.calcular();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // EVOLUCIÓN POR RANGO — combo (Llamadas barras + Cartas/Afiliaciones líneas).
+  // Ámbito según el perfil del usuario: Global, por zona o por sede.
+  // ──────────────────────────────────────────────────────────────────────────
+  private capitalizar(z: string): string { return z.charAt(0) + z.slice(1).toLowerCase(); }
+
+  private construirEvoScope(): void {
+    const opts: { value: string; label: string }[] = [];
+    const sedes = this.sedesObjetivo;
+    const zonas = Array.from(new Set(sedes.map(s => this.sedeConfig.getConfig(s.key)?.zona ?? '')))
+      .filter(z => z)
+      .sort((a, b) => this.ordenZonas.indexOf(a) - this.ordenZonas.indexOf(b));
+
+    if (sedes.length > 1) opts.push({ value: 'GLOBAL', label: 'Global (todas)' });
+    if (zonas.length > 1) for (const z of zonas) opts.push({ value: 'ZONA:' + z, label: 'Zona ' + this.capitalizar(z) });
+    for (const s of sedes) opts.push({ value: 'SEDE:' + s.key, label: s.nombre });
+
+    this.evoScopeOptions = opts;
+    this.evoForm.patchValue({ scope: opts[0]?.value ?? '' }, { emitEvent: false });
+  }
+
+  toggleEvo(): void {
+    this.evoVisible = !this.evoVisible;
+    if (this.evoVisible && !this.evoDatos.length) this.cargarEvolucion();
+  }
+
+  async cargarEvolucion(): Promise<void> {
+    const desde = this.evoForm.value.desde as Date;
+    const hasta = this.evoForm.value.hasta as Date;
+    const scope = (this.evoForm.value.scope as string) || 'GLOBAL';
+    if (!desde || !hasta) return;
+    this.evoLoading = true;
+    try {
+      // Sedes del ámbito elegido + título.
+      let sedesScope = this.sedesObjetivo;
+      if (scope.startsWith('ZONA:')) {
+        const z = scope.slice(5);
+        sedesScope = this.sedesObjetivo.filter(s => (this.sedeConfig.getConfig(s.key)?.zona ?? '') === z);
+        this.evoTitulo = 'Zona ' + this.capitalizar(z);
+      } else if (scope.startsWith('SEDE:')) {
+        const k = scope.slice(5);
+        sedesScope = this.sedesObjetivo.filter(s => s.key === k);
+        this.evoTitulo = sedesScope[0]?.nombre ?? 'Sede';
+      } else {
+        this.evoTitulo = 'Global';
+      }
+
+      // Set de sedes del ámbito (normalizadas) para clasificar cada fila del sheet.
+      const valorSet = new Set(sedesScope.map(s =>
+        this.sedeConfig.normalizar(this.sedeConfig.getConfig(s.key)?.valorSede ?? s.nombre)));
+
+      const desdeK = this.ymd(desde), hastaK = this.ymd(hasta);
+      const data = await lastValueFrom(this.sheetsService.getSheetDataSedes({ desde, hasta }));
+
+      // Llamadas / cartas por día (del sheet de sedes).
+      const porDia = new Map<string, { ll: number; ca: number }>();
+      for (const r of (data ?? [])) {
+        if (!valorSet.has(this.sedeConfig.normalizar(r['TIENDA SEDE']))) continue;
+        const dia = this.diaDeMarca(r['Marca temporal']);
+        if (!dia || dia < desdeK || dia > hastaK) continue;
+        if (!porDia.has(dia)) porDia.set(dia, { ll: 0, ca: 0 });
+        const acc = porDia.get(dia)!;
+        if (this.esLlamada(r)) acc.ll++;
+        else if (this.esCarta(r)) acc.ca++;
+      }
+
+      // Afiliaciones por día del ámbito (roster del CAP × afiliaciones importadas).
+      const afilDia = new Map<string, number>();
+      for (const s of sedesScope) {
+        const cfg = this.sedeConfig.getConfig(s.key);
+        const roster = this.capPorSede.get(s.key)?.length ? this.capPorSede.get(s.key)! : (cfg?.asesores ?? []);
+        for (const asesor of roster) {
+          const m = this.afiliacionesData.get(this.normNombre(asesor));
+          if (!m) continue;
+          for (const [dia, n] of Object.entries(m)) {
+            if (dia < desdeK || dia > hastaK) continue;
+            afilDia.set(dia, (afilDia.get(dia) ?? 0) + (n as number));
+          }
+        }
+      }
+
+      // Un punto por cada día del rango (0 los días sin datos).
+      const datos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
+      const d = new Date(desde); d.setHours(0, 0, 0, 0);
+      const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
+      let guard = 0;
+      while (d <= fin && guard < 366) {
+        const k = this.ymd(d);
+        const acc = porDia.get(k);
+        datos.push({
+          fecha: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+          llamadas: acc?.ll ?? 0, cartas: acc?.ca ?? 0, afiliaciones: afilDia.get(k) ?? 0,
+        });
+        d.setDate(d.getDate() + 1); guard++;
+      }
+      this.evoDatos = datos;
+    } catch (e) {
+      console.error('Error al cargar evolución:', e);
+      this.evoDatos = [];
+    } finally {
+      this.evoLoading = false;
+    }
+  }
+
+  /** 'dd/mm/yyyy HH:mm:ss' → 'YYYY-MM-DD'. */
+  private diaDeMarca(m: any): string {
+    const p = (m ?? '').toString().trim().split(' ')[0].split('/');   // dd/mm/yyyy
+    if (p.length !== 3) return '';
+    return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
   }
 }
