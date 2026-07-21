@@ -317,6 +317,41 @@
 }
 .ev-vacio-cgs mat-icon { color: #90A4AE; }
 
+/* Tabla de datos bajo el gráfico (estilo leyenda Excel) */
+.ev-tabla-wrap { overflow-x: auto; padding: 0 8px 10px; }
+.ev-tabla { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+.ev-tabla th, .ev-tabla td {
+    border: 1px solid #E3E9F2;
+    padding: 5px 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+.ev-tabla thead th {
+    background: #293964;
+    color: #fff;
+    font-weight: 700;
+    position: sticky;
+    top: 0;
+}
+.ev-tabla .ev-th-lbl,
+.ev-tabla .ev-lbl {
+    position: sticky;
+    left: 0;
+    text-align: left;
+    font-weight: 700;
+    background: #F4F7FC;
+    z-index: 1;
+}
+.ev-tabla thead .ev-th-lbl { background: #293964; }
+.ev-tabla tbody td { color: #2B3A55; }
+.ev-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
 /* ── Toolbar detalle (checkbox contacto/no contacto) ── */
 .cgs-toolbar {
     display: flex;

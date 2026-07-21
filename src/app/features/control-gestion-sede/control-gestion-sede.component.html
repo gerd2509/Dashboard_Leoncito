@@ -140,6 +140,32 @@
                 <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
             </dx-chart>
 
+            <!-- Tabla de datos debajo del gráfico (como la leyenda de Excel) -->
+            <div class="ev-tabla-wrap" *ngIf="!evoLoading && evoDatos.length">
+                <table class="ev-tabla">
+                    <thead>
+                        <tr>
+                            <th class="ev-th-lbl">DÍA</th>
+                            <th *ngFor="let p of evoDatos">{{ p.fecha }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="ev-lbl"><span class="ev-dot" style="background:#C0632A"></span> Llamadas</td>
+                            <td *ngFor="let p of evoDatos">{{ p.llamadas }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ev-lbl"><span class="ev-dot" style="background:#4E8A83"></span> Cartas</td>
+                            <td *ngFor="let p of evoDatos">{{ p.cartas }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ev-lbl"><span class="ev-dot" style="background:#1F3B6E"></span> Afiliaciones</td>
+                            <td *ngFor="let p of evoDatos">{{ p.afiliaciones }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             <div *ngIf="!evoLoading && !evoDatos.length" class="ev-vacio-cgs">
                 <mat-icon>info</mat-icon> Elige el rango y el ámbito, y pulsa "Ver evolución".
             </div>
