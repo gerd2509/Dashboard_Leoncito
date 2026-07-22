@@ -155,6 +155,30 @@ export class SeguridadComponent implements OnInit {
     }
   }
 
+  /** Al cambiar el rol: si deja de ser gerente/supervisor y la sede era una zona, la resetea;
+   *  si deja de ser vendedor, limpia canal/vendedor. */
+  onRolChange(): void {
+    const esGerSup = this.form.rol === 'gerente' || this.form.rol === 'supervisor';
+    if (!esGerSup && ['centro', 'norte', 'sur'].includes(this.form.sede)) this.form.sede = 'todas';
+    if (this.form.rol !== 'vendedor') { this.form.canal = ''; this.form.vendedor = ''; this.vendedorOptions = []; }
+  }
+
+  /** Opciones de sede visibles: las ZONAS (centro/norte/sur) solo para gerente/supervisor. */
+  get sedeOptionsVisibles(): { value: string; label: string }[] {
+    const esGerSup = this.form.rol === 'gerente' || this.form.rol === 'supervisor';
+    const zonas = ['centro', 'norte', 'sur'];
+    return this.sedeOptions.filter(o => esGerSup || !zonas.includes(o.value));
+  }
+
+  /** Todos los campos obligatorios completos → habilita el botón Salvar. */
+  get formValido(): boolean {
+    const f = this.form;
+    if (!f.usuario.trim() || !f.nombre.trim() || !f.rol || !f.sede) return false;
+    if (this.editId === null && !f.password.trim()) return false;   // contraseña obligatoria al crear
+    if (f.rol === 'vendedor' && (!f.canal || !f.vendedor)) return false;
+    return true;
+  }
+
   cancelarForm(): void {
     this.mostrarForm = false;
     this.errorForm = '';

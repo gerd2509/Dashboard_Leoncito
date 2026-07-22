@@ -186,17 +186,17 @@
         <label>Usuario *
           <input type="text" [(ngModel)]="form.usuario" placeholder="ej. jt_ferre" />
         </label>
-        <label>Nombre
+        <label>Nombre *
           <input type="text" [(ngModel)]="form.nombre" placeholder="Nombre completo" />
         </label>
         <label>Perfil (Rol) *
-          <select [(ngModel)]="form.rol">
+          <select [(ngModel)]="form.rol" (ngModelChange)="onRolChange()">
             <option *ngFor="let r of rolOptions" [value]="r.value">{{ r.label }}</option>
           </select>
         </label>
         <label>Sede *
           <select [(ngModel)]="form.sede" (ngModelChange)="recomputarVendedores()">
-            <option *ngFor="let s of sedeOptions" [value]="s.value">{{ s.label }}</option>
+            <option *ngFor="let s of sedeOptionsVisibles" [value]="s.value">{{ s.label }}</option>
           </select>
         </label>
 
@@ -226,7 +226,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn-cancelar" (click)="cancelarForm()">Cancelar</button>
-      <button class="btn-salvar" (click)="guardarUsuario()" [disabled]="guardandoU">
+      <button class="btn-salvar" (click)="guardarUsuario()" [disabled]="guardandoU || !formValido">
         {{ guardandoU ? 'Guardando…' : 'Salvar' }}
       </button>
     </div>
