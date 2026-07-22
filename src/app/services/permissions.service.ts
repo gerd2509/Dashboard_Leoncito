@@ -101,8 +101,8 @@ const REALZZA_MODULES = [
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
 const ZONA_MODULES = ['control-gestion-sede'];
-// Rol vendedor: por defecto ve su panel personal.
-const VENDEDOR_MODULES = ['mi-panel'];
+// Rol vendedor: por defecto ve su panel personal + el formulario de registro.
+const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion'];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],
@@ -116,7 +116,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v21';
+const STORAGE_KEY = 'gd_permissions_v22';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

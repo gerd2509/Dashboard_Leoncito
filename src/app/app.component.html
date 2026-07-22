@@ -1,7 +1,6 @@
 <app-login *ngIf="!auth.isLoggedIn()"></app-login>
 
 <ng-container *ngIf="auth.isLoggedIn()">
-  <!-- Rol vendedor → vista enfocada (solo el formulario). El resto → dashboard. -->
-  <app-vendedor-shell *ngIf="esVendedor; else dashboard"></app-vendedor-shell>
-  <ng-template #dashboard><app-dashboard></app-dashboard></ng-template>
+  <!-- Todos (incluido el vendedor) usan el dashboard responsive; el menú se filtra por permisos. -->
+  <app-dashboard></app-dashboard>
 </ng-container>
