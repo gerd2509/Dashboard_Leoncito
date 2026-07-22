@@ -176,6 +176,8 @@ export class PermissionsService {
   canAccess(moduleKey: string, rol: string, sede: string): boolean {
     if (rol === 'admin') return true;
     if (moduleKey === 'seguridad') return false;
+    // El vendedor solo ve su panel personal ("Mi Panel").
+    if (rol === 'vendedor') return moduleKey === 'mi-panel';
 
     const allowed = this.permisos[this.buildKey(rol, sede)] ?? [];
     if (!allowed.includes(moduleKey)) return false;

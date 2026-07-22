@@ -23,6 +23,7 @@ import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-s
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
 import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
 import { EvolucionRegistrosComponent } from "../features/evolucion-registros/evolucion-registros.component";
+import { MiPanelComponent } from "../features/mi-panel/mi-panel.component";
 import { SeguridadComponent } from "../features/seguridad/seguridad.component";
 import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.component";
 import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
@@ -78,6 +79,7 @@ interface MenuItem {
     GestionCallSedesComponent,
     ControlCallSedesComponent,
     EvolucionRegistrosComponent,
+    MiPanelComponent,
     SeguridadComponent,
     LimpiezaBbddComponent,
     GpsRutaComponent,
@@ -115,6 +117,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private celebrarTimer?: ReturnType<typeof setTimeout>;
 
   readonly menuItems: MenuItem[] = [
+    { icon: 'dashboard_customize', label: 'Mi Panel', modulo: 'mi-panel' },
     {
       icon: 'event', label: 'Agendamientos',
       submenu: [

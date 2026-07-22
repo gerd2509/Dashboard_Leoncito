@@ -1,0 +1,124 @@
+<div class="mp-wrap">
+
+  <!-- Sin vendedor asignado -->
+  <div class="mp-aviso" *ngIf="sinVendedor">
+    <mat-icon>info</mat-icon>
+    Tu usuario aún no tiene un <b>vendedor</b> asignado. Pídele al administrador que lo configure en Seguridad.
+  </div>
+
+  <ng-container *ngIf="!sinVendedor">
+
+    <!-- ── Cabecera ── -->
+    <div class="mp-header">
+      <div class="mp-avatar">{{ (nombre || vendedor).charAt(0) || 'V' }}</div>
+      <div class="mp-header-txt">
+        <div class="mp-hola">¡Hola{{ nombre ? ', ' + nombre : '' }}! 👋</div>
+        <div class="mp-sub">
+          <mat-icon>badge</mat-icon> {{ vendedor }}
+          <span class="mp-chip" *ngIf="canal">{{ canal | uppercase }}</span>
+        </div>
+      </div>
+      <div class="mp-header-kpi" *ngIf="!cargando">
+        <span class="mp-hk-num">{{ soles(montoTotal) }}</span>
+        <span class="mp-hk-lbl">vendido en total</span>
+      </div>
+    </div>
+
+    <!-- ── Filtro de rango (opcional) ── -->
+    <form class="mp-filtros" [formGroup]="form">
+      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" (onValueChanged)="aplicar()"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" (onValueChanged)="aplicar()"></dx-date-box>
+      <button mat-stroked-button type="button" (click)="limpiarRango()">
+        <mat-icon>filter_alt_off</mat-icon> Ver todo
+      </button>
+      <span class="mp-hint">Sin rango = todas tus ventas desde que hay registros.</span>
+    </form>
+
+    <div *ngIf="cargando" class="mp-cargando">
+      <div class="skeleton skeleton-row" *ngFor="let r of [1,2,3,4]"></div>
+    </div>
+    <div *ngIf="error" class="mp-aviso error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+
+    <ng-container *ngIf="!cargando && !error">
+
+      <!-- ── KPIs ── -->
+      <div class="mp-kpis">
+        <div class="mp-kpi k1"><mat-icon>payments</mat-icon><div><span class="v">{{ soles(montoTotal) }}</span><span class="l">Monto total</span></div></div>
+        <div class="mp-kpi k2"><mat-icon>receipt_long</mat-icon><div><span class="v">{{ numVentas }}</span><span class="l">N° de ventas</span></div></div>
+        <div class="mp-kpi k3"><mat-icon>sell</mat-icon><div><span class="v">{{ soles(ticket) }}</span><span class="l">Ticket promedio</span></div></div>
+        <div class="mp-kpi k4"><mat-icon>calendar_month</mat-icon><div><span class="v">{{ soles(montoMes) }}</span><span class="l">Ventas este mes</span></div></div>
+      </div>
+
+      <!-- ── Gráficos por entidad / tipo ── -->
+      <div class="mp-charts-2">
+        <div class="mp-card">
+          <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad</div>
+          <dx-chart [dataSource]="porEntidad" [redrawOnResize]="true" palette="Material" class="mp-chart">
+            <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar"></dxo-common-series-settings>
+            <dxi-series color="#1A5FAD"></dxi-series>
+            <dxo-value-axis><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
+            <dxo-legend [visible]="false"></dxo-legend>
+            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+          </dx-chart>
+        </div>
+        <div class="mp-card">
+          <div class="mp-card-h"><mat-icon>category</mat-icon> Ventas por tipo de crédito</div>
+          <dx-chart [dataSource]="porTipo" [redrawOnResize]="true" palette="Soft" class="mp-chart">
+            <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar"></dxo-common-series-settings>
+            <dxi-series color="#E65100"></dxi-series>
+            <dxo-value-axis><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
+            <dxo-legend [visible]="false"></dxo-legend>
+            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+          </dx-chart>
+        </div>
+      </div>
+
+      <!-- ── Historial mensual ── -->
+      <div class="mp-card">
+        <div class="mp-card-h"><mat-icon>show_chart</mat-icon> Historial de ventas por mes</div>
+        <dx-chart [dataSource]="historial" [redrawOnResize]="true" class="mp-chart tall">
+          <dxo-common-series-settings argumentField="mes"></dxo-common-series-settings>
+          <dxi-series valueField="monto" name="Monto" type="bar" color="#2E7D32" axis="izq"></dxi-series>
+          <dxi-series valueField="n" name="N° ventas" type="spline" color="#1A5FAD" axis="der">
+            <dxo-point [visible]="true" [size]="6"></dxo-point>
+          </dxi-series>
+          <dxi-value-axis name="izq" position="left"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxi-value-axis>
+          <dxi-value-axis name="der" position="right"></dxi-value-axis>
+          <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
+          <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+          <dxo-tooltip [enabled]="true"></dxo-tooltip>
+        </dx-chart>
+      </div>
+
+      <!-- ── Detalle ── -->
+      <div class="mp-card">
+        <div class="mp-card-h"><mat-icon>table_rows</mat-icon> Detalle de mis ventas <span class="mp-count">{{ ventas.length }}</span></div>
+        <dx-data-grid [dataSource]="ventas" [showBorders]="true" [rowAlternationEnabled]="true"
+          [columnAutoWidth]="true" [hoverStateEnabled]="true" [wordWrapEnabled]="true">
+          <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar cliente, entidad…"></dxo-search-panel>
+          <dxo-paging [pageSize]="10"></dxo-paging>
+          <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50]" [showInfo]="true"></dxo-pager>
+          <dxo-export [enabled]="true"></dxo-export>
+
+          <dxi-column dataField="fecha_cv" caption="Fecha" dataType="date" format="dd/MM/yyyy" [width]="110"></dxi-column>
+          <dxi-column dataField="cliente_venta" caption="Cliente" [minWidth]="180"></dxi-column>
+          <dxi-column dataField="doc_identidad" caption="DNI" [width]="110"></dxi-column>
+          <dxi-column dataField="monto_consolidado" caption="Monto" dataType="number" format="#,##0" alignment="right" [width]="120"></dxi-column>
+          <dxi-column dataField="entidad" caption="Entidad" [minWidth]="120"></dxi-column>
+          <dxi-column dataField="tipo_credito" caption="Tipo crédito" [minWidth]="130"></dxi-column>
+          <dxi-column dataField="estado_venta" caption="Estado" [minWidth]="110"></dxi-column>
+          <dxi-column dataField="productos" caption="Productos" [minWidth]="160"></dxi-column>
+          <dxi-column dataField="sede" caption="Sede" [minWidth]="110"></dxi-column>
+
+          <dxo-summary>
+            <dxi-total-item column="cliente_venta" [displayFormat]="'TOTAL'" alignment="right"></dxi-total-item>
+            <dxi-total-item column="monto_consolidado" summaryType="sum" [valueFormat]="'#,##0'" displayFormat="{0}"></dxi-total-item>
+          </dxo-summary>
+        </dx-data-grid>
+      </div>
+
+    </ng-container>
+  </ng-container>
+</div>

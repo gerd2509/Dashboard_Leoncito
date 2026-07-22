@@ -88,4 +88,12 @@ export class CargaVentasService {
     if (opts?.sede) params = params.set('sede', opts.sede);
     return this.http.get<any[]>(`${this.root}/margen-ventas`, { params });
   }
+
+  /** Todas las ventas de un vendedor (para "Mi Panel"). Opcional: filtrar por año/mes. */
+  obtenerVentasPorVendedor(vendedor: string, opts?: { anio?: number; mes?: number }): Observable<any[]> {
+    let params = new HttpParams().set('vendedor', vendedor);
+    if (opts?.anio) params = params.set('anio', opts.anio);
+    if (opts?.mes) params = params.set('mes', opts.mes);
+    return this.http.get<any[]>(`${this.root}/ventas`, { params });
+  }
 }
