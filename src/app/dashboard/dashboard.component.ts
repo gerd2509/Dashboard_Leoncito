@@ -268,7 +268,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         if (item.adminOnly) return null;
         if (item.submenu) {
           const subs = item.submenu
-            .filter(s => this.permissions.canAccess(s.modulo, u.rol, u.sede))
+            .filter(s => this.permissions.canAccess(s.modulo, u.rol, u.sede, u.modulos))
             .map(s => ({
               ...s,
               label:
@@ -281,7 +281,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
             }));
           return subs.length ? { ...item, submenu: subs } : null;
         }
-        if (!item.modulo || !this.permissions.canAccess(item.modulo, u.rol, u.sede)) return null;
+        if (!item.modulo || !this.permissions.canAccess(item.modulo, u.rol, u.sede, u.modulos)) return null;
         const label =
           item.modulo === 'control-gestion-sede' ? `Control Gestión ${nombreSede}` :
           item.modulo === 'control-call-sedes'   ? `Control Call ${nombreSede}` :

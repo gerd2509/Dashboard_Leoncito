@@ -9,6 +9,7 @@ export interface Usuario {
   sede: string;
   vendedor?: string;   // rol vendedor: su nombre exacto (para "Mi Panel")
   canal?: string;      // rol vendedor: 'sede' | 'call' | 'realzza'
+  modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
 }
 
 @Injectable({ providedIn: 'root' })

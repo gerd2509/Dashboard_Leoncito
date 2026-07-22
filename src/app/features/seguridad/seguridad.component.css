@@ -654,3 +654,29 @@ td.col-modulo {
 }
 .btn-salvar:hover { background: #2e7d32; }
 .btn-salvar:disabled { opacity: .6; cursor: default; }
+
+/* ── Nota del sidebar (permisos por usuario) ── */
+.seg-side-nota { display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; color: #78909c; padding: 14px 10px; line-height: 1.5; margin-top: auto; }
+.seg-side-nota mat-icon { font-size: 15px; width: 15px; height: 15px; color: #1A5FAD; flex: none; vertical-align: middle; }
+
+/* ── Botón permisos en la fila ── */
+.usr-acc .acc-perm mat-icon { color: #6A1B9A; }
+
+/* ── Modal: permisos por usuario ── */
+.perm-box { max-width: 700px; }
+.perm-sub { padding: 12px 20px 0; font-size: 13px; color: #46586c; }
+.perm-default { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; color: #E65100; font-weight: 700; }
+.perm-default mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.perm-body { max-height: 62vh; overflow-y: auto; }
+.perm-grupo { margin-bottom: 14px; }
+.perm-grupo-h { display: flex; align-items: center; justify-content: space-between; background: #f0f4f8; border-radius: 8px; padding: 6px 12px; font-weight: 800; color: #4a6080; font-size: 12px; text-transform: uppercase; letter-spacing: .6px; }
+.perm-grupo-h > span { display: inline-flex; align-items: center; gap: 6px; }
+.perm-grupo-h mat-icon { font-size: 16px; width: 16px; height: 16px; color: #1a5fad; }
+.perm-grupo-acc button { border: 1px solid #d8e2ee; background: #fff; border-radius: 6px; font-size: 11px; padding: 2px 9px; cursor: pointer; margin-left: 4px; color: #46586c; font-weight: 600; }
+.perm-grupo-acc button:hover { border-color: #9fc4e6; color: #1A5FAD; }
+.perm-item { display: flex; align-items: center; gap: 10px; padding: 7px 12px; cursor: pointer; border-radius: 8px; }
+.perm-item:hover { background: #f7fafe; }
+.perm-lbl { flex: 1; font-size: 13.5px; color: #2B3A55; }
+.btn-default { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1.5px solid #d8e2ee; color: #46586c; border-radius: 8px; padding: 0 14px; cursor: pointer; font-weight: 700; }
+.btn-default:hover { border-color: #f0a020; color: #E65100; }
+.btn-default mat-icon { font-size: 18px; width: 18px; height: 18px; }

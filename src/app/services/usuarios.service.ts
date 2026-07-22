@@ -11,6 +11,7 @@ export interface UsuarioDB {
   sede: string;
   vendedor?: string;   // nombre exacto del vendedor (rol vendedor) → "Mi Panel"
   canal?: string;      // 'sede' | 'call' | 'realzza' (rol vendedor)
+  modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
   activo: boolean;
   creado_en?: string;
   actualizado_en?: string;
@@ -47,5 +48,10 @@ export class UsuariosService {
 
   cambiarEstado(id: number, activo: boolean): Observable<any> {
     return this.http.patch(`${this.base}/${id}/estado`, { activo });
+  }
+
+  /** Guarda los permisos (módulos) de un usuario. `null` = usa el default por rol-perfil. */
+  guardarModulos(id: number, modulos: string[] | null): Observable<any> {
+    return this.http.patch(`${this.base}/${id}/modulos`, { modulos });
   }
 }

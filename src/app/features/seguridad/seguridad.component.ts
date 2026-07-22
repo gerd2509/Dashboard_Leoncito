@@ -87,6 +87,58 @@ export class SeguridadComponent implements OnInit {
   vendedorCell = (row: UsuarioDB) => row?.vendedor ? `${row.vendedor} · ${row.canal || '-'}` : '';
   onUsuarioDblClick = (e: any) => { if (e?.data) this.editarUsuario(e.data); };
 
+  // ── Permisos POR USUARIO (modal desde el grid) ──
+  mostrarPerm = false;
+  permUsuario: UsuarioDB | null = null;
+  permSel = new Set<string>();
+  permEsDefault = false;      // el usuario aún no tiene lista propia (usa el default rol-perfil)
+  guardandoPerm = false;
+  readonly modulos = ALL_MODULES;
+
+  modulosDe(grupo: string): ModuleConfig[] {
+    return ALL_MODULES.filter(m => (m.grupo || 'Generales') === grupo);
+  }
+
+  abrirPermisos(u: UsuarioDB): void {
+    this.permUsuario = u;
+    this.permEsDefault = !Array.isArray(u.modulos);
+    const base = Array.isArray(u.modulos) ? u.modulos : this.permisos.defaultPara(u.rol, u.sede);
+    this.permSel = new Set(base);
+    this.mostrarPerm = true;
+  }
+  cerrarPermisos(): void { this.mostrarPerm = false; this.permUsuario = null; }
+
+  estaPerm(key: string): boolean { return this.permSel.has(key); }
+  togglePerm(key: string): void {
+    if (this.permSel.has(key)) this.permSel.delete(key); else this.permSel.add(key);
+    this.permEsDefault = false;
+  }
+  todosGrupoPerm(grupo: string, on: boolean): void {
+    for (const m of this.modulosDe(grupo)) { if (on) this.permSel.add(m.key); else this.permSel.delete(m.key); }
+    this.permEsDefault = false;
+  }
+
+  guardarPermisos(): void {
+    if (!this.permUsuario) return;
+    this.guardandoPerm = true;
+    // Si se marca "usar default" no mandamos lista (null); si no, la lista elegida.
+    const modulos = this.permEsDefault ? null : Array.from(this.permSel);
+    this.usuariosSvc.guardarModulos(this.permUsuario.id, modulos).subscribe({
+      next: () => {
+        this.guardandoPerm = false;
+        this.mostrarPerm = false;
+        this.cargarUsuarios();
+        this.toast('Permisos actualizados.');
+      },
+      error: (err) => { this.guardandoPerm = false; this.toast(err?.error?.message ?? 'No se pudieron guardar los permisos.', 'error'); },
+    });
+  }
+  volverAlDefault(): void {
+    if (!this.permUsuario) return;
+    this.permEsDefault = true;
+    this.permSel = new Set(this.permisos.defaultPara(this.permUsuario.rol, this.permUsuario.sede));
+  }
+
   ngOnInit(): void {
     this.construirFilas();
     this.grupos = [...new Set(ALL_MODULES.map(m => m.grupo ?? '').filter(Boolean))];

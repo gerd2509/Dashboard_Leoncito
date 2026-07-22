@@ -179,11 +179,12 @@ export class PermissionsService {
     return `${rol}-${this.perfilDe(sede)}`;
   }
 
-  canAccess(moduleKey: string, rol: string, sede: string): boolean {
+  canAccess(moduleKey: string, rol: string, sede: string, modulos?: string[] | null): boolean {
     if (rol === 'admin') return true;
     if (moduleKey === 'seguridad') return false;
 
-    const allowed = this.permisos[this.buildKey(rol, sede)] ?? [];
+    // Permisos POR USUARIO si están definidos; si no, cae al default por rol-perfil.
+    const allowed = Array.isArray(modulos) ? modulos : (this.permisos[this.buildKey(rol, sede)] ?? []);
     if (!allowed.includes(moduleKey)) return false;
 
     const mod = ALL_MODULES.find(m => m.key === moduleKey);
@@ -193,6 +194,11 @@ export class PermissionsService {
       return !!sede;
     }
     return true;
+  }
+
+  /** Módulos por defecto (rol-perfil) — base para prellenar los permisos por usuario. */
+  defaultPara(rol: string, sede: string): string[] {
+    return [...(this.permisos[this.buildKey(rol, sede)] ?? [])];
   }
 
   getPermisos(): Record<string, string[]> {

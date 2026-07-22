@@ -3,20 +3,17 @@
   <!-- ── Sub-menú lateral ── -->
   <aside class="seg-side">
     <div class="seg-side-brand"><mat-icon>shield</mat-icon> Seguridad</div>
-    <button class="seg-side-item" [class.activo]="vista === 'usuarios'" (click)="vista = 'usuarios'">
+    <button class="seg-side-item activo">
       <mat-icon>group</mat-icon> Usuarios
     </button>
-    <button class="seg-side-item" [class.activo]="vista === 'permisos'" (click)="vista = 'permisos'">
-      <mat-icon>lock</mat-icon> Permisos
-    </button>
+    <div class="seg-side-nota"><mat-icon>info</mat-icon> Los permisos se asignan por usuario con el botón <mat-icon>key</mat-icon> en la tabla.</div>
   </aside>
 
   <!-- ── Contenido ── -->
   <section class="seg-main">
 
     <div class="seg-breadcrumb">
-      Seguridad <mat-icon>chevron_right</mat-icon>
-      <b>{{ vista === 'usuarios' ? 'Usuarios' : 'Permisos' }}</b>
+      Seguridad <mat-icon>chevron_right</mat-icon> <b>Usuarios</b>
     </div>
 
     <!-- ═══════════ USUARIOS ═══════════ -->
@@ -42,6 +39,8 @@
         [hoverStateEnabled]="true" [wordWrapEnabled]="true" (onRowDblClick)="onUsuarioDblClick($event)">
 
         <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar usuario…"></dxo-search-panel>
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-header-filter [visible]="true"></dxo-header-filter>
         <dxo-paging [pageSize]="10"></dxo-paging>
         <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 20, 50]"
           [showInfo]="true" [showNavigationButtons]="true"></dxo-pager>
@@ -52,7 +51,7 @@
         <dxi-column dataField="sede" caption="Sede" [minWidth]="120" [calculateCellValue]="sedeCell"></dxi-column>
         <dxi-column caption="Vendedor / Canal" [minWidth]="180" [calculateCellValue]="vendedorCell"></dxi-column>
         <dxi-column dataField="activo" caption="Estado" alignment="center" [width]="110" cellTemplate="estadoTpl"></dxi-column>
-        <dxi-column caption="Acciones" alignment="center" [width]="120" [allowSorting]="false"
+        <dxi-column caption="Acciones" alignment="center" [width]="150" [allowSorting]="false"
           [allowFiltering]="false" [allowSearch]="false" cellTemplate="accTpl"></dxi-column>
 
         <div *dxTemplate="let d of 'estadoTpl'">
@@ -60,118 +59,13 @@
         </div>
         <div *dxTemplate="let d of 'accTpl'" class="usr-acc">
           <button (click)="editarUsuario(d.data)" title="Editar"><mat-icon>edit</mat-icon></button>
+          <button (click)="abrirPermisos(d.data)" title="Permisos" class="acc-perm"><mat-icon>key</mat-icon></button>
           <button (click)="toggleEstadoUsuario(d.data)" [title]="d.data.activo ? 'Desactivar' : 'Activar'">
             <mat-icon>{{ d.data.activo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
           </button>
         </div>
       </dx-data-grid>
       <div class="ut-loading" *ngIf="cargandoU">Cargando usuarios…</div>
-    </div>
-
-    <!-- ═══════════ PERMISOS ═══════════ -->
-    <div *ngIf="vista === 'permisos'" class="seg-card">
-      <div class="seg-card-tools">
-        <div class="sct-left"><mat-icon>lock</mat-icon><span>Permisos por Rol + Perfil</span></div>
-        <div class="sct-actions">
-          <button class="btn-restablecer" (click)="restablecer()">
-            <mat-icon>restart_alt</mat-icon> Restablecer
-          </button>
-          <button class="btn-guardar" (click)="guardar()">
-            <mat-icon>{{ guardado ? 'check_circle' : 'save' }}</mat-icon>
-            {{ guardado ? '¡Guardado!' : 'Guardar cambios' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- MAPEO SEDES → PERFIL -->
-      <div class="seg-perfiles">
-        <div class="perfil-card admin-card">
-          <div class="perfil-head"><mat-icon>shield</mat-icon> ADMIN</div>
-          <div class="perfil-detalle">Acceso total · todas las sedes</div>
-        </div>
-        <div class="perfil-card" *ngFor="let sp of sedesPorPerfil">
-          <div class="perfil-head"><mat-icon>workspaces</mat-icon> {{ sp.perfil.label }}</div>
-          <div class="perfil-detalle">{{ sp.perfil.detalle }}</div>
-          <div class="perfil-sedes">
-            <span class="sede-tag" *ngFor="let s of sp.sedes">{{ s }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="seg-toolbar">
-        <div class="seg-search">
-          <mat-icon>search</mat-icon>
-          <input type="text" [(ngModel)]="filtro" placeholder="Buscar módulo…" />
-          <mat-icon class="clear" *ngIf="filtro" (click)="filtro = ''">close</mat-icon>
-        </div>
-      </div>
-
-      <div class="seg-table-wrap">
-        <table class="seg-table">
-          <thead>
-            <tr>
-              <th class="col-modulo">Módulo</th>
-              <th class="col-admin"><div class="th-content"><mat-icon>shield</mat-icon> ADMIN</div></th>
-              <th class="col-rol" *ngFor="let combo of combinaciones">
-                <div class="th-content th-combo">
-                  <span class="combo-label">
-                    <span class="combo-rol">{{ combo.rol | uppercase }}</span>
-                    <span class="combo-sede">{{ combo.perfil | uppercase }}</span>
-                  </span>
-                  <span class="combo-count">{{ countActivos(combo.key) }}</span>
-                  <button class="btn-col-toggle" (click)="toggleColumna(combo.key)" title="Activar/desactivar todo">
-                    <mat-icon>checklist</mat-icon>
-                  </button>
-                </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <ng-container *ngFor="let grupo of gruposVisibles()">
-              <tr class="row-grupo">
-                <td [attr.colspan]="2 + combinaciones.length"><mat-icon>folder_open</mat-icon> {{ grupo }}</td>
-              </tr>
-              <tr *ngFor="let fila of getModulosPorGrupo(grupo)" class="row-modulo">
-                <td class="col-modulo">
-                  <span class="modulo-label">{{ fila.modulo.label }}</span>
-                  <span class="sede-badge" *ngIf="fila.modulo.sedeScoped"><mat-icon>place</mat-icon> por sede</span>
-                </td>
-                <td class="col-admin"><div class="toggle always-on"><span class="toggle-track"><span class="toggle-thumb"></span></span></div></td>
-                <td *ngFor="let combo of combinaciones" class="col-toggle">
-                  <div class="toggle" [class.active]="fila.combos[combo.key]" (click)="togglePermiso(fila, combo.key)">
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-
-            <ng-container *ngIf="getModulosSinGrupo().length">
-              <tr class="row-grupo">
-                <td [attr.colspan]="2 + combinaciones.length"><mat-icon>apps</mat-icon> Generales</td>
-              </tr>
-              <tr *ngFor="let fila of getModulosSinGrupo()" class="row-modulo">
-                <td class="col-modulo">
-                  <span class="modulo-label">{{ fila.modulo.label }}</span>
-                  <span class="sede-badge" *ngIf="fila.modulo.sedeScoped"><mat-icon>place</mat-icon> por sede</span>
-                </td>
-                <td class="col-admin"><div class="toggle always-on"><span class="toggle-track"><span class="toggle-thumb"></span></span></div></td>
-                <td *ngFor="let combo of combinaciones" class="col-toggle">
-                  <div class="toggle" [class.active]="fila.combos[combo.key]" (click)="togglePermiso(fila, combo.key)">
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  </div>
-                </td>
-              </tr>
-            </ng-container>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="seg-nota">
-        <mat-icon>info_outline</mat-icon>
-        Los permisos se definen por <strong>Rol + Perfil</strong>. La sede sale del login y solo filtra los datos
-        de los módulos <strong>"por sede"</strong>. Ahora se guardan en la <strong>base de datos</strong> (compartidos
-        entre navegadores y equipos).
-      </div>
     </div>
 
   </section>
@@ -228,6 +122,42 @@
       <button class="btn-cancelar" (click)="cancelarForm()">Cancelar</button>
       <button class="btn-salvar" (click)="guardarUsuario()" [disabled]="guardandoU || !formValido">
         {{ guardandoU ? 'Guardando…' : 'Salvar' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: PERMISOS POR USUARIO ═══════════ -->
+<div class="modal-overlay" *ngIf="mostrarPerm" (click)="cerrarPermisos()">
+  <div class="modal-box perm-box" (click)="$event.stopPropagation()">
+    <div class="modal-head">PERMISOS · {{ permUsuario?.usuario }}</div>
+    <div class="perm-sub">
+      Qué pantallas puede ver <b>{{ permUsuario?.nombre || permUsuario?.usuario }}</b>.
+      <span class="perm-default" *ngIf="permEsDefault"><mat-icon>info</mat-icon> Usando el default de su rol/perfil (aún sin permisos propios).</span>
+    </div>
+    <div class="modal-body perm-body">
+      <div class="perm-grupo" *ngFor="let g of grupos">
+        <div class="perm-grupo-h">
+          <span><mat-icon>folder_open</mat-icon> {{ g }}</span>
+          <span class="perm-grupo-acc">
+            <button type="button" (click)="todosGrupoPerm(g, true)">Todos</button>
+            <button type="button" (click)="todosGrupoPerm(g, false)">Ninguno</button>
+          </span>
+        </div>
+        <div class="perm-item" *ngFor="let m of modulosDe(g)" (click)="togglePerm(m.key)">
+          <div class="toggle" [class.active]="estaPerm(m.key)">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          </div>
+          <span class="perm-lbl">{{ m.label }}</span>
+          <span class="sede-badge" *ngIf="m.sedeScoped"><mat-icon>place</mat-icon> por sede</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancelar" (click)="cerrarPermisos()">Cancelar</button>
+      <button class="btn-default" type="button" (click)="volverAlDefault()"><mat-icon>restart_alt</mat-icon> Usar default</button>
+      <button class="btn-salvar" (click)="guardarPermisos()" [disabled]="guardandoPerm">
+        {{ guardandoPerm ? 'Guardando…' : 'Guardar permisos' }}
       </button>
     </div>
   </div>

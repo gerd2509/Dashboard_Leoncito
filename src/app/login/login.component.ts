@@ -79,7 +79,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     this.auth.login(this.usuario.trim(), this.password.trim()).subscribe({
       next: (res: any) => {
-        this.auth.guardarSesion({ nombre: res.nombre, rol: res.rol, sede: res.sede, vendedor: res.vendedor, canal: res.canal });
+        this.auth.guardarSesion({ nombre: res.nombre, rol: res.rol, sede: res.sede, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos });
         this.cargando = false;
       },
       error: (err) => {
