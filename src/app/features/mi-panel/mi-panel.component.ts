@@ -4,6 +4,7 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { SedeConfigService } from '../../services/sede-config.service';
 
 interface Agrupado { clave: string; monto: number; n: number; }
 
@@ -17,10 +18,12 @@ export class MiPanelComponent implements OnInit {
   private auth = inject(AuthService);
   private ventasSvc = inject(CargaVentasService);
   private fb = inject(UntypedFormBuilder);
+  private sedeCfg = inject(SedeConfigService);
 
   nombre = '';
   vendedor = '';
   canal = '';
+  sedeNombre = '';   // sede a la que pertenece (para la cabecera)
   sinVendedor = false;
   cargando = false;
   error = '';
@@ -45,6 +48,9 @@ export class MiPanelComponent implements OnInit {
     this.nombre = u?.nombre || '';
     this.vendedor = (u?.vendedor || '').trim();
     this.canal = u?.canal || '';
+    const sede = (u?.sede || '').trim();
+    this.sedeNombre = this.sedeCfg.getConfig(sede)?.nombre
+      ?? (sede ? sede.charAt(0).toUpperCase() + sede.slice(1) : '');
     this.form = this.fb.group({ desde: [null], hasta: [null] });
     if (!this.vendedor) { this.sinVendedor = true; return; }
     this.cargar();
@@ -118,4 +124,12 @@ export class MiPanelComponent implements OnInit {
 
   soles(v: number): string { return 'S/ ' + Math.round(v || 0).toLocaleString('es-PE'); }
   formatoSoles = (arg: any) => this.soles(arg.value);
+
+  // 'YYYY-MM' → 'Jul - 2026'
+  private readonly MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+  formatMes(ym: string): string {
+    const m = (ym || '').toString().match(/^(\d{4})-(\d{2})/);
+    return m ? `${this.MESES[+m[2] - 1] || m[2]} - ${m[1]}` : ym;
+  }
+  mesAxisLabel = (arg: any) => this.formatMes(arg.value);
 }

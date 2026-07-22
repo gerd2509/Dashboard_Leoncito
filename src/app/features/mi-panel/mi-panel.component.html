@@ -15,6 +15,7 @@
         <div class="mp-hola">¡Hola{{ nombre ? ', ' + nombre : '' }}! 👋</div>
         <div class="mp-sub">
           <mat-icon>badge</mat-icon> {{ vendedor }}
+          <span class="mp-chip sede" *ngIf="sedeNombre"><mat-icon>place</mat-icon> {{ sedeNombre }}</span>
           <span class="mp-chip" *ngIf="canal">{{ canal | uppercase }}</span>
         </div>
       </div>
@@ -56,21 +57,29 @@
         <div class="mp-card">
           <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad</div>
           <dx-chart [dataSource]="porEntidad" [redrawOnResize]="true" palette="Material" class="mp-chart">
-            <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar"></dxo-common-series-settings>
+            <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
+              <dxo-label [visible]="true" [customizeText]="formatoSoles" backgroundColor="transparent">
+                <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
+              </dxo-label>
+            </dxo-common-series-settings>
             <dxi-series color="#1A5FAD"></dxi-series>
             <dxo-value-axis><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
             <dxo-legend [visible]="false"></dxo-legend>
-            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+            <dxo-tooltip [enabled]="false"></dxo-tooltip>
           </dx-chart>
         </div>
         <div class="mp-card">
           <div class="mp-card-h"><mat-icon>category</mat-icon> Ventas por tipo de crédito</div>
           <dx-chart [dataSource]="porTipo" [redrawOnResize]="true" palette="Soft" class="mp-chart">
-            <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar"></dxo-common-series-settings>
+            <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
+              <dxo-label [visible]="true" [customizeText]="formatoSoles" backgroundColor="transparent">
+                <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
+              </dxo-label>
+            </dxo-common-series-settings>
             <dxi-series color="#E65100"></dxi-series>
             <dxo-value-axis><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
             <dxo-legend [visible]="false"></dxo-legend>
-            <dxo-tooltip [enabled]="true"></dxo-tooltip>
+            <dxo-tooltip [enabled]="false"></dxo-tooltip>
           </dx-chart>
         </div>
       </div>
@@ -80,15 +89,19 @@
         <div class="mp-card-h"><mat-icon>show_chart</mat-icon> Historial de ventas por mes</div>
         <dx-chart [dataSource]="historial" [redrawOnResize]="true" class="mp-chart tall">
           <dxo-common-series-settings argumentField="mes"></dxo-common-series-settings>
-          <dxi-series valueField="monto" name="Monto" type="bar" color="#2E7D32" axis="izq"></dxi-series>
+          <dxi-series valueField="monto" name="Monto" type="bar" color="#2E7D32" axis="izq">
+            <dxo-label [visible]="true" [customizeText]="formatoSoles" backgroundColor="transparent">
+              <dxo-font [weight]="700" color="#2E7D32"></dxo-font>
+            </dxo-label>
+          </dxi-series>
           <dxi-series valueField="n" name="N° ventas" type="spline" color="#1A5FAD" axis="der">
             <dxo-point [visible]="true" [size]="6"></dxo-point>
           </dxi-series>
           <dxi-value-axis name="izq" position="left"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxi-value-axis>
           <dxi-value-axis name="der" position="right"></dxi-value-axis>
-          <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
+          <dxo-argument-axis><dxo-label [customizeText]="mesAxisLabel" [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
           <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
-          <dxo-tooltip [enabled]="true"></dxo-tooltip>
+          <dxo-tooltip [enabled]="false"></dxo-tooltip>
         </dx-chart>
       </div>
 
