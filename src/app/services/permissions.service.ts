@@ -28,7 +28,7 @@ export const PERFILES: Perfil[] = [
 ];
 
 // Roles configurables en la matriz (admin es acceso total, no configurable).
-export const ROLES_CONFIGURABLES = ['gerente', 'supervisor'];
+export const ROLES_CONFIGURABLES = ['gerente', 'supervisor', 'vendedor'];
 
 // ─── Combinaciones Rol + Perfil (columnas de la matriz de Seguridad) ──────────
 // Set FIJO y chico: NO crece al agregar sedes.
@@ -52,6 +52,7 @@ export const COMBINACIONES: RolPerfilCombinacion[] = PERFILES.flatMap(p =>
 
 // ─── Todos los módulos del sistema ───────────────────────────────────────────
 export const ALL_MODULES: ModuleConfig[] = [
+  { key: 'mi-panel',                     label: 'Mi Panel (Vendedor)',          grupo: 'Vendedor' },
   { key: 'agendamientos',                label: 'Agendamientos — Call Center',  grupo: 'Agendamientos' },
   { key: 'agendamientos-campo',          label: 'Agendamientos — Realzza',      grupo: 'Agendamientos' },
   { key: 'agendamientos-kommo',          label: 'Agendamientos — Kommo',        grupo: 'Agendamientos' },
@@ -100,6 +101,8 @@ const REALZZA_MODULES = [
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
 const ZONA_MODULES = ['control-gestion-sede'];
+// Rol vendedor: por defecto ve su panel personal.
+const VENDEDOR_MODULES = ['mi-panel'];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],
@@ -108,9 +111,12 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'supervisor-realzza': [...REALZZA_MODULES],
   'gerente-zona':       [...ZONA_MODULES],
   'supervisor-zona':    [...ZONA_MODULES],
+  'vendedor-call':      [...VENDEDOR_MODULES],
+  'vendedor-realzza':   [...VENDEDOR_MODULES],
+  'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v20';
+const STORAGE_KEY = 'gd_permissions_v21';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
@@ -176,8 +182,6 @@ export class PermissionsService {
   canAccess(moduleKey: string, rol: string, sede: string): boolean {
     if (rol === 'admin') return true;
     if (moduleKey === 'seguridad') return false;
-    // El vendedor solo ve su panel personal ("Mi Panel").
-    if (rol === 'vendedor') return moduleKey === 'mi-panel';
 
     const allowed = this.permisos[this.buildKey(rol, sede)] ?? [];
     if (!allowed.includes(moduleKey)) return false;
