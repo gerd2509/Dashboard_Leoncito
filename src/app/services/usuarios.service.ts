@@ -9,6 +9,8 @@ export interface UsuarioDB {
   nombre: string;
   rol: string;
   sede: string;
+  vendedor?: string;   // nombre exacto del vendedor (rol vendedor) → "Mi Panel"
+  canal?: string;      // 'sede' | 'call' | 'realzza' (rol vendedor)
   activo: boolean;
   creado_en?: string;
   actualizado_en?: string;
@@ -20,6 +22,8 @@ export interface UsuarioPayload {
   nombre: string;
   rol: string;
   sede: string;
+  vendedor?: string;
+  canal?: string;
   activo: boolean;
   password?: string;
 }

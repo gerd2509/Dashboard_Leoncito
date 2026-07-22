@@ -7,6 +7,8 @@ export interface Usuario {
   nombre: string;
   rol: 'admin' | 'gerente' | 'supervisor' | string;
   sede: string;
+  vendedor?: string;   // rol vendedor: su nombre exacto (para "Mi Panel")
+  canal?: string;      // rol vendedor: 'sede' | 'call' | 'realzza'
 }
 
 @Injectable({ providedIn: 'root' })

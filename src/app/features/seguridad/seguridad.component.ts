@@ -9,7 +9,9 @@ import {
 } from '../../services/permissions.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { UsuariosService, UsuarioDB } from '../../services/usuarios.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
+import { nombresCall, nombresRealzza } from '../../shared/asesores';
 
 interface PermisoFila {
   modulo: ModuleConfig;
@@ -28,6 +30,7 @@ export class SeguridadComponent implements OnInit {
   private permisos = inject(PermissionsService);
   private sedeCfg  = inject(SedeConfigService);
   private usuariosSvc = inject(UsuariosService);
+  private cap = inject(CapSedesService);
   private snack = inject(MatSnackBar);
 
   /** Toast de confirmación / error (arriba a la derecha). */
@@ -60,7 +63,15 @@ export class SeguridadComponent implements OnInit {
   editId: number | null = null;
   guardandoU = false;
   errorForm = '';
-  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', password: '', activo: true };
+  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', canal: '', vendedor: '', password: '', activo: true };
+
+  // Identidad del vendedor (solo cuando rol = vendedor).
+  readonly canalOptions = [
+    { value: 'sede',    label: 'Sede (piso)' },
+    { value: 'call',    label: 'Call Center' },
+    { value: 'realzza', label: 'Realzza' },
+  ];
+  vendedorOptions: string[] = [];   // nombres según el canal (+ sede si es 'sede')
 
   readonly rolOptions = [
     { value: 'admin', label: 'Admin' },
@@ -71,8 +82,9 @@ export class SeguridadComponent implements OnInit {
   sedeOptions: { value: string; label: string }[] = [];
 
   // Para el dx-data-grid de usuarios: mostrar/buscar por etiqueta (no por el código).
-  rolCell   = (row: UsuarioDB) => this.rolLabel(row?.rol);
-  sedeCell  = (row: UsuarioDB) => this.sedeLabel(row?.sede);
+  rolCell     = (row: UsuarioDB) => this.rolLabel(row?.rol);
+  sedeCell    = (row: UsuarioDB) => this.sedeLabel(row?.sede);
+  vendedorCell = (row: UsuarioDB) => row?.vendedor ? `${row.vendedor} · ${row.canal || '-'}` : '';
   onUsuarioDblClick = (e: any) => { if (e?.data) this.editarUsuario(e.data); };
 
   ngOnInit(): void {
@@ -104,7 +116,8 @@ export class SeguridadComponent implements OnInit {
 
   nuevoUsuario(): void {
     this.editId = null;
-    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', password: '', activo: true };
+    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', canal: '', vendedor: '', password: '', activo: true };
+    this.vendedorOptions = [];
     this.errorForm = '';
     this.mostrarForm = true;
   }
@@ -116,11 +129,30 @@ export class SeguridadComponent implements OnInit {
       nombre: u.nombre ?? '',
       rol: (u.rol || '').toLowerCase(),
       sede: this.sedeCfg.normalizar(u.sede),
+      canal: u.canal ?? '',
+      vendedor: u.vendedor ?? '',
       password: '',
       activo: u.activo,
     };
+    this.recomputarVendedores();
     this.errorForm = '';
     this.mostrarForm = true;
+  }
+
+  /** Recalcula la lista de vendedores según el canal (+ sede si es 'sede'). */
+  async recomputarVendedores(): Promise<void> {
+    const canal = this.form.canal;
+    if (canal === 'call')          this.vendedorOptions = nombresCall();
+    else if (canal === 'realzza')  this.vendedorOptions = nombresRealzza();
+    else if (canal === 'sede') {
+      const key = this.sedeCfg.normalizar(this.form.sede);
+      this.vendedorOptions = key ? await this.cap.vendedoresActivos(key) : [];
+    } else this.vendedorOptions = [];
+
+    // Conserva el vendedor ya guardado aunque no esté en la lista actual.
+    if (this.form.vendedor && !this.vendedorOptions.includes(this.form.vendedor)) {
+      this.vendedorOptions = [this.form.vendedor, ...this.vendedorOptions];
+    }
   }
 
   cancelarForm(): void {
@@ -134,11 +166,16 @@ export class SeguridadComponent implements OnInit {
     if (this.editId === null && !f.password.trim()) {
       this.errorForm = 'La contraseña es obligatoria para un usuario nuevo.'; return;
     }
+    const esVendedor = f.rol === 'vendedor';
+    if (esVendedor && (!f.canal || !f.vendedor)) {
+      this.errorForm = 'Para un vendedor, elige el canal y el vendedor.'; return;
+    }
     this.guardandoU = true;
     this.errorForm = '';
     const esNuevo = this.editId === null;
     const payload = {
       usuario: f.usuario.trim(), nombre: f.nombre.trim(), rol: f.rol, sede: f.sede,
+      canal: esVendedor ? f.canal : '', vendedor: esVendedor ? f.vendedor.trim() : '',
       activo: f.activo, password: f.password.trim() || undefined,
     };
     const obs = esNuevo

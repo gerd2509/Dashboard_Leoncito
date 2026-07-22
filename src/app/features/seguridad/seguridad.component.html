@@ -50,6 +50,7 @@
         <dxi-column dataField="nombre"  caption="Nombre"  [minWidth]="160"></dxi-column>
         <dxi-column dataField="rol"  caption="Rol"  [minWidth]="110" [calculateCellValue]="rolCell"></dxi-column>
         <dxi-column dataField="sede" caption="Sede" [minWidth]="120" [calculateCellValue]="sedeCell"></dxi-column>
+        <dxi-column caption="Vendedor / Canal" [minWidth]="180" [calculateCellValue]="vendedorCell"></dxi-column>
         <dxi-column dataField="activo" caption="Estado" alignment="center" [width]="110" cellTemplate="estadoTpl"></dxi-column>
         <dxi-column caption="Acciones" alignment="center" [width]="120" [allowSorting]="false"
           [allowFiltering]="false" [allowSearch]="false" cellTemplate="accTpl"></dxi-column>
@@ -194,10 +195,25 @@
           </select>
         </label>
         <label>Sede *
-          <select [(ngModel)]="form.sede">
+          <select [(ngModel)]="form.sede" (ngModelChange)="recomputarVendedores()">
             <option *ngFor="let s of sedeOptions" [value]="s.value">{{ s.label }}</option>
           </select>
         </label>
+
+        <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->
+        <label *ngIf="form.rol === 'vendedor'">Canal *
+          <select [(ngModel)]="form.canal" (ngModelChange)="form.vendedor=''; recomputarVendedores()">
+            <option value="">— Selecciona —</option>
+            <option *ngFor="let c of canalOptions" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </label>
+        <label *ngIf="form.rol === 'vendedor'">Vendedor *
+          <select [(ngModel)]="form.vendedor" [disabled]="!form.canal">
+            <option value="">{{ form.canal ? '— Selecciona —' : 'Elige canal primero' }}</option>
+            <option *ngFor="let v of vendedorOptions" [value]="v">{{ v }}</option>
+          </select>
+        </label>
+
         <label>Contraseña {{ editId === null ? '*' : '' }}
           <input type="text" [(ngModel)]="form.password"
                  [placeholder]="editId === null ? 'Obligatoria' : 'Dejar vacío para no cambiar'" />
