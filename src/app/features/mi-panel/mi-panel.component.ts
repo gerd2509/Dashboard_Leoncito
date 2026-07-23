@@ -5,6 +5,7 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { ASESORES_CALL } from '../../shared/asesores';
 
 interface Agrupado { clave: string; monto: number; n: number; }
 
@@ -63,8 +64,11 @@ export class MiPanelComponent implements OnInit {
     //  · Realzza → tabla ventas_realzza (el "vendedor" es la sede; NC/refact por mes de afectación).
     //  · Sedes   → tabla ventas (afectaciones), como hasta ahora.
     const canal = (this.canal || '').toLowerCase();
+    // En Ventas Call cada asesor se identifica por su CÓDIGO (CC1, CC5, …); la
+    // tabla ventas_call guarda el código en `vendedor`, así que mapeamos el
+    // nombre del usuario a su código antes de filtrar.
     const obs = canal === 'call'
-      ? this.ventasSvc.obtenerVentasCanal('call', { vendedor: this.vendedor })
+      ? this.ventasSvc.obtenerVentasCanal('call', { vendedor: this.codigoCall(this.vendedor) })
       : canal === 'realzza'
         ? this.ventasSvc.obtenerVentasCanal('realzza', { vendedor: this.vendedor })
         : this.ventasSvc.obtenerVentasPorVendedor(this.vendedor);
@@ -72,6 +76,17 @@ export class MiPanelComponent implements OnInit {
       next: (rows) => { this.todas = rows || []; this.aplicar(); this.cargando = false; },
       error: () => { this.error = 'No se pudieron cargar tus ventas.'; this.cargando = false; },
     });
+  }
+
+  /**
+   * Código del asesor Call (CC1, CC5…) a partir del nombre guardado en el usuario.
+   * En Ventas Call la identidad es el código, no el nombre. Si el valor ya es un
+   * código o no se encuentra, se devuelve tal cual para no romper el filtro.
+   */
+  private codigoCall(valor: string): string {
+    const v = (valor || '').trim().toUpperCase();
+    const a = ASESORES_CALL.find(x => x.nombre.toUpperCase() === v || x.value.toUpperCase() === v);
+    return a ? a.value : (valor || '').trim();
   }
 
   /**
