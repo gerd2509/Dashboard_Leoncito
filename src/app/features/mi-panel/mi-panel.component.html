@@ -84,24 +84,53 @@
         </div>
       </div>
 
-      <!-- ── Historial mensual ── -->
+      <!-- ── Historial mensual (Evolución de Ventas) ── -->
       <div class="mp-card">
-        <div class="mp-card-h"><mat-icon>show_chart</mat-icon> Historial de ventas por mes</div>
-        <dx-chart [dataSource]="historial" [redrawOnResize]="true" class="mp-chart tall">
-          <dxo-common-series-settings argumentField="mes"></dxo-common-series-settings>
-          <dxi-series valueField="monto" name="Monto" type="bar" color="#2E7D32" axis="izq">
-            <dxo-label [visible]="true" [customizeText]="formatoSoles" backgroundColor="transparent">
-              <dxo-font [weight]="700" color="#2E7D32"></dxo-font>
+        <div class="mp-card-h"><mat-icon>show_chart</mat-icon> Evolución de ventas mensual</div>
+        <dx-chart [dataSource]="historial" [redrawOnResize]="true" palette="Harmony Light"
+          [customizePoint]="histPoint" class="mp-chart tall">
+
+          <dxo-crosshair [enabled]="true" dashStyle="dot" color="#90A4AE"></dxo-crosshair>
+
+          <dxo-argument-axis argumentType="string">
+            <dxo-label [overlappingBehavior]="'rotate'"></dxo-label>
+          </dxo-argument-axis>
+
+          <dxi-value-axis name="monto" position="left">
+            <dxo-title text="Monto (S/)"></dxo-title>
+            <dxo-label [customizeText]="formatoSoles"></dxo-label>
+          </dxi-value-axis>
+          <dxi-value-axis name="crec" position="right"></dxi-value-axis>
+
+          <!-- Área suavizada del monto real -->
+          <dxi-series valueField="monto" argumentField="mesLabel" name="Monto (S/)" type="splineArea"
+            axis="monto" color="#1565C0" [opacity]="0.65">
+            <dxo-label [visible]="true" [backgroundColor]="'transparent'" [customizeText]="histMonto" position="outside">
+              <dxo-font size="10" weight="700" color="#0D47A1"></dxo-font>
             </dxo-label>
+            <dxo-point [visible]="true" [size]="9" color="#1565C0" symbol="circle"></dxo-point>
           </dxi-series>
-          <dxi-series valueField="n" name="N° ventas" type="spline" color="#1A5FAD" axis="der">
-            <dxo-point [visible]="true" [size]="6"></dxo-point>
+
+          <!-- Spline de crecimiento % (eje secundario), puntos coloreados por signo -->
+          <dxi-series valueField="crecimiento" argumentField="mesLabel" name="Crecimiento (%)" type="spline"
+            axis="crec" [width]="3">
+            <dxo-label [visible]="true" [backgroundColor]="'#ffffff'" [customizeText]="histCrec" [border]="{ visible: false }">
+              <dxo-font size="12" weight="700" color="#000000"></dxo-font>
+            </dxo-label>
+            <dxo-point [visible]="true" [size]="12" symbol="circle"></dxo-point>
           </dxi-series>
-          <dxi-value-axis name="izq" position="left"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxi-value-axis>
-          <dxi-value-axis name="der" position="right"></dxi-value-axis>
-          <dxo-argument-axis><dxo-label [customizeText]="mesAxisLabel" [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
-          <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
-          <dxo-tooltip [enabled]="false"></dxo-tooltip>
+
+          <!-- Proyección del mes en curso -->
+          <dxi-series valueField="proyeccion" argumentField="mesLabel" name="Proyección Mes Actual"
+            type="scatter" axis="monto" color="#E65100">
+            <dxo-label [visible]="true" [backgroundColor]="'#E65100'" [customizeText]="histProy" [border]="{ visible: false }" position="top">
+              <dxo-font size="12" weight="700" color="#ffffff"></dxo-font>
+            </dxo-label>
+            <dxo-point [visible]="true" [size]="18" symbol="triangleUp" color="#E65100"></dxo-point>
+          </dxi-series>
+
+          <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="histTooltip"></dxo-tooltip>
+          <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
         </dx-chart>
       </div>
 

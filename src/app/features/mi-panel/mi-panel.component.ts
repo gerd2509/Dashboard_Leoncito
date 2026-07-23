@@ -8,6 +8,14 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { ASESORES_CALL } from '../../shared/asesores';
 
 interface Agrupado { clave: string; monto: number; n: number; }
+interface HistMes {
+  mes: string;        // 'YYYY-MM' (clave para ordenar)
+  mesLabel: string;   // 'Jul - 2026' (eje)
+  monto: number;
+  n: number;
+  crecimiento: number;        // % vs mes anterior
+  proyeccion: number | null;  // solo el mes en curso
+}
 
 @Component({
   selector: 'app-mi-panel',
@@ -42,7 +50,7 @@ export class MiPanelComponent implements OnInit {
 
   porEntidad: Agrupado[] = [];
   porTipo: Agrupado[] = [];
-  historial: { mes: string; monto: number; n: number }[] = [];
+  historial: HistMes[] = [];
 
   ngOnInit(): void {
     const u = this.auth.getUsuario();
@@ -135,7 +143,22 @@ export class MiPanelComponent implements OnInit {
 
     this.porEntidad = this.agrupar(rows, 'entidad');
     this.porTipo = this.agrupar(rows, 'tipo_credito');
-    this.historial = this.porMes(rows);
+
+    // Historial estilo "Evolución de Ventas Mensual": área de monto + % de
+    // crecimiento vs mes anterior + proyección del mes en curso.
+    const base = this.porMes(rows);
+    const hoyKey = `${ay}-${String(am).padStart(2, '0')}`;
+    const diaHoy = hoy.getDate();
+    const diasMes = new Date(ay, am, 0).getDate();
+    let prev: number | null = null;
+    this.historial = base.map(b => {
+      let crecimiento = 0;
+      if (prev !== null) crecimiento = prev > 0 ? Math.round(((b.monto - prev) / prev) * 100) : 0;
+      prev = b.monto;
+      let proyeccion: number | null = null;
+      if (b.mes === hoyKey && diaHoy > 0 && b.monto > 0) proyeccion = Math.round((b.monto / diaHoy) * diasMes);
+      return { mes: b.mes, mesLabel: this.formatMes(b.mes), monto: b.monto, n: b.n, crecimiento, proyeccion };
+    });
   }
 
   /** Agrupa por un campo sumando el monto real (las afectaciones netean a 0). */
@@ -187,4 +210,35 @@ export class MiPanelComponent implements OnInit {
     return m ? `${this.MESES[+m[2] - 1] || m[2]} - ${m[1]}` : ym;
   }
   mesAxisLabel = (arg: any) => this.formatMes(arg.value);
+
+  // ── Historial "Evolución de Ventas Mensual" (estilo Comparativo) ──
+  /** Colorea los puntos de la línea de crecimiento: verde +, rojo −, gris 0. */
+  histPoint = (info: any) => {
+    if (info.seriesName === 'Crecimiento (%)') {
+      const v = info.data?.crecimiento ?? 0;
+      return {
+        color: v > 0 ? '#4CAF50' : v < 0 ? '#F44336' : '#9E9E9E',
+        hoverStyle: { color: v > 0 ? '#66BB6A' : v < 0 ? '#E57373' : '#BDBDBD' },
+      };
+    }
+    return {};
+  };
+  histMonto = (info: any): string => {
+    const v = Number(info.value);
+    return v ? `S/ ${v.toLocaleString('es-PE', { maximumFractionDigits: 0 })}` : '';
+  };
+  histCrec = (info: any): string => {
+    const v = info.value as number;
+    if (v === 0 || v == null) return '0%';
+    return `${v > 0 ? '+' : ''}${v}%`;
+  };
+  histProy = (info: any): string => {
+    const v = Number(info.value);
+    return v ? `Proy: S/ ${v.toLocaleString('es-PE', { maximumFractionDigits: 0 })}` : '';
+  };
+  histTooltip = (p: any) => {
+    if (p.seriesName === 'Crecimiento (%)') return { text: `Crecimiento: ${Math.round(p.value)}%` };
+    if (p.seriesName === 'Proyección Mes Actual') return { text: `Proyección mes: ${this.soles(p.value)}` };
+    return { text: `Monto: ${this.soles(p.value)}` };
+  };
 }
