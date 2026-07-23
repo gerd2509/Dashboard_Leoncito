@@ -326,7 +326,7 @@
 
     <!-- Popup para ampliar cualquier gráfico -->
     <dx-popup [visible]="!!popupChart" (onHiding)="popupChart = ''" [showTitle]="true" [title]="popupTitulo"
-      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" height="88%" [maxWidth]="1200">
+      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="97%" height="74%" [maxWidth]="1600">
       <div *dxTemplate="let d of 'content'" class="mp-popup-body">
         <ng-container [ngSwitch]="popupChart">
           <ng-container *ngSwitchCase="'entidad'"><ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
