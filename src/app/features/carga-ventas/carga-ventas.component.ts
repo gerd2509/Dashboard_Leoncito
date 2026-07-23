@@ -39,6 +39,16 @@ export class CargaVentasComponent implements OnInit {
       descripcion: 'Márgenes por línea de producto. Se reemplaza por CodigoCV.',
       ayuda: 'El archivo debe incluir CodigoCV. Un CodigoCV puede tener varias líneas; al re-subir se reemplazan las de esos códigos.',
     },
+    {
+      tipo: 'ventas-call', label: 'Ventas Call', icono: 'headset_mic',
+      descripcion: 'Evolutivo de ventas del canal Call. Se actualiza por CodigoCV.',
+      ayuda: 'Tabla propia (ventas_call). Mi Panel del asesor Call lee siempre de aquí (mes actual y meses anteriores). El archivo debe incluir CodigoCV.',
+    },
+    {
+      tipo: 'ventas-realzza', label: 'Ventas Realzza', icono: 'storefront',
+      descripcion: 'Evolutivo de ventas del canal Realzza (por sede). Se actualiza por CodigoCV.',
+      ayuda: 'Tabla propia (ventas_realzza). En Realzza el vendedor es la sede. Las notas de crédito y refacturaciones se aplican por su fecha de afectación (DiaAF/MesAF/AñoAF). El archivo debe incluir CodigoCV.',
+    },
   ];
   tipo: CargaTipo = 'ventas';
 

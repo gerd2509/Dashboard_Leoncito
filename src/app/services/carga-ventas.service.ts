@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 /** Datasets que se pueden cargar desde el módulo Carga de Ventas. */
-export type CargaTipo = 'ventas' | 'margen';
+export type CargaTipo = 'ventas' | 'margen' | 'ventas-call' | 'ventas-realzza';
 
 /** Resultado de una carga (POST .../import). Los campos varían según el dataset. */
 export interface ResultadoCargaVentas {
@@ -47,7 +47,12 @@ export class CargaVentasService {
   private root = environment.ventasBase || environment.apiBase;
 
   private pathDe(tipo: CargaTipo): string {
-    return tipo === 'margen' ? 'margen-ventas' : 'ventas';
+    switch (tipo) {
+      case 'margen':         return 'margen-ventas';
+      case 'ventas-call':    return 'ventas-call';
+      case 'ventas-realzza': return 'ventas-realzza';
+      default:               return 'ventas';
+    }
   }
 
   /** Sube el Excel al dataset indicado. Emite progreso de subida + respuesta final. */
@@ -95,5 +100,24 @@ export class CargaVentasService {
     if (opts?.anio) params = params.set('anio', opts.anio);
     if (opts?.mes) params = params.set('mes', opts.mes);
     return this.http.get<any[]>(`${this.root}/ventas`, { params });
+  }
+
+  /**
+   * Ventas del evolutivo por canal (tablas ventas_call / ventas_realzza). Para
+   * "Mi Panel": Call filtra por `vendedor` (nombre del asesor); Realzza por `sede`
+   * (en Realzza el vendedor es la sede). El backend, con anio+mes, incluye las
+   * ventas del mes (CV) ∪ las afectaciones (NC/refact) cuyo AF cae en ese mes.
+   */
+  obtenerVentasCanal(
+    canal: 'call' | 'realzza',
+    filtro: { vendedor?: string; sede?: string; anio?: number; mes?: number },
+  ): Observable<any[]> {
+    const path = canal === 'call' ? 'ventas-call' : 'ventas-realzza';
+    let params = new HttpParams();
+    if (filtro.vendedor) params = params.set('vendedor', filtro.vendedor);
+    if (filtro.sede)     params = params.set('sede', filtro.sede);
+    if (filtro.anio)     params = params.set('anio', filtro.anio);
+    if (filtro.mes)      params = params.set('mes', filtro.mes);
+    return this.http.get<any[]>(`${this.root}/${path}`, { params });
   }
 }

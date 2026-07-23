@@ -58,10 +58,31 @@ export class MiPanelComponent implements OnInit {
 
   cargar(): void {
     this.cargando = true; this.error = '';
-    this.ventasSvc.obtenerVentasPorVendedor(this.vendedor).subscribe({
+    // Fuente según canal:
+    //  · Call    → tabla ventas_call    (evolutivo propio: mes actual + meses anteriores).
+    //  · Realzza → tabla ventas_realzza (el "vendedor" es la sede; NC/refact por mes de afectación).
+    //  · Sedes   → tabla ventas (afectaciones), como hasta ahora.
+    const canal = (this.canal || '').toLowerCase();
+    const obs = canal === 'call'
+      ? this.ventasSvc.obtenerVentasCanal('call', { vendedor: this.vendedor })
+      : canal === 'realzza'
+        ? this.ventasSvc.obtenerVentasCanal('realzza', { vendedor: this.vendedor })
+        : this.ventasSvc.obtenerVentasPorVendedor(this.vendedor);
+    obs.subscribe({
       next: (rows) => { this.todas = rows || []; this.aplicar(); this.cargando = false; },
       error: () => { this.error = 'No se pudieron cargar tus ventas.'; this.cargando = false; },
     });
+  }
+
+  /**
+   * ¿La fila es una afectación que RESTA del monto real? (nota de crédito,
+   * refacturación o incautación). Es la misma venta re-estampada con su fecha de
+   * afectación (mes_af/anio_af): suma en su mes de venta y revierte en el de afectación.
+   * PRONTO PAGO / CANCELADO / ACTIVO son ventas válidas y NO restan.
+   */
+  private esReductor(r: any): boolean {
+    const e = (r?.estado_venta || '').toString().toUpperCase();
+    return e.includes('NOTA DE CR') || e.includes('INCAUTAC') || e.includes('REFACTUR');
   }
 
   /** Aplica el rango de fechas (si hay) y recalcula KPIs, agrupaciones e historial. */
@@ -80,23 +101,33 @@ export class MiPanelComponent implements OnInit {
     }
     this.ventas = rows;
 
-    this.montoTotal = rows.reduce((s, r) => s + Number(r.monto_consolidado || 0), 0);
-    this.numVentas = rows.length;
+    // Monto real = ventas − (NC / refacturaciones / incautaciones). Como cada
+    // afectación es la misma venta revertida, su aporte neto total es 0.
+    this.montoTotal = rows.reduce((s, r) => s + (this.esReductor(r) ? 0 : Number(r.monto_consolidado || 0)), 0);
+    this.numVentas = rows.filter(r => !this.esReductor(r)).length;
     this.ticket = this.numVentas ? this.montoTotal / this.numVentas : 0;
 
-    const hoy = new Date();
-    this.montoMes = rows
-      .filter(r => Number(r.anio_cv) === hoy.getFullYear() && Number(r.mes_cv) === (hoy.getMonth() + 1))
-      .reduce((s, r) => s + Number(r.monto_consolidado || 0), 0);
+    // Mes en curso: suma ventas cuyo mes de VENTA es el actual y resta las
+    // afectaciones cuyo mes de AFECTACIÓN es el actual (así cuadra el monto real).
+    const hoy = new Date(), ay = hoy.getFullYear(), am = hoy.getMonth() + 1;
+    this.montoMes = rows.reduce((s, r) => {
+      let v = 0;
+      const m = Number(r.monto_consolidado || 0);
+      if (Number(r.anio_cv) === ay && Number(r.mes_cv) === am) v += m;
+      if (this.esReductor(r) && Number(r.anio_af) === ay && Number(r.mes_af) === am) v -= m;
+      return s + v;
+    }, 0);
 
     this.porEntidad = this.agrupar(rows, 'entidad');
     this.porTipo = this.agrupar(rows, 'tipo_credito');
     this.historial = this.porMes(rows);
   }
 
+  /** Agrupa por un campo sumando el monto real (las afectaciones netean a 0). */
   private agrupar(rows: any[], campo: string): Agrupado[] {
     const m = new Map<string, Agrupado>();
     for (const r of rows) {
+      if (this.esReductor(r)) continue;   // la venta se revierte → no aporta al neto
       const k = (r[campo] ?? '').toString().trim() || '—';
       if (!m.has(k)) m.set(k, { clave: k, monto: 0, n: 0 });
       const o = m.get(k)!; o.monto += Number(r.monto_consolidado || 0); o.n++;
@@ -104,14 +135,23 @@ export class MiPanelComponent implements OnInit {
     return [...m.values()].sort((a, b) => b.monto - a.monto);
   }
 
+  /**
+   * Historial mensual del monto real: cada venta suma en su mes de VENTA (CV) y
+   * las afectaciones restan en su mes de AFECTACIÓN (AF). Así una venta anulada
+   * un mes posterior mantiene su mes original y descuenta en el mes de la NC.
+   */
   private porMes(rows: any[]): { mes: string; monto: number; n: number }[] {
     const m = new Map<string, { mes: string; monto: number; n: number }>();
-    for (const r of rows) {
-      const a = Number(r.anio_cv), me = Number(r.mes_cv);
-      if (!a || !me) continue;
+    const add = (a: number, me: number, monto: number, dn: number) => {
+      if (!a || !me) return;
       const k = `${a}-${String(me).padStart(2, '0')}`;
       if (!m.has(k)) m.set(k, { mes: k, monto: 0, n: 0 });
-      const o = m.get(k)!; o.monto += Number(r.monto_consolidado || 0); o.n++;
+      const o = m.get(k)!; o.monto += monto; o.n += dn;
+    };
+    for (const r of rows) {
+      const monto = Number(r.monto_consolidado || 0);
+      add(Number(r.anio_cv), Number(r.mes_cv), monto, 1);                 // venta en su mes CV
+      if (this.esReductor(r)) add(Number(r.anio_af), Number(r.mes_af), -monto, -1); // reversa en su mes AF
     }
     return [...m.values()].sort((a, b) => a.mes.localeCompare(b.mes));
   }
