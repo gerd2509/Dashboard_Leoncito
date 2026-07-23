@@ -20,8 +20,8 @@
         </div>
       </div>
       <div class="mp-header-kpi" *ngIf="!cargando">
-        <span class="mp-hk-num">{{ soles(montoTotal) }}</span>
-        <span class="mp-hk-lbl">vendido en total</span>
+        <span class="mp-hk-num">{{ soles(montoMes) }}</span>
+        <span class="mp-hk-lbl">vendido este mes</span>
       </div>
     </div>
 
@@ -29,41 +29,81 @@
     <section class="mp-panel gestiones" *ngIf="gestAplica" [class.open]="abiertos['gestiones']">
       <button class="mp-panel-head" type="button" (click)="togglePanel('gestiones')">
         <span class="ph-ico"><mat-icon>headset_mic</mat-icon></span>
-        <span class="ph-title">Mis gestiones <span class="ph-hoy" *ngIf="gestHoyLabel">hoy {{ gestHoyLabel }}</span></span>
-        <span class="ph-sum" *ngIf="!gestCargando">
+        <span class="ph-title">Mis gestiones
+          <span class="ph-hoy" *ngIf="gestHoyLabel">{{ gestEsHoy ? 'hoy ' : '' }}{{ gestHoyLabel }}</span>
+        </span>
+        <span class="ph-sum" *ngIf="!gestCargando && !gestSede">
           <b>{{ gestReales }}</b> gestiones · <b>{{ gestPct }}%</b> contacto
+        </span>
+        <span class="ph-sum" *ngIf="!gestCargando && gestSede">
+          <b>{{ sedeLlamadas }}</b> llamadas · <b>{{ sedeCartas }}</b> cartas
         </span>
         <mat-icon class="ph-chev">expand_more</mat-icon>
       </button>
       <div class="mp-panel-bodywrap">
         <div class="mp-panel-body">
 
+          <!-- Selector de día (por defecto hoy; permite ver días anteriores) -->
+          <div class="mp-gest-fecha">
+            <span class="mp-filtros-lbl"><mat-icon>event</mat-icon> Ver gestiones del día:</span>
+            <dx-date-box [(value)]="gestFecha" type="date" [displayFormat]="'dd/MM/yyyy'"
+              [max]="hoyMax" stylingMode="underlined" (onValueChanged)="cargarGestiones()"></dx-date-box>
+            <button mat-stroked-button type="button" *ngIf="!gestEsHoy" (click)="gestVolverHoy()">
+              <mat-icon>today</mat-icon> Hoy
+            </button>
+          </div>
+
           <div *ngIf="gestCargando" class="mp-cargando">
             <div class="skeleton skeleton-row" *ngFor="let r of [1,2,3]"></div>
           </div>
 
           <ng-container *ngIf="!gestCargando">
-            <!-- Generales (llamadas) del día -->
-            <div class="mp-kpis">
-              <div class="mp-kpi g1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ gestReales }}</span><span class="l">Gestiones reales</span></div></div>
-              <div class="mp-kpi g2"><mat-icon>call</mat-icon><div><span class="v">{{ gestContacto }}</span><span class="l">Contactos</span></div></div>
-              <div class="mp-kpi g3"><mat-icon>phone_missed</mat-icon><div><span class="v">{{ gestNoContacto }}</span><span class="l">No contactos</span></div></div>
-              <div class="mp-kpi g4"><mat-icon>percent</mat-icon><div><span class="v">{{ gestPct }}%</span><span class="l">Contactabilidad</span></div></div>
-            </div>
 
-            <!-- KOMMO y Market Place del día -->
-            <div class="mp-mini-2">
-              <div class="mp-mini kommo">
-                <div class="mm-h"><mat-icon>public</mat-icon> KOMMO</div>
-                <div class="mm-big">{{ kommoTotal }}</div>
-                <div class="mm-sub"><span class="ok">{{ kommoContacto }} contacto</span> · <span class="no">{{ kommoNoContacto }} no contacto</span></div>
+            <!-- ── Call / Realzza: contactabilidad + KOMMO + Market Place ── -->
+            <ng-container *ngIf="!gestSede">
+              <div class="mp-kpis">
+                <div class="mp-kpi g1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ gestReales }}</span><span class="l">Gestiones reales</span></div></div>
+                <div class="mp-kpi g2"><mat-icon>call</mat-icon><div><span class="v">{{ gestContacto }}</span><span class="l">Contactos</span></div></div>
+                <div class="mp-kpi g3"><mat-icon>phone_missed</mat-icon><div><span class="v">{{ gestNoContacto }}</span><span class="l">No contactos</span></div></div>
+                <div class="mp-kpi g4"><mat-icon>percent</mat-icon><div><span class="v">{{ gestPct }}%</span><span class="l">Contactabilidad</span></div></div>
               </div>
-              <div class="mp-mini market">
-                <div class="mm-h"><mat-icon>storefront</mat-icon> Market Place</div>
-                <div class="mm-big">{{ mpTotal }}</div>
-                <div class="mm-sub"><span class="ok">{{ mpContacto }} contacto</span> · <span class="no">{{ mpNoContacto }} no contacto</span></div>
+
+              <div class="mp-mini-2">
+                <div class="mp-mini kommo">
+                  <div class="mm-h"><mat-icon>public</mat-icon> KOMMO</div>
+                  <div class="mm-big">{{ kommoTotal }}</div>
+                  <div class="mm-sub"><span class="ok">{{ kommoContacto }} contacto</span> · <span class="no">{{ kommoNoContacto }} no contacto</span></div>
+                </div>
+                <div class="mp-mini market">
+                  <div class="mm-h"><mat-icon>storefront</mat-icon> Market Place</div>
+                  <div class="mm-big">{{ mpTotal }}</div>
+                  <div class="mm-sub"><span class="ok">{{ mpContacto }} contacto</span> · <span class="no">{{ mpNoContacto }} no contacto</span></div>
+                </div>
               </div>
-            </div>
+            </ng-container>
+
+            <!-- ── Sede: llamadas / cartas ── -->
+            <ng-container *ngIf="gestSede">
+              <div class="mp-kpis">
+                <div class="mp-kpi g1"><mat-icon>call</mat-icon><div><span class="v">{{ sedeLlamadas }}</span><span class="l">Llamadas</span></div></div>
+                <div class="mp-kpi g4"><mat-icon>mail</mat-icon><div><span class="v">{{ sedeCartas }}</span><span class="l">Cartas</span></div></div>
+                <div class="mp-kpi g2"><mat-icon>check_circle</mat-icon><div><span class="v">{{ sedeLlamContacto + sedeCartaContacto }}</span><span class="l">Contactos</span></div></div>
+                <div class="mp-kpi g3"><mat-icon>cancel</mat-icon><div><span class="v">{{ sedeLlamNoContacto + sedeCartaNoContacto }}</span><span class="l">No contactos</span></div></div>
+              </div>
+
+              <div class="mp-mini-2">
+                <div class="mp-mini kommo" style="background:linear-gradient(135deg,#1565C0,#1e88e5);">
+                  <div class="mm-h"><mat-icon>call</mat-icon> Llamadas</div>
+                  <div class="mm-big">{{ sedeLlamadas }}</div>
+                  <div class="mm-sub"><span class="ok">{{ sedeLlamContacto }} contacto</span> · <span class="no">{{ sedeLlamNoContacto }} no contacto</span></div>
+                </div>
+                <div class="mp-mini market" style="background:linear-gradient(135deg,#6A1B9A,#8e24aa);">
+                  <div class="mm-h"><mat-icon>mail</mat-icon> Cartas</div>
+                  <div class="mm-big">{{ sedeCartas }}</div>
+                  <div class="mm-sub"><span class="ok">{{ sedeCartaContacto }} contacto</span> · <span class="no">{{ sedeCartaNoContacto }} no contacto</span></div>
+                </div>
+              </div>
+            </ng-container>
 
             <div class="mp-card" style="margin-top:14px;">
               <div class="mp-card-h"><mat-icon>donut_large</mat-icon> Gestiones del día</div>
@@ -254,7 +294,7 @@
 
                 <dxo-summary>
                   <dxi-total-item column="cliente_venta" [displayFormat]="'TOTAL'" alignment="right"></dxi-total-item>
-                  <dxi-total-item column="monto_consolidado" summaryType="sum" [valueFormat]="'#,##0'" displayFormat="{0}"></dxi-total-item>
+                  <dxi-total-item column="monto_consolidado" summaryType="sum" [valueFormat]="'#,##0'" displayFormat="S/ {0}"></dxi-total-item>
                 </dxo-summary>
               </dx-data-grid>
             </div>

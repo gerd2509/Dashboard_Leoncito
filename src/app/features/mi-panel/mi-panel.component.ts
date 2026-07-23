@@ -64,10 +64,16 @@ export class MiPanelComponent implements OnInit {
   porTipo: Agrupado[] = [];
   historial: HistMes[] = [];
 
-  // ── Mis gestiones del DÍA EN CURSO (Call / Realzza) ──
+  // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
   gestAplica = false;    // solo canal call/realzza
   gestCargando = false;
-  gestHoyLabel = '';     // fecha de hoy (dd/mm/yyyy) para mostrar
+  gestFecha: Date = new Date();   // día a consultar (editable por el vendedor)
+  hoyMax: Date = new Date();      // no se puede elegir un día futuro
+  gestHoyLabel = '';     // fecha consultada (dd/mm/yyyy) para mostrar
+  get gestEsHoy(): boolean {
+    const h = new Date();
+    return this.gestFecha?.getDate() === h.getDate() && this.gestFecha?.getMonth() === h.getMonth() && this.gestFecha?.getFullYear() === h.getFullYear();
+  }
   // Generales (llamadas) del día
   gestReales = 0;        // gestiones reales = 1 por DNI
   gestContacto = 0;
@@ -79,6 +85,12 @@ export class MiPanelComponent implements OnInit {
   kommoTotal = 0; kommoContacto = 0; kommoNoContacto = 0;
   // Market Place del día
   mpTotal = 0; mpContacto = 0; mpNoContacto = 0;
+  // Sede (llamadas / cartas) del día
+  gestSede = false;      // true → vendedor de sede (gestión sedes)
+  sedeLlamContacto = 0; sedeLlamNoContacto = 0;
+  sedeCartaContacto = 0; sedeCartaNoContacto = 0;
+  get sedeLlamadas(): number { return this.sedeLlamContacto + this.sedeLlamNoContacto; }
+  get sedeCartas(): number { return this.sedeCartaContacto + this.sedeCartaNoContacto; }
 
   ngOnInit(): void {
     const u = this.auth.getUsuario();
@@ -102,9 +114,22 @@ export class MiPanelComponent implements OnInit {
    */
   cargarGestiones(): void {
     const canal = (this.canal || '').toLowerCase();
-    if (canal !== 'call' && canal !== 'realzza') { this.gestAplica = false; return; }
-    this.gestAplica = true;
+    this.gestAplica = true;                       // aplica a todo vendedor con nombre
+    this.gestSede = (canal !== 'call' && canal !== 'realzza');
     this.gestCargando = true;
+
+    const dia = this.gestFecha || new Date();
+    this.gestHoyLabel = `${String(dia.getDate()).padStart(2, '0')}/${String(dia.getMonth() + 1).padStart(2, '0')}/${dia.getFullYear()}`;
+    const rango = { desde: dia, hasta: dia };     // solo el día elegido (filtra en el backend)
+
+    // ── Vendedor de SEDE → gestión sedes (llamadas / cartas) ──
+    if (this.gestSede) {
+      this.sheets.getSheetDataSedes(rango).subscribe({
+        next: (rows) => { this.procesarSede(rows || []); this.gestCargando = false; },
+        error: () => { this.gestCargando = false; },
+      });
+      return;
+    }
 
     // Columnas según canal. OJO: la hoja general usa 'ESTADO DE GESTIÓN' para ambos
     // canales; la hoja KOMMO usa 'ESTADO DE GESTIÓN REALZZA' para Realzza (columnas
@@ -113,10 +138,6 @@ export class MiPanelComponent implements OnInit {
     const colEstadoGeneral = 'ESTADO DE GESTIÓN';
     const colEstadoKommo = canal === 'call' ? 'ESTADO DE GESTIÓN' : 'ESTADO DE GESTIÓN REALZZA';
     const colMarket = canal === 'call' ? 'MARKET PLACE L' : 'MARKET PLACE R';
-
-    const hoy = new Date();
-    this.gestHoyLabel = `${String(hoy.getDate()).padStart(2, '0')}/${String(hoy.getMonth() + 1).padStart(2, '0')}/${hoy.getFullYear()}`;
-    const rango = { desde: hoy, hasta: hoy };   // solo el día en curso (filtra en el backend)
 
     // Respuestas del SHEET, igual que en los componentes Gestión Call / Realzza /
     // KOMMO. Cada canal es su propia hoja (Realzza = /campo, distinta a Call = /call);
@@ -127,12 +148,46 @@ export class MiPanelComponent implements OnInit {
 
     forkJoin({ general, kommo: this.sheets.getSheetKOMMORango(rango) }).subscribe({
       next: ({ general, kommo }) => {
-        this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, hoy);
-        this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, hoy);
+        this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, dia);
+        this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, dia);
         this.gestCargando = false;
       },
       error: () => { this.gestCargando = false; },
     });
+  }
+
+  /** Vuelve al día de hoy y recarga las gestiones. */
+  gestVolverHoy(): void { this.gestFecha = new Date(); this.cargarGestiones(); }
+
+  /** Normaliza texto: minúsculas, sin tildes, sin espacios (para comparar). */
+  private norm(s: any): string {
+    return (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+  }
+  /** Normaliza un nombre (colapsa espacios a uno). */
+  private normNombre(s: any): string {
+    return (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * Gestiones de SEDE del día (hoja gestión sedes): llamadas / cartas por resultado
+   * (contacto / no contacto). Clasifica por 'TIPO DE GESTION' y 'RESULTADO DE GESTION'
+   * y filtra por el nombre del asesor ('ASESOR'). El día ya viene filtrado del backend.
+   */
+  private procesarSede(rows: any[]): void {
+    const objetivo = this.normNombre(this.vendedor);
+    const regs = rows.filter(r => this.normNombre(r['ASESOR'] ?? r['ASESOR DE VENTA'] ?? '') === objetivo);
+    const esLlam = (r: any) => this.norm(r['TIPO DE GESTION']).includes('llamada');
+    const esCarta = (r: any) => this.norm(r['TIPO DE GESTION']).includes('carta');
+    const esCont = (r: any) => this.norm(r['RESULTADO DE GESTION']) === 'contacto';
+    const esNoCont = (r: any) => this.norm(r['RESULTADO DE GESTION']) === 'nocontacto';
+    this.sedeLlamContacto = regs.filter(r => esLlam(r) && esCont(r)).length;
+    this.sedeLlamNoContacto = regs.filter(r => esLlam(r) && esNoCont(r)).length;
+    this.sedeCartaContacto = regs.filter(r => esCarta(r) && esCont(r)).length;
+    this.sedeCartaNoContacto = regs.filter(r => esCarta(r) && esNoCont(r)).length;
+    this.gestChart = [
+      { clave: 'Llamadas', valor: this.sedeLlamadas, color: '#1565C0' },
+      { clave: 'Cartas', valor: this.sedeCartas, color: '#6A1B9A' },
+    ];
   }
 
   /** ¿La marca temporal cae en la fecha dada? Tolera 'dd/mm/yyyy hh:mm' e ISO 'yyyy-mm-dd'. */
