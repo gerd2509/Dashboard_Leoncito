@@ -167,13 +167,6 @@ export class MiPanelComponent implements OnInit {
   /** Vuelve al día de hoy y recarga las gestiones. */
   gestVolverHoy(): void { this.gestFecha = new Date(); this.cargarGestiones(); }
 
-  /** Refresca manualmente ventas + gestiones (las hojas/BD cambian durante el día). */
-  refrescar(): void {
-    if (!this.vendedor) return;
-    this.cargar();
-    this.cargarGestiones();
-  }
-
   /** Normaliza texto: minúsculas, sin tildes, sin espacios (para comparar). */
   private norm(s: any): string {
     return (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
