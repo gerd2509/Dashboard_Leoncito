@@ -340,9 +340,16 @@ export class VentasSedesComponent implements OnInit {
     this.dataIncautaciones = [];
     this.dataGlobalGo = [];
 
+    // Sede dominante de cada vendedor: las ventas cuya sede NO es una sede física
+    // registrada (p.ej. "SEDE REALZZA STORE") se atribuyen a la sede donde el
+    // vendedor tiene la mayoría de sus ventas, en vez de descartarse.
+    const sedePorVendedor = this.calcularSedeDominante(rows, r => (r.sede || '').toString(), r => r.vendedor);
+
     rows.forEach((row: any) => {
       const sedeRaw = (row.sede || '').toString().trim();
-      const sedeKey = this.resolverSedeKey(sedeRaw);
+      const vend = (row.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
+      let sedeKey = this.resolverSedeKey(sedeRaw);
+      if (!sedeKey) sedeKey = sedePorVendedor.get(vend) || '';
       if (!sedeKey) return;
 
       const estadoVenta = (row.estado_venta || '').toString().trim().toUpperCase();
@@ -468,6 +475,31 @@ export class VentasSedesComponent implements OnInit {
     return this.sedeConfig.existeSede(key) ? key : '';
   }
 
+  /**
+   * Determina, por vendedor, la sede física donde tiene MÁS ventas (solo sedes
+   * registradas). Sirve para atribuir las ventas cuya sede no resuelve (tiendas no
+   * registradas como "SEDE REALZZA STORE") a la sede real del vendedor. Recibe cómo
+   * obtener la sede y el vendedor de cada fila (para reusar en Postgres y Excel).
+   */
+  private calcularSedeDominante(rows: any[], getSede: (r: any) => string, getVend: (r: any) => any): Map<string, string> {
+    const conteo = new Map<string, Map<string, number>>();
+    rows.forEach(r => {
+      const key = this.resolverSedeKey(getSede(r));
+      if (!key) return;
+      const vend = (getVend(r) || 'SIN VENDEDOR').toString().trim().toUpperCase();
+      if (!conteo.has(vend)) conteo.set(vend, new Map());
+      const m = conteo.get(vend)!;
+      m.set(key, (m.get(key) || 0) + 1);
+    });
+    const dominante = new Map<string, string>();
+    conteo.forEach((m, vend) => {
+      let best = '', bestN = -1;
+      m.forEach((n, k) => { if (n > bestN) { bestN = n; best = k; } });
+      dominante.set(vend, best);
+    });
+    return dominante;
+  }
+
   async importar(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
@@ -487,11 +519,16 @@ export class VentasSedesComponent implements OnInit {
       this.dataIncautaciones = [];
       this.dataGlobalGo = [];
 
+      // Ventas cuya sede no resuelve → se atribuyen a la sede dominante del vendedor.
+      const sedePorVendedor = this.calcularSedeDominante(jsonData as any[], r => (r['Sede'] || '').toString(), r => r['Vendedor']);
+
       jsonData.forEach((row: any) => {
         const sedeRaw = (row['Sede'] || '').toString().trim();
         // La columna Sede llega como "SEDE RELENOR <NOMBRE>". Se extrae el nombre y se
-        // valida contra el registro de sedes: solo se toman las sedes conocidas.
-        const sedeKey = this.resolverSedeKey(sedeRaw);
+        // valida contra el registro de sedes; si no resuelve, se usa la sede del vendedor.
+        const vend = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
+        let sedeKey = this.resolverSedeKey(sedeRaw);
+        if (!sedeKey) sedeKey = sedePorVendedor.get(vend) || '';
         if (!sedeKey) return;
 
         const estadoVenta = (row['EstadoVenta'] || '').toString().trim().toUpperCase();
