@@ -205,17 +205,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const u = this.auth.getUsuario();
     if (u && u.rol !== 'admin') {
-      for (const item of this.menuItemsVisibles) {
-        if (item.submenu?.length) {
-          const primer = item.submenu.find(s => s.modulo);
-          if (primer) {
-            this.moduloSeleccionado = primer.modulo;
-            this.submenuAbierto = item.label;
+      // Los vendedores siempre entran a "Mi Panel" como primera vista.
+      const vendedorConPanel = u.rol === 'vendedor'
+        && this.permissions.canAccess('mi-panel', u.rol, u.sede, u.modulos);
+      if (vendedorConPanel) {
+        this.moduloSeleccionado = 'mi-panel';
+      } else {
+        for (const item of this.menuItemsVisibles) {
+          if (item.submenu?.length) {
+            const primer = item.submenu.find(s => s.modulo);
+            if (primer) {
+              this.moduloSeleccionado = primer.modulo;
+              this.submenuAbierto = item.label;
+              break;
+            }
+          } else if (item.modulo) {
+            this.moduloSeleccionado = item.modulo;
             break;
           }
-        } else if (item.modulo) {
-          this.moduloSeleccionado = item.modulo;
-          break;
         }
       }
     }
@@ -293,7 +300,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Orden solicitado al iniciar sesión (por perfil de sede). Los ítems no
     // listados conservan su orden original al final.
     const orden = [
-      'Control & Sedes', 'Supervisión Realzza', 'Gestión', 'Ventas',
+      'mi-panel', 'Control & Sedes', 'Supervisión Realzza', 'Gestión', 'Ventas',
       'Agendamientos', 'Análisis', 'Herramientas',
     ];
     const pos = (it: MenuItem): number => {

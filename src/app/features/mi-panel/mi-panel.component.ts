@@ -5,6 +5,7 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { SheetsService } from '../../services/service-google.service';
 import { ASESORES_CALL } from '../../shared/asesores';
 
 interface Agrupado { clave: string; monto: number; n: number; }
@@ -28,6 +29,7 @@ export class MiPanelComponent implements OnInit {
   private ventasSvc = inject(CargaVentasService);
   private fb = inject(UntypedFormBuilder);
   private sedeCfg = inject(SedeConfigService);
+  private sheets = inject(SheetsService);
 
   nombre = '';
   vendedor = '';
@@ -38,6 +40,15 @@ export class MiPanelComponent implements OnInit {
   error = '';
 
   form!: UntypedFormGroup;      // rango opcional { desde, hasta }
+
+  // Paneles colapsables (acordeón). Abiertos por defecto: gestiones + resumen.
+  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, graficos: false, evolucion: false, detalle: false };
+  togglePanel(k: string): void {
+    this.abiertos[k] = !this.abiertos[k];
+    // Los gráficos DevExtreme se dibujan a 0px si el panel nace colapsado; al
+    // abrirlo forzamos un redraw tras la animación de expansión.
+    if (this.abiertos[k]) setTimeout(() => window.dispatchEvent(new Event('resize')), 420);
+  }
 
   private todas: any[] = [];    // todas las ventas del vendedor
   ventas: any[] = [];           // filtradas por el rango (para el detalle)
@@ -52,6 +63,16 @@ export class MiPanelComponent implements OnInit {
   porTipo: Agrupado[] = [];
   historial: HistMes[] = [];
 
+  // ── Mis gestiones (Call / Realzza) ──
+  gestAplica = false;    // solo canal call/realzza
+  gestCargando = false;
+  gestReales = 0;        // gestiones reales = 1 por DNI
+  gestContacto = 0;
+  gestCorta = 0;
+  gestNoContacto = 0;
+  gestPct = 0;           // % de contactabilidad
+  gestChart: { clave: string; valor: number; color: string }[] = [];
+
   ngOnInit(): void {
     const u = this.auth.getUsuario();
     this.nombre = u?.nombre || '';
@@ -63,6 +84,57 @@ export class MiPanelComponent implements OnInit {
     this.form = this.fb.group({ desde: [null], hasta: [null] });
     if (!this.vendedor) { this.sinVendedor = true; return; }
     this.cargar();
+    this.cargarGestiones();
+  }
+
+  /**
+   * Avance de gestiones del asesor (Call / Realzza). Trae la hoja de gestión del
+   * canal y filtra por el NOMBRE del asesor. Gestiones reales = 1 por DNI, con el
+   * mejor resultado (CONTACTO > CORTA > NO CONTACTO), igual que en Cierre.
+   */
+  cargarGestiones(): void {
+    const canal = (this.canal || '').toLowerCase();
+    if (canal !== 'call' && canal !== 'realzza') { this.gestAplica = false; return; }
+    this.gestAplica = true;
+    this.gestCargando = true;
+    const obs = canal === 'call' ? this.sheets.getSheetData() : this.sheets.getSheetDataCampo();
+    const colAsesor = canal === 'call' ? 'ASESOR CONTACT' : 'ASESOR REALZZA';
+    const colEstado = canal === 'call' ? 'ESTADO DE GESTIÓN' : 'ESTADO DE GESTIÓN REALZZA';
+    obs.subscribe({
+      next: (rows) => { this.procesarGestiones(rows || [], colAsesor, colEstado); this.gestCargando = false; },
+      error: () => { this.gestCargando = false; },
+    });
+  }
+
+  private procesarGestiones(rows: any[], colAsesor: string, colEstado: string): void {
+    const nombre = this.vendedor.toUpperCase().trim();
+    const mios = rows.filter(r => (r[colAsesor] ?? '').toString().toUpperCase().trim() === nombre);
+    // 1 gestión por DNI, con el mejor resultado.
+    const rank = (c: string) => (c === 'CONTACTO' ? 3 : c === 'CORTA' ? 2 : 1);
+    const porDni = new Map<string, string>();
+    mios.forEach((r, i) => {
+      const estado = (r[colEstado] ?? '').toString().toUpperCase().trim();
+      let cat: string | null = null;
+      if (estado === 'CONTACTO') cat = (r['MOTIVO NO INTERÉS'] === 'CORTA LLAMADA') ? 'CORTA' : 'CONTACTO';
+      else if (estado === 'NO CONTACTO') cat = 'NOCONTACTO';
+      if (!cat) return;
+      const dni = (r['DNI CLIENTE'] ?? '').toString().replace(/\D/g, '').replace(/^0+/, '');
+      const clave = dni ? `dni:${dni}` : `row:${i}`;
+      const prev = porDni.get(clave);
+      if (!prev || rank(cat) > rank(prev)) porDni.set(clave, cat);
+    });
+    let contacto = 0, corta = 0, nocont = 0;
+    porDni.forEach(c => { if (c === 'CONTACTO') contacto++; else if (c === 'CORTA') corta++; else nocont++; });
+    this.gestReales = porDni.size;
+    this.gestContacto = contacto;
+    this.gestCorta = corta;
+    this.gestNoContacto = nocont;
+    this.gestPct = this.gestReales ? Math.round((contacto / this.gestReales) * 100) : 0;
+    this.gestChart = [
+      { clave: 'Contacto', valor: contacto, color: '#2E7D32' },
+      { clave: 'Corta llamada', valor: corta, color: '#F9A825' },
+      { clave: 'No contacto', valor: nocont, color: '#C62828' },
+    ];
   }
 
   cargar(): void {
@@ -210,6 +282,9 @@ export class MiPanelComponent implements OnInit {
     return m ? `${this.MESES[+m[2] - 1] || m[2]} - ${m[1]}` : ym;
   }
   mesAxisLabel = (arg: any) => this.formatMes(arg.value);
+
+  /** Colorea cada barra del gráfico de gestiones con su color. */
+  gestPoint = (info: any) => ({ color: info.data?.color });
 
   // ── Historial "Evolución de Ventas Mensual" (estilo Comparativo) ──
   /** Colorea los puntos de la línea de crecimiento: verde +, rojo −, gris 0. */
