@@ -10,13 +10,13 @@
 
     <!-- ── Cabecera ── -->
     <div class="mp-header">
-      <div class="mp-avatar">{{ (nombre || vendedor).charAt(0) || 'V' }}</div>
+      <div class="mp-avatar">{{ (vendedor || nombre).charAt(0) || 'V' }}</div>
       <div class="mp-header-txt">
-        <div class="mp-hola">¡Hola{{ nombre ? ', ' + nombre : '' }}! 👋</div>
+        <div class="mp-hola">¡Hola, {{ vendedor || nombre }}! 👋</div>
         <div class="mp-sub">
-          <mat-icon>badge</mat-icon> {{ vendedor }}
-          <span class="mp-chip sede" *ngIf="sedeNombre"><mat-icon>place</mat-icon> {{ sedeNombre }}</span>
-          <span class="mp-chip" *ngIf="canal">{{ canal | uppercase }}</span>
+          <!-- Sede → nombre de la sede; Call/Realzza → el canal -->
+          <span class="mp-chip sede" *ngIf="esSedeVendedor && sedeNombre"><mat-icon>place</mat-icon> {{ sedeNombre }}</span>
+          <span class="mp-chip canal" *ngIf="!esSedeVendedor && canal"><mat-icon>headset_mic</mat-icon> {{ canal | uppercase }}</span>
         </div>
       </div>
       <div class="mp-header-kpi" *ngIf="!cargando">

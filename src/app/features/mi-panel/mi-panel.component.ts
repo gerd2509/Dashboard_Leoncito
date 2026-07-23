@@ -45,6 +45,12 @@ export class MiPanelComponent implements OnInit {
 
   // Paneles colapsables (acordeón). Abiertos por defecto: gestiones + resumen.
   abiertos: Record<string, boolean> = { gestiones: true, resumen: true, graficos: false, evolucion: false, detalle: false };
+  /** ¿Es vendedor de sede? (canal distinto de call/realzza). */
+  get esSedeVendedor(): boolean {
+    const c = (this.canal || '').toLowerCase();
+    return c !== 'call' && c !== 'realzza';
+  }
+
   togglePanel(k: string): void {
     this.abiertos[k] = !this.abiertos[k];
     // Los gráficos DevExtreme se dibujan a 0px si el panel nace colapsado; al
