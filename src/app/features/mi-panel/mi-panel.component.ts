@@ -1,4 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
@@ -63,15 +64,21 @@ export class MiPanelComponent implements OnInit {
   porTipo: Agrupado[] = [];
   historial: HistMes[] = [];
 
-  // ── Mis gestiones (Call / Realzza) ──
+  // ── Mis gestiones del DÍA EN CURSO (Call / Realzza) ──
   gestAplica = false;    // solo canal call/realzza
   gestCargando = false;
+  gestHoyLabel = '';     // fecha de hoy (dd/mm/yyyy) para mostrar
+  // Generales (llamadas) del día
   gestReales = 0;        // gestiones reales = 1 por DNI
   gestContacto = 0;
   gestCorta = 0;
   gestNoContacto = 0;
   gestPct = 0;           // % de contactabilidad
   gestChart: { clave: string; valor: number; color: string }[] = [];
+  // KOMMO del día
+  kommoTotal = 0; kommoContacto = 0; kommoNoContacto = 0;
+  // Market Place del día
+  mpTotal = 0; mpContacto = 0; mpNoContacto = 0;
 
   ngOnInit(): void {
     const u = this.auth.getUsuario();
@@ -88,35 +95,76 @@ export class MiPanelComponent implements OnInit {
   }
 
   /**
-   * Avance de gestiones del asesor (Call / Realzza). Trae la hoja de gestión del
-   * canal y filtra por el NOMBRE del asesor. Gestiones reales = 1 por DNI, con el
-   * mejor resultado (CONTACTO > CORTA > NO CONTACTO), igual que en Cierre.
+   * Avance de gestiones del asesor del DÍA EN CURSO (Call / Realzza). Trae la hoja
+   * de gestión general del canal (Call: getSheetData; Realzza: getSheetDataCampo,
+   * que es un formulario/conexión distinta) y la hoja KOMMO, y filtra por el NOMBRE
+   * del asesor y la fecha de hoy. Muestra gestiones generales + KOMMO + Market Place.
    */
   cargarGestiones(): void {
     const canal = (this.canal || '').toLowerCase();
     if (canal !== 'call' && canal !== 'realzza') { this.gestAplica = false; return; }
     this.gestAplica = true;
     this.gestCargando = true;
-    const obs = canal === 'call' ? this.sheets.getSheetData() : this.sheets.getSheetDataCampo();
+
+    // Columnas según canal. OJO: la hoja general usa 'ESTADO DE GESTIÓN' para ambos
+    // canales; la hoja KOMMO usa 'ESTADO DE GESTIÓN REALZZA' para Realzza (columnas
+    // separadas porque combina Call y Realzza). El asesor sí cambia por canal.
     const colAsesor = canal === 'call' ? 'ASESOR CONTACT' : 'ASESOR REALZZA';
-    const colEstado = canal === 'call' ? 'ESTADO DE GESTIÓN' : 'ESTADO DE GESTIÓN REALZZA';
-    obs.subscribe({
-      next: (rows) => { this.procesarGestiones(rows || [], colAsesor, colEstado); this.gestCargando = false; },
+    const colEstadoGeneral = 'ESTADO DE GESTIÓN';
+    const colEstadoKommo = canal === 'call' ? 'ESTADO DE GESTIÓN' : 'ESTADO DE GESTIÓN REALZZA';
+    const colMarket = canal === 'call' ? 'MARKET PLACE L' : 'MARKET PLACE R';
+
+    const hoy = new Date();
+    this.gestHoyLabel = `${String(hoy.getDate()).padStart(2, '0')}/${String(hoy.getMonth() + 1).padStart(2, '0')}/${hoy.getFullYear()}`;
+    const rango = { desde: hoy, hasta: hoy };   // solo el día en curso (filtra en el backend)
+
+    // Respuestas del SHEET, igual que en los componentes Gestión Call / Realzza /
+    // KOMMO. Cada canal es su propia hoja (Realzza = /campo, distinta a Call = /call);
+    // en KOMMO se distingue KOMMO vs Market Place por la columna MARKET PLACE L/R.
+    const general = canal === 'call'
+      ? this.sheets.getSheetDataCallRango(rango)
+      : this.sheets.getSheetDataCampoRango(rango);
+
+    forkJoin({ general, kommo: this.sheets.getSheetKOMMORango(rango) }).subscribe({
+      next: ({ general, kommo }) => {
+        this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, hoy);
+        this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, hoy);
+        this.gestCargando = false;
+      },
       error: () => { this.gestCargando = false; },
     });
   }
 
-  private procesarGestiones(rows: any[], colAsesor: string, colEstado: string): void {
+  /** ¿La marca temporal cae en la fecha dada? Tolera 'dd/mm/yyyy hh:mm' e ISO 'yyyy-mm-dd'. */
+  private esFecha(marca: any, d: Date): boolean {
+    const s = (marca ?? '').toString().trim();
+    if (!s) return false;
+    const fecha = s.split(/[ T]/)[0];
+    let dd: number, mm: number, yy: number;
+    if (fecha.includes('/')) { const p = fecha.split('/'); dd = +p[0]; mm = +p[1]; yy = +p[2]; }
+    else if (fecha.includes('-')) { const p = fecha.split('-'); yy = +p[0]; mm = +p[1]; dd = +p[2]; }
+    else return false;
+    return dd === d.getDate() && mm === (d.getMonth() + 1) && yy === d.getFullYear();
+  }
+  private mios(rows: any[], colAsesor: string, d: Date): any[] {
     const nombre = this.vendedor.toUpperCase().trim();
-    const mios = rows.filter(r => (r[colAsesor] ?? '').toString().toUpperCase().trim() === nombre);
-    // 1 gestión por DNI, con el mejor resultado.
+    return rows.filter(r =>
+      (r[colAsesor] ?? '').toString().toUpperCase().trim() === nombre && this.esFecha(r['Marca temporal'], d));
+  }
+  /** Categoriza una gestión: CONTACTO > CORTA > NOCONTACTO (o null). */
+  private categoria(r: any, colEstado: string): 'CONTACTO' | 'CORTA' | 'NOCONTACTO' | null {
+    const est = (r[colEstado] ?? '').toString().toUpperCase().trim();
+    if (est === 'CONTACTO') return r['MOTIVO NO INTERÉS'] === 'CORTA LLAMADA' ? 'CORTA' : 'CONTACTO';
+    if (est === 'NO CONTACTO') return 'NOCONTACTO';
+    return null;
+  }
+
+  /** Gestiones GENERALES (llamadas) del día: 1 por DNI, con el mejor resultado. */
+  private procesarGeneral(rows: any[], colAsesor: string, colEstado: string, d: Date): void {
     const rank = (c: string) => (c === 'CONTACTO' ? 3 : c === 'CORTA' ? 2 : 1);
     const porDni = new Map<string, string>();
-    mios.forEach((r, i) => {
-      const estado = (r[colEstado] ?? '').toString().toUpperCase().trim();
-      let cat: string | null = null;
-      if (estado === 'CONTACTO') cat = (r['MOTIVO NO INTERÉS'] === 'CORTA LLAMADA') ? 'CORTA' : 'CONTACTO';
-      else if (estado === 'NO CONTACTO') cat = 'NOCONTACTO';
+    this.mios(rows, colAsesor, d).forEach((r, i) => {
+      const cat = this.categoria(r, colEstado);
       if (!cat) return;
       const dni = (r['DNI CLIENTE'] ?? '').toString().replace(/\D/g, '').replace(/^0+/, '');
       const clave = dni ? `dni:${dni}` : `row:${i}`;
@@ -135,6 +183,27 @@ export class MiPanelComponent implements OnInit {
       { clave: 'Corta llamada', valor: corta, color: '#F9A825' },
       { clave: 'No contacto', valor: nocont, color: '#C62828' },
     ];
+  }
+
+  /** KOMMO y Market Place del día (hoja KOMMO). SI en la col. Market Place = market. */
+  private procesarKommo(rows: any[], colAsesor: string, colEstado: string, colMarket: string, d: Date): void {
+    const esMp = (r: any) => {
+      const v = (r[colMarket] ?? '').toString().toUpperCase().trim();
+      return v === 'SI' || v === 'SÍ';
+    };
+    const cuenta = (registros: any[]) => {
+      let contacto = 0, corta = 0, nocont = 0;
+      registros.forEach(r => {
+        const cat = this.categoria(r, colEstado);
+        if (cat === 'CONTACTO') contacto++; else if (cat === 'CORTA') corta++; else if (cat === 'NOCONTACTO') nocont++;
+      });
+      return { total: contacto + corta + nocont, contacto, nocont };
+    };
+    const mios = this.mios(rows, colAsesor, d);
+    const k = cuenta(mios.filter(r => !esMp(r)));   // KOMMO = NO market place
+    const m = cuenta(mios.filter(r => esMp(r)));    // Market Place = SI
+    this.kommoTotal = k.total; this.kommoContacto = k.contacto; this.kommoNoContacto = k.nocont;
+    this.mpTotal = m.total; this.mpContacto = m.contacto; this.mpNoContacto = m.nocont;
   }
 
   cargar(): void {

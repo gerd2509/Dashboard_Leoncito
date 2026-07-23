@@ -25,23 +25,11 @@
       </div>
     </div>
 
-    <!-- ── Filtro de rango (opcional) ── -->
-    <form class="mp-filtros" [formGroup]="form">
-      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating"
-        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" (onValueChanged)="aplicar()"></dx-date-box>
-      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating"
-        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" (onValueChanged)="aplicar()"></dx-date-box>
-      <button mat-stroked-button type="button" (click)="limpiarRango()">
-        <mat-icon>filter_alt_off</mat-icon> Ver todo
-      </button>
-      <span class="mp-hint">Sin rango = todas tus ventas desde que hay registros.</span>
-    </form>
-
     <!-- ══════════ PANEL 1: MIS GESTIONES (primero) ══════════ -->
     <section class="mp-panel gestiones" *ngIf="gestAplica" [class.open]="abiertos['gestiones']">
       <button class="mp-panel-head" type="button" (click)="togglePanel('gestiones')">
         <span class="ph-ico"><mat-icon>headset_mic</mat-icon></span>
-        <span class="ph-title">Mis gestiones</span>
+        <span class="ph-title">Mis gestiones <span class="ph-hoy" *ngIf="gestHoyLabel">hoy {{ gestHoyLabel }}</span></span>
         <span class="ph-sum" *ngIf="!gestCargando">
           <b>{{ gestReales }}</b> gestiones · <b>{{ gestPct }}%</b> contacto
         </span>
@@ -55,6 +43,7 @@
           </div>
 
           <ng-container *ngIf="!gestCargando">
+            <!-- Generales (llamadas) del día -->
             <div class="mp-kpis">
               <div class="mp-kpi g1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ gestReales }}</span><span class="l">Gestiones reales</span></div></div>
               <div class="mp-kpi g2"><mat-icon>call</mat-icon><div><span class="v">{{ gestContacto }}</span><span class="l">Contactos</span></div></div>
@@ -62,8 +51,22 @@
               <div class="mp-kpi g4"><mat-icon>percent</mat-icon><div><span class="v">{{ gestPct }}%</span><span class="l">Contactabilidad</span></div></div>
             </div>
 
+            <!-- KOMMO y Market Place del día -->
+            <div class="mp-mini-2">
+              <div class="mp-mini kommo">
+                <div class="mm-h"><mat-icon>public</mat-icon> KOMMO</div>
+                <div class="mm-big">{{ kommoTotal }}</div>
+                <div class="mm-sub"><span class="ok">{{ kommoContacto }} contacto</span> · <span class="no">{{ kommoNoContacto }} no contacto</span></div>
+              </div>
+              <div class="mp-mini market">
+                <div class="mm-h"><mat-icon>storefront</mat-icon> Market Place</div>
+                <div class="mm-big">{{ mpTotal }}</div>
+                <div class="mm-sub"><span class="ok">{{ mpContacto }} contacto</span> · <span class="no">{{ mpNoContacto }} no contacto</span></div>
+              </div>
+            </div>
+
             <div class="mp-card" style="margin-top:14px;">
-              <div class="mp-card-h"><mat-icon>donut_large</mat-icon> Resultado de gestiones (1 por DNI)</div>
+              <div class="mp-card-h"><mat-icon>donut_large</mat-icon> Gestiones del día</div>
               <dx-chart [dataSource]="gestChart" [redrawOnResize]="true" [customizePoint]="gestPoint" class="mp-chart">
                 <dxo-common-series-settings argumentField="clave" valueField="valor" type="bar">
                   <dxo-label [visible]="true" backgroundColor="transparent"><dxo-font [weight]="700"></dxo-font></dxo-label>
@@ -78,6 +81,19 @@
         </div>
       </div>
     </section>
+
+    <!-- ── Rango de fechas (solo afecta a las VENTAS de abajo) ── -->
+    <form class="mp-filtros" [formGroup]="form">
+      <span class="mp-filtros-lbl"><mat-icon>date_range</mat-icon> Ventas por rango:</span>
+      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" (onValueChanged)="aplicar()"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating"
+        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'" (onValueChanged)="aplicar()"></dx-date-box>
+      <button mat-stroked-button type="button" (click)="limpiarRango()">
+        <mat-icon>filter_alt_off</mat-icon> Ver todo
+      </button>
+      <span class="mp-hint">Sin rango = todas tus ventas. (No afecta a las gestiones del día.)</span>
+    </form>
 
     <div *ngIf="cargando" class="mp-cargando">
       <div class="skeleton skeleton-row" *ngFor="let r of [1,2,3,4]"></div>
