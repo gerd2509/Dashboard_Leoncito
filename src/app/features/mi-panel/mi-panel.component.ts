@@ -35,6 +35,7 @@ export class MiPanelComponent implements OnInit {
   nombre = '';
   vendedor = '';
   canal = '';
+  sedeKey = '';      // clave de sede del usuario (para gestión sedes)
   sedeNombre = '';   // sede a la que pertenece (para la cabecera)
   sinVendedor = false;
   cargando = false;
@@ -98,6 +99,7 @@ export class MiPanelComponent implements OnInit {
     this.vendedor = (u?.vendedor || '').trim();
     this.canal = u?.canal || '';
     const sede = (u?.sede || '').trim();
+    this.sedeKey = sede;
     this.sedeNombre = this.sedeCfg.getConfig(sede)?.nombre
       ?? (sede ? sede.charAt(0).toUpperCase() + sede.slice(1) : '');
     this.form = this.fb.group({ desde: [null], hasta: [null] });
@@ -170,12 +172,21 @@ export class MiPanelComponent implements OnInit {
 
   /**
    * Gestiones de SEDE del día (hoja gestión sedes): llamadas / cartas por resultado
-   * (contacto / no contacto). Clasifica por 'TIPO DE GESTION' y 'RESULTADO DE GESTION'
-   * y filtra por el nombre del asesor ('ASESOR'). El día ya viene filtrado del backend.
+   * (contacto / no contacto). Igual que Control Gestión Sede: la columna del asesor
+   * es por sede (cfg.columnaAsesor, p.ej. 'ASESOR DE VENTA LAMBAYEQUE') y se acota a
+   * la sede por 'TIENDA SEDE'. Clasifica por 'TIPO DE GESTION' y 'RESULTADO DE GESTION'.
    */
   private procesarSede(rows: any[]): void {
+    const cfg = this.sedeCfg.getConfig(this.sedeKey);
+    const colAsesor = cfg?.columnaAsesor || 'ASESOR';
+    const valorSede = cfg?.valorSede;
     const objetivo = this.normNombre(this.vendedor);
-    const regs = rows.filter(r => this.normNombre(r['ASESOR'] ?? r['ASESOR DE VENTA'] ?? '') === objetivo);
+    const dia = this.gestFecha || new Date();
+    const regs = rows.filter(r => {
+      const enSede = valorSede ? this.sedeCfg.mismaSede(r['TIENDA SEDE'], valorSede) : true;
+      const nombre = this.normNombre(r[colAsesor] ?? r['ASESOR'] ?? '');
+      return enSede && nombre === objetivo && this.esFecha(r['Marca temporal'], dia);
+    });
     const esLlam = (r: any) => this.norm(r['TIPO DE GESTION']).includes('llamada');
     const esCarta = (r: any) => this.norm(r['TIPO DE GESTION']).includes('carta');
     const esCont = (r: any) => this.norm(r['RESULTADO DE GESTION']) === 'contacto';
