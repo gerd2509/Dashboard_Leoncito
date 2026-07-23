@@ -371,9 +371,9 @@ export class MiPanelComponent implements OnInit {
     this.porEntidad = this.agrupar(cvIn, afIn, 'entidad');
     this.porTipo = this.agrupar(cvIn, afIn, 'tipo_credito');
 
-    // Historial estilo "Evolución de Ventas Mensual": siempre todos los meses
-    // (con su neteo por mes), independiente del rango.
-    const base = this.porMes(this.todas);
+    // Historial estilo "Evolución de Ventas Mensual": respeta el rango (solo los
+    // meses del periodo), con neteo por mes.
+    const base = this.porMes(cvIn, afIn);
     const hoyKey = `${ay}-${String(am).padStart(2, '0')}`;
     const diaHoy = hoy.getDate();
     const diasMes = new Date(ay, am, 0).getDate();
@@ -410,10 +410,11 @@ export class MiPanelComponent implements OnInit {
 
   /**
    * Historial mensual del monto real: cada venta suma en su mes de VENTA (CV) y
-   * las afectaciones restan en su mes de AFECTACIÓN (AF). Así una venta anulada
-   * un mes posterior mantiene su mes original y descuenta en el mes de la NC.
+   * las afectaciones restan en su mes de AFECTACIÓN (AF). Respeta el rango: solo
+   * se incluyen las ventas/afectaciones cuya fecha cae en el periodo (predicados
+   * cvIn/afIn), así la evolución también se filtra por el rango elegido.
    */
-  private porMes(rows: any[]): { mes: string; monto: number; n: number }[] {
+  private porMes(cvIn: (r: any) => boolean, afIn: (r: any) => boolean): { mes: string; monto: number; n: number }[] {
     const m = new Map<string, { mes: string; monto: number; n: number }>();
     const add = (a: number, me: number, monto: number, dn: number) => {
       if (!a || !me) return;
@@ -421,10 +422,10 @@ export class MiPanelComponent implements OnInit {
       if (!m.has(k)) m.set(k, { mes: k, monto: 0, n: 0 });
       const o = m.get(k)!; o.monto += monto; o.n += dn;
     };
-    for (const r of rows) {
+    for (const r of this.todas) {
       const monto = Number(r.monto_consolidado || 0);
-      add(Number(r.anio_cv), Number(r.mes_cv), monto, 1);                 // venta en su mes CV
-      if (this.esReductor(r)) add(Number(r.anio_af), Number(r.mes_af), -monto, -1); // reversa en su mes AF
+      if (cvIn(r)) add(Number(r.anio_cv), Number(r.mes_cv), monto, 1);                 // venta en su mes CV
+      if (this.esReductor(r) && afIn(r)) add(Number(r.anio_af), Number(r.mes_af), -monto, -1); // reversa en su mes AF
     }
     return [...m.values()].sort((a, b) => a.mes.localeCompare(b.mes));
   }
