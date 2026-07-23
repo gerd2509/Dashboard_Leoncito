@@ -110,15 +110,10 @@
             </ng-container>
 
             <div class="mp-card" style="margin-top:14px;">
-              <div class="mp-card-h"><mat-icon>donut_large</mat-icon> Gestiones del día</div>
-              <dx-chart [dataSource]="gestChart" [redrawOnResize]="true" [customizePoint]="gestPoint" class="mp-chart">
-                <dxo-common-series-settings argumentField="clave" valueField="valor" type="bar">
-                  <dxo-label [visible]="true" backgroundColor="transparent"><dxo-font [weight]="700"></dxo-font></dxo-label>
-                </dxo-common-series-settings>
-                <dxi-series></dxi-series>
-                <dxo-legend [visible]="false"></dxo-legend>
-                <dxo-tooltip [enabled]="true"></dxo-tooltip>
-              </dx-chart>
+              <div class="mp-card-h"><mat-icon>donut_large</mat-icon> Gestiones del día
+                <button class="mp-expand" type="button" (click)="ampliar('gestiones')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
+              </div>
+              <ng-container *ngTemplateOutlet="tGest; context: { cls: 'mp-chart' }"></ng-container>
             </div>
           </ng-container>
 
@@ -178,32 +173,16 @@
           <div class="mp-panel-body">
             <div class="mp-charts-2">
               <div class="mp-card">
-                <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad</div>
-                <dx-chart [dataSource]="porEntidad" [redrawOnResize]="true" palette="Material" class="mp-chart">
-                  <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
-                    <dxo-label [visible]="true" [customizeText]="formatoSoles" backgroundColor="transparent">
-                      <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
-                    </dxo-label>
-                  </dxo-common-series-settings>
-                  <dxi-series color="#1A5FAD"></dxi-series>
-                  <dxo-value-axis><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
-                  <dxo-legend [visible]="false"></dxo-legend>
-                  <dxo-tooltip [enabled]="false"></dxo-tooltip>
-                </dx-chart>
+                <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad
+                  <button class="mp-expand" type="button" (click)="ampliar('entidad')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
+                </div>
+                <ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart' }"></ng-container>
               </div>
               <div class="mp-card">
-                <div class="mp-card-h"><mat-icon>category</mat-icon> Ventas por tipo de crédito</div>
-                <dx-chart [dataSource]="porTipo" [redrawOnResize]="true" palette="Soft" class="mp-chart">
-                  <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
-                    <dxo-label [visible]="true" [customizeText]="formatoSoles" backgroundColor="transparent">
-                      <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
-                    </dxo-label>
-                  </dxo-common-series-settings>
-                  <dxi-series color="#E65100"></dxi-series>
-                  <dxo-value-axis><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
-                  <dxo-legend [visible]="false"></dxo-legend>
-                  <dxo-tooltip [enabled]="false"></dxo-tooltip>
-                </dx-chart>
+                <div class="mp-card-h"><mat-icon>category</mat-icon> Ventas por tipo de crédito
+                  <button class="mp-expand" type="button" (click)="ampliar('tipo')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
+                </div>
+                <ng-container *ngTemplateOutlet="tTipo; context: { cls: 'mp-chart' }"></ng-container>
               </div>
             </div>
           </div>
@@ -221,48 +200,10 @@
         <div class="mp-panel-bodywrap">
           <div class="mp-panel-body">
             <div class="mp-card">
-              <dx-chart [dataSource]="historial" [redrawOnResize]="true" palette="Harmony Light"
-                [customizePoint]="histPoint" class="mp-chart tall">
-
-                <dxo-crosshair [enabled]="true" dashStyle="dot" color="#90A4AE"></dxo-crosshair>
-
-                <dxo-argument-axis argumentType="string">
-                  <dxo-label [overlappingBehavior]="'rotate'"></dxo-label>
-                </dxo-argument-axis>
-
-                <dxi-value-axis name="monto" position="left">
-                  <dxo-title text="Monto (S/)"></dxo-title>
-                  <dxo-label [customizeText]="formatoSoles"></dxo-label>
-                </dxi-value-axis>
-                <dxi-value-axis name="crec" position="right"></dxi-value-axis>
-
-                <dxi-series valueField="monto" argumentField="mesLabel" name="Monto (S/)" type="splineArea"
-                  axis="monto" color="#1565C0" [opacity]="0.65">
-                  <dxo-label [visible]="true" [backgroundColor]="'transparent'" [customizeText]="histMonto" position="outside">
-                    <dxo-font size="10" weight="700" color="#0D47A1"></dxo-font>
-                  </dxo-label>
-                  <dxo-point [visible]="true" [size]="9" color="#1565C0" symbol="circle"></dxo-point>
-                </dxi-series>
-
-                <dxi-series valueField="crecimiento" argumentField="mesLabel" name="Crecimiento (%)" type="spline"
-                  axis="crec" [width]="3">
-                  <dxo-label [visible]="true" [backgroundColor]="'#ffffff'" [customizeText]="histCrec" [border]="{ visible: false }">
-                    <dxo-font size="12" weight="700" color="#000000"></dxo-font>
-                  </dxo-label>
-                  <dxo-point [visible]="true" [size]="12" symbol="circle"></dxo-point>
-                </dxi-series>
-
-                <dxi-series valueField="proyeccion" argumentField="mesLabel" name="Proyección Mes Actual"
-                  type="scatter" axis="monto" color="#E65100">
-                  <dxo-label [visible]="true" [backgroundColor]="'#E65100'" [customizeText]="histProy" [border]="{ visible: false }" position="top">
-                    <dxo-font size="12" weight="700" color="#ffffff"></dxo-font>
-                  </dxo-label>
-                  <dxo-point [visible]="true" [size]="18" symbol="triangleUp" color="#E65100"></dxo-point>
-                </dxi-series>
-
-                <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="histTooltip"></dxo-tooltip>
-                <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
-              </dx-chart>
+              <div class="mp-card-h"><mat-icon>show_chart</mat-icon> Evolución mensual
+                <button class="mp-expand" type="button" (click)="ampliar('evolucion')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
+              </div>
+              <ng-container *ngTemplateOutlet="tEvol; context: { cls: 'mp-chart tall' }"></ng-container>
             </div>
           </div>
         </div>
@@ -307,5 +248,94 @@
       </section>
 
     </ng-container>
+
+    <!-- ══════════ Templates de gráficos (reutilizados en línea y en el popup) ══════════ -->
+    <ng-template #tEntidad let-cls="cls">
+      <dx-chart [dataSource]="porEntidad" [redrawOnResize]="true" palette="Material" [ngClass]="cls">
+        <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
+          <dxo-label [visible]="true" [customizeText]="formatoSoles" position="outside" backgroundColor="transparent">
+            <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
+          </dxo-label>
+        </dxo-common-series-settings>
+        <dxi-series color="#1A5FAD"></dxi-series>
+        <dxo-value-axis [valueMarginsEnabled]="true"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
+        <dxo-legend [visible]="false"></dxo-legend>
+        <dxo-tooltip [enabled]="true" [customizeTooltip]="tipMonto"></dxo-tooltip>
+      </dx-chart>
+    </ng-template>
+
+    <ng-template #tTipo let-cls="cls">
+      <dx-chart [dataSource]="porTipo" [redrawOnResize]="true" palette="Soft" [ngClass]="cls">
+        <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
+          <dxo-label [visible]="true" [customizeText]="formatoSoles" position="outside" backgroundColor="transparent">
+            <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
+          </dxo-label>
+        </dxo-common-series-settings>
+        <dxi-series color="#E65100"></dxi-series>
+        <dxo-value-axis [valueMarginsEnabled]="true"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
+        <dxo-legend [visible]="false"></dxo-legend>
+        <dxo-tooltip [enabled]="true" [customizeTooltip]="tipMonto"></dxo-tooltip>
+      </dx-chart>
+    </ng-template>
+
+    <ng-template #tGest let-cls="cls">
+      <dx-chart [dataSource]="gestChart" [redrawOnResize]="true" [customizePoint]="gestPoint" [ngClass]="cls">
+        <dxo-common-series-settings argumentField="clave" valueField="valor" type="bar">
+          <dxo-label [visible]="true" position="outside" backgroundColor="transparent"><dxo-font [weight]="700"></dxo-font></dxo-label>
+        </dxo-common-series-settings>
+        <dxi-series></dxi-series>
+        <dxo-value-axis [valueMarginsEnabled]="true"></dxo-value-axis>
+        <dxo-legend [visible]="false"></dxo-legend>
+        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+      </dx-chart>
+    </ng-template>
+
+    <ng-template #tEvol let-cls="cls">
+      <dx-chart [dataSource]="historial" [redrawOnResize]="true" palette="Harmony Light" [customizePoint]="histPoint" [ngClass]="cls">
+        <dxo-crosshair [enabled]="true" dashStyle="dot" color="#90A4AE"></dxo-crosshair>
+        <dxo-argument-axis argumentType="string">
+          <dxo-label [overlappingBehavior]="'rotate'"></dxo-label>
+        </dxo-argument-axis>
+        <dxi-value-axis name="monto" position="left">
+          <dxo-title text="Monto (S/)"></dxo-title>
+          <dxo-label [customizeText]="formatoSoles"></dxo-label>
+        </dxi-value-axis>
+        <dxi-value-axis name="crec" position="right"></dxi-value-axis>
+        <dxi-series valueField="monto" argumentField="mesLabel" name="Monto (S/)" type="splineArea" axis="monto" color="#1565C0" [opacity]="0.65">
+          <dxo-label [visible]="true" [backgroundColor]="'transparent'" [customizeText]="histMonto" position="outside">
+            <dxo-font size="10" weight="700" color="#0D47A1"></dxo-font>
+          </dxo-label>
+          <dxo-point [visible]="true" [size]="9" color="#1565C0" symbol="circle"></dxo-point>
+        </dxi-series>
+        <dxi-series valueField="crecimiento" argumentField="mesLabel" name="Crecimiento (%)" type="spline" axis="crec" [width]="3">
+          <dxo-label [visible]="true" [backgroundColor]="'#ffffff'" [customizeText]="histCrec" [border]="{ visible: false }">
+            <dxo-font size="12" weight="700" color="#000000"></dxo-font>
+          </dxo-label>
+          <dxo-point [visible]="true" [size]="12" symbol="circle"></dxo-point>
+        </dxi-series>
+        <dxi-series valueField="proyeccion" argumentField="mesLabel" name="Proyección Mes Actual" type="scatter" axis="monto" color="#E65100">
+          <dxo-label [visible]="true" [backgroundColor]="'#E65100'" [customizeText]="histProy" [border]="{ visible: false }" position="top">
+            <dxo-font size="12" weight="700" color="#ffffff"></dxo-font>
+          </dxo-label>
+          <dxo-point [visible]="true" [size]="18" symbol="triangleUp" color="#E65100"></dxo-point>
+        </dxi-series>
+        <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="histTooltip"></dxo-tooltip>
+        <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+      </dx-chart>
+    </ng-template>
+
+    <!-- Popup para ampliar cualquier gráfico -->
+    <dx-popup [visible]="!!popupChart" (onHiding)="popupChart = ''" [showTitle]="true" [title]="popupTitulo"
+      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" height="88%" [maxWidth]="1200">
+      <div *dxTemplate="let d of 'content'" class="mp-popup-body">
+        <ng-container [ngSwitch]="popupChart">
+          <ng-container *ngSwitchCase="'entidad'"><ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
+          <ng-container *ngSwitchCase="'tipo'"><ng-container *ngTemplateOutlet="tTipo; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
+          <ng-container *ngSwitchCase="'gestiones'"><ng-container *ngTemplateOutlet="tGest; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
+          <ng-container *ngSwitchCase="'evolucion'"><ng-container *ngTemplateOutlet="tEvol; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
+        </ng-container>
+      </div>
+    </dx-popup>
+
   </ng-container>
 </div>

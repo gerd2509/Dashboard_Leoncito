@@ -51,6 +51,17 @@ export class MiPanelComponent implements OnInit {
     return c !== 'call' && c !== 'realzza';
   }
 
+  // Popup para ampliar un gráfico. '' = cerrado.
+  popupChart = '';
+  ampliar(k: string): void {
+    this.popupChart = k;
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 120);   // redibuja al tamaño grande
+  }
+  get popupTitulo(): string {
+    return ({ entidad: 'Ventas por entidad', tipo: 'Ventas por tipo de crédito',
+      evolucion: 'Evolución de ventas mensual', gestiones: 'Gestiones del día' } as Record<string, string>)[this.popupChart] || '';
+  }
+
   togglePanel(k: string): void {
     this.abiertos[k] = !this.abiertos[k];
     // Los gráficos DevExtreme se dibujan a 0px si el panel nace colapsado; al
@@ -449,6 +460,9 @@ export class MiPanelComponent implements OnInit {
 
   /** Colorea cada barra del gráfico de gestiones con su color. */
   gestPoint = (info: any) => ({ color: info.data?.color });
+
+  /** Tooltip S/ para los gráficos de barras (entidad / tipo). */
+  tipMonto = (info: any) => ({ text: `${info.argument}: ${this.soles(info.value)}` });
 
   // ── Historial "Evolución de Ventas Mensual" (estilo Comparativo) ──
   /** Colorea los puntos de la línea de crecimiento: verde +, rojo −, gris 0. */

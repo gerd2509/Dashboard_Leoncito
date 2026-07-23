@@ -123,6 +123,21 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mp-count { background: #eef5fc; color: #1A5FAD; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; }
 .mp-chart { height: 320px; width: 100%; }
 .mp-chart.tall { height: 400px; }
+.mp-chart.big { height: 100%; min-height: 320px; }
+
+/* Botón "ampliar" en la cabecera de cada gráfico */
+.mp-expand {
+  margin-left: auto; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px; cursor: pointer;
+  background: #eef5fc; border: 1px solid #dbe7f5; color: #1A5FAD; transition: background .2s ease, transform .1s ease;
+}
+.mp-expand:hover { background: #dceaf9; }
+.mp-expand:active { transform: scale(.92); }
+.mp-expand mat-icon { font-size: 19px; width: 19px; height: 19px; color: #1A5FAD; }
+
+/* Cuerpo del popup: el gráfico ocupa todo el alto disponible */
+.mp-popup-body { height: 100%; width: 100%; display: flex; }
+.mp-popup-body > * { flex: 1; min-width: 0; }
 
 /* Avisos / carga */
 .mp-aviso { display: flex; align-items: center; gap: 10px; background: #eef5fc; border: 1px solid #cfe0f5; color: #1E3A5F; border-radius: 12px; padding: 16px 18px; margin-top: 12px; }
