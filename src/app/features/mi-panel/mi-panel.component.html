@@ -23,6 +23,11 @@
         <span class="mp-hk-num">{{ soles(montoMes) }}</span>
         <span class="mp-hk-lbl">vendido este mes</span>
       </div>
+      <button class="mp-refresh" type="button" (click)="refrescar()"
+        [disabled]="cargando || gestCargando" title="Actualizar ventas y gestiones">
+        <mat-icon [class.girando]="cargando || gestCargando">refresh</mat-icon>
+        <span>Actualizar</span>
+      </button>
     </div>
 
     <!-- ══════════ PANEL 1: MIS GESTIONES (primero) ══════════ -->
