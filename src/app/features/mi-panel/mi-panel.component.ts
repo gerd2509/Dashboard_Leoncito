@@ -321,45 +321,59 @@ export class MiPanelComponent implements OnInit {
     return e.includes('NOTA DE CR') || e.includes('INCAUTAC') || e.includes('REFACTUR');
   }
 
-  /** Aplica el rango de fechas (si hay) y recalcula KPIs, agrupaciones e historial. */
+  /**
+   * Recalcula KPIs, agrupaciones e historial aplicando el rango (si hay). El MONTO
+   * REAL del periodo se calcula igual que el mes en curso: cada venta suma en su
+   * fecha de VENTA (cv) y cada afectación (NC/refact/incautación) resta en su fecha
+   * de AFECTACIÓN (af). Así, para CUALQUIER mes/rango, se descuentan las NC cuya
+   * afectación cae en el periodo aunque la venta sea de un mes anterior.
+   */
   aplicar(): void {
     const desde = this.form.value.desde ? this.ymd(this.form.value.desde) : null;
     const hasta = this.form.value.hasta ? this.ymd(this.form.value.hasta) : null;
-    let rows = this.todas;
-    if (desde || hasta) {
-      rows = rows.filter(r => {
-        const f = (r.fecha_cv || '').toString().slice(0, 10);
-        if (!f) return false;
-        if (desde && f < desde) return false;
-        if (hasta && f > hasta) return false;
-        return true;
-      });
-    }
-    this.ventas = rows;
+    const hayRango = !!(desde || hasta);
+    const dentro = (f: any): boolean => {
+      const s = (f || '').toString().slice(0, 10);
+      if (!s) return false;
+      if (desde && s < desde) return false;
+      if (hasta && s > hasta) return false;
+      return true;
+    };
+    // Sin rango = todo entra. Con rango: la venta por su fecha_cv, la afectación por fecha_af.
+    const cvIn = (r: any) => !hayRango || dentro(r.fecha_cv);
+    const afIn = (r: any) => !hayRango || dentro(r.fecha_af);
 
-    // Monto real = ventas − (NC / refacturaciones / incautaciones). Como cada
-    // afectación es la misma venta revertida, su aporte neto total es 0.
-    this.montoTotal = rows.reduce((s, r) => s + (this.esReductor(r) ? 0 : Number(r.monto_consolidado || 0)), 0);
-    this.numVentas = rows.filter(r => !this.esReductor(r)).length;
-    this.ticket = this.numVentas ? this.montoTotal / this.numVentas : 0;
+    // Detalle: ventas del periodo (por fecha de venta) + afectaciones que caen en él.
+    this.ventas = hayRango
+      ? this.todas.filter(r => dentro(r.fecha_cv) || (this.esReductor(r) && dentro(r.fecha_af)))
+      : this.todas;
 
-    // Mes en curso: suma ventas cuyo mes de VENTA es el actual y resta las
-    // afectaciones cuyo mes de AFECTACIÓN es el actual (así cuadra el monto real).
-    const hoy = new Date(), ay = hoy.getFullYear(), am = hoy.getMonth() + 1;
-    this.montoMes = rows.reduce((s, r) => {
-      let v = 0;
+    // Monto real del periodo: + venta (cv en periodo), − afectación (af en periodo).
+    let monto = 0, ops = 0;
+    for (const r of this.todas) {
       const m = Number(r.monto_consolidado || 0);
+      if (cvIn(r)) { monto += m; if (!this.esReductor(r)) ops++; }
+      if (this.esReductor(r) && afIn(r)) monto -= m;
+    }
+    this.montoTotal = monto;
+    this.numVentas = ops;
+    this.ticket = ops ? monto / ops : 0;
+
+    // "Ventas este mes": siempre el mes en curso, independiente del rango elegido.
+    const hoy = new Date(), ay = hoy.getFullYear(), am = hoy.getMonth() + 1;
+    this.montoMes = this.todas.reduce((s, r) => {
+      let v = 0; const m = Number(r.monto_consolidado || 0);
       if (Number(r.anio_cv) === ay && Number(r.mes_cv) === am) v += m;
       if (this.esReductor(r) && Number(r.anio_af) === ay && Number(r.mes_af) === am) v -= m;
       return s + v;
     }, 0);
 
-    this.porEntidad = this.agrupar(rows, 'entidad');
-    this.porTipo = this.agrupar(rows, 'tipo_credito');
+    this.porEntidad = this.agrupar(cvIn, afIn, 'entidad');
+    this.porTipo = this.agrupar(cvIn, afIn, 'tipo_credito');
 
-    // Historial estilo "Evolución de Ventas Mensual": área de monto + % de
-    // crecimiento vs mes anterior + proyección del mes en curso.
-    const base = this.porMes(rows);
+    // Historial estilo "Evolución de Ventas Mensual": siempre todos los meses
+    // (con su neteo por mes), independiente del rango.
+    const base = this.porMes(this.todas);
     const hoyKey = `${ay}-${String(am).padStart(2, '0')}`;
     const diaHoy = hoy.getDate();
     const diasMes = new Date(ay, am, 0).getDate();
@@ -374,16 +388,24 @@ export class MiPanelComponent implements OnInit {
     });
   }
 
-  /** Agrupa por un campo sumando el monto real (las afectaciones netean a 0). */
-  private agrupar(rows: any[], campo: string): Agrupado[] {
+  /**
+   * Agrupa por un campo con el monto real del periodo: + venta (cv en periodo),
+   * − afectación (af en periodo). n cuenta solo ventas reales (no reductoras).
+   */
+  private agrupar(cvIn: (r: any) => boolean, afIn: (r: any) => boolean, campo: string): Agrupado[] {
     const m = new Map<string, Agrupado>();
-    for (const r of rows) {
-      if (this.esReductor(r)) continue;   // la venta se revierte → no aporta al neto
+    const bump = (r: any, dMonto: number, dN: number) => {
       const k = (r[campo] ?? '').toString().trim() || '—';
       if (!m.has(k)) m.set(k, { clave: k, monto: 0, n: 0 });
-      const o = m.get(k)!; o.monto += Number(r.monto_consolidado || 0); o.n++;
+      const o = m.get(k)!; o.monto += dMonto; o.n += dN;
+    };
+    for (const r of this.todas) {
+      const mo = Number(r.monto_consolidado || 0);
+      const red = this.esReductor(r);
+      if (cvIn(r)) bump(r, mo, red ? 0 : 1);      // aporte de la venta
+      if (red && afIn(r)) bump(r, -mo, 0);        // resta de la afectación
     }
-    return [...m.values()].sort((a, b) => b.monto - a.monto);
+    return [...m.values()].filter(x => Math.round(x.monto) !== 0 || x.n > 0).sort((a, b) => b.monto - a.monto);
   }
 
   /**
