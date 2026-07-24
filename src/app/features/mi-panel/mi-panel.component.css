@@ -155,6 +155,13 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .tg-row.total .tg-k, .tg-row.total .tg-m { color: #1A5FAD; }
 .tg-empty { color: #90a4ae; font-style: italic; grid-column: 1 / -1; text-align: left; }
 
+/* Detalle a todo el ancho (sin recuadro interno) */
+.mp-card.full { padding: 0; border: 0; box-shadow: none; background: transparent; }
+.mp-card.full dx-data-grid { width: 100%; }
+/* Botón exportar del grid más grande/llamativo */
+::ng-deep .dx-datagrid .dx-toolbar .dx-button.dx-button-success { border-radius: 9px; font-weight: 700; }
+::ng-deep .dx-datagrid .dx-toolbar .dx-button.dx-button-success .dx-icon { color: #fff; }
+
 /* Avisos / carga */
 .mp-aviso { display: flex; align-items: center; gap: 10px; background: #eef5fc; border: 1px solid #cfe0f5; color: #1E3A5F; border-radius: 12px; padding: 16px 18px; margin-top: 12px; }
 .mp-aviso.error { background: #FFEBEE; border-color: #FFCDD2; color: #C62828; }

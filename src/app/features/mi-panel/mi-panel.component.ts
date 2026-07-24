@@ -569,6 +569,16 @@ export class MiPanelComponent implements OnInit {
   totalTabla = (d: AgrupadoTabla[]) => d.reduce((s, r) => s + r.monto, 0);
   totalOps = (d: AgrupadoTabla[]) => d.reduce((s, r) => s + r.ops, 0);
 
+  /** Hace el botón de exportar del grid más llamativo (icono + texto verde). */
+  onToolbarPreparing(e: any): void {
+    const exp = (e.toolbarOptions?.items || []).find((i: any) => i.name === 'exportButton');
+    if (exp) {
+      exp.showText = 'always';
+      exp.location = 'after';
+      exp.options = { ...exp.options, text: 'Exportar a Excel', icon: 'exportxlsx', stylingMode: 'contained', type: 'success' };
+    }
+  }
+
   // ── Historial "Evolución de Ventas Mensual" (estilo Comparativo) ──
   /** Colorea los puntos de la línea de crecimiento: verde +, rojo −, gris 0. */
   histPoint = (info: any) => {
