@@ -23,7 +23,8 @@ interface FilaCartera {
 interface VentaCartera {
   vendedor: string;
   tipoBase: string;
-  tipoCliente: string;
+  tipoCliente: string;        // de la CARTERA (asignación)
+  tipoClienteAfect: string;   // de AFECTACIONES (tabla ventas)
   sede: string;
   dni: string;
   cliente: string;
@@ -71,6 +72,10 @@ export class ComparativoCarteraVentasComponent {
 
   // Desglose por estado de las ventas cruzadas (Cancelado / Activo / Pronto Pago…).
   desgloseEstados: { estado: string; cantidad: number; monto: number }[] = [];
+
+  // Desglose de las ventas de la vista actual por TIPO DE CLIENTE (de afectaciones),
+  // con % de participación sobre el total de la sede.
+  desgloseTipoCliente: { tipo: string; ops: number; monto: number; pct: number }[] = [];
 
   // Sedes para el selector + cartera asignada por sede.
   sedesDisponibles: string[] = [];
@@ -199,7 +204,7 @@ export class ComparativoCarteraVentasComponent {
       //    oficinas, fábrica, insumos, productos terminados, distribuciones y Chiclayo),
       //  - solo estados de venta real (se excluyen NC, incautación, clasificado a
       //    pérdida/legal, error del sistema, moras mal cobradas), y monto > 0.
-      const idx = new Map<string, { monto: number; ops: number; nombre: string }>();
+      const idx = new Map<string, { monto: number; ops: number; nombre: string; tipoCliente: string }>();
       const ventasValidas: { dni: string; estado: string; monto: number }[] = [];
       (ventas || []).forEach(v => {
         if (this.sedeExcluida(v.sede)) return;
@@ -209,10 +214,11 @@ export class ComparativoCarteraVentasComponent {
         const dni = this.soloDigitos(v.doc_identidad);
         if (!dni) return;
         ventasValidas.push({ dni, estado: this.sinTildes(v.estado_venta), monto });
-        const cur = idx.get(dni) || { monto: 0, ops: 0, nombre: '' };
+        const cur = idx.get(dni) || { monto: 0, ops: 0, nombre: '', tipoCliente: '' };
         cur.monto += monto;
         cur.ops += 1;
         if (!cur.nombre) cur.nombre = (v.cliente_venta || '').toString();
+        if (!cur.tipoCliente) cur.tipoCliente = (v.tipo_cliente || '').toString().trim().toUpperCase();
         idx.set(dni, cur);
       });
 
@@ -236,6 +242,7 @@ export class ComparativoCarteraVentasComponent {
           vendedor: r.vendedor,
           tipoBase: r.tipoBase,
           tipoCliente: r.tipoCliente,
+          tipoClienteAfect: hit.tipoCliente || 'SIN TIPO',
           sede,
           dni: r.dni,
           cliente: hit.nombre,
@@ -324,6 +331,7 @@ export class ComparativoCarteraVentasComponent {
       this.kVendidos = this.ventasCartera.length;
       this.kMonto = Math.round(this.ventasCartera.reduce((s, c) => s + c.monto, 0));
       this.todoExpandido = false;
+      this.calcularTipoCliente();
       return;
     }
 
@@ -336,6 +344,22 @@ export class ComparativoCarteraVentasComponent {
     this.kVendidos = vista.length;
     this.kMonto = Math.round(vista.reduce((s, c) => s + c.monto, 0));
     this.todoExpandido = false;
+    this.calcularTipoCliente();
+  }
+
+  /** Desglose de la vista actual por TIPO DE CLIENTE (afectaciones) con % del total. */
+  private calcularTipoCliente(): void {
+    const m = new Map<string, { ops: number; monto: number }>();
+    for (const c of this.ventasCartera) {
+      const k = (c.tipoClienteAfect || 'SIN TIPO').toString().trim().toUpperCase() || 'SIN TIPO';
+      const cur = m.get(k) || { ops: 0, monto: 0 };
+      cur.ops += c.ops; cur.monto += c.monto;
+      m.set(k, cur);
+    }
+    const totalMonto = [...m.values()].reduce((s, x) => s + x.monto, 0);
+    this.desgloseTipoCliente = [...m.entries()]
+      .map(([tipo, x]) => ({ tipo, ops: x.ops, monto: Math.round(x.monto), pct: totalMonto ? (x.monto / totalMonto) * 100 : 0 }))
+      .sort((a, b) => b.monto - a.monto);
   }
 
   get sedeSeleccionada(): string { return (this.form.value.sede || '').toString(); }

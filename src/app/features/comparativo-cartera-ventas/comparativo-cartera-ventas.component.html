@@ -130,6 +130,28 @@
       </button>
     </div>
 
+    <!-- Desglose por TIPO DE CLIENTE (de afectaciones), con % del total de la sede -->
+    <div class="cc-tipocliente" *ngIf="ventasCartera.length">
+      <div class="ct-h"><mat-icon>groups</mat-icon> Ventas por tipo de cliente <small>· del total de {{ sedeSeleccionada || 'todas las sedes' }}</small></div>
+      <div class="ct-table">
+        <div class="ct-row ct-head">
+          <span>Tipo de cliente</span><span>Ventas</span><span>Monto S/</span><span>% del total</span>
+        </div>
+        <div class="ct-row" *ngFor="let t of desgloseTipoCliente">
+          <span class="ct-k">{{ t.tipo }}</span>
+          <span class="ct-n">{{ t.ops }}</span>
+          <span class="ct-m">S/ {{ t.monto | number:'1.0-0' }}</span>
+          <span class="ct-p"><span class="ct-bar"><span class="ct-bar-fill" [style.width.%]="t.pct"></span></span>{{ t.pct | number:'1.0-1' }}%</span>
+        </div>
+        <div class="ct-row ct-total">
+          <span class="ct-k">TOTAL</span>
+          <span class="ct-n">{{ kVendidos }}</span>
+          <span class="ct-m">S/ {{ kMonto | number:'1.0-0' }}</span>
+          <span class="ct-p">100%</span>
+        </div>
+      </div>
+    </div>
+
     <div *ngIf="!ventasCartera.length && !isLoading" class="cc-empty">
       <mat-icon>search_off</mat-icon>
       <p>No hay ventas de cartera para {{ sedeSeleccionada ? ('la sede ' + sedeSeleccionada) : 'este mes' }}.</p>
@@ -150,7 +172,8 @@
       <dxi-column dataField="vendedor" caption="Vendedor / Asesor asignado" [visible]="false" [showInColumnChooser]="false"></dxi-column>
       <dxi-column dataField="sede" caption="Sede" [visible]="!sedeSeleccionada" [allowGrouping]="true"></dxi-column>
       <dxi-column dataField="tipoBase" caption="Tipo de base" [allowGrouping]="true"></dxi-column>
-      <dxi-column dataField="tipoCliente" caption="Tipo de cliente" [allowGrouping]="true"></dxi-column>
+      <dxi-column dataField="tipoClienteAfect" caption="Tipo de cliente" [allowGrouping]="true"></dxi-column>
+      <dxi-column dataField="tipoCliente" caption="Tipo de cliente (cartera)" [visible]="false" [allowGrouping]="true"></dxi-column>
       <dxi-column dataField="dni" caption="DNI" alignment="center" [width]="110"></dxi-column>
       <dxi-column dataField="cliente" caption="Cliente"></dxi-column>
       <dxi-column dataField="ops" caption="Ventas" dataType="number" alignment="center" [width]="80"></dxi-column>
