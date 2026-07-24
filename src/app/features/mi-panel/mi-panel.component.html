@@ -161,8 +161,8 @@
         </div>
       </section>
 
-      <!-- ══════════ PANEL 3: VENTAS POR ENTIDAD / TIPO ══════════ -->
-      <section class="mp-panel" [class.open]="abiertos['graficos']">
+      <!-- ══════════ PANEL 3: VENTAS POR ENTIDAD (solo sede; Call/Realzza lo ven en Análisis) ══════════ -->
+      <section class="mp-panel" *ngIf="esSedeVendedor" [class.open]="abiertos['graficos']">
         <button class="mp-panel-head" type="button" (click)="togglePanel('graficos')">
           <span class="ph-ico entidad"><mat-icon>account_balance</mat-icon></span>
           <span class="ph-title">Ventas por entidad</span>
@@ -191,17 +191,25 @@
         </button>
         <div class="mp-panel-bodywrap">
           <div class="mp-panel-body">
+            <!-- Gráfico de ventas por entidad (integrado en el análisis) -->
+            <div class="mp-card">
+              <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad
+                <button class="mp-expand" type="button" (click)="ampliar('entidad')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
+              </div>
+              <ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart' }"></ng-container>
+            </div>
+
             <div class="mp-grupos">
               <ng-container *ngIf="esCall">
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porContacto, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porSedeTab, lbl: 'Sede', titulo: 'Ventas por sede', icon: 'location_city' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoCliente, lbl: 'Tipo cliente', titulo: 'Ventas por tipo de cliente', icon: 'group' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porContacto, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell', color: '#1565C0' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porSedeTab, lbl: 'Sede', titulo: 'Ventas por sede', icon: 'location_city', color: '#00838F' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoCliente, lbl: 'Tipo cliente', titulo: 'Ventas por tipo de cliente', icon: 'group', color: '#6A1B9A' }"></ng-container>
               </ng-container>
               <ng-container *ngIf="esRealzza">
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoBase, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', titulo: 'Ventas por entidad', icon: 'account_balance' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosEntidad, lbl: 'Entidad', titulo: 'Motos por entidad', icon: 'two_wheeler' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosTipoProd, lbl: 'Tipo producto', titulo: 'Motos por tipo de producto', icon: 'two_wheeler' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoBase, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell', color: '#1565C0' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', titulo: 'Ventas por entidad', icon: 'account_balance', color: '#6A1B9A' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosEntidad, lbl: 'Entidad', titulo: 'Motos por entidad', icon: 'two_wheeler', color: '#E65100' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosTipoProd, lbl: 'Tipo producto', titulo: 'Motos por tipo de producto', icon: 'two_wheeler', color: '#2E7D32' }"></ng-container>
               </ng-container>
             </div>
           </div>
@@ -264,11 +272,11 @@
     </ng-container>
 
     <!-- Tabla compacta de análisis (monto real, ops, ticket, % participación) -->
-    <ng-template #tGrupo let-data="data" let-lbl="lbl" let-icon="icon" let-titulo="titulo">
-      <div class="mp-card grupo">
-        <div class="mp-card-h"><mat-icon>{{ icon }}</mat-icon> {{ titulo }}</div>
+    <ng-template #tGrupo let-data="data" let-lbl="lbl" let-icon="icon" let-titulo="titulo" let-color="color">
+      <div class="mp-card grupo" [ngStyle]="{ 'border-top': '3px solid ' + color, '--tg': color }">
+        <div class="mp-card-h" [style.color]="color"><mat-icon [style.color]="color">{{ icon }}</mat-icon> {{ titulo }}</div>
         <div class="tg">
-          <div class="tg-head">
+          <div class="tg-head" [style.color]="color" [style.borderBottomColor]="color">
             <span>{{ lbl }}</span><span>Monto</span><span>Ops</span><span>Ticket</span><span>%</span>
           </div>
           <div class="tg-row" *ngFor="let r of data">
