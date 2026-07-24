@@ -6,6 +6,7 @@ import { ExcelExportService } from '../../../services/excel/excel.service';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { lastValueFrom } from 'rxjs';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-agendamientos-campo',
@@ -16,6 +17,11 @@ import { lastValueFrom } from 'rxjs';
 export class AgendamientosCampoComponent {
   protected service = inject(SheetsService);
   protected excelService = inject(ExcelExportService);
+  private auth = inject(AuthService);
+
+  /** El usuario es vendedor → solo ve SUS agendamientos (por nombre de asesor). */
+  get esVendedor(): boolean { return (this.auth.getUsuario()?.rol || '') === 'vendedor'; }
+  get miAsesor(): string { return (this.auth.getUsuario()?.vendedor || '').toString().toUpperCase().trim(); }
 
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
@@ -40,12 +46,8 @@ export class AgendamientosCampoComponent {
   }
 
   async ngOnInit() {
-    this.cargasIniciales();
-  }
-
-  async cargasIniciales() {
-    this.datosOriginales = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
-    console.log(this.datosOriginales)
+    // Carga automática al entrar (sin tener que pulsar "Actualizar").
+    await this.actualizar();
   }
 
   soloFecha = (d: any) => {
@@ -121,7 +123,11 @@ export class AgendamientosCampoComponent {
         const fechaInteresFormateada = `${dDia.padStart(2, '0')}/${dMes.padStart(2, '0')}/${dAnio}`;
         const motivo = (d['MOTIVO INTERÉS'] || '').trim().toUpperCase();
 
-        return fechaInteresFormateada === fechaSeleccionadaFormateada &&
+        // Si es vendedor, solo sus propios agendamientos (por ASESOR REALZZA).
+        const esMio = !this.esVendedor
+          || (d['ASESOR REALZZA'] || '').toString().toUpperCase().trim() === this.miAsesor;
+
+        return esMio && fechaInteresFormateada === fechaSeleccionadaFormateada &&
           motivo === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)";
       });
 

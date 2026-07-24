@@ -7,6 +7,7 @@ import { ExcelExportService } from '../../../services/excel/excel.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-agendamientos-kommo',
@@ -23,6 +24,10 @@ import { CommonModule } from '@angular/common';
 export class AgendamientosKommoComponent {
   protected service = inject(SheetsService);
   protected excelService = inject(ExcelExportService);
+  private auth = inject(AuthService);
+
+  get esVendedor(): boolean { return (this.auth.getUsuario()?.rol || '') === 'vendedor'; }
+  get miAsesor(): string { return (this.auth.getUsuario()?.vendedor || '').toString().toUpperCase().trim(); }
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
@@ -53,6 +58,15 @@ export class AgendamientosKommoComponent {
       fechaGestion: [new Date(), Validators.required],
       empresa: ['LEONCITO', Validators.required]
     });
+  }
+
+  async ngOnInit() {
+    // Vendedor: fija la empresa según su canal (call→LEONCITO, realzza→REALZZA).
+    if (this.esVendedor) {
+      const canal = (this.auth.getUsuario()?.canal || '').toLowerCase();
+      this.formAgendamientos.patchValue({ empresa: canal === 'realzza' ? 'REALZZA' : 'LEONCITO' });
+    }
+    await this.actualizar();   // carga automática al entrar
   }
 
   get currentCols() {
@@ -103,7 +117,11 @@ export class AgendamientosKommoComponent {
         const fechaFormateada = `${dDia.padStart(2, '0')}/${dMes.padStart(2, '0')}/${dAnio}`;
         const motivo = (d['MOTIVO INTERÉS'] || '').trim().toUpperCase();
 
-        return fechaFormateada === fechaBusqueda &&
+        // Si es vendedor, solo sus propios agendamientos (por la columna asesor del canal).
+        const esMio = !this.esVendedor
+          || (d[this.currentCols.asesor] || '').toString().toUpperCase().trim() === this.miAsesor;
+
+        return esMio && fechaFormateada === fechaBusqueda &&
           motivo === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)";
       });
 

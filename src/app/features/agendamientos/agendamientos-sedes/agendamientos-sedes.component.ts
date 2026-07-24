@@ -34,6 +34,10 @@ export class AgendamientosSedesComponent implements OnInit {
   sedesDisponibles: { key: string; nombre: string }[] = [];
   sedeKey = 'ferrenafe';
 
+  /** El usuario es vendedor → solo ve SUS agendamientos (por nombre de asesor). */
+  get esVendedor(): boolean { return (this.auth.getUsuario()?.rol || '') === 'vendedor'; }
+  get miAsesor(): string { return (this.auth.getUsuario()?.vendedor || '').toString().toUpperCase().trim(); }
+
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
@@ -45,7 +49,13 @@ export class AgendamientosSedesComponent implements OnInit {
 
   async ngOnInit() {
     this.configurarSedeSegunUsuario();
-    this.datosOriginales = await lastValueFrom(this.service.getSheetDataFerre());
+    this.isLoading = true;
+    try {
+      this.datosOriginales = await lastValueFrom(this.service.getSheetDataFerre());
+      this.recalcular();   // carga automática al entrar (sin pulsar "Actualizar")
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   // admin / sede 'todas' → selector; usuario de sede → fijo a su sede
@@ -153,7 +163,9 @@ export class AgendamientosSedesComponent implements OnInit {
       if (!dDia || !dMes || !dAnio) return false;
       const fechaInteres = `${dDia.padStart(2, '0')}/${dMes.padStart(2, '0')}/${dAnio}`;
       const motivo = (d['MOTIVO INTERÉS'] || '').trim().toUpperCase();
-      return fechaInteres === fechaSel && motivo === 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)';
+      // Si es vendedor, solo sus propios agendamientos (por su columna de asesor de sede).
+      const esMio = !this.esVendedor || (d[col] || '').toString().toUpperCase().trim() === this.miAsesor;
+      return esMio && fechaInteres === fechaSel && motivo === 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)';
     });
 
     this.datosFiltrados = agendamientosDelDia.map(fila => ({
