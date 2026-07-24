@@ -79,7 +79,7 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .ph-ico.entidad { background: linear-gradient(135deg, #6A1B9A, #8e24aa); box-shadow: 0 5px 12px rgba(106,27,154,.3); }
 .ph-ico.evol    { background: linear-gradient(135deg, #00838F, #26c6da); box-shadow: 0 5px 12px rgba(0,131,143,.3); }
 .ph-ico.detalle { background: linear-gradient(135deg, #455A64, #607d8b); box-shadow: 0 5px 12px rgba(69,90,100,.3); }
-.ph-title { font-size: 16px; font-weight: 800; }
+.ph-title { font-size: 16px; font-weight: 800; text-transform: uppercase; }
 .ph-sum { margin-left: auto; font-size: 13px; color: #6b8299; white-space: nowrap; }
 .ph-sum b { color: #1E3A5F; }
 .ph-chev { color: #90a4ae; transition: transform .3s ease; flex: none; }
@@ -118,7 +118,7 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
   box-shadow: 0 3px 12px rgba(20,49,79,.05); margin-top: 14px;
 }
 .mp-charts-2 .mp-card { margin-top: 0; }
-.mp-card-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 6px; }
+.mp-card-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 6px; text-transform: uppercase; }
 .mp-card-h mat-icon { color: #1A5FAD; }
 .mp-count { background: #eef5fc; color: #1A5FAD; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; }
 .mp-chart { height: 320px; width: 100%; }

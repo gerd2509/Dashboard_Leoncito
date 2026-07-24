@@ -60,7 +60,7 @@ export class MiPanelComponent implements OnInit {
     setTimeout(() => window.dispatchEvent(new Event('resize')), 120);   // redibuja al tamaño grande
   }
   get popupTitulo(): string {
-    return ({ entidad: 'Ventas por entidad', tipo: 'Ventas por tipo de crédito',
+    return ({ entidad: 'Ventas por entidad',
       evolucion: 'Evolución de ventas mensual', gestiones: 'Gestiones del día' } as Record<string, string>)[this.popupChart] || '';
   }
 
@@ -81,7 +81,6 @@ export class MiPanelComponent implements OnInit {
   montoMes = 0;
 
   porEntidad: Agrupado[] = [];
-  porTipo: Agrupado[] = [];
   historial: HistMes[] = [];
 
   // Columnas del detalle según canal (Call / Realzza / sede).
@@ -92,6 +91,8 @@ export class MiPanelComponent implements OnInit {
   porTipoCliente: AgrupadoTabla[] = [];  // Call: por tipo de cliente
   porTipoBase: AgrupadoTabla[] = [];     // Realzza: por tipo de base
   porEntidadTab: AgrupadoTabla[] = [];   // Realzza: por entidad
+  motosEntidad: AgrupadoTabla[] = [];    // Realzza: motos por entidad
+  motosTipoProd: AgrupadoTabla[] = [];   // Realzza: motos por tipo de producto
 
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
   gestAplica = false;    // solo canal call/realzza
@@ -174,6 +175,8 @@ export class MiPanelComponent implements OnInit {
       { field: 'asesor_venta', caption: 'Asesor venta', width: 110 },
       { field: 'vendedor', caption: 'Vendedor', width: 180 },
       { field: 'entidad', caption: 'Entidad', width: 110 },
+      { field: 'tipo_credito', caption: 'Tipo crédito', width: 120 },
+      { field: 'tipo_producto', caption: 'Tipo producto', width: 130 },
     ];
     // Sede (por defecto)
     return [
@@ -444,7 +447,6 @@ export class MiPanelComponent implements OnInit {
     }, 0);
 
     this.porEntidad = this.agrupar(cvIn, afIn, 'entidad');
-    this.porTipo = this.agrupar(cvIn, afIn, 'tipo_credito');
 
     // Análisis específico por canal (monto real, ops, ticket, % participación).
     if (this.esCall) {
@@ -454,6 +456,9 @@ export class MiPanelComponent implements OnInit {
     } else if (this.esRealzza) {
       this.porTipoBase = this.agruparTabla(cvIn, afIn, 'tipo_base');
       this.porEntidadTab = this.agruparTabla(cvIn, afIn, 'entidad');
+      const esMoto = (r: any) => (r.tipo_producto ?? '').toString().toUpperCase().includes('MOTO');
+      this.motosEntidad = this.agruparTabla(cvIn, afIn, 'entidad', esMoto);
+      this.motosTipoProd = this.agruparTabla(cvIn, afIn, 'tipo_producto', esMoto);
     }
 
     // Historial estilo "Evolución de Ventas Mensual": respeta el rango (solo los
@@ -497,9 +502,10 @@ export class MiPanelComponent implements OnInit {
    * Agrupa por un campo con monto real (neteo por periodo) + N° ops, ticket y
    * % participación. Para las tablas de análisis por canal (tipo base, sede, etc.).
    */
-  private agruparTabla(cvIn: (r: any) => boolean, afIn: (r: any) => boolean, campo: string): AgrupadoTabla[] {
+  private agruparTabla(cvIn: (r: any) => boolean, afIn: (r: any) => boolean, campo: string, filtro?: (r: any) => boolean): AgrupadoTabla[] {
     const m = new Map<string, { monto: number; ops: number }>();
     for (const r of this.todas) {
+      if (filtro && !filtro(r)) continue;
       const mo = Number(r.monto_consolidado || 0);
       const red = this.esReductor(r);
       const k = (r[campo] ?? '').toString().trim().toUpperCase() || '—';

@@ -165,25 +165,17 @@
       <section class="mp-panel" [class.open]="abiertos['graficos']">
         <button class="mp-panel-head" type="button" (click)="togglePanel('graficos')">
           <span class="ph-ico entidad"><mat-icon>account_balance</mat-icon></span>
-          <span class="ph-title">Ventas por entidad y tipo</span>
-          <span class="ph-sum">{{ porEntidad.length }} entidades · {{ porTipo.length }} tipos</span>
+          <span class="ph-title">Ventas por entidad</span>
+          <span class="ph-sum">{{ porEntidad.length }} entidades</span>
           <mat-icon class="ph-chev">expand_more</mat-icon>
         </button>
         <div class="mp-panel-bodywrap">
           <div class="mp-panel-body">
-            <div class="mp-charts-2">
-              <div class="mp-card">
-                <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad
-                  <button class="mp-expand" type="button" (click)="ampliar('entidad')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
-                </div>
-                <ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart' }"></ng-container>
+            <div class="mp-card">
+              <div class="mp-card-h"><mat-icon>account_balance</mat-icon> Ventas por entidad
+                <button class="mp-expand" type="button" (click)="ampliar('entidad')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
               </div>
-              <div class="mp-card">
-                <div class="mp-card-h"><mat-icon>category</mat-icon> Ventas por tipo de crédito
-                  <button class="mp-expand" type="button" (click)="ampliar('tipo')" title="Ampliar"><mat-icon>zoom_out_map</mat-icon></button>
-                </div>
-                <ng-container *ngTemplateOutlet="tTipo; context: { cls: 'mp-chart' }"></ng-container>
-              </div>
+              <ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart' }"></ng-container>
             </div>
           </div>
         </div>
@@ -201,13 +193,15 @@
           <div class="mp-panel-body">
             <div class="mp-grupos">
               <ng-container *ngIf="esCall">
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porContacto, lbl: 'Tipo base', icon: 'sell' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porSedeTab, lbl: 'Sede', icon: 'location_city' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoCliente, lbl: 'Tipo cliente', icon: 'group' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porContacto, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porSedeTab, lbl: 'Sede', titulo: 'Ventas por sede', icon: 'location_city' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoCliente, lbl: 'Tipo cliente', titulo: 'Ventas por tipo de cliente', icon: 'group' }"></ng-container>
               </ng-container>
               <ng-container *ngIf="esRealzza">
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoBase, lbl: 'Tipo base', icon: 'sell' }"></ng-container>
-                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', icon: 'account_balance' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoBase, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', titulo: 'Ventas por entidad', icon: 'account_balance' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosEntidad, lbl: 'Entidad', titulo: 'Motos por entidad', icon: 'two_wheeler' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosTipoProd, lbl: 'Tipo producto', titulo: 'Motos por tipo de producto', icon: 'two_wheeler' }"></ng-container>
               </ng-container>
             </div>
           </div>
@@ -270,9 +264,9 @@
     </ng-container>
 
     <!-- Tabla compacta de análisis (monto real, ops, ticket, % participación) -->
-    <ng-template #tGrupo let-data="data" let-lbl="lbl" let-icon="icon">
+    <ng-template #tGrupo let-data="data" let-lbl="lbl" let-icon="icon" let-titulo="titulo">
       <div class="mp-card grupo">
-        <div class="mp-card-h"><mat-icon>{{ icon }}</mat-icon> Ventas por {{ lbl | lowercase }}</div>
+        <div class="mp-card-h"><mat-icon>{{ icon }}</mat-icon> {{ titulo }}</div>
         <div class="tg">
           <div class="tg-head">
             <span>{{ lbl }}</span><span>Monto</span><span>Ops</span><span>Ticket</span><span>%</span>
@@ -305,20 +299,6 @@
           </dxo-label>
         </dxo-common-series-settings>
         <dxi-series color="#1A5FAD"></dxi-series>
-        <dxo-value-axis [valueMarginsEnabled]="true"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
-        <dxo-legend [visible]="false"></dxo-legend>
-        <dxo-tooltip [enabled]="true" [customizeTooltip]="tipMonto"></dxo-tooltip>
-      </dx-chart>
-    </ng-template>
-
-    <ng-template #tTipo let-cls="cls">
-      <dx-chart [dataSource]="porTipo" [redrawOnResize]="true" palette="Soft" [ngClass]="cls">
-        <dxo-common-series-settings argumentField="clave" valueField="monto" type="bar">
-          <dxo-label [visible]="true" [customizeText]="formatoSoles" position="outside" backgroundColor="transparent">
-            <dxo-font [weight]="700" color="#1E3A5F"></dxo-font>
-          </dxo-label>
-        </dxo-common-series-settings>
-        <dxi-series color="#E65100"></dxi-series>
         <dxo-value-axis [valueMarginsEnabled]="true"><dxo-label [customizeText]="formatoSoles"></dxo-label></dxo-value-axis>
         <dxo-legend [visible]="false"></dxo-legend>
         <dxo-tooltip [enabled]="true" [customizeTooltip]="tipMonto"></dxo-tooltip>
@@ -377,7 +357,6 @@
       <div *dxTemplate="let d of 'content'" class="mp-popup-body">
         <ng-container [ngSwitch]="popupChart">
           <ng-container *ngSwitchCase="'entidad'"><ng-container *ngTemplateOutlet="tEntidad; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
-          <ng-container *ngSwitchCase="'tipo'"><ng-container *ngTemplateOutlet="tTipo; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
           <ng-container *ngSwitchCase="'gestiones'"><ng-container *ngTemplateOutlet="tGest; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
           <ng-container *ngSwitchCase="'evolucion'"><ng-container *ngTemplateOutlet="tEvol; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
         </ng-container>
