@@ -140,7 +140,7 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mp-popup-body > * { flex: 1; min-width: 0; }
 
 /* Tablas de análisis por canal */
-.mp-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.mp-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 22px; }
 .mp-card.grupo { margin-top: 0; }
 .tg { font-size: 13px; }
 .tg-head, .tg-row { display: grid; grid-template-columns: 1.6fr 1fr .6fr 1fr .7fr; align-items: center; gap: 6px; padding: 7px 8px; }
