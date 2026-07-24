@@ -327,15 +327,12 @@ export class ComparativoCarteraVentasComponent {
       return;
     }
 
-    // CAP de la sede (si no hay, no se filtra por asesor → fallback).
-    const cap = this.capPorSede.get(this.sedeCfg.normalizar(sede));
-    const conCap = !!cap && cap.size > 0;
-    this.capAplicado = conCap;
-    const enCap = (vendedor: string) => !conCap || cap!.has(this.normNombre(vendedor));
-
-    const vista = this.convertidosAll.filter(c => c.sede === sede && enCap(c.vendedor));
+    // Detalle = TOTALIDAD de la sede (todas las ventas de su cartera asignada),
+    // sin desglosar ni filtrar por asesor. Así cuadra con el resumen por sede.
+    this.capAplicado = false;
+    const vista = this.convertidosAll.filter(c => c.sede === sede);
     this.ventasCartera = vista;
-    this.kAsignados = this.carteraUnica.filter(c => c.sede === sede && enCap(c.vendedor)).length;
+    this.kAsignados = this.carteraUnica.filter(c => c.sede === sede).length;
     this.kVendidos = vista.length;
     this.kMonto = Math.round(vista.reduce((s, c) => s + c.monto, 0));
     this.todoExpandido = false;
