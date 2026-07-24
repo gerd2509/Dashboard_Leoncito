@@ -139,6 +139,22 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mp-popup-body { height: 100%; width: 100%; display: flex; }
 .mp-popup-body > * { flex: 1; min-width: 0; }
 
+/* Tablas de análisis por canal */
+.mp-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; }
+.mp-card.grupo { margin-top: 0; }
+.tg { font-size: 13px; }
+.tg-head, .tg-row { display: grid; grid-template-columns: 1.6fr 1fr .6fr 1fr .7fr; align-items: center; gap: 6px; padding: 7px 8px; }
+.tg-head { font-weight: 800; color: #6b8299; font-size: 11.5px; text-transform: uppercase; border-bottom: 2px solid #e6edf5; }
+.tg-head span:not(:first-child), .tg-row span:not(.tg-k):not(.tg-empty) { text-align: right; }
+.tg-row { border-bottom: 1px solid #f0f4f9; }
+.tg-row:hover { background: #f7fafd; }
+.tg-k { font-weight: 600; color: #1E3A5F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-m { font-weight: 700; color: #1E3A5F; }
+.tg-p { font-weight: 700; color: #1A5FAD; }
+.tg-row.total { border-top: 2px solid #e6edf5; border-bottom: 0; background: #f5f9fe; font-weight: 800; }
+.tg-row.total .tg-k, .tg-row.total .tg-m { color: #1A5FAD; }
+.tg-empty { color: #90a4ae; font-style: italic; grid-column: 1 / -1; text-align: left; }
+
 /* Avisos / carga */
 .mp-aviso { display: flex; align-items: center; gap: 10px; background: #eef5fc; border: 1px solid #cfe0f5; color: #1E3A5F; border-radius: 12px; padding: 16px 18px; margin-top: 12px; }
 .mp-aviso.error { background: #FFEBEE; border-color: #FFCDD2; color: #C62828; }

@@ -10,6 +10,8 @@ import { SheetsService } from '../../services/service-google.service';
 import { ASESORES_CALL } from '../../shared/asesores';
 
 interface Agrupado { clave: string; monto: number; n: number; }
+interface ColDet { field: string; caption: string; width?: number; type?: 'date' | 'money' | 'number' | 'text'; }
+interface AgrupadoTabla { clave: string; monto: number; ops: number; ticket: number; part: number; }
 interface HistMes {
   mes: string;        // 'YYYY-MM' (clave para ordenar)
   mesLabel: string;   // 'Jul - 2026' (eje)
@@ -44,7 +46,7 @@ export class MiPanelComponent implements OnInit {
   form!: UntypedFormGroup;      // rango opcional { desde, hasta }
 
   // Paneles colapsables (acordeón). Abiertos por defecto: gestiones + resumen.
-  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, graficos: false, evolucion: false, detalle: false };
+  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, graficos: false, analisis: false, evolucion: false, detalle: false };
   /** ¿Es vendedor de sede? (canal distinto de call/realzza). */
   get esSedeVendedor(): boolean {
     const c = (this.canal || '').toLowerCase();
@@ -81,6 +83,15 @@ export class MiPanelComponent implements OnInit {
   porEntidad: Agrupado[] = [];
   porTipo: Agrupado[] = [];
   historial: HistMes[] = [];
+
+  // Columnas del detalle según canal (Call / Realzza / sede).
+  columnasDetalle: ColDet[] = [];
+  // Agrupaciones extra por canal (tabla con monto/ops/ticket/%).
+  porContacto: AgrupadoTabla[] = [];     // Call: tipo base (contacto)
+  porSedeTab: AgrupadoTabla[] = [];      // Call: por sede
+  porTipoCliente: AgrupadoTabla[] = [];  // Call: por tipo de cliente
+  porTipoBase: AgrupadoTabla[] = [];     // Realzza: por tipo de base
+  porEntidadTab: AgrupadoTabla[] = [];   // Realzza: por entidad
 
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
   gestAplica = false;    // solo canal call/realzza
@@ -120,9 +131,62 @@ export class MiPanelComponent implements OnInit {
     this.sedeNombre = this.sedeCfg.getConfig(sede)?.nombre
       ?? (sede ? sede.charAt(0).toUpperCase() + sede.slice(1) : '');
     this.form = this.fb.group({ desde: [null], hasta: [null] });
+    this.columnasDetalle = this.columnasPorCanal();
     if (!this.vendedor) { this.sinVendedor = true; return; }
     this.cargar();
     this.cargarGestiones();
+  }
+
+  /** ¿Es vendedor Call? / Realzza? (para mostrar sus análisis específicos). */
+  get esCall(): boolean { return (this.canal || '').toLowerCase() === 'call'; }
+  get esRealzza(): boolean { return (this.canal || '').toLowerCase() === 'realzza'; }
+
+  /** Columnas del detalle de ventas según el canal del vendedor. */
+  private columnasPorCanal(): ColDet[] {
+    if (this.esCall) return [
+      { field: 'codigo_cv', caption: 'ID Venta', width: 90 },
+      { field: 'fecha_cv', caption: 'Fecha', type: 'date', width: 105 },
+      { field: 'sede', caption: 'Sede', width: 130 },
+      { field: 'monto_consolidado', caption: 'Monto', type: 'money', width: 115 },
+      { field: 'cuota_inicial', caption: 'Cuota inicial', type: 'money', width: 110 },
+      { field: 'productos', caption: 'Productos', width: 210 },
+      { field: 'cuotas', caption: 'N° cuotas', type: 'number', width: 90 },
+      { field: 'doc_identidad', caption: 'DNI cliente', width: 110 },
+      { field: 'tipo_credito', caption: 'Tipo venta', width: 100 },
+      { field: 'tipo_base', caption: 'Tipo base', width: 110 },
+      { field: 'tipo_cliente', caption: 'Tipo cliente', width: 110 },
+      { field: 'vendedor', caption: 'Asesor', width: 90 },
+      { field: 'estado_venta', caption: 'Estado', width: 100 },
+      { field: 'entidad', caption: 'Entidad', width: 110 },
+      { field: 'contacto', caption: 'Contacto', width: 110 },
+    ];
+    if (this.esRealzza) return [
+      { field: 'tipo_base', caption: 'Tipo base', width: 110 },
+      { field: 'codigo_cv', caption: 'Código CV', width: 100 },
+      { field: 'fecha_cv', caption: 'Fecha', type: 'date', width: 105 },
+      { field: 'sede', caption: 'Sede', width: 140 },
+      { field: 'monto_consolidado', caption: 'Monto', type: 'money', width: 115 },
+      { field: 'cuota_inicial', caption: 'Cuota inicial', type: 'money', width: 110 },
+      { field: 'doc_identidad', caption: 'DNI cliente', width: 110 },
+      { field: 'productos', caption: 'Productos', width: 210 },
+      { field: 'cuotas', caption: 'N° cuotas', type: 'number', width: 90 },
+      { field: 'estado_venta', caption: 'Estado', width: 110 },
+      { field: 'asesor_venta', caption: 'Asesor venta', width: 110 },
+      { field: 'vendedor', caption: 'Vendedor', width: 180 },
+      { field: 'entidad', caption: 'Entidad', width: 110 },
+    ];
+    // Sede (por defecto)
+    return [
+      { field: 'fecha_cv', caption: 'Fecha', type: 'date', width: 105 },
+      { field: 'cliente_venta', caption: 'Cliente', width: 180 },
+      { field: 'doc_identidad', caption: 'DNI', width: 105 },
+      { field: 'monto_consolidado', caption: 'Monto', type: 'money', width: 115 },
+      { field: 'entidad', caption: 'Entidad', width: 120 },
+      { field: 'tipo_credito', caption: 'Tipo crédito', width: 120 },
+      { field: 'estado_venta', caption: 'Estado', width: 110 },
+      { field: 'productos', caption: 'Productos', width: 160 },
+      { field: 'sede', caption: 'Sede', width: 120 },
+    ];
   }
 
   /**
@@ -382,6 +446,16 @@ export class MiPanelComponent implements OnInit {
     this.porEntidad = this.agrupar(cvIn, afIn, 'entidad');
     this.porTipo = this.agrupar(cvIn, afIn, 'tipo_credito');
 
+    // Análisis específico por canal (monto real, ops, ticket, % participación).
+    if (this.esCall) {
+      this.porContacto = this.agruparTabla(cvIn, afIn, 'contacto');
+      this.porSedeTab = this.agruparTabla(cvIn, afIn, 'sede');
+      this.porTipoCliente = this.agruparTabla(cvIn, afIn, 'tipo_cliente');
+    } else if (this.esRealzza) {
+      this.porTipoBase = this.agruparTabla(cvIn, afIn, 'tipo_base');
+      this.porEntidadTab = this.agruparTabla(cvIn, afIn, 'entidad');
+    }
+
     // Historial estilo "Evolución de Ventas Mensual": respeta el rango (solo los
     // meses del periodo), con neteo por mes.
     const base = this.porMes(cvIn, afIn);
@@ -417,6 +491,29 @@ export class MiPanelComponent implements OnInit {
       if (red && afIn(r)) bump(r, -mo, 0);        // resta de la afectación
     }
     return [...m.values()].filter(x => Math.round(x.monto) !== 0 || x.n > 0).sort((a, b) => b.monto - a.monto);
+  }
+
+  /**
+   * Agrupa por un campo con monto real (neteo por periodo) + N° ops, ticket y
+   * % participación. Para las tablas de análisis por canal (tipo base, sede, etc.).
+   */
+  private agruparTabla(cvIn: (r: any) => boolean, afIn: (r: any) => boolean, campo: string): AgrupadoTabla[] {
+    const m = new Map<string, { monto: number; ops: number }>();
+    for (const r of this.todas) {
+      const mo = Number(r.monto_consolidado || 0);
+      const red = this.esReductor(r);
+      const k = (r[campo] ?? '').toString().trim().toUpperCase() || '—';
+      if (!m.has(k)) m.set(k, { monto: 0, ops: 0 });
+      const o = m.get(k)!;
+      if (cvIn(r)) { o.monto += mo; if (!red) o.ops++; }
+      if (red && afIn(r)) o.monto -= mo;
+    }
+    const rows = [...m.entries()].map(([clave, v]) => ({
+      clave, monto: v.monto, ops: v.ops, ticket: v.ops ? v.monto / v.ops : 0, part: 0,
+    }));
+    const total = rows.reduce((s, r) => s + r.monto, 0);
+    rows.forEach(r => r.part = total > 0 ? (r.monto / total) * 100 : 0);
+    return rows.filter(r => Math.round(r.monto) !== 0 || r.ops > 0).sort((a, b) => b.monto - a.monto);
   }
 
   /**
@@ -463,6 +560,14 @@ export class MiPanelComponent implements OnInit {
 
   /** Tooltip S/ para los gráficos de barras (entidad / tipo). */
   tipMonto = (info: any) => ({ text: `${info.argument}: ${this.soles(info.value)}` });
+
+  // Tipo/formato/alineación de columna del detalle según su `type`.
+  colDataType = (c: ColDet) => c.type === 'date' ? 'date' : (c.type === 'money' || c.type === 'number') ? 'number' : 'string';
+  colFormat = (c: ColDet) => c.type === 'date' ? 'dd/MM/yyyy' : c.type === 'money' ? 'S/ #,##0' : c.type === 'number' ? '#,##0' : '';
+  colAlign = (c: ColDet) => (c.type === 'money' || c.type === 'number') ? 'right' : 'left';
+
+  totalTabla = (d: AgrupadoTabla[]) => d.reduce((s, r) => s + r.monto, 0);
+  totalOps = (d: AgrupadoTabla[]) => d.reduce((s, r) => s + r.ops, 0);
 
   // ── Historial "Evolución de Ventas Mensual" (estilo Comparativo) ──
   /** Colorea los puntos de la línea de crecimiento: verde +, rojo −, gris 0. */

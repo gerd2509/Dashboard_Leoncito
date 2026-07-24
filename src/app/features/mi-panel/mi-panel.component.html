@@ -189,6 +189,31 @@
         </div>
       </section>
 
+      <!-- ══════════ PANEL 3b: ANÁLISIS POR CANAL (Call / Realzza) ══════════ -->
+      <section class="mp-panel" *ngIf="esCall || esRealzza" [class.open]="abiertos['analisis']">
+        <button class="mp-panel-head" type="button" (click)="togglePanel('analisis')">
+          <span class="ph-ico entidad"><mat-icon>insights</mat-icon></span>
+          <span class="ph-title">Análisis {{ esCall ? 'Call' : 'Realzza' }}</span>
+          <span class="ph-sum">{{ esCall ? 'tipo base · sede · tipo cliente' : 'tipo base · entidad' }}</span>
+          <mat-icon class="ph-chev">expand_more</mat-icon>
+        </button>
+        <div class="mp-panel-bodywrap">
+          <div class="mp-panel-body">
+            <div class="mp-grupos">
+              <ng-container *ngIf="esCall">
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porContacto, lbl: 'Tipo base', icon: 'sell' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porSedeTab, lbl: 'Sede', icon: 'location_city' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoCliente, lbl: 'Tipo cliente', icon: 'group' }"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="esRealzza">
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoBase, lbl: 'Tipo base', icon: 'sell' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', icon: 'account_balance' }"></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ══════════ PANEL 4: EVOLUCIÓN DE VENTAS MENSUAL ══════════ -->
       <section class="mp-panel" [class.open]="abiertos['evolucion']">
         <button class="mp-panel-head" type="button" (click)="togglePanel('evolucion')">
@@ -227,18 +252,10 @@
                 <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50]" [showInfo]="true"></dxo-pager>
                 <dxo-export [enabled]="true"></dxo-export>
 
-                <dxi-column dataField="fecha_cv" caption="Fecha" dataType="date" format="dd/MM/yyyy" [width]="110"></dxi-column>
-                <dxi-column dataField="cliente_venta" caption="Cliente" [minWidth]="180"></dxi-column>
-                <dxi-column dataField="doc_identidad" caption="DNI" [width]="110"></dxi-column>
-                <dxi-column dataField="monto_consolidado" caption="Monto" dataType="number" format="#,##0" alignment="right" [width]="120"></dxi-column>
-                <dxi-column dataField="entidad" caption="Entidad" [minWidth]="120"></dxi-column>
-                <dxi-column dataField="tipo_credito" caption="Tipo crédito" [minWidth]="130"></dxi-column>
-                <dxi-column dataField="estado_venta" caption="Estado" [minWidth]="110"></dxi-column>
-                <dxi-column dataField="productos" caption="Productos" [minWidth]="160"></dxi-column>
-                <dxi-column dataField="sede" caption="Sede" [minWidth]="110"></dxi-column>
+                <dxi-column *ngFor="let c of columnasDetalle" [dataField]="c.field" [caption]="c.caption"
+                  [width]="c.width" [dataType]="colDataType(c)" [format]="colFormat(c)" [alignment]="colAlign(c)"></dxi-column>
 
                 <dxo-summary>
-                  <dxi-total-item column="cliente_venta" [displayFormat]="'TOTAL'" alignment="right"></dxi-total-item>
                   <dxi-total-item column="monto_consolidado" summaryType="sum" [valueFormat]="'#,##0'" displayFormat="S/ {0}"></dxi-total-item>
                 </dxo-summary>
               </dx-data-grid>
@@ -248,6 +265,33 @@
       </section>
 
     </ng-container>
+
+    <!-- Tabla compacta de análisis (monto real, ops, ticket, % participación) -->
+    <ng-template #tGrupo let-data="data" let-lbl="lbl" let-icon="icon">
+      <div class="mp-card grupo">
+        <div class="mp-card-h"><mat-icon>{{ icon }}</mat-icon> Ventas por {{ lbl | lowercase }}</div>
+        <div class="tg">
+          <div class="tg-head">
+            <span>{{ lbl }}</span><span>Monto</span><span>Ops</span><span>Ticket</span><span>%</span>
+          </div>
+          <div class="tg-row" *ngFor="let r of data">
+            <span class="tg-k" [title]="r.clave">{{ r.clave }}</span>
+            <span class="tg-m">{{ soles(r.monto) }}</span>
+            <span>{{ r.ops }}</span>
+            <span>{{ soles(r.ticket) }}</span>
+            <span class="tg-p">{{ r.part | number:'1.0-1' }}%</span>
+          </div>
+          <div class="tg-row" *ngIf="!data.length"><span class="tg-empty">Sin datos en el periodo</span></div>
+          <div class="tg-row total" *ngIf="data.length">
+            <span class="tg-k">TOTAL</span>
+            <span class="tg-m">{{ soles(totalTabla(data)) }}</span>
+            <span>{{ totalOps(data) }}</span>
+            <span></span>
+            <span class="tg-p">100%</span>
+          </div>
+        </div>
+      </div>
+    </ng-template>
 
     <!-- ══════════ Templates de gráficos (reutilizados en línea y en el popup) ══════════ -->
     <ng-template #tEntidad let-cls="cls">
