@@ -167,7 +167,8 @@ export class VentasCampoComponent implements OnInit {
     { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
     { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'AV9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
+    { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
+    { value: 'AV11', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' }
   ];
 
   nombresCortos: Record<string, string> = {
@@ -184,7 +185,8 @@ export class VentasCampoComponent implements OnInit {
     'SAMAME HUAMAN ARIADNE': 'ARIADNE',
     'UCHOFEN VIGO FELICITA': 'FELICITA',
     'BUSTAMANTE CHALAN ANA RUT': 'ANA RUT',
-    'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS'
+    'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS',
+    'GUILLEN MACKUADO AURORA FERNANDA': 'AURORA'
   };
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
