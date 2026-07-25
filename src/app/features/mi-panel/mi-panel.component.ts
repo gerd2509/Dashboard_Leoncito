@@ -146,7 +146,7 @@ export class MiPanelComponent implements OnInit {
   private columnasPorCanal(): ColDet[] {
     if (this.esCall) return [
       { field: 'codigo_cv', caption: 'ID Venta', width: 90 },
-      { field: 'fecha_cv', caption: 'Fecha', type: 'date', width: 105 },
+      { field: 'fecha_disp', caption: 'Fecha', type: 'date', width: 105 },
       { field: 'sede', caption: 'Sede', width: 130 },
       { field: 'monto_consolidado', caption: 'Monto', type: 'money', width: 115 },
       { field: 'cuota_inicial', caption: 'Cuota inicial', type: 'money', width: 110 },
@@ -164,7 +164,7 @@ export class MiPanelComponent implements OnInit {
     if (this.esRealzza) return [
       { field: 'tipo_base', caption: 'Tipo base', width: 110 },
       { field: 'codigo_cv', caption: 'Código CV', width: 100 },
-      { field: 'fecha_cv', caption: 'Fecha', type: 'date', width: 105 },
+      { field: 'fecha_disp', caption: 'Fecha', type: 'date', width: 105 },
       { field: 'sede', caption: 'Sede', width: 140 },
       { field: 'monto_consolidado', caption: 'Monto', type: 'money', width: 115 },
       { field: 'cuota_inicial', caption: 'Cuota inicial', type: 'money', width: 110 },
@@ -180,7 +180,7 @@ export class MiPanelComponent implements OnInit {
     ];
     // Sede (por defecto)
     return [
-      { field: 'fecha_cv', caption: 'Fecha', type: 'date', width: 105 },
+      { field: 'fecha_disp', caption: 'Fecha', type: 'date', width: 105 },
       { field: 'cliente_venta', caption: 'Cliente', width: 180 },
       { field: 'doc_identidad', caption: 'DNI', width: 105 },
       { field: 'monto_consolidado', caption: 'Monto', type: 'money', width: 115 },
@@ -372,9 +372,21 @@ export class MiPanelComponent implements OnInit {
         ? this.ventasSvc.obtenerVentasCanal('realzza', { vendedor: this.vendedor })
         : this.ventasSvc.obtenerVentasPorVendedor(this.vendedor);
     obs.subscribe({
-      next: (rows) => { this.todas = rows || []; this.aplicar(); this.cargando = false; },
+      next: (rows) => {
+        // Fecha de display construida desde dia/mes/anio (evita el corrimiento de
+        // -1 día por zona horaria al parsear la columna DATE `fecha_cv`).
+        this.todas = (rows || []).map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
+        this.aplicar();
+        this.cargando = false;
+      },
       error: () => { this.error = 'No se pudieron cargar tus ventas.'; this.cargando = false; },
     });
+  }
+
+  /** Fecha local exacta desde los enteros dia/mes/anio_cv (sin desfase de zona). */
+  private fechaLocal(r: any): Date | null {
+    const a = +r.anio_cv, m = +r.mes_cv, d = +r.dia_cv;
+    return (a && m && d) ? new Date(a, m - 1, d) : null;
   }
 
   /**
