@@ -5,6 +5,7 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { nombresRealzza } from '../../shared/asesores';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { forkJoin } from 'rxjs';
@@ -340,17 +341,14 @@ export class VentasSedesComponent implements OnInit {
     this.dataIncautaciones = [];
     this.dataGlobalGo = [];
 
-    // Sede dominante de cada vendedor: las ventas cuya sede NO es una sede física
-    // registrada (p.ej. "SEDE REALZZA STORE") se atribuyen a la sede donde el
-    // vendedor tiene la mayoría de sus ventas, en vez de descartarse.
-    const sedePorVendedor = this.calcularSedeDominante(rows, r => (r.sede || '').toString(), r => r.vendedor);
-
     rows.forEach((row: any) => {
+      // Los asesores del canal Realzza NO cuentan en Ventas Sedes (sus ventas son
+      // del canal Realzza, no de la sede física).
+      if (this.esVendedorRealzza(row.vendedor)) return;
+
       const sedeRaw = (row.sede || '').toString().trim();
-      const vend = (row.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
-      let sedeKey = this.resolverSedeKey(sedeRaw);
-      if (!sedeKey) sedeKey = sedePorVendedor.get(vend) || '';
-      if (!sedeKey) return;
+      const sedeKey = this.resolverSedeKey(sedeRaw);
+      if (!sedeKey) return;   // sede no física registrada (p.ej. SEDE REALZZA STORE) → se descarta
 
       const estadoVenta = (row.estado_venta || '').toString().trim().toUpperCase();
       const entidad = (row.entidad || '').toString().trim().toUpperCase();
@@ -475,29 +473,16 @@ export class VentasSedesComponent implements OnInit {
     return this.sedeConfig.existeSede(key) ? key : '';
   }
 
-  /**
-   * Determina, por vendedor, la sede física donde tiene MÁS ventas (solo sedes
-   * registradas). Sirve para atribuir las ventas cuya sede no resuelve (tiendas no
-   * registradas como "SEDE REALZZA STORE") a la sede real del vendedor. Recibe cómo
-   * obtener la sede y el vendedor de cada fila (para reusar en Postgres y Excel).
-   */
-  private calcularSedeDominante(rows: any[], getSede: (r: any) => string, getVend: (r: any) => any): Map<string, string> {
-    const conteo = new Map<string, Map<string, number>>();
-    rows.forEach(r => {
-      const key = this.resolverSedeKey(getSede(r));
-      if (!key) return;
-      const vend = (getVend(r) || 'SIN VENDEDOR').toString().trim().toUpperCase();
-      if (!conteo.has(vend)) conteo.set(vend, new Map());
-      const m = conteo.get(vend)!;
-      m.set(key, (m.get(key) || 0) + 1);
-    });
-    const dominante = new Map<string, string>();
-    conteo.forEach((m, vend) => {
-      let best = '', bestN = -1;
-      m.forEach((n, k) => { if (n > bestN) { bestN = n; best = k; } });
-      dominante.set(vend, best);
-    });
-    return dominante;
+  // Nombres de asesores Realzza (normalizados) para excluirlos de Ventas Sedes.
+  private realzzaSet = new Set(nombresRealzza().map(n =>
+    (n || '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()));
+
+  /** ¿El vendedor es un asesor del canal Realzza (registrado)? → se excluye de Sedes. */
+  private esVendedorRealzza(v: any): boolean {
+    return this.realzzaSet.has(this.normNombreVend(v));
+  }
+  private normNombreVend(s: any): string {
+    return (s ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   }
 
   async importar(event: Event) {
@@ -519,16 +504,14 @@ export class VentasSedesComponent implements OnInit {
       this.dataIncautaciones = [];
       this.dataGlobalGo = [];
 
-      // Ventas cuya sede no resuelve → se atribuyen a la sede dominante del vendedor.
-      const sedePorVendedor = this.calcularSedeDominante(jsonData as any[], r => (r['Sede'] || '').toString(), r => r['Vendedor']);
-
       jsonData.forEach((row: any) => {
+        // Los asesores Realzza no cuentan en Ventas Sedes.
+        if (this.esVendedorRealzza(row['Vendedor'])) return;
+
         const sedeRaw = (row['Sede'] || '').toString().trim();
         // La columna Sede llega como "SEDE RELENOR <NOMBRE>". Se extrae el nombre y se
-        // valida contra el registro de sedes; si no resuelve, se usa la sede del vendedor.
-        const vend = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
-        let sedeKey = this.resolverSedeKey(sedeRaw);
-        if (!sedeKey) sedeKey = sedePorVendedor.get(vend) || '';
+        // valida contra el registro de sedes: solo se toman las sedes conocidas.
+        const sedeKey = this.resolverSedeKey(sedeRaw);
         if (!sedeKey) return;
 
         const estadoVenta = (row['EstadoVenta'] || '').toString().trim().toUpperCase();
