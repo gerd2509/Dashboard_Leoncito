@@ -90,11 +90,16 @@
         </label>
         <div class="uf-campo">
           <span class="uf-lbl">Sede(s) *</span>
-          <dx-tag-box [dataSource]="sedeOptionsVisibles" displayExpr="label" valueExpr="value"
-            [(value)]="form.sedes" (onValueChanged)="onSedesChange()"
-            [showSelectionControls]="true" [showClearButton]="true" applyValueMode="instantly"
-            stylingMode="outlined" placeholder="Una o varias sedes…"
-            [dropDownOptions]="{ maxHeight: 240 }"></dx-tag-box>
+          <dx-drop-down-box [(value)]="form.sedes" [dataSource]="sedeOptionsVisibles"
+            valueExpr="value" displayExpr="label" [showClearButton]="true" stylingMode="outlined"
+            placeholder="Una o varias sedes…" [dropDownOptions]="{ maxHeight: 280 }">
+            <div *dxTemplate="let d of 'content'">
+              <dx-list [dataSource]="sedeOptionsVisibles" selectionMode="multiple"
+                [showSelectionControls]="true" keyExpr="value" displayExpr="label"
+                [(selectedItemKeys)]="form.sedes" (onSelectionChanged)="onSedesChange()"
+                [height]="260" [searchEnabled]="true" searchExpr="label"></dx-list>
+            </div>
+          </dx-drop-down-box>
         </div>
 
         <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->
