@@ -248,7 +248,7 @@
           <div class="mp-panel-body">
             <div class="mp-card full">
               <dx-data-grid [dataSource]="ventas" [showBorders]="true" [rowAlternationEnabled]="true"
-                [columnAutoWidth]="true" [hoverStateEnabled]="true" [wordWrapEnabled]="false" [width]="'100%'"
+                [columnAutoWidth]="true" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
                 (onToolbarPreparing)="onToolbarPreparing($event)">
                 <dxo-filter-row [visible]="true"></dxo-filter-row>
                 <dxo-header-filter [visible]="true"></dxo-header-filter>
@@ -258,7 +258,7 @@
                 <dxo-export [enabled]="true"></dxo-export>
 
                 <dxi-column *ngFor="let c of columnasDetalle" [dataField]="c.field" [caption]="c.caption"
-                  [width]="c.width" [dataType]="colDataType(c)" [format]="colFormat(c)" [alignment]="colAlign(c)"></dxi-column>
+                  [minWidth]="70" [dataType]="colDataType(c)" [format]="colFormat(c)" [alignment]="colAlign(c)"></dxi-column>
 
                 <dxo-summary>
                   <dxi-total-item column="monto_consolidado" summaryType="sum" [valueFormat]="'#,##0'" displayFormat="S/ {0}"></dxi-total-item>
