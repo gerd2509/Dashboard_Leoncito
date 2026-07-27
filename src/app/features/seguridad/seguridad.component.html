@@ -89,17 +89,17 @@
           </select>
         </label>
         <div class="uf-campo">
-          <span class="uf-lbl">Sede(s) *</span>
-          <dx-drop-down-box [(value)]="form.sedes" [dataSource]="sedeOptionsVisibles"
-            valueExpr="value" displayExpr="label" [showClearButton]="true" stylingMode="outlined"
-            placeholder="Una o varias sedes…" [dropDownOptions]="{ maxHeight: 280 }">
-            <div *dxTemplate="let d of 'content'">
-              <dx-list [dataSource]="sedeOptionsVisibles" selectionMode="multiple"
-                [showSelectionControls]="true" keyExpr="value" displayExpr="label"
-                [(selectedItemKeys)]="form.sedes" (onSelectionChanged)="onSedesChange($event)"
-                [height]="260" [searchEnabled]="true" searchExpr="label"></dx-list>
-            </div>
-          </dx-drop-down-box>
+          <span class="uf-lbl">Sede(s) *
+            <span class="uf-sede-count">{{ form.sedes.length }} seleccionada(s)</span>
+          </span>
+          <div class="sede-multi">
+            <label class="sede-multi-item" *ngFor="let o of sedeOptionsVisibles"
+                   [class.on]="form.sedes.includes(o.value)">
+              <input type="checkbox" [checked]="form.sedes.includes(o.value)"
+                     (change)="toggleSede(o.value)" />
+              <span>{{ o.label }}</span>
+            </label>
+          </div>
         </div>
 
         <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->
