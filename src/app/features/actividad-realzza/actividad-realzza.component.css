@@ -62,7 +62,7 @@ mat-icon.girando { animation: ar-spin .8s linear infinite; }
 .an-chip.mp { background: #e0f2f1; color: #00838F; }
 
 /* Popup */
-.ar-popup { max-height: 100%; overflow-y: auto; }
+.ar-popup { height: 100%; }
 .ar-poptitle { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; white-space: normal; }
 .ar-poptitle mat-icon { font-size: 20px; width: 20px; height: 20px; }
 

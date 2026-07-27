@@ -134,14 +134,16 @@
   <!-- Popup de detalle -->
   <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="popupTitulo" [dragEnabled]="false"
     (onShown)="popupShown($event)" [hideOnOutsideClick]="true" [showCloseButton]="true"
-    width="640" [maxWidth]="'96%'" height="auto" [maxHeight]="'88%'">
+    width="640" [maxWidth]="'96%'" height="560" [maxHeight]="'88%'">
     <div *dxTemplate="let d of 'content'" class="ar-popup">
       <dx-data-grid [dataSource]="popupRegistros" [showBorders]="true" [rowAlternationEnabled]="true"
-        [columnAutoWidth]="true" [hoverStateEnabled]="true">
+        [columnAutoWidth]="true" [hoverStateEnabled]="true" height="100%">
         <dxo-grouping [autoExpandAll]="false"></dxo-grouping>
-        <dxo-scrolling mode="standard"></dxo-scrolling>
-        <dxi-column dataField="diaLabel" caption="Día" [groupIndex]="0" sortOrder="asc"
-          [calculateSortValue]="sortValueDia"></dxi-column>
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxo-pager [visible]="false"></dxo-pager>
+        <dxo-scrolling mode="standard" [useNative]="true"></dxo-scrolling>
+        <dxi-column dataField="ymd" caption="Día" [groupIndex]="0" sortOrder="asc"
+          [customizeText]="mostrarDia"></dxi-column>
         <dxi-column dataField="hhmm" caption="Hora" [width]="70" alignment="center"></dxi-column>
         <dxi-column dataField="tipo" caption="Tipo" [width]="120" cellTemplate="tipoTpl"></dxi-column>
         <dxi-column dataField="dni" caption="DNI" [width]="100" alignment="center"></dxi-column>
