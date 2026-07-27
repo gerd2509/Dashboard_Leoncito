@@ -139,16 +139,20 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
   //  - usuario de sede        → fijo a su sede, sin selector
   private configurarSedeSegunUsuario() {
     const u = this.auth.getUsuario();
-    this.esAdmin = !u || u.rol === 'admin' || this.sedeCfg.normalizar(u.sede) === 'todas';
+    const sedesU = this.auth.sedesUsuario().map(s => this.sedeCfg.normalizar(s));
+    this.esAdmin = !u || u.rol === 'admin' || sedesU.includes('todas');
+    const todas = this.sedeCfg.getSedesCall();
 
     if (this.esAdmin) {
-      this.sedesDisponibles = this.sedeCfg.getSedesCall();
-      this.sedeKey = this.sedesDisponibles[0]?.key ?? 'ferrenafe';
+      this.sedesDisponibles = todas;
     } else {
-      this.sedeKey = this.sedeCfg.normalizar(u!.sede);
-      const cfg = this.sedeCfg.getConfig(u!.sede);
-      this.sedesDisponibles = [{ key: this.sedeKey, nombre: cfg?.nombre ?? u!.sede }];
+      this.sedesDisponibles = todas.filter(s => sedesU.includes(s.key));
+      if (!this.sedesDisponibles.length) {
+        const key = this.sedeCfg.normalizar(u!.sede);
+        this.sedesDisponibles = [{ key, nombre: this.sedeCfg.getConfig(u!.sede)?.nombre ?? u!.sede }];
+      }
     }
+    this.sedeKey = this.sedesDisponibles[0]?.key ?? 'ferrenafe';
     this.formCtrl.patchValue({ sede: this.sedeKey }, { emitEvent: false });
   }
 

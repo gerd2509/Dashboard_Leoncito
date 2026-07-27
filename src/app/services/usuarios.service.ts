@@ -9,6 +9,7 @@ export interface UsuarioDB {
   nombre: string;
   rol: string;
   sede: string;
+  sedes?: string[];    // sedes asignadas (varias)
   vendedor?: string;   // nombre exacto del vendedor (rol vendedor) → "Mi Panel"
   canal?: string;      // 'sede' | 'call' | 'realzza' (rol vendedor)
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
@@ -23,6 +24,7 @@ export interface UsuarioPayload {
   nombre: string;
   rol: string;
   sede: string;
+  sedes?: string[];
   vendedor?: string;
   canal?: string;
   activo: boolean;

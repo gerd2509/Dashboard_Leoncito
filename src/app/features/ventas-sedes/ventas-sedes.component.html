@@ -7,7 +7,7 @@
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
 
-    <dx-select-box *ngIf="esGlobal" style="width: 240px;" [items]="sedesDisponibles" displayExpr="nombre"
+    <dx-select-box *ngIf="esGlobal || sedesDisponibles.length > 1" style="width: 240px;" [items]="sedesDisponibles" displayExpr="nombre"
         valueExpr="key" [(value)]="sedeSeleccionada" label="Sede" labelMode="floating" stylingMode="underlined"
         placeholder="Todas las sedes" (onValueChanged)="onSedeChanged($event)" [showClearButton]="true" />
 
@@ -227,7 +227,7 @@
 
     <!-- Banner de sede -->
     <div class="sede-banner" [style.background]="colorSedeActual">
-        <button *ngIf="esGlobal" mat-icon-button class="banner-back" (click)="volverResumen()" title="Volver al resumen">
+        <button *ngIf="esGlobal || sedesDisponibles.length > 1" mat-icon-button class="banner-back" (click)="volverResumen()" title="Volver al resumen">
             <mat-icon>arrow_back</mat-icon>
         </button>
         <mat-icon>storefront</mat-icon>

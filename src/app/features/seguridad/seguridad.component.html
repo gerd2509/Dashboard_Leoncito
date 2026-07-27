@@ -88,10 +88,11 @@
             <option *ngFor="let r of rolOptions" [value]="r.value">{{ r.label }}</option>
           </select>
         </label>
-        <label>Sede *
-          <select [(ngModel)]="form.sede" (ngModelChange)="recomputarVendedores()">
-            <option *ngFor="let s of sedeOptionsVisibles" [value]="s.value">{{ s.label }}</option>
-          </select>
+        <label>Sede(s) *
+          <dx-tag-box [dataSource]="sedeOptionsVisibles" displayExpr="label" valueExpr="value"
+            [(value)]="form.sedes" (onValueChanged)="onSedesChange()" [searchEnabled]="true"
+            [showSelectionControls]="true" applyValueMode="useButtons" stylingMode="outlined"
+            placeholder="Una o varias sedes…"></dx-tag-box>
         </label>
 
         <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->

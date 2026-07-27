@@ -137,7 +137,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.cargarAfiliacionesLocal();   // afiliaciones guardadas en el navegador (si hay)
     const u = this.auth.getUsuario();
-    const esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
+    const sedesU = this.auth.sedesUsuario().map(s => this.sedeConfig.normalizar(s));
+    const esGlobal = !u || u.rol === 'admin' || sedesU.includes('todas');
 
     const sedeU = (u?.sede || '').toString().trim().toUpperCase();
     const esZona = ['CENTRO', 'NORTE', 'SUR'].includes(sedeU);
@@ -153,10 +154,14 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         .filter(s => (this.sedeConfig.getConfig(s.key)?.zona ?? '') === sedeU)
         .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
     } else {
-      const cfg = this.sedeConfig.getConfig(u!.sede);
-      this.sedesObjetivo = cfg
-        ? [{ key: this.sedeConfig.normalizar(u!.sede), nombre: cfg.nombre }]
-        : [];
+      // Una o varias sedes asignadas al usuario.
+      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
+        .filter(s => sedesU.includes(s.key))
+        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
+      if (!this.sedesObjetivo.length) {
+        const cfg = this.sedeConfig.getConfig(u!.sede);
+        if (cfg) this.sedesObjetivo = [{ key: this.sedeConfig.normalizar(u!.sede), nombre: cfg.nombre }];
+      }
     }
 
     this.construirEvoScope();   // opciones de ámbito para la evolución (Global/Zona/Sede)

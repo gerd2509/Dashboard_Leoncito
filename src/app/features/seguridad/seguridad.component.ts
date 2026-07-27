@@ -63,7 +63,7 @@ export class SeguridadComponent implements OnInit {
   editId: number | null = null;
   guardandoU = false;
   errorForm = '';
-  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', canal: '', vendedor: '', password: '', activo: true };
+  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true };
 
   // Identidad del vendedor (solo cuando rol = vendedor).
   readonly canalOptions = [
@@ -83,7 +83,11 @@ export class SeguridadComponent implements OnInit {
 
   // Para el dx-data-grid de usuarios: mostrar/buscar por etiqueta (no por el código).
   rolCell     = (row: UsuarioDB) => this.rolLabel(row?.rol);
-  sedeCell    = (row: UsuarioDB) => this.sedeLabel(row?.sede);
+  sedeCell    = (row: UsuarioDB) => {
+    const arr = (row?.sedes && row.sedes.length) ? row.sedes : (row?.sede ? [row.sede] : []);
+    const labels = arr.map(s => this.sedeLabel(s));
+    return labels.length <= 2 ? labels.join(', ') : `${labels[0]} +${labels.length - 1}`;
+  };
   vendedorCell = (row: UsuarioDB) => row?.vendedor ? `${row.vendedor} · ${row.canal || '-'}` : '';
   onUsuarioDblClick = (e: any) => { if (e?.data) this.editarUsuario(e.data); };
 
@@ -168,7 +172,7 @@ export class SeguridadComponent implements OnInit {
 
   nuevoUsuario(): void {
     this.editId = null;
-    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', canal: '', vendedor: '', password: '', activo: true };
+    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'], canal: '', vendedor: '', password: '', activo: true };
     this.vendedorOptions = [];
     this.errorForm = '';
     this.mostrarForm = true;
@@ -176,11 +180,14 @@ export class SeguridadComponent implements OnInit {
 
   editarUsuario(u: UsuarioDB): void {
     this.editId = u.id;
+    const sedes = (u.sedes && u.sedes.length ? u.sedes : (u.sede ? [u.sede] : []))
+      .map(s => this.sedeCfg.normalizar(s));
     this.form = {
       usuario: u.usuario,
       nombre: u.nombre ?? '',
       rol: (u.rol || '').toLowerCase(),
-      sede: this.sedeCfg.normalizar(u.sede),
+      sede: sedes[0] ?? this.sedeCfg.normalizar(u.sede),
+      sedes: sedes.length ? sedes : ['todas'],
       canal: u.canal ?? '',
       vendedor: u.vendedor ?? '',
       password: '',
@@ -211,8 +218,20 @@ export class SeguridadComponent implements OnInit {
    *  si deja de ser vendedor, limpia canal/vendedor. */
   onRolChange(): void {
     const esGerSup = this.form.rol === 'gerente' || this.form.rol === 'supervisor';
-    if (!esGerSup && ['centro', 'norte', 'sur'].includes(this.form.sede)) this.form.sede = 'todas';
+    if (!esGerSup) {
+      // Quita las zonas de la selección si el rol ya no es gerente/supervisor.
+      this.form.sedes = this.form.sedes.filter(s => !['centro', 'norte', 'sur'].includes(s));
+      if (!this.form.sedes.length) this.form.sedes = ['todas'];
+      this.form.sede = this.form.sedes[0];
+    }
     if (this.form.rol !== 'vendedor') { this.form.canal = ''; this.form.vendedor = ''; this.vendedorOptions = []; }
+  }
+
+  /** Al cambiar la selección de sedes: la principal = la primera; recalcula vendedores. */
+  onSedesChange(): void {
+    if (!this.form.sedes.length) this.form.sedes = ['todas'];
+    this.form.sede = this.form.sedes[0];
+    this.recomputarVendedores();
   }
 
   /** Opciones de sede visibles: las ZONAS (centro/norte/sur) solo para gerente/supervisor. */
@@ -225,7 +244,7 @@ export class SeguridadComponent implements OnInit {
   /** Todos los campos obligatorios completos → habilita el botón Salvar. */
   get formValido(): boolean {
     const f = this.form;
-    if (!f.usuario.trim() || !f.nombre.trim() || !f.rol || !f.sede) return false;
+    if (!f.usuario.trim() || !f.nombre.trim() || !f.rol || !f.sedes.length) return false;
     if (this.editId === null && !f.password.trim()) return false;   // contraseña obligatoria al crear
     if (f.rol === 'vendedor' && (!f.canal || !f.vendedor)) return false;
     return true;
@@ -250,7 +269,8 @@ export class SeguridadComponent implements OnInit {
     this.errorForm = '';
     const esNuevo = this.editId === null;
     const payload = {
-      usuario: f.usuario.trim(), nombre: f.nombre.trim(), rol: f.rol, sede: f.sede,
+      usuario: f.usuario.trim(), nombre: f.nombre.trim(), rol: f.rol,
+      sede: f.sedes[0] || f.sede, sedes: f.sedes,
       canal: esVendedor ? f.canal : '', vendedor: esVendedor ? f.vendedor.trim() : '',
       activo: f.activo, password: f.password.trim() || undefined,
     };

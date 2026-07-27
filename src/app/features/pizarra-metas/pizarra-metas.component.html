@@ -11,12 +11,12 @@
     </div>
 
     <div class="pz-controls">
-      <dx-select-box *ngIf="esGlobal"
+      <dx-select-box *ngIf="esGlobal || sedesDisponibles.length > 1"
         [items]="sedesDisponibles" displayExpr="nombre" valueExpr="key"
         [(value)]="sedeSeleccionada" (onValueChanged)="onSedeChanged()"
         [width]="200" stylingMode="outlined" label="Sede">
       </dx-select-box>
-      <span *ngIf="!esGlobal" class="pz-chip"><mat-icon>location_city</mat-icon>{{ nombreSedeActual }}</span>
+      <span *ngIf="!esGlobal && sedesDisponibles.length <= 1" class="pz-chip"><mat-icon>location_city</mat-icon>{{ nombreSedeActual }}</span>
 
       <dx-date-box [(value)]="fecha" type="date" displayFormat="dd/MM/yyyy"
         (onValueChanged)="onFechaChanged()" [width]="150" stylingMode="outlined" label="Fecha">

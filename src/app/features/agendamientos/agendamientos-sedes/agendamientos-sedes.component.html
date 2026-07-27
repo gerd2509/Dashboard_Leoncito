@@ -3,8 +3,8 @@
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
 
-    <!-- Selector de sede: solo admin general. El usuario de sede queda fijo (chip). -->
-    <dx-select-box *ngIf="esAdmin" formControlName="sede" [items]="sedesDisponibles"
+    <!-- Selector de sede: admin, o usuario con varias sedes asignadas. -->
+    <dx-select-box *ngIf="esAdmin || sedesDisponibles.length > 1" formControlName="sede" [items]="sedesDisponibles"
         displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
         stylingMode="underlined" [width]="200" (onValueChanged)="onSedeChange($event)">
     </dx-select-box>
@@ -19,7 +19,7 @@
         Exportar
     </button>
 
-    <span class="sede-chip" *ngIf="!esAdmin">📍 {{ sedeNombre }}</span>
+    <span class="sede-chip" *ngIf="!esAdmin && sedesDisponibles.length <= 1">📍 {{ sedeNombre }}</span>
     <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
 </form>
 

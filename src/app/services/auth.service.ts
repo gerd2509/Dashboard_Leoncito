@@ -7,6 +7,7 @@ export interface Usuario {
   nombre: string;
   rol: 'admin' | 'gerente' | 'supervisor' | string;
   sede: string;
+  sedes?: string[];    // sedes asignadas (varias). Si no hay, se asume [sede].
   vendedor?: string;   // rol vendedor: su nombre exacto (para "Mi Panel")
   canal?: string;      // rol vendedor: 'sede' | 'call' | 'realzza'
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
@@ -57,5 +58,13 @@ export class AuthService {
 
   getSede(): string {
     return this.getUsuario()?.sede ?? '';
+  }
+
+  /** Sedes asignadas al usuario (varias). Si no hay lista, cae a [sede]. */
+  sedesUsuario(): string[] {
+    const u = this.getUsuario();
+    if (!u) return [];
+    if (Array.isArray(u.sedes) && u.sedes.length) return u.sedes.filter(Boolean);
+    return u.sede ? [u.sede] : [];
   }
 }

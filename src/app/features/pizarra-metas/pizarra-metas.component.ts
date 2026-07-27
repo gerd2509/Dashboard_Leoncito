@@ -96,17 +96,23 @@ export class PizarraMetasComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const u = this.auth.getUsuario();
-    this.esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
+    const sedesU = this.auth.sedesUsuario().map(s => this.sedeConfig.normalizar(s));
+    this.esGlobal = !u || u.rol === 'admin' || sedesU.includes('todas');
 
     if (this.esGlobal) {
       this.sedesDisponibles = this.sedeConfig.getSedesParaCombo()
         .sort((a, b) => a.nombre.localeCompare(b.nombre));
       this.sedeSeleccionada = this.sedesDisponibles[0]?.key ?? '';
     } else if (u) {
-      this.sedeForzada = this.sedeConfig.normalizar(u.sede);
-      this.sedeSeleccionada = this.sedeForzada;
-      const cfg = this.sedeConfig.getConfig(this.sedeForzada);
-      this.sedesDisponibles = [{ key: this.sedeForzada, nombre: cfg?.nombre ?? u.sede }];
+      // Una o varias sedes asignadas.
+      this.sedesDisponibles = this.sedeConfig.getSedesParaCombo()
+        .filter(s => sedesU.includes(s.key)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+      if (!this.sedesDisponibles.length) {
+        const key = this.sedeConfig.normalizar(u.sede);
+        this.sedesDisponibles = [{ key, nombre: this.sedeConfig.getConfig(key)?.nombre ?? u.sede }];
+      }
+      this.sedeForzada = this.sedesDisponibles.length === 1 ? this.sedesDisponibles[0].key : '';
+      this.sedeSeleccionada = this.sedesDisponibles[0].key;
     }
 
     await this.cap.cargar();

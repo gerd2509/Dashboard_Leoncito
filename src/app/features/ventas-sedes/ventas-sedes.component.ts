@@ -45,7 +45,8 @@ export class VentasSedesComponent implements OnInit {
 
   // ── Selección de sede ──
   esGlobal = false;                 // admin o sede = 'todas' → puede elegir cualquier sede
-  sedeForzada = '';                 // sede del usuario logueado (no admin)
+  sedeForzada = '';                 // sede del usuario (si tiene UNA sola)
+  sedesUsuarioKeys: string[] = [];  // sede(s) asignada(s) al usuario (no global)
   sedeSeleccionada = '';            // '' = vista principal (resumen por sede)
   sedesDisponibles: { key: string; nombre: string; color: string }[] = [];
 
@@ -211,10 +212,12 @@ export class VentasSedesComponent implements OnInit {
 
   ngOnInit() {
     const u = this.auth.getUsuario();
-    this.esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
+    const sedesU = this.auth.sedesUsuario().map(s => this.sedeConfig.normalizar(s));
+    this.esGlobal = !u || u.rol === 'admin' || sedesU.includes('todas');
     if (!this.esGlobal && u) {
-      this.sedeForzada = this.sedeConfig.normalizar(u.sede);
-      this.sedeSeleccionada = this.sedeForzada;
+      this.sedesUsuarioKeys = sedesU.length ? sedesU : [this.sedeConfig.normalizar(u.sede)];
+      this.sedeForzada = this.sedesUsuarioKeys.length === 1 ? this.sedesUsuarioKeys[0] : '';
+      this.sedeSeleccionada = this.sedesUsuarioKeys[0];
     }
     // Carga inicial desde la base (año de la fecha fin seleccionada).
     this.cargarVentas();
@@ -616,10 +619,11 @@ export class VentasSedesComponent implements OnInit {
     const keysEnData = new Set(this.dataVentas.map(v => v.SedeKey));
     let keys = Array.from(keysEnData);
 
-    // Seguridad: usuario no global solo ve su sede
+    // Seguridad: usuario no global solo ve su(s) sede(s) asignada(s).
     if (!this.esGlobal) {
-      keys = keys.filter(k => k === this.sedeForzada);
-      if (!keys.includes(this.sedeForzada)) keys.push(this.sedeForzada);
+      const set = new Set(this.sedesUsuarioKeys);
+      keys = keys.filter(k => set.has(k));
+      for (const s of this.sedesUsuarioKeys) if (!keys.includes(s)) keys.push(s);
     }
 
     this.sedesDisponibles = keys
