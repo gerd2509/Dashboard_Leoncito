@@ -511,31 +511,52 @@ td.col-modulo {
 .uf-sede-count { font-size: 11px; font-weight: 600; color: #1A5FAD; background: #eaf2fb; border-radius: 10px; padding: 1px 8px; }
 
 /* Lista de sedes multi-selección (checkboxes nativos, dentro del modal → sin overlay/popup) */
-.sede-multi {
+.uf-grid .sede-multi {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
   border: 1px solid #cddcec;
+  border-radius: 10px;
+  background: #f7fafd;
+  max-height: 172px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.uf-grid .sede-multi-item {
+  display: flex;
+  flex-direction: row;   /* anula el column del .uf-grid label global */
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 9px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
   border-radius: 8px;
   background: #fff;
-  max-height: 168px;
-  overflow-y: auto;
-  padding: 4px;
-}
-.sede-multi-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 9px;
-  border-radius: 6px;
   cursor: pointer;
+  font-size: 12.5px;
   font-weight: 500;
-  color: #38495c;
+  color: #46586c;
   user-select: none;
+  transition: background .12s, border-color .12s, box-shadow .12s;
 }
-.sede-multi-item:hover { background: #f2f7fc; }
-.sede-multi-item.on { background: #eaf2fb; color: #1A5FAD; font-weight: 600; }
-.sede-multi-item input[type="checkbox"] {
-  width: 16px; height: 16px; accent-color: #1A5FAD; cursor: pointer; margin: 0;
+.uf-grid .sede-multi-item:hover { background: #eef5fc; border-color: #cddcec; }
+.uf-grid .sede-multi-item.on {
+  background: #eaf2fb;
+  border-color: #1A5FAD;
+  color: #1A5FAD;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(26, 95, 173, .12);
 }
+.uf-grid .sede-multi-item input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: #1A5FAD; cursor: pointer; margin: 0; flex: none;
+}
+.uf-grid .sede-multi-item span { flex: 1; }
+/* Scrollbar sutil */
+.uf-grid .sede-multi::-webkit-scrollbar { width: 8px; }
+.uf-grid .sede-multi::-webkit-scrollbar-thumb { background: #c3d5e6; border-radius: 8px; }
+.uf-grid .sede-multi::-webkit-scrollbar-track { background: transparent; }
 .uf-grid input[type="text"], .uf-grid select {
   border: 1px solid #cddcec;
   border-radius: 8px;
