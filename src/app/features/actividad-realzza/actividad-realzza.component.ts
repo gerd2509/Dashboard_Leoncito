@@ -221,6 +221,9 @@ export class ActividadRealzzaComponent implements OnInit {
   }
   celClick(f: FilaAsesor, h: number): void { if ((f.porHora[h] || 0) > 0) this.abrirDetalle(f.asesor, h); }
 
+  /** Ordena la agrupación por Día usando la fecha real (ymd) y no el texto del label. */
+  sortValueDia = (row: any): string => row?.ymd ?? '';
+
   private parseMarca(s: string): { ymd: string; hora: number; min: number; hhmm: string } | null {
     if (!s || !s.includes('/')) return null;
     const [fecha, hms] = s.split(' ');
