@@ -77,6 +77,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'registro-supervisor',          label: 'Registro Supervisor — Realzza', grupo: 'Supervisión Realzza' },
   { key: 'control-supervisor',           label: 'Control Supervisor — Realzza',  grupo: 'Supervisión Realzza' },
   { key: 'gestion-supervisor',           label: 'Gestión Supervisor — Realzza',  grupo: 'Supervisión Realzza' },
+  { key: 'actividad-realzza',            label: 'Actividad Realzza',            grupo: 'Supervisión Realzza' },
   { key: 'cierre',                       label: 'Cierre Gestión',               grupo: 'Análisis' },
   { key: 'avance-cartera',               label: 'Avance de Cartera',            grupo: 'Análisis' },
   { key: 'embudos-gestion',              label: 'Embudos de Gestión',           grupo: 'Análisis' },
@@ -96,7 +97,7 @@ const CALL_MODULES = [
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
-  'registro-supervisor', 'control-supervisor', 'gestion-supervisor',
+  'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
@@ -116,7 +117,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v22';
+const STORAGE_KEY = 'gd_permissions_v23';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

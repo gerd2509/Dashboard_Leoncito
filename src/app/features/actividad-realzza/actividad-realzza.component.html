@@ -1,0 +1,108 @@
+<div class="ar-wrap">
+
+  <!-- Cabecera + filtros -->
+  <div class="ar-head">
+    <div class="ar-title">
+      <mat-icon>schedule</mat-icon>
+      <div>
+        <h2>Mapa de Actividad Realzza</h2>
+        <small>¿Desde qué hora registra cada asesora? · Gestión Realzza + KOMMO · horario 9:00–20:00 (break 13:00–15:00)</small>
+      </div>
+    </div>
+    <form class="ar-filtros" [formGroup]="form">
+      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating"
+        stylingMode="outlined" [max]="hoyMax" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating"
+        stylingMode="outlined" [max]="hoyMax" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <button class="ar-btn" type="button" (click)="cargar()" [disabled]="cargando">
+        <mat-icon [class.girando]="cargando">{{ cargando ? 'sync' : 'search' }}</mat-icon> Consultar
+      </button>
+      <button class="ar-btn ghost" type="button" (click)="hoy()" [disabled]="cargando">
+        <mat-icon>today</mat-icon> Hoy
+      </button>
+    </form>
+  </div>
+
+  <div *ngIf="cargando" class="ar-loading"><mat-spinner diameter="40"></mat-spinner> Cargando registros…</div>
+
+  <ng-container *ngIf="!cargando && yaCargo">
+
+    <!-- KPIs -->
+    <div class="ar-kpis">
+      <div class="ar-kpi k1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ totalReg }}</span><span class="l">Registros</span></div></div>
+      <div class="ar-kpi k2"><mat-icon>groups</mat-icon><div><span class="v">{{ asesorasActivas }}</span><span class="l">Asesoras activas</span></div></div>
+      <div class="ar-kpi k3"><mat-icon>trending_up</mat-icon><div><span class="v">{{ horaPico }}</span><span class="l">Hora pico</span></div></div>
+      <div class="ar-kpi k4"><mat-icon>wb_twilight</mat-icon><div><span class="v">{{ primeraGlobal }}</span><span class="l">Primer registro</span></div></div>
+      <div class="ar-kpi k5"><mat-icon>verified</mat-icon><div><span class="v">{{ pctHorario }}%</span><span class="l">En horario</span></div></div>
+    </div>
+
+    <!-- Heatmap asesora × hora -->
+    <div class="ar-card">
+      <div class="ar-card-h">
+        <span><mat-icon>grid_on</mat-icon> Mapa de registros por hora</span>
+        <span class="ar-leyenda">
+          <i class="lg-cell" style="background:rgba(26,95,173,.20)"></i> poco
+          <i class="lg-cell" style="background:rgba(26,95,173,.6)"></i>
+          <i class="lg-cell" style="background:rgba(26,95,173,1)"></i> mucho
+          <i class="lg-break"></i> break
+        </span>
+      </div>
+
+      <div class="ar-heat" [style.gridTemplateColumns]="'minmax(180px,1.4fr) repeat(' + HORAS.length + ', 1fr)'">
+        <!-- Cabecera de horas -->
+        <div class="hm-corner">Asesora</div>
+        <div class="hm-hh" *ngFor="let h of HORAS" [class.brk]="esBreak(h)">{{ h }}:00</div>
+
+        <!-- Filas -->
+        <ng-container *ngFor="let f of filas">
+          <div class="hm-asesor" [class.inactiva]="f.total === 0">
+            <span class="hm-nom" [title]="f.asesor">{{ f.asesor }}</span>
+            <span class="hm-tot">{{ f.total }}</span>
+          </div>
+          <div class="hm-cell" *ngFor="let h of HORAS" [class.brk]="esBreak(h)"
+            [style.background]="celColor(f.porHora[h] || 0)"
+            [style.color]="celTextColor(f.porHora[h] || 0)"
+            [title]="f.asesor + ' · ' + h + ':00 — ' + (f.porHora[h] || 0) + ' registro(s)'">
+            {{ f.porHora[h] || '' }}
+          </div>
+        </ng-container>
+      </div>
+      <div *ngIf="!filas.length" class="ar-empty"><mat-icon>search_off</mat-icon> Sin registros en el rango.</div>
+    </div>
+
+    <!-- Total por hora -->
+    <div class="ar-card">
+      <div class="ar-card-h"><span><mat-icon>bar_chart</mat-icon> Registros por hora (equipo)</span></div>
+      <dx-chart [dataSource]="porHora" [redrawOnResize]="true" [customizePoint]="barColor" class="ar-chart">
+        <dxo-common-series-settings argumentField="hora" valueField="count" type="bar">
+          <dxo-label [visible]="true" backgroundColor="transparent"><dxo-font [weight]="700"></dxo-font></dxo-label>
+        </dxo-common-series-settings>
+        <dxi-series></dxi-series>
+        <dxo-legend [visible]="false"></dxo-legend>
+        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+      </dx-chart>
+    </div>
+
+    <!-- Resumen por asesora -->
+    <div class="ar-card">
+      <div class="ar-card-h"><span><mat-icon>table_rows</mat-icon> Resumen por asesora</span></div>
+      <dx-data-grid [dataSource]="filas" [showBorders]="true" [rowAlternationEnabled]="true"
+        [hoverStateEnabled]="true" [columnAutoWidth]="true">
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-paging [pageSize]="20"></dxo-paging>
+        <dxo-sorting mode="multiple"></dxo-sorting>
+        <dxi-column dataField="asesor" caption="Asesora" [minWidth]="180"></dxi-column>
+        <dxi-column dataField="primera" caption="Primer registro" alignment="center"></dxi-column>
+        <dxi-column dataField="ultima" caption="Último registro" alignment="center"></dxi-column>
+        <dxi-column dataField="total" caption="Total" dataType="number" alignment="center"></dxi-column>
+        <dxi-column dataField="horasActivas" caption="Horas activas (de 9)" dataType="number" alignment="center"></dxi-column>
+        <dxi-column dataField="enBreak" caption="En break" dataType="number" alignment="center"></dxi-column>
+        <dxi-column dataField="fueraHorario" caption="Fuera de horario" dataType="number" alignment="center"></dxi-column>
+        <dxo-summary>
+          <dxi-total-item column="total" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        </dxo-summary>
+      </dx-data-grid>
+    </div>
+
+  </ng-container>
+</div>

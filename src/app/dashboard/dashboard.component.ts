@@ -34,6 +34,7 @@ import { RegistroGestionComponent } from "../features/registro-gestion/registro-
 import { RegistroSupervisorComponent } from "../features/control-supervisor/registro-supervisor/registro-supervisor.component";
 import { ControlSupervisorComponent } from "../features/control-supervisor/control-supervisor.component";
 import { GestionSupervisorComponent } from "../features/control-supervisor/gestion-supervisor/gestion-supervisor.component";
+import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
@@ -90,6 +91,7 @@ interface MenuItem {
     RegistroSupervisorComponent,
     ControlSupervisorComponent,
     GestionSupervisorComponent,
+    ActividadRealzzaComponent,
     ComparativoCarteraVentasComponent,
     CargaVentasComponent,
   ],
@@ -164,7 +166,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       submenu: [
         { label: 'Registro Supervisor', icon: 'fact_check',       modulo: 'registro-supervisor' },
         { label: 'Control Supervisor',  icon: 'event_available',  modulo: 'control-supervisor' },
-        { label: 'Gestión Supervisor',  icon: 'fact_check',       modulo: 'gestion-supervisor' }
+        { label: 'Gestión Supervisor',  icon: 'fact_check',       modulo: 'gestion-supervisor' },
+        { label: 'Actividad Realzza',   icon: 'schedule',         modulo: 'actividad-realzza' }
       ]
     },
     {
