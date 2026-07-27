@@ -63,6 +63,9 @@ mat-icon.girando { animation: ar-spin .8s linear infinite; }
 
 /* Popup */
 .ar-popup { height: 100%; }
+/* Solo scroll vertical en la grilla del popup (nada horizontal) */
+.ar-popup ::ng-deep .dx-datagrid-rowsview .dx-scrollable-container { overflow-x: hidden !important; }
+.ar-popup ::ng-deep .dx-datagrid .dx-row > td { white-space: normal; }
 .ar-poptitle { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; white-space: normal; }
 .ar-poptitle mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
