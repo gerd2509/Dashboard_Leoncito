@@ -46,6 +46,15 @@ export class ActividadRealzzaComponent implements OnInit {
   };
   private corto(nom: string): string { return this.CORTOS[nom] || (nom || '').split(' ')[0]; }
 
+  /** Normaliza un nombre (mayúsculas, sin tildes ni ñ, espacios colapsados). */
+  private normNom(s: string): string {
+    return (s || '').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/Ñ/g, 'N').replace(/\s+/g, ' ').trim();
+  }
+  /** NO son asesoras Realzza (supervisión) → se excluyen del mapa de actividad. */
+  private readonly EXCLUIDOS = new Set<string>(
+    ['CARMONA CASTAÑEDA JOSE MANUEL'].map(n => this.normNom(n)));
+
   readonly HORAS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
   readonly BREAK = new Set([13, 14]);
   hoyMax = new Date();
@@ -109,6 +118,7 @@ export class ActividadRealzzaComponent implements OnInit {
     const push = (r: any, tipo: TipoGestion, colDni: string, colEstado: string) => {
       const asesor = (r['ASESOR REALZZA'] ?? '').toString().trim().toUpperCase();
       if (!asesor) return;
+      if (this.EXCLUIDOS.has(this.normNom(asesor))) return;   // supervisora (CARMONA) fuera
       const p = this.parseMarca((r['Marca temporal'] ?? '').toString());
       if (!p || p.ymd < d0 || p.ymd > d1) return;
       regs.push({
