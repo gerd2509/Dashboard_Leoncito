@@ -510,93 +510,43 @@ td.col-modulo {
 .uf-grid .uf-lbl { font-size: 12.5px; font-weight: 600; color: #46586c; display: flex; align-items: center; gap: 8px; }
 .uf-sede-count { font-size: 11px; font-weight: 600; color: #1A5FAD; background: #eaf2fb; border-radius: 10px; padding: 1px 8px; }
 
-/* Combo de sedes: campo cerrado + panel desplegable (todo dentro del modal) */
+/* Combo de sedes: campo cerrado + panel desplegable (dentro del modal) */
 .uf-grid .uf-sede { position: relative; }
 .uf-grid .sede-combo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-  border: 1px solid #cddcec;
-  border-radius: 8px;
-  background: #fff;
-  padding: 9px 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #38495c;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color .12s, box-shadow .12s;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; border: 1px solid #cddcec; border-radius: 8px; background: #fff;
+  padding: 9px 10px; font-size: 13px; font-weight: 500; color: #38495c;
+  cursor: pointer; text-align: left; transition: border-color .12s, box-shadow .12s;
 }
 .uf-grid .sede-combo:hover { border-color: #a9c6e4; }
-.uf-grid .sede-combo.open { border-color: #1A5FAD; box-shadow: 0 0 0 3px rgba(26, 95, 173, .12); }
-.uf-grid .sede-combo .sede-combo-txt {
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.uf-grid .sede-combo.open { border-color: #1A5FAD; box-shadow: 0 0 0 3px rgba(26,95,173,.12); }
+.uf-grid .sede-combo .sede-combo-txt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .uf-grid .sede-combo mat-icon {
   color: #7d93a8; flex: none; transition: transform .18s;
   width: 20px; height: 20px; font-size: 20px;
 }
 .uf-grid .sede-combo.open mat-icon { transform: rotate(180deg); }
-
-/* Backdrop transparente para cerrar al hacer click fuera */
 .sede-pop-back { position: fixed; inset: 0; z-index: 40; }
-
-/* Panel desplegable con la lista de checkboxes */
 .uf-grid .sede-multi {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin-top: 5px;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  border: 1px solid #cddcec;
-  border-radius: 10px;
-  background: #fff;
-  max-height: 320px;
-  overflow-y: auto;
-  padding: 6px;
-  box-shadow: 0 10px 28px rgba(20, 45, 80, .18);
+  position: absolute; top: 100%; left: 0; right: 0; margin-top: 5px; z-index: 50;
+  display: flex; flex-direction: column; gap: 3px; border: 1px solid #cddcec;
+  border-radius: 10px; background: #fff; max-height: 320px; overflow-y: auto;
+  padding: 6px; box-shadow: 0 10px 28px rgba(20,45,80,.18);
 }
 .uf-grid .sede-multi-item {
-  display: flex;
-  flex-direction: row;   /* anula el column del .uf-grid label global */
-  align-items: center;
-  justify-content: flex-start;
-  text-align: left;
-  gap: 9px;
-  margin: 0;
-  padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: #fff;
-  cursor: pointer;
-  font-size: 12.5px;
-  font-weight: 500;
-  color: #46586c;
-  user-select: none;
-  transition: background .12s, border-color .12s, box-shadow .12s;
+  display: flex; flex-direction: row; align-items: center; justify-content: flex-start;
+  text-align: left; gap: 9px; margin: 0; padding: 8px 10px; border: 1px solid transparent;
+  border-radius: 8px; background: #fff; cursor: pointer; font-size: 12.5px; font-weight: 500;
+  color: #46586c; user-select: none; transition: background .12s, border-color .12s;
 }
 .uf-grid .sede-multi-item:hover { background: #eef5fc; border-color: #cddcec; }
-.uf-grid .sede-multi-item.on {
-  background: #eaf2fb;
-  border-color: #1A5FAD;
-  color: #1A5FAD;
-  font-weight: 600;
-  box-shadow: 0 1px 3px rgba(26, 95, 173, .12);
-}
+.uf-grid .sede-multi-item.on { background: #eaf2fb; border-color: #1A5FAD; color: #1A5FAD; font-weight: 600; }
 .uf-grid .sede-multi-item input[type="checkbox"] {
   width: 16px; height: 16px; accent-color: #1A5FAD; cursor: pointer; margin: 0; flex: none;
 }
 .uf-grid .sede-multi-item span { flex: 1; }
-/* Scrollbar sutil */
 .uf-grid .sede-multi::-webkit-scrollbar { width: 8px; }
 .uf-grid .sede-multi::-webkit-scrollbar-thumb { background: #c3d5e6; border-radius: 8px; }
-.uf-grid .sede-multi::-webkit-scrollbar-track { background: transparent; }
 .uf-grid input[type="text"], .uf-grid select {
   border: 1px solid #cddcec;
   border-radius: 8px;
