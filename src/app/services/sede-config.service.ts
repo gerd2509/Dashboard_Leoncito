@@ -287,6 +287,44 @@ export class SedeConfigService {
     return CALL_SEDES.includes(this.normalizar(sede));
   }
 
+  // Claves de sede que pertenecen a una zona (centro/norte/sur).
+  getSedesDeZona(zona: string): string[] {
+    const z = this.normalizar(zona);   // 'centro' | 'norte' | 'sur'
+    return Object.entries(SEDES)
+      .filter(([, cfg]) => this.normalizar(cfg.zona) === z)
+      .map(([key]) => key);
+  }
+
+  /**
+   * Expande los "tokens" de sede de un usuario (todas / zona / realzza / sede física)
+   * a la lista de claves de sedes FÍSICAS que le corresponden.
+   *  - 'todas'                      → todas las sedes registradas
+   *  - 'centro' | 'norte' | 'sur'   → las sedes de esa zona
+   *  - clave de sede física         → esa misma sede
+   *  - 'realzza' u otros            → se ignoran (no son sedes físicas)
+   */
+  expandirSedes(tokens: string[]): string[] {
+    const keys = new Set<string>();
+    const zonas = ['centro', 'norte', 'sur'];
+    for (const raw of tokens || []) {
+      const t = this.normalizar(raw);
+      if (t === 'todas') {
+        this.getSedeKeys().forEach(k => keys.add(k));
+      } else if (zonas.includes(t)) {
+        this.getSedesDeZona(t).forEach(k => keys.add(k));
+      } else if (this.existeSede(t)) {
+        keys.add(t);
+      }
+      // 'realzza' y cualquier otro token no representan una sede física → se omiten.
+    }
+    return [...keys];
+  }
+
+  // ¿Alguno de los tokens del usuario representa "todas las sedes"?
+  incluyeTodas(tokens: string[]): boolean {
+    return (tokens || []).some(t => this.normalizar(t) === 'todas');
+  }
+
   existeSede(sede: string): boolean {
     return !!this.getConfig(sede);
   }

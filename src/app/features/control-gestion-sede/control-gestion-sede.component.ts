@@ -137,26 +137,19 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.cargarAfiliacionesLocal();   // afiliaciones guardadas en el navegador (si hay)
     const u = this.auth.getUsuario();
-    const sedesU = this.auth.sedesUsuario().map(s => this.sedeConfig.normalizar(s));
-    const esGlobal = !u || u.rol === 'admin' || sedesU.includes('todas');
-
-    const sedeU = (u?.sede || '').toString().trim().toUpperCase();
-    const esZona = ['CENTRO', 'NORTE', 'SUR'].includes(sedeU);
+    const sedesU = this.auth.sedesUsuario();
+    const esGlobal = !u || u.rol === 'admin' || this.sedeConfig.incluyeTodas(sedesU);
 
     if (esGlobal) {
       // Orden por zona (CENTRO → NORTE → SUR) para que las tarjetas de detalle
       // coincidan con el resumen agrupado.
       this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
         .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
-    } else if (esZona) {
-      // Gerente de zona: SOLO las sedes de su zona (Norte/Centro/Sur).
-      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
-        .filter(s => (this.sedeConfig.getConfig(s.key)?.zona ?? '') === sedeU)
-        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
     } else {
-      // Una o varias sedes asignadas al usuario.
+      // Una o varias sedes/zonas asignadas al usuario (las zonas se expanden a sus sedes).
+      const sedesFisicas = this.sedeConfig.expandirSedes(sedesU);
       this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
-        .filter(s => sedesU.includes(s.key))
+        .filter(s => sedesFisicas.includes(s.key))
         .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
       if (!this.sedesObjetivo.length) {
         const cfg = this.sedeConfig.getConfig(u!.sede);

@@ -61,14 +61,15 @@ export class AgendamientosSedesComponent implements OnInit {
   // admin / 'todas' → todas las sedes; usuario → solo su(s) sede(s) asignada(s).
   private configurarSedeSegunUsuario() {
     const u = this.auth.getUsuario();
-    const sedesU = this.auth.sedesUsuario().map(s => this.sedeCfg.normalizar(s));
-    this.esAdmin = !u || u.rol === 'admin' || sedesU.includes('todas');
+    const sedesU = this.auth.sedesUsuario();
+    this.esAdmin = !u || u.rol === 'admin' || this.sedeCfg.incluyeTodas(sedesU);
     const todas = this.sedeCfg.getSedesCall();
+    const sedesFisicas = this.sedeCfg.expandirSedes(sedesU);
 
     if (this.esAdmin) {
       this.sedesDisponibles = todas;
     } else {
-      this.sedesDisponibles = todas.filter(s => sedesU.includes(s.key));
+      this.sedesDisponibles = todas.filter(s => sedesFisicas.includes(s.key));
       if (!this.sedesDisponibles.length) {
         const key = this.sedeCfg.normalizar(u!.sede);
         this.sedesDisponibles = [{ key, nombre: this.sedeCfg.getConfig(u!.sede)?.nombre ?? u!.sede }];

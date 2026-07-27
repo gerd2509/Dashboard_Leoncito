@@ -227,10 +227,26 @@ export class SeguridadComponent implements OnInit {
     if (this.form.rol !== 'vendedor') { this.form.canal = ''; this.form.vendedor = ''; this.vendedorOptions = []; }
   }
 
-  /** Al cambiar la selección de sedes: la principal = la primera; recalcula vendedores. */
-  onSedesChange(): void {
-    if (!this.form.sedes.length) this.form.sedes = ['todas'];
-    this.form.sede = this.form.sedes[0];
+  /** Al cambiar la selección de sedes: "Todas" es exclusiva (no se combina con
+   *  sedes/zonas específicas). La principal = la primera; recalcula vendedores. */
+  onSedesChange(e?: any): void {
+    const agregadas: string[] = (e?.addedItems ?? []).map((i: any) => i?.value ?? i);
+    let sel = [...this.form.sedes];
+
+    if (agregadas.includes('todas')) {
+      // Marcó "Todas" → deja solo "Todas".
+      sel = ['todas'];
+    } else if (sel.includes('todas') && sel.length > 1) {
+      // Marcó una específica teniendo "Todas" → quita "Todas".
+      sel = sel.filter(s => s !== 'todas');
+    }
+
+    if (!sel.length) sel = ['todas'];
+    // Evita reasignar si no cambió (previene bucles con el two-way binding del dx-list).
+    if (sel.length !== this.form.sedes.length || sel.some((s, i) => s !== this.form.sedes[i])) {
+      this.form.sedes = sel;
+    }
+    this.form.sede = sel[0];
     this.recomputarVendedores();
   }
 

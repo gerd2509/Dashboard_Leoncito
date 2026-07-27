@@ -212,10 +212,11 @@ export class VentasSedesComponent implements OnInit {
 
   ngOnInit() {
     const u = this.auth.getUsuario();
-    const sedesU = this.auth.sedesUsuario().map(s => this.sedeConfig.normalizar(s));
-    this.esGlobal = !u || u.rol === 'admin' || sedesU.includes('todas');
+    const sedesU = this.auth.sedesUsuario();
+    this.esGlobal = !u || u.rol === 'admin' || this.sedeConfig.incluyeTodas(sedesU);
     if (!this.esGlobal && u) {
-      this.sedesUsuarioKeys = sedesU.length ? sedesU : [this.sedeConfig.normalizar(u.sede)];
+      const sedesFisicas = this.sedeConfig.expandirSedes(sedesU);
+      this.sedesUsuarioKeys = sedesFisicas.length ? sedesFisicas : [this.sedeConfig.normalizar(u.sede)];
       this.sedeForzada = this.sedesUsuarioKeys.length === 1 ? this.sedesUsuarioKeys[0] : '';
       this.sedeSeleccionada = this.sedesUsuarioKeys[0];
     }
