@@ -27,42 +27,67 @@
 
   <ng-container *ngIf="!cargando && yaCargo">
 
+    <!-- Combo de asesor -->
+    <div class="ar-combo">
+      <mat-icon>person_search</mat-icon>
+      <span>Asesor:</span>
+      <dx-select-box [dataSource]="asesorOptions" displayExpr="text" valueExpr="value"
+        [(value)]="selectedAsesor" (onValueChanged)="onAsesorChange()"
+        stylingMode="outlined" [width]="240" [searchEnabled]="true"></dx-select-box>
+    </div>
+
     <!-- KPIs -->
     <div class="ar-kpis">
       <div class="ar-kpi k1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ totalReg }}</span><span class="l">Registros</span></div></div>
-      <div class="ar-kpi k2"><mat-icon>groups</mat-icon><div><span class="v">{{ asesorasActivas }}</span><span class="l">Asesoras activas</span></div></div>
+      <div class="ar-kpi k2" *ngIf="!selectedAsesor"><mat-icon>groups</mat-icon><div><span class="v">{{ asesorasActivas }}</span><span class="l">Asesoras activas</span></div></div>
       <div class="ar-kpi k3"><mat-icon>trending_up</mat-icon><div><span class="v">{{ horaPico }}</span><span class="l">Hora pico</span></div></div>
       <div class="ar-kpi k4"><mat-icon>wb_twilight</mat-icon><div><span class="v">{{ primeraGlobal }}</span><span class="l">Primer registro</span></div></div>
       <div class="ar-kpi k5"><mat-icon>verified</mat-icon><div><span class="v">{{ pctHorario }}%</span><span class="l">En horario</span></div></div>
     </div>
 
+    <!-- Análisis individual (asesor seleccionado) -->
+    <div class="ar-card ar-analisis" *ngIf="selectedAsesor && analisis">
+      <div class="ar-card-h"><span><mat-icon>insights</mat-icon> Análisis de {{ analisis && filas[0] ? filas[0].corto : '' }}</span></div>
+      <div class="an-grid">
+        <div class="an-metric"><mat-icon>login</mat-icon><div><span class="v">{{ analisis.inicioTipico }}</span><span class="l">Suele empezar a</span></div></div>
+        <div class="an-metric"><mat-icon>local_fire_department</mat-icon><div><span class="v">{{ analisis.horaPico }}</span><span class="l">Hora pico</span></div></div>
+        <div class="an-metric"><mat-icon>event_available</mat-icon><div><span class="v">{{ analisis.diasActivos }}</span><span class="l">Días activos</span></div></div>
+        <div class="an-metric"><mat-icon>speed</mat-icon><div><span class="v">{{ analisis.promDia }}</span><span class="l">Prom. registros/día</span></div></div>
+      </div>
+      <div class="an-tipos">
+        <span class="an-tipos-t">Por tipo de gestión:</span>
+        <span class="an-chip" *ngFor="let t of analisis.porTipo" [ngClass]="tipoClase(t.tipo)">{{ t.tipo }}: <b>{{ t.n }}</b> ({{ t.pct }}%)</span>
+      </div>
+    </div>
+
     <!-- Heatmap asesora × hora -->
     <div class="ar-card">
       <div class="ar-card-h">
-        <span><mat-icon>grid_on</mat-icon> Mapa de registros por hora</span>
+        <span><mat-icon>grid_on</mat-icon> Mapa de registros por hora <small>(clic en una celda para ver el detalle)</small></span>
         <span class="ar-leyenda">
-          <i class="lg-cell" style="background:rgba(26,95,173,.20)"></i> poco
-          <i class="lg-cell" style="background:rgba(26,95,173,.6)"></i>
-          <i class="lg-cell" style="background:rgba(26,95,173,1)"></i> mucho
+          poco
+          <i class="lg-cell" style="background:rgb(255,241,179)"></i>
+          <i class="lg-cell" style="background:rgb(255,179,71)"></i>
+          <i class="lg-cell" style="background:rgb(230,81,0)"></i>
+          <i class="lg-cell" style="background:rgb(183,28,28)"></i>
+          mucho
           <i class="lg-break"></i> break
         </span>
       </div>
 
-      <div class="ar-heat" [style.gridTemplateColumns]="'minmax(180px,1.4fr) repeat(' + HORAS.length + ', 1fr)'">
-        <!-- Cabecera de horas -->
+      <div class="ar-heat" [style.gridTemplateColumns]="'minmax(120px,1fr) repeat(' + HORAS.length + ', 1fr)'">
         <div class="hm-corner">Asesora</div>
         <div class="hm-hh" *ngFor="let h of HORAS" [class.brk]="esBreak(h)">{{ h }}:00</div>
 
-        <!-- Filas -->
         <ng-container *ngFor="let f of filas">
-          <div class="hm-asesor" [class.inactiva]="f.total === 0">
-            <span class="hm-nom" [title]="f.asesor">{{ f.asesor }}</span>
+          <div class="hm-asesor" [class.inactiva]="f.total === 0" (click)="f.total && abrirDetalle(f.asesor)">
+            <span class="hm-nom" [title]="f.asesor">{{ f.corto }}</span>
             <span class="hm-tot">{{ f.total }}</span>
           </div>
-          <div class="hm-cell" *ngFor="let h of HORAS" [class.brk]="esBreak(h)"
-            [style.background]="celColor(f.porHora[h] || 0)"
-            [style.color]="celTextColor(f.porHora[h] || 0)"
-            [title]="f.asesor + ' · ' + h + ':00 — ' + (f.porHora[h] || 0) + ' registro(s)'">
+          <div class="hm-cell" *ngFor="let h of HORAS" [class.brk]="esBreak(h)" [class.clickable]="(f.porHora[h] || 0) > 0"
+            [style.background]="celColor(f.porHora[h] || 0)" [style.color]="celTextColor(f.porHora[h] || 0)"
+            (click)="celClick(f, h)"
+            [title]="f.corto + ' · ' + h + ':00 — ' + (f.porHora[h] || 0) + ' registro(s)'">
             {{ f.porHora[h] || '' }}
           </div>
         </ng-container>
@@ -72,7 +97,7 @@
 
     <!-- Total por hora -->
     <div class="ar-card">
-      <div class="ar-card-h"><span><mat-icon>bar_chart</mat-icon> Registros por hora (equipo)</span></div>
+      <div class="ar-card-h"><span><mat-icon>bar_chart</mat-icon> Registros por hora {{ selectedAsesor ? '' : '(equipo)' }}</span></div>
       <dx-chart [dataSource]="porHora" [redrawOnResize]="true" [customizePoint]="barColor" class="ar-chart">
         <dxo-common-series-settings argumentField="hora" valueField="count" type="bar">
           <dxo-label [visible]="true" backgroundColor="transparent"><dxo-font [weight]="700"></dxo-font></dxo-label>
@@ -84,25 +109,41 @@
     </div>
 
     <!-- Resumen por asesora -->
-    <div class="ar-card">
+    <div class="ar-card" *ngIf="!selectedAsesor">
       <div class="ar-card-h"><span><mat-icon>table_rows</mat-icon> Resumen por asesora</span></div>
       <dx-data-grid [dataSource]="filas" [showBorders]="true" [rowAlternationEnabled]="true"
-        [hoverStateEnabled]="true" [columnAutoWidth]="true">
+        [hoverStateEnabled]="true" [columnAutoWidth]="true" (onRowClick)="$event.data.total && abrirDetalle($event.data.asesor)">
         <dxo-filter-row [visible]="true"></dxo-filter-row>
         <dxo-paging [pageSize]="20"></dxo-paging>
         <dxo-sorting mode="multiple"></dxo-sorting>
-        <dxi-column dataField="asesor" caption="Asesora" [minWidth]="180"></dxi-column>
+        <dxi-column dataField="corto" caption="Asesora" [minWidth]="120"></dxi-column>
         <dxi-column dataField="primera" caption="Primer registro" alignment="center"></dxi-column>
         <dxi-column dataField="ultima" caption="Último registro" alignment="center"></dxi-column>
         <dxi-column dataField="total" caption="Total" dataType="number" alignment="center"></dxi-column>
         <dxi-column dataField="horasActivas" caption="Horas activas (de 9)" dataType="number" alignment="center"></dxi-column>
         <dxi-column dataField="enBreak" caption="En break" dataType="number" alignment="center"></dxi-column>
         <dxi-column dataField="fueraHorario" caption="Fuera de horario" dataType="number" alignment="center"></dxi-column>
-        <dxo-summary>
-          <dxi-total-item column="total" summaryType="sum" displayFormat="{0}"></dxi-total-item>
-        </dxo-summary>
+        <dxo-summary><dxi-total-item column="total" summaryType="sum" displayFormat="{0}"></dxi-total-item></dxo-summary>
       </dx-data-grid>
     </div>
-
   </ng-container>
+
+  <!-- Popup de detalle -->
+  <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="popupTitulo" [dragEnabled]="false"
+    [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" [maxWidth]="900" height="80%">
+    <div *dxTemplate="let d of 'content'" class="ar-popup">
+      <dx-data-grid [dataSource]="popupRegistros" [showBorders]="true" [rowAlternationEnabled]="true"
+        [columnAutoWidth]="true" [hoverStateEnabled]="true" height="100%">
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-paging [pageSize]="25"></dxo-paging>
+        <dxo-pager [visible]="true" [showInfo]="true"></dxo-pager>
+        <dxi-column dataField="ymd" caption="Fecha" [width]="110" alignment="center"></dxi-column>
+        <dxi-column dataField="hhmm" caption="Hora" [width]="80" alignment="center"></dxi-column>
+        <dxi-column dataField="tipo" caption="Tipo" [width]="130" cellTemplate="tipoTpl"></dxi-column>
+        <dxi-column dataField="dni" caption="DNI" [width]="110" alignment="center"></dxi-column>
+        <dxi-column dataField="estado" caption="Estado" [minWidth]="130"></dxi-column>
+        <div *dxTemplate="let c of 'tipoTpl'"><span class="an-chip sm" [ngClass]="tipoClase(c.value)">{{ c.value }}</span></div>
+      </dx-data-grid>
+    </div>
+  </dx-popup>
 </div>
