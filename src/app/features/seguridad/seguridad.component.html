@@ -88,11 +88,19 @@
             <option *ngFor="let r of rolOptions" [value]="r.value">{{ r.label }}</option>
           </select>
         </label>
-        <div class="uf-campo">
+        <div class="uf-campo uf-sede">
           <span class="uf-lbl">Sede(s) *
             <span class="uf-sede-count">{{ form.sedes.length }} seleccionada(s)</span>
           </span>
-          <div class="sede-multi">
+          <!-- Campo tipo combo: abre/cierra la lista (renderizada dentro del modal) -->
+          <button type="button" class="sede-combo" [class.open]="sedeDropdownOpen"
+                  (click)="sedeDropdownOpen = !sedeDropdownOpen">
+            <span class="sede-combo-txt">{{ resumenSedes() }}</span>
+            <mat-icon>expand_more</mat-icon>
+          </button>
+          <!-- Backdrop transparente para cerrar al hacer click fuera -->
+          <div class="sede-pop-back" *ngIf="sedeDropdownOpen" (click)="sedeDropdownOpen = false"></div>
+          <div class="sede-multi" *ngIf="sedeDropdownOpen">
             <label class="sede-multi-item" *ngFor="let o of sedeOptionsVisibles"
                    [class.on]="form.sedes.includes(o.value)">
               <input type="checkbox" [checked]="form.sedes.includes(o.value)"

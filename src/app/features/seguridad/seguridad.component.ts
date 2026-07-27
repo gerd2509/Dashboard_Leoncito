@@ -175,6 +175,7 @@ export class SeguridadComponent implements OnInit {
     this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'], canal: '', vendedor: '', password: '', activo: true };
     this.vendedorOptions = [];
     this.errorForm = '';
+    this.sedeDropdownOpen = false;
     this.mostrarForm = true;
   }
 
@@ -195,6 +196,7 @@ export class SeguridadComponent implements OnInit {
     };
     this.recomputarVendedores();
     this.errorForm = '';
+    this.sedeDropdownOpen = false;
     this.mostrarForm = true;
   }
 
@@ -225,6 +227,17 @@ export class SeguridadComponent implements OnInit {
       this.form.sede = this.form.sedes[0];
     }
     if (this.form.rol !== 'vendedor') { this.form.canal = ''; this.form.vendedor = ''; this.vendedorOptions = []; }
+  }
+
+  sedeDropdownOpen = false;
+
+  /** Texto que muestra el campo cerrado del combo de sedes. */
+  resumenSedes(): string {
+    const sel = this.form.sedes ?? [];
+    if (!sel.length) return 'Selecciona sede(s)…';
+    const label = (v: string) => this.sedeOptions.find(o => o.value === v)?.label ?? v;
+    if (sel.length === 1) return label(sel[0]);
+    return `${label(sel[0])}, ${label(sel[1])}${sel.length > 2 ? ` +${sel.length - 2}` : ''}`;
   }
 
   /** Marca/desmarca una sede en la lista. "Todas" es exclusiva: al marcarla se
