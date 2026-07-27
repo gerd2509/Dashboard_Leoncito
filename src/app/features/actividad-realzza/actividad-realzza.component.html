@@ -132,22 +132,19 @@
   </ng-container>
 
   <!-- Popup de detalle -->
-  <dx-popup [(visible)]="popupVisible" [showTitle]="true" [dragEnabled]="false" (onShown)="popupShown($event)"
-    [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" [maxWidth]="900" height="80%">
-    <dxo-position at="center" my="center"></dxo-position>
-    <div *dxTemplate="let d of 'title'" class="ar-poptitle"><mat-icon>event_note</mat-icon> {{ popupTitulo }}</div>
+  <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="popupTitulo" [dragEnabled]="false"
+    (onShown)="popupShown($event)" [hideOnOutsideClick]="true" [showCloseButton]="true"
+    width="640" [maxWidth]="'96%'" height="560" [maxHeight]="'88%'">
     <div *dxTemplate="let d of 'content'" class="ar-popup">
       <dx-data-grid [dataSource]="popupRegistros" [showBorders]="true" [rowAlternationEnabled]="true"
         [columnAutoWidth]="true" [hoverStateEnabled]="true" height="100%">
-        <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
-        <dxo-filter-row [visible]="true"></dxo-filter-row>
-        <dxo-paging [pageSize]="50"></dxo-paging>
-        <dxo-pager [visible]="true" [showInfo]="true"></dxo-pager>
+        <dxo-grouping [autoExpandAll]="false"></dxo-grouping>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
         <dxi-column dataField="diaLabel" caption="Día" [groupIndex]="0"></dxi-column>
-        <dxi-column dataField="hhmm" caption="Hora" [width]="80" alignment="center"></dxi-column>
-        <dxi-column dataField="tipo" caption="Tipo" [width]="130" cellTemplate="tipoTpl"></dxi-column>
-        <dxi-column dataField="dni" caption="DNI" [width]="110" alignment="center"></dxi-column>
-        <dxi-column dataField="estado" caption="Estado" [minWidth]="130"></dxi-column>
+        <dxi-column dataField="hhmm" caption="Hora" [width]="70" alignment="center"></dxi-column>
+        <dxi-column dataField="tipo" caption="Tipo" [width]="120" cellTemplate="tipoTpl"></dxi-column>
+        <dxi-column dataField="dni" caption="DNI" [width]="100" alignment="center"></dxi-column>
+        <dxi-column dataField="estado" caption="Estado" [minWidth]="120"></dxi-column>
         <dxo-summary>
           <dxi-group-item column="hhmm" summaryType="count" displayFormat="{0} registros"></dxi-group-item>
         </dxo-summary>

@@ -79,8 +79,9 @@ mat-icon.girando { animation: ar-spin .8s linear infinite; }
 .hm-tot { font-size: 11px; font-weight: 800; color: #fff; background: #1A5FAD; border-radius: 999px; padding: 1px 7px; flex: none; }
 .hm-asesor.inactiva .hm-tot { background: #b0bec5; }
 .hm-cell { min-height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 6px;
-  font-size: 12.5px; font-weight: 700; background: #f2f6fb; transition: transform .1s; }
-.hm-cell:hover { transform: scale(1.08); outline: 2px solid #1A5FAD; z-index: 1; }
+  font-size: 12.5px; font-weight: 700; background: #f2f6fb; transition: filter .12s, box-shadow .12s; }
+/* Realce sin cambiar tamaño (evita scrollbars por el zoom del hover). */
+.hm-cell.clickable:hover { outline: 2px solid #1A5FAD; outline-offset: -2px; filter: brightness(1.07); box-shadow: 0 2px 8px rgba(26,95,173,.35); }
 .hm-cell.brk { background-image: repeating-linear-gradient(45deg, rgba(255,183,77,.10), rgba(255,183,77,.10) 4px, rgba(255,183,77,.18) 4px, rgba(255,183,77,.18) 8px); }
 
 @media (max-width: 640px) {
