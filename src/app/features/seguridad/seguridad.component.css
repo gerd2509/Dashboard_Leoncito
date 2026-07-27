@@ -720,13 +720,14 @@ td.col-modulo {
 }
 .modal-box {
   width: 100%; max-width: 620px;
-  background: #fff; border-radius: 12px; overflow: hidden;
+  background: #fff; border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0,0,0,.3);
 }
 .modal-head {
   background: #293964; color: #fff; text-align: center;
   font-size: 15px; font-weight: 700; letter-spacing: .03em;
   padding: 14px 18px;
+  border-radius: 12px 12px 0 0;   /* mantiene las esquinas superiores redondeadas sin overflow:hidden */
 }
 .modal-body { padding: 22px; }
 .modal-box .uf-grid { grid-template-columns: 1fr 1fr; }
