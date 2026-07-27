@@ -158,6 +158,11 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 /* Detalle a todo el ancho (sin recuadro interno) */
 .mp-card.full { padding: 0; border: 0; box-shadow: none; background: transparent; }
 .mp-card.full dx-data-grid { width: 100%; }
+/* Encabezados centrados y con wrap (que se vean completos) */
+.mp-card.full ::ng-deep .dx-datagrid .dx-header-row > td { text-align: center !important; vertical-align: middle; }
+.mp-card.full ::ng-deep .dx-datagrid .dx-header-row .dx-datagrid-text-content {
+  white-space: normal !important; text-overflow: clip; overflow: visible;
+}
 /* Botón exportar del grid más grande/llamativo */
 ::ng-deep .dx-datagrid .dx-toolbar .dx-button.dx-button-success { border-radius: 9px; font-weight: 700; }
 ::ng-deep .dx-datagrid .dx-toolbar .dx-button.dx-button-success .dx-icon { color: #fff; }
