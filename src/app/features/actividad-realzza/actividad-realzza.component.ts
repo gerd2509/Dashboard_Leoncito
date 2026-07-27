@@ -8,7 +8,7 @@ import { nombresRealzza } from '../../shared/asesores';
 
 type TipoGestion = 'BD' | 'KOMMO' | 'MARKET PLACE';
 interface Registro {
-  asesor: string; corto: string; ymd: string; hora: number; tod: number; hhmm: string;
+  asesor: string; corto: string; ymd: string; diaLabel: string; hora: number; tod: number; hhmm: string;
   tipo: TipoGestion; dni: string; estado: string;
 }
 interface FilaAsesor {
@@ -112,7 +112,8 @@ export class ActividadRealzzaComponent implements OnInit {
       const p = this.parseMarca((r['Marca temporal'] ?? '').toString());
       if (!p || p.ymd < d0 || p.ymd > d1) return;
       regs.push({
-        asesor, corto: this.corto(asesor), ymd: p.ymd, hora: p.hora, tod: p.hora * 60 + p.min, hhmm: p.hhmm,
+        asesor, corto: this.corto(asesor), ymd: p.ymd, diaLabel: this.diaLabelDe(p.ymd),
+        hora: p.hora, tod: p.hora * 60 + p.min, hhmm: p.hhmm,
         tipo, dni: (r[colDni] ?? '').toString().trim(), estado: (r[colEstado] ?? '').toString().trim(),
       });
     };
@@ -230,6 +231,14 @@ export class ActividadRealzzaComponent implements OnInit {
     return { ymd: `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`, hora, min, hhmm: `${String(hora).padStart(2, '0')}:${String(min).padStart(2, '0')}` };
   }
   private ymd(d: Date): string { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+  private readonly DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  private diaLabelDe(ymd: string): string {
+    const [y, m, d] = ymd.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return `${this.DIAS[dt.getDay()]} · ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+  }
+  /** Repinta el popup al mostrarse (evita que el título salga cortado la 1ª vez). */
+  popupShown(e: any): void { e.component?.repaint(); }
 
   esBreak(h: number): boolean { return this.BREAK.has(h); }
   // Escala de calor diferenciada: amarillo claro (poco) → naranja → rojo (mucho).

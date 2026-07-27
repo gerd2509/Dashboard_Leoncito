@@ -41,7 +41,10 @@
       <div class="ar-kpi k1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ totalReg }}</span><span class="l">Registros</span></div></div>
       <div class="ar-kpi k2" *ngIf="!selectedAsesor"><mat-icon>groups</mat-icon><div><span class="v">{{ asesorasActivas }}</span><span class="l">Asesoras activas</span></div></div>
       <div class="ar-kpi k3"><mat-icon>trending_up</mat-icon><div><span class="v">{{ horaPico }}</span><span class="l">Hora pico</span></div></div>
-      <div class="ar-kpi k4"><mat-icon>wb_twilight</mat-icon><div><span class="v">{{ primeraGlobal }}</span><span class="l">Primer registro</span></div></div>
+      <div class="ar-kpi k4"><mat-icon>wb_twilight</mat-icon><div>
+        <span class="v">{{ selectedAsesor && analisis ? analisis.inicioTipico : primeraGlobal }}</span>
+        <span class="l">{{ selectedAsesor ? 'Empieza ~ (prom.)' : 'Primer registro' }}</span>
+      </div></div>
       <div class="ar-kpi k5"><mat-icon>verified</mat-icon><div><span class="v">{{ pctHorario }}%</span><span class="l">En horario</span></div></div>
     </div>
 
@@ -129,19 +132,25 @@
   </ng-container>
 
   <!-- Popup de detalle -->
-  <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="popupTitulo" [dragEnabled]="false"
+  <dx-popup [(visible)]="popupVisible" [showTitle]="true" [dragEnabled]="false" (onShown)="popupShown($event)"
     [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" [maxWidth]="900" height="80%">
+    <dxo-position at="center" my="center"></dxo-position>
+    <div *dxTemplate="let d of 'title'" class="ar-poptitle"><mat-icon>event_note</mat-icon> {{ popupTitulo }}</div>
     <div *dxTemplate="let d of 'content'" class="ar-popup">
       <dx-data-grid [dataSource]="popupRegistros" [showBorders]="true" [rowAlternationEnabled]="true"
         [columnAutoWidth]="true" [hoverStateEnabled]="true" height="100%">
+        <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
         <dxo-filter-row [visible]="true"></dxo-filter-row>
-        <dxo-paging [pageSize]="25"></dxo-paging>
+        <dxo-paging [pageSize]="50"></dxo-paging>
         <dxo-pager [visible]="true" [showInfo]="true"></dxo-pager>
-        <dxi-column dataField="ymd" caption="Fecha" [width]="110" alignment="center"></dxi-column>
+        <dxi-column dataField="diaLabel" caption="Día" [groupIndex]="0"></dxi-column>
         <dxi-column dataField="hhmm" caption="Hora" [width]="80" alignment="center"></dxi-column>
         <dxi-column dataField="tipo" caption="Tipo" [width]="130" cellTemplate="tipoTpl"></dxi-column>
         <dxi-column dataField="dni" caption="DNI" [width]="110" alignment="center"></dxi-column>
         <dxi-column dataField="estado" caption="Estado" [minWidth]="130"></dxi-column>
+        <dxo-summary>
+          <dxi-group-item column="hhmm" summaryType="count" displayFormat="{0} registros"></dxi-group-item>
+        </dxo-summary>
         <div *dxTemplate="let c of 'tipoTpl'"><span class="an-chip sm" [ngClass]="tipoClase(c.value)">{{ c.value }}</span></div>
       </dx-data-grid>
     </div>
