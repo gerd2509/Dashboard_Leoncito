@@ -12,7 +12,7 @@ export interface CapRow {
   zona: string;
   canal: string;      // tipo de campaña / canal (RECP..., CAMPAÑA 1, CAMPAÑA 2)
   estado: string;     // ACTIVO / RENUNCIA
-  tipoAv: string;     // RECEPTIVO / CAMPAÑERO
+  dni: string;        // DNI del asesor (reemplazó a la antigua columna "TIPO AV")
 }
 
 /**
@@ -63,7 +63,7 @@ export class CapSedesService {
         zona: (r['ZONA'] ?? '').toString().trim().toUpperCase(),
         canal: (r['CANAL'] ?? '').toString().trim().toUpperCase(),
         estado: (r['ESTADO'] ?? '').toString().trim().toUpperCase(),
-        tipoAv: (r['TIPO AV'] ?? '').toString().trim().toUpperCase(),
+        dni: (r['DNI'] ?? '').toString().trim(),
       }))
       .filter(r => r.vendedor);
   }

@@ -153,7 +153,7 @@ export class SheetsService {
     return this.http.get<any[]>(this.apiUrlFerre);
   }
 
-  // 👥 CAP de asesores por sede (hoja "CAP"): VENDEDOR, SEDE, CANAL, ESTADO, TIPO AV, ...
+  // 👥 CAP de asesores por sede (hoja "CAP"): VENDEDOR, SEDE, CANAL, ESTADO, DNI, ...
   getSheetDataCapSedes(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlCapSedes);
   }
