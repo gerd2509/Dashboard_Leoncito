@@ -90,9 +90,9 @@
         </label>
         <label>Sede(s) *
           <dx-tag-box [dataSource]="sedeOptionsVisibles" displayExpr="label" valueExpr="value"
-            [(value)]="form.sedes" (onValueChanged)="onSedesChange()" [searchEnabled]="true"
-            [showSelectionControls]="true" applyValueMode="useButtons" stylingMode="outlined"
-            placeholder="Una o varias sedes…"></dx-tag-box>
+            [(value)]="form.sedes" (onValueChanged)="onSedesChange()"
+            [showSelectionControls]="true" [showClearButton]="true" applyValueMode="instantly"
+            stylingMode="outlined" placeholder="Una o varias sedes…"></dx-tag-box>
         </label>
 
         <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->

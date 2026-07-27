@@ -253,15 +253,6 @@ export class MiPanelComponent implements OnInit {
     return (s ?? '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   }
 
-  // Realzza: una venta cuyo AsesorVenta es un código Call (no vacío ni 'NAS') se
-  // acredita a CALL, NO al vendedor Realzza (igual que en Ventas Realzza). Excepción:
-  // vendedores donde el AsesorVenta CC sí cuenta para ellos.
-  private exceptCallRz = new Set(['BERNAL BAZAN BRENDA NICOLL'].map(n => this.normNombre(n)));
-  private ventaCuentaRealzza(r: any): boolean {
-    const av = (r.asesor_venta ?? '').toString().toUpperCase().trim();
-    if (!av || av === 'NAS') return true;                       // venta propia del vendedor
-    return this.exceptCallRz.has(this.normNombre(r.vendedor));  // excepción: cuenta pese al CC
-  }
 
   /**
    * Gestiones de SEDE del día (hoja gestión sedes): llamadas / cartas por resultado
@@ -384,11 +375,9 @@ export class MiPanelComponent implements OnInit {
       next: (rows) => {
         // Fecha de display construida desde dia/mes/anio (evita el corrimiento de
         // -1 día por zona horaria al parsear la columna DATE `fecha_cv`).
-        let data = (rows || []).map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
-        // Realzza: excluir las ventas acreditadas a CALL (AsesorVenta = código CC),
-        // para que el monto coincida con Ventas Realzza.
-        if (canal === 'realzza') data = data.filter(r => this.ventaCuentaRealzza(r));
-        this.todas = data;
+        // Todas las ventas del vendedor (incluidas las asistidas por Call), como el
+        // detalle de Ventas Realzza. La fecha de display se arma desde dia/mes/anio.
+        this.todas = (rows || []).map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
         this.aplicar();
         this.cargando = false;
       },
