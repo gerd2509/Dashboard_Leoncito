@@ -88,12 +88,14 @@
             <option *ngFor="let r of rolOptions" [value]="r.value">{{ r.label }}</option>
           </select>
         </label>
-        <label>Sede(s) *
+        <div class="uf-campo">
+          <span class="uf-lbl">Sede(s) *</span>
           <dx-tag-box [dataSource]="sedeOptionsVisibles" displayExpr="label" valueExpr="value"
             [(value)]="form.sedes" (onValueChanged)="onSedesChange()"
             [showSelectionControls]="true" [showClearButton]="true" applyValueMode="instantly"
-            stylingMode="outlined" placeholder="Una o varias sedes…"></dx-tag-box>
-        </label>
+            stylingMode="outlined" placeholder="Una o varias sedes…"
+            [dropDownOptions]="{ maxHeight: 260, position: { my: 'top', at: 'bottom', collision: 'fit' } }"></dx-tag-box>
+        </div>
 
         <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->
         <label *ngIf="form.rol === 'vendedor'">Canal *
