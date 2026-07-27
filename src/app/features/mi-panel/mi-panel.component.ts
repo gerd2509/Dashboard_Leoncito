@@ -172,7 +172,6 @@ export class MiPanelComponent implements OnInit {
       { field: 'productos', caption: 'Productos', width: 210 },
       { field: 'cuotas', caption: 'N° cuotas', type: 'number', width: 90 },
       { field: 'estado_venta', caption: 'Estado', width: 110 },
-      { field: 'asesor_venta', caption: 'Asesor venta', width: 110 },
       { field: 'vendedor', caption: 'Vendedor', width: 180 },
       { field: 'entidad', caption: 'Entidad', width: 110 },
       { field: 'tipo_credito', caption: 'Tipo crédito', width: 120 },
