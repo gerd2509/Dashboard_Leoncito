@@ -126,7 +126,8 @@ export class VentasComponent implements OnInit {
     { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
     { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
     { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
-    { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' }
+    { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' },
+    { value: 'CC26', viewValue: 'RUIZ SAMPEN LUCRECIA NOEMI' }
   ];
 
   // Asesores cuyo cap pertenece a RealZZA: su monto SÍ suma al total general,
@@ -155,7 +156,8 @@ export class VentasComponent implements OnInit {
     'CC16': 'ROSMERY',
     'CC19': 'JUANA',
     'CC21': 'ANITA',
-    'CC22': 'FABRICIO'
+    'CC22': 'FABRICIO',
+    'CC26': 'NOEMI',
   };
 
   displayedColumnsOriginales = [
