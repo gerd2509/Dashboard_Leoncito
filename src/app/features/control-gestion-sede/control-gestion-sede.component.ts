@@ -83,6 +83,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   evoScopeOptions: { value: string; label: string }[] = [];   // Global / Zona / Sede (por perfil)
   evoDatos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
   evoTitulo = '';
+  evoError = '';
 
   sedesBloques: SedeBloque[] = [];
 
@@ -621,6 +622,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const scope = (this.evoForm.value.scope as string) || 'GLOBAL';
     if (!desde || !hasta) return;
     this.evoLoading = true;
+    this.evoError = '';
     try {
       // Sedes del ámbito elegido + título.
       let sedesScope = this.sedesObjetivo;
@@ -685,9 +687,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         d.setDate(d.getDate() + 1); guard++;
       }
       this.evoDatos = datos;
-    } catch (e) {
+    } catch (e: any) {
       console.error('Error al cargar evolución:', e);
       this.evoDatos = [];
+      // Mensaje visible (antes se tragaba el error → parecía que "no cargaba").
+      const status = e?.status ? ` (HTTP ${e.status})` : '';
+      const msg = e?.message || e?.statusText || 'error desconocido';
+      this.evoError = `No se pudo cargar la evolución${status}: ${msg}. Reintenta o reduce el rango de fechas.`;
     } finally {
       this.evoLoading = false;
     }

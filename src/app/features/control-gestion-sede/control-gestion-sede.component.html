@@ -166,7 +166,11 @@
                 </table>
             </div>
 
-            <div *ngIf="!evoLoading && !evoDatos.length" class="ev-vacio-cgs">
+            <div *ngIf="!evoLoading && evoError" class="ev-error-cgs">
+                <mat-icon>error_outline</mat-icon> {{ evoError }}
+            </div>
+
+            <div *ngIf="!evoLoading && !evoDatos.length && !evoError" class="ev-vacio-cgs">
                 <mat-icon>info</mat-icon> Elige el rango y el ámbito, y pulsa "Ver evolución".
             </div>
         </div>
