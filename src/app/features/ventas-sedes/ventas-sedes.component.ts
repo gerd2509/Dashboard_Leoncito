@@ -24,11 +24,10 @@ interface ResumenSede {
   Color: string;
 }
 
-import { DatePresetsComponent } from '../../shared/date-presets/date-presets.component';
 
 @Component({
   selector: 'app-ventas-sedes',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, DatePresetsComponent],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
   templateUrl: './ventas-sedes.component.html',
   styleUrl: './ventas-sedes.component.css'
 })
@@ -665,11 +664,6 @@ export class VentasSedesComponent implements OnInit {
     }
   }
 
-  /** Aplica un rango rápido (Hoy / Semana / Mes / Mes anterior) y recarga. */
-  aplicarPreset(r: { desde: Date; hasta: Date }): void {
-    this.formVentas.patchValue({ fechaInicio: r.desde, fechaFin: r.hasta });
-    this.actualizarFiltros();
-  }
 
   aplicarFiltros(): void {
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);

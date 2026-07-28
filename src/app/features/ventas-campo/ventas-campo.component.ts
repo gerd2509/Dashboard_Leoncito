@@ -5,11 +5,10 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
-import { DatePresetsComponent } from '../../shared/date-presets/date-presets.component';
 
 @Component({
   selector: 'app-ventas-campo',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, DatePresetsComponent],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
   templateUrl: './ventas-campo.component.html',
   styleUrl: './ventas-campo.component.css'
 })
@@ -403,11 +402,6 @@ export class VentasCampoComponent implements OnInit {
     }
   }
 
-  /** Aplica un rango rápido (Hoy / Semana / Mes / Mes anterior) y recarga. */
-  aplicarPreset(r: { desde: Date; hasta: Date }): void {
-    this.formVentas.patchValue({ fechaInicio: r.desde, fechaFin: r.hasta });
-    this.actualizarFiltros();
-  }
 
   aplicarFiltros(): void {
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);
