@@ -6,17 +6,19 @@ import * as XLSX from 'xlsx';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { FiltrosStoreService } from '../../services/filtros-store.service';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 
 @Component({
   selector: 'app-ventas',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './ventas.component.html',
   styleUrl: './ventas.component.css'
 })
 export class VentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private filtros = inject(FiltrosStoreService);
+  importando = false;   // overlay animado mientras se procesa el Excel
 
   formVentas: UntypedFormGroup;
 
@@ -322,7 +324,10 @@ export class VentasComponent implements OnInit {
 
       this.actualizarFiltros();
       event.target.value = '';
+      this.importando = false;
     };
+    reader.onerror = () => { this.importando = false; };
+    this.importando = true;
     reader.readAsArrayBuffer(file);
   }
 

@@ -6,16 +6,18 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
 import { FiltrosStoreService } from '../../services/filtros-store.service';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 @Component({
   selector: 'app-ventas-campo',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './ventas-campo.component.html',
   styleUrl: './ventas-campo.component.css'
 })
 export class VentasCampoComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private filtros = inject(FiltrosStoreService);
+  importando = false;   // overlay animado mientras se procesa el Excel
 
   formVentas: UntypedFormGroup;
 
@@ -405,7 +407,10 @@ export class VentasCampoComponent implements OnInit {
       console.log(`✅ Ventas: ${this.dataVentas.length} | GO: ${this.dataGlobalGo.length} | Margen: ${this.dataMargen.length} | Evolutivo: ${this.dataEvolutivo.length}`);
       this.generarMesesGlobalGo();
       this.actualizarFiltros();
+      this.importando = false;
     };
+    reader.onerror = () => { this.importando = false; };
+    this.importando = true;
     reader.readAsArrayBuffer(file);
     input.value = '';
   }
