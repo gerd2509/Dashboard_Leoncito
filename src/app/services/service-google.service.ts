@@ -1,10 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { CacheService } from './cache.service';
 
 @Injectable({ providedIn: 'root' })
 export class SheetsService {
+  private cache = inject(CacheService);
   // La base sale del environment: prod (ng build) → Render https; dev (ng serve) → localhost.
   // Ya NO se comenta/descomenta nada manualmente.
   private baseUrl = `${environment.apiBase}/data`;
@@ -139,9 +141,14 @@ export class SheetsService {
   // Ej.: getSheetDataSedes({ desde: date1, hasta: date2 }) → ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
   getSheetDataSedes(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
     let params = new HttpParams();
-    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
-    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
-    return this.http.get<any[]>(this.apiUrlSedes, { params });
+    const d = rango?.desde ? this.fechaISO(rango.desde) : '';
+    const h = rango?.hasta ? this.fechaISO(rango.hasta) : '';
+    if (d) params = params.set('desde', d);
+    if (h) params = params.set('hasta', h);
+    // Caché corta (30s): al navegar entre módulos no re-consulta; el refresco
+    // automático (cada 5 min) y "Actualizar" tras 30s sí traen datos frescos.
+    return this.cache.getOrFetch(`sedes:${d}:${h}`,
+      () => this.http.get<any[]>(this.apiUrlSedes, { params }), 30000);
   }
 
   private fechaISO(d: Date): string {
@@ -154,7 +161,9 @@ export class SheetsService {
   }
 
   // 👥 CAP de asesores por sede (hoja "CAP"): VENDEDOR, SEDE, CANAL, ESTADO, DNI, ...
+  // Datos de referencia (cambian poco) → caché de 5 min.
   getSheetDataCapSedes(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlCapSedes);
+    return this.cache.getOrFetch('capSedes',
+      () => this.http.get<any[]>(this.apiUrlCapSedes), 5 * 60 * 1000);
   }
 }

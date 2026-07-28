@@ -759,3 +759,25 @@
   .sidebar, .sidebar.collapsed { width: 88%; }
   .contenido { padding: 10px 8px; }
 }
+
+/* ── Indicador de carga de módulo (@defer @loading) ── */
+.mod-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: #5b7a99;
+  font-weight: 600;
+  font-size: 14px;
+}
+.mod-spin {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #cddcec;
+  border-top-color: #1A5FAD;
+  border-radius: 50%;
+  animation: mod-spin 0.7s linear infinite;
+  flex: none;
+}
+@keyframes mod-spin { to { transform: rotate(360deg); } }
