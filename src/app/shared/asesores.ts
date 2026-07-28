@@ -30,3 +30,34 @@ export const ASESORES_REALZZA: AsesorRef[] = [
 /** Nombres (solo) de un canal Call/Realzza. */
 export const nombresCall = () => ASESORES_CALL.map(a => a.nombre);
 export const nombresRealzza = () => ASESORES_REALZZA.map(a => a.nombre);
+
+/** Nombre completo (mayúsculas) → nombre corto para mostrar. Fuente única. */
+export const NOMBRES_CORTOS: Record<string, string> = {
+  // Realzza
+  'MONTALVO LUYO ERNESTO ADOLFO': 'ERNESTO', 'PEREZ TINEO MARICIELO TATIANA': 'TATIANA',
+  'RIVAS PURISACA KAREN YUDITH': 'YUDITH', 'ACOSTA JIMENEZ MARIELA NATALY': 'NATALY',
+  'BERNAL BAZAN BRENDA NICOLL': 'BRENDA', 'BERNAL BAZAN BRENDA NICOL': 'BRENDA',
+  'SERNAQUE DAVILA JUAN ALBERTO': 'JUAN', 'CARRANZA ALARCON TREYCI JOHANA': 'TREYCI',
+  'SANDOVAL OTINIANO JUANA DEL PILAR': 'JUANA', 'SANTAMARIA GUZMAN MERLY BRIGHITE': 'MERLY',
+  'MIÑOPE GONZALES ANYELA ESTHEFANY': 'ANYELA', 'SAMAME HUAMAN ARIADNE': 'ARIADNE',
+  'UCHOFEN VIGO FELICITA': 'FELICITA', 'BUSTAMANTE CHALAN ANA RUT': 'ANA RUT',
+  'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS', 'GUILLEN MACKUADO AURORA FERNANDA': 'AURORA',
+  // Call
+  'MORETO DELGADO PATRICIA ESTEFANY': 'PATRICIA', 'QUISPE FONSECA KAREN AIMEE': 'KAREN',
+  'MORALES ÑIQUE MARIA CANDELARIA': 'MARIA', 'CHANTA CAMPOS KELLY KARINTIA': 'KELLY',
+  'TORRES ALVARADO JUDY ESMERALDA': 'ESMERALDA', 'CHANAME SOTO ANITA NOEMI': 'ANITA',
+  'BERNAL BAZAN FABRICIO ROLANDO': 'FABRICIO',
+};
+
+/**
+ * Nombre corto para mostrar en la UI. Usa el mapa; si no está, aplica una
+ * heurística para nombres peruanos (APELLIDO APELLIDO NOMBRE…): toma el 3er
+ * token (primer nombre) si hay 3+, o el primero si no.
+ */
+export function nombreCorto(nombreCompleto: string): string {
+  const n = (nombreCompleto || '').trim().toUpperCase();
+  if (!n) return '';
+  if (NOMBRES_CORTOS[n]) return NOMBRES_CORTOS[n];
+  const parts = n.split(/\s+/).filter(Boolean);
+  return parts.length >= 3 ? parts[2] : (parts[0] || n);
+}

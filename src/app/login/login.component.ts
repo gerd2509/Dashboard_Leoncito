@@ -7,6 +7,7 @@ import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/
 import { AuthService } from '../services/auth.service';
 import { BrandService, Brand } from '../services/brand.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
+import { nombreCorto } from '../shared/asesores';
 
 @Component({
   selector: 'app-login',
@@ -83,7 +84,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.cargando = false;
         // Splash de bienvenida entre el login y el dashboard.
-        this.nombreBienvenida = (res.nombre || '').toString().split(' ')[0] || res.nombre || '';
+        this.nombreBienvenida = nombreCorto(res.nombre || '') || res.nombre || '';
         this.transicion = true;
         const datos = { nombre: res.nombre, rol: res.rol, sede: res.sede, sedes: res.sedes, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos };
         setTimeout(() => this.auth.guardarSesion(datos), 2000);

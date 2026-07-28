@@ -42,6 +42,7 @@ import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
 import { PermissionsService } from '../services/permissions.service';
 import { SedeConfigService } from '../services/sede-config.service';
 import { BrandService, Brand } from '../services/brand.service';
+import { nombreCorto } from '../shared/asesores';
 
 interface SubItem { label: string; icon: string; modulo: string; }
 interface MenuItem {
@@ -319,6 +320,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
   // ── Menú/popup del usuario en el topbar ──
   userMenuOpen = false;
   toggleUserMenu(): void { this.userMenuOpen = !this.userMenuOpen; }
+
+  /** Nombre corto del usuario (para mostrar en el trigger, popup y splash). */
+  get nombreCortoUsuario(): string {
+    return nombreCorto(this.usuario?.nombre || '') || (this.usuario?.nombre || '');
+  }
+
+  /** Muestra el canal solo si NO coincide con la sede (evita el "REALZZA/realzza" duplicado). */
+  get mostrarCanal(): boolean {
+    const u = this.usuario;
+    if (!u?.canal) return false;
+    return this.sedeConfig.normalizar(u.canal) !== this.sedeConfig.normalizar(u.sede || '');
+  }
 
   /** Rol con formato bonito (primera mayúscula). */
   get rolTexto(): string {

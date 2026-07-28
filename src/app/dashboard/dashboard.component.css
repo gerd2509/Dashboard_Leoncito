@@ -823,7 +823,8 @@
   background: linear-gradient(135deg, rgb(var(--brand-rgb)), rgba(var(--brand-rgb), .7));
   box-shadow: 0 6px 18px rgba(var(--brand-rgb), .4);
 }
-.uc-nombre { font-weight: 800; font-size: 14.5px; color: #1E3A5F; line-height: 1.25; }
+.uc-nombre { font-weight: 800; font-size: 15.5px; color: #1E3A5F; line-height: 1.2; }
+.uc-full { font-size: 11.5px; color: #7d93a8; font-weight: 500; margin-top: 1px; line-height: 1.25; }
 .uc-rol {
   display: inline-block; margin-top: 3px; font-size: 11px; font-weight: 700;
   color: rgb(var(--brand-rgb)); background: rgba(var(--brand-rgb), .12);
