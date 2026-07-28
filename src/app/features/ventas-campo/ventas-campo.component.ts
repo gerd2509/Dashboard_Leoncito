@@ -146,13 +146,6 @@ export class VentasCampoComponent implements OnInit {
     'CASTILLO AGUILAR ANYELA VANESSA'
   ]);
 
-  // Vendedores que pertenecen al cap RealZZA aunque traigan un código de asesor
-  // CALL en AsesorVenta (ej. CC12). Deben contarse como vendedor independiente
-  // (su propio nombre), NO como "CALL", en todas las tablas y gráficos.
-  private readonly vendedoresExcepcionCall = new Set([
-    'BERNAL BAZAN BRENDA NICOLL'
-  ]);
-
 
 
   // Lista para el filtro manual (Dropdown)
@@ -576,9 +569,9 @@ export class VentasCampoComponent implements OnInit {
     });
   }
 
-  private resolverNombreVendedor(vendedorOriginal: string, asesorVenta: string = ''): string {
-    const av = (asesorVenta || '').toString().trim().toUpperCase();
-    if (av && av !== 'NAS' && !this.vendedoresExcepcionCall.has(vendedorOriginal)) return 'CALL';
+  private resolverNombreVendedor(vendedorOriginal: string, _asesorVenta: string = ''): string {
+    // En el dashboard de Realzza TODO es Realzza: aunque AsesorVenta traiga un código
+    // CALL (CC…), la venta se atribuye al asesor Realzza real (no se separa a "CALL").
     if (this.grupoBrilla.has(vendedorOriginal)) return 'BRILLA';
     return this.nombresCortos[vendedorOriginal] || vendedorOriginal;
   }
