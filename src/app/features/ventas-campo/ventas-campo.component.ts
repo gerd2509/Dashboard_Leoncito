@@ -569,9 +569,11 @@ export class VentasCampoComponent implements OnInit {
     });
   }
 
-  private resolverNombreVendedor(vendedorOriginal: string, _asesorVenta: string = ''): string {
-    // En el dashboard de Realzza TODO es Realzza: aunque AsesorVenta traiga un código
-    // CALL (CC…), la venta se atribuye al asesor Realzza real (no se separa a "CALL").
+  private resolverNombreVendedor(vendedorOriginal: string, tipoBase: string = ''): string {
+    // La fila "CALL" agrupa SOLO las ventas cuyo TipoBase es CALL. Una venta de un
+    // vendedor Realzza que traiga un código CC en AsesorVenta pero sin TipoBase CALL
+    // es Realzza y suma a su asesor Realzza real (no se separa a "CALL").
+    if ((tipoBase || '').toString().trim().toUpperCase() === 'CALL') return 'CALL';
     if (this.grupoBrilla.has(vendedorOriginal)) return 'BRILLA';
     return this.nombresCortos[vendedorOriginal] || vendedorOriginal;
   }
@@ -580,13 +582,13 @@ export class VentasCampoComponent implements OnInit {
     const map = new Map<string, number>();
 
     this.filtroVentas.forEach(v => {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       map.set(nombre, (map.get(nombre) || 0) + (v.MontoConsolidado || 0));
     });
 
     // Restar solo las NCs puras (sin refacturación) por vendedor.
     // Las refacturadas no restan porque la nueva venta ya está sumada en filtroVentas.
-    this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta))
+    this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase))
       .forEach((monto, nombre) => map.set(nombre, (map.get(nombre) || 0) - monto));
 
     this.chartData = Array.from(map, ([name, total]) => ({
@@ -758,12 +760,12 @@ export class VentasCampoComponent implements OnInit {
   generarResumenPorVendedor(): void {
     const mapVentas = new Map<string, { monto: number; ops: number }>();
     this.filtroVentas.forEach(v => {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       const cur = mapVentas.get(nombre) || { monto: 0, ops: 0 };
       mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta));
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
 
     const rows: any[] = [];
     mapVentas.forEach((data, nombre) => {
@@ -1083,7 +1085,7 @@ export class VentasCampoComponent implements OnInit {
     this.dataGlobalGo
       .filter(v => { const f = v.FECHAVENTA as Date; return f >= fechaInicio && f <= fechaFin; })
       .forEach(v => {
-        const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+        const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
         const tipo   = (v.TipoProducto || 'SIN TIPO').toString().trim().toUpperCase();
         tiposSet.add(tipo);
         if (!mapVendedor.has(nombre)) mapVendedor.set(nombre, new Map());
@@ -1297,12 +1299,12 @@ export class VentasCampoComponent implements OnInit {
 
     const mapVentas = new Map<string, { ventas: number; ops: number }>();
     this.filtroVentas.forEach(v => {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.AsesorVenta);
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       const cur = mapVentas.get(nombre) || { ventas: 0, ops: 0 };
       mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.AsesorVenta));
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
 
     this.tablaBonosAsesor = Array.from(mapVentas.entries()).map(([nombre, data]) => {
       const ventas = Math.round(data.ventas);
