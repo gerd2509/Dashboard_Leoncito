@@ -1,3 +1,6 @@
+/* Layout cabecera fija + scroll (clases .vd-* en styles.css global) */
+:host { display: block; height: 100%; min-height: 0; }
+
 /* =========================================================
    FORMULARIO DE FILTROS
    ========================================================= */

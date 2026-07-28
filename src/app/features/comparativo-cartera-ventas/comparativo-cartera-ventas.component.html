@@ -1,4 +1,5 @@
-<div class="cc-page">
+<div class="cc-page vd-shell">
+<div class="vd-fixed">
 
   <!-- Barra de acciones -->
   <div class="cc-panel cc-toolbar">
@@ -47,7 +48,9 @@
       <div class="kpi-body"><span>{{ formatSoles(kMonto) }}</span><small>Monto vendido (neto)</small></div>
     </div>
   </div>
+</div><!-- /vd-fixed -->
 
+<div class="vd-scroll">
   <div *ngIf="aviso" class="cc-aviso">{{ aviso }}</div>
 
   <!-- Desglose por estado de las ventas cruzadas (incluye PRONTO PAGO) -->
@@ -190,4 +193,5 @@
       </dxo-summary>
     </dx-data-grid>
   </div>
+</div><!-- /vd-scroll -->
 </div>

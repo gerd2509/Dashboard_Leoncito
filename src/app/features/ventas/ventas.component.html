@@ -1,3 +1,5 @@
+<div class="vd-shell">
+<div class="vd-fixed">
 <!-- ===== FILTROS ===== -->
 <form class="form mt-2" [formGroup]="formVentas">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
@@ -44,7 +46,9 @@
         <div class="valor">S/. {{ proyeccion | number:'1.0-0' }}</div>
     </div>
 </div>
+</div><!-- /vd-fixed -->
 
+<div class="vd-scroll">
 <!-- ===== TABLA BONOS POR ASESOR ===== -->
 <div *ngIf="tablaBonosAsesor.length > 0" style="margin: 16px 0;">
     <div class="section-header">
@@ -663,3 +667,5 @@
         <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeMontoTooltip"></dxo-tooltip>
     </dx-chart>
 </dx-popup>
+</div><!-- /vd-scroll -->
+</div><!-- /vd-shell -->

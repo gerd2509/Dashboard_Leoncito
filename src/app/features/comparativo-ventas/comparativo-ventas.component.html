@@ -1,3 +1,5 @@
+<div class="vd-shell">
+<div class="vd-fixed">
 <form class="form mt-2" [formGroup]="formComparativo">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
@@ -25,7 +27,9 @@
         Exportar
     </button>
 </form>
+</div><!-- /vd-fixed -->
 
+<div class="vd-scroll">
 <div class="charts-grid">
 
     <!-- GRÁFICO 1 (ancho completo): Área suavizada + Línea de crecimiento -->
@@ -221,3 +225,5 @@
     </div>
 
 </div>
+</div><!-- /vd-scroll -->
+</div><!-- /vd-shell -->

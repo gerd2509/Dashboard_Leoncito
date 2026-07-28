@@ -1,3 +1,5 @@
+<div class="vd-shell">
+<div class="vd-fixed">
 <!-- ===== FILTROS ===== -->
 <form class="form mt-2" [formGroup]="formVentas">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
@@ -36,7 +38,9 @@
     </button>
     -->
 </form>
+</div><!-- /vd-fixed -->
 
+<div class="vd-scroll">
 <!-- ===== ESTADO: CARGANDO / ERROR / VACÍO ===== -->
 <div *ngIf="cargando" class="empty-state">
     <mat-progress-spinner mode="indeterminate" [diameter]="48" [strokeWidth]="4"></mat-progress-spinner>
@@ -1021,3 +1025,5 @@
         </dxo-summary>
     </dx-data-grid>
 </div>
+</div><!-- /vd-scroll -->
+</div><!-- /vd-shell -->

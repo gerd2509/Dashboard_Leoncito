@@ -1,3 +1,5 @@
+<div class="vd-shell">
+<div class="vd-fixed">
 <form class="form mt-2" [formGroup]="form">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
@@ -20,7 +22,9 @@
         Exportar
     </button>
 </form>
+</div><!-- /vd-fixed -->
 
+<div class="vd-scroll">
 <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="filtroVentas" [allowColumnReordering]="true"
     [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
     (onCellPrepared)="onCellPrepared($event)" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
@@ -114,4 +118,6 @@
             </dxo-summary>
         </dx-data-grid>
     </div>
+</div><!-- /vd-scroll -->
+</div><!-- /vd-shell -->
 </div>

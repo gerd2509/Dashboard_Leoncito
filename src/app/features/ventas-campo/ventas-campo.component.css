@@ -1,28 +1,5 @@
-/* =========================================================
-   LAYOUT: cabecera fija (filtros + KPIs) + cuerpo con scroll
-   ========================================================= */
+/* Layout cabecera fija + scroll: clases .vd-* están en styles.css (global) */
 :host { display: block; height: 100%; min-height: 0; }
-.vd-shell {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-}
-.vd-fixed { flex: none; }                 /* filtros + KPIs: siempre visibles */
-.vd-scroll {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 4px 6px 8px 0;               /* espacio para la barra de scroll */
-    scrollbar-width: thin;
-    scrollbar-color: #CCDAEE #EEF2F8;
-}
-.vd-scroll::-webkit-scrollbar { width: 8px; }
-.vd-scroll::-webkit-scrollbar-track { background: #EEF2F8; border-radius: 4px; }
-.vd-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
-.vd-scroll::-webkit-scrollbar-thumb:hover { background: #1A5FAD; }
-/* Separa un poco los KPIs de la zona con scroll */
-.vd-fixed .kpi-grid { margin-bottom: 6px; }
 
 /* =========================================================
    FORMULARIO DE FILTROS

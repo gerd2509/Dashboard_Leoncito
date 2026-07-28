@@ -1,8 +1,10 @@
+:host { display: block; height: 100%; min-height: 0; }
 .cc-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 4px 2px 30px;
+  min-height: 0;
 }
 
 .cc-panel {

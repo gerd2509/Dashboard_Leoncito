@@ -369,3 +369,33 @@ body {
   /* Toasts (MatSnackBar) sin pegarse a los bordes */
   .mat-mdc-snack-bar-container { margin: 10px !important; }
 }
+
+/* =========================================================
+   LAYOUT DE DASHBOARDS: cabecera fija + cuerpo con scroll
+   Uso: envolver el componente con
+     <div class="vd-shell">
+       <div class="vd-fixed"> filtros + KPIs </div>
+       <div class="vd-scroll"> tablas / gráficos </div>
+     </div>
+   y en el componente:  :host { display:block; height:100%; min-height:0; }
+   ========================================================= */
+.vd-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.vd-fixed { flex: none; }
+.vd-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 6px 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #CCDAEE #EEF2F8;
+}
+.vd-scroll::-webkit-scrollbar { width: 8px; }
+.vd-scroll::-webkit-scrollbar-track { background: #EEF2F8; border-radius: 4px; }
+.vd-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
+.vd-scroll::-webkit-scrollbar-thumb:hover { background: #1A5FAD; }
+.vd-fixed .kpi-grid { margin-bottom: 6px; }
