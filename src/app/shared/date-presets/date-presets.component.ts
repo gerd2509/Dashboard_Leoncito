@@ -1,37 +1,50 @@
 import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatIconModule } from '@angular/material/icon';
 
 /**
- * Botones de rango rápido reutilizables para los dashboards de ventas.
- * Emite el rango elegido por (rango)="..."; cada dashboard lo aplica a su
- * formulario de fechas y recarga. No conoce el formato de cada form.
+ * Selector de rango rápido COMPACTO (un solo botón con menú) reutilizable en los
+ * dashboards de ventas. Emite el rango elegido por (rango)="..."; cada dashboard
+ * lo aplica a su formulario de fechas y recarga. No conoce el formato de cada form.
  */
 @Component({
   selector: 'app-date-presets',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatButtonModule, MatMenuModule, MatIconModule],
   template: `
-    <div class="dp-wrap">
-      <button *ngFor="let p of presets" type="button" class="dp-btn"
-              [class.activo]="activo === p.key" (click)="elegir(p.key)">{{ p.label }}</button>
-    </div>
+    <button type="button" mat-stroked-button class="dp-trigger" [matMenuTriggerFor]="menu"
+            [class.activo]="!!activoKey" title="Rango rápido de fechas">
+      <mat-icon>event</mat-icon>
+      <span class="dp-lbl">{{ activoLabel || 'Rango' }}</span>
+      <mat-icon class="dp-caret">arrow_drop_down</mat-icon>
+    </button>
+    <mat-menu #menu="matMenu" class="dp-menu">
+      <button mat-menu-item *ngFor="let p of presets" (click)="elegir(p.key, p.label)">
+        <mat-icon *ngIf="activoKey === p.key" class="dp-check">check</mat-icon>
+        <span [style.margin-left.px]="activoKey === p.key ? 0 : 26">{{ p.label }}</span>
+      </button>
+    </mat-menu>
   `,
   styles: [`
-    .dp-wrap { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-    .dp-btn {
-      border: 1px solid #cddcec; background: #f4f8fc; color: #24557f;
-      font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px;
-      cursor: pointer; transition: background .15s, border-color .15s, color .15s;
-      white-space: nowrap; font-family: inherit;
+    .dp-trigger {
+      display: inline-flex; align-items: center; gap: 4px; height: 38px;
+      border-radius: 8px; padding: 0 10px; font-weight: 600; font-size: 13px;
+      color: #24557f; border-color: #cddcec;
     }
-    .dp-btn:hover { background: #e6f0fb; border-color: #a9c6e4; }
-    .dp-btn.activo { background: #1A5FAD; border-color: #1A5FAD; color: #fff; }
+    .dp-trigger.activo { color: #fff; background: #1A5FAD; border-color: #1A5FAD; }
+    .dp-trigger .mat-icon { font-size: 19px; width: 19px; height: 19px; }
+    .dp-trigger .dp-caret { margin-left: -2px; }
+    .dp-trigger .dp-lbl { white-space: nowrap; }
+    .dp-check { color: #1A5FAD; }
   `],
 })
 export class DatePresetsComponent {
   @Output() rango = new EventEmitter<{ desde: Date; hasta: Date }>();
 
-  activo = '';
+  activoKey = '';
+  activoLabel = '';
   presets = [
     { key: 'hoy', label: 'Hoy' },
     { key: 'semana', label: 'Esta semana' },
@@ -39,7 +52,7 @@ export class DatePresetsComponent {
     { key: 'mesAnterior', label: 'Mes anterior' },
   ];
 
-  elegir(key: string): void {
+  elegir(key: string, label: string): void {
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     let desde = new Date(hoy);
     let hasta = new Date(hoy);
@@ -62,7 +75,8 @@ export class DatePresetsComponent {
         break;
     }
 
-    this.activo = key;
+    this.activoKey = key;
+    this.activoLabel = label;
     this.rango.emit({ desde, hasta });
   }
 }
