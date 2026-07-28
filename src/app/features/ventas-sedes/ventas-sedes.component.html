@@ -20,6 +20,7 @@
     <button mat-flat-button [disabled]="formVentas.invalid || cargando" (click)="actualizarFiltros()">
         <mat-icon>search</mat-icon> Actualizar
     </button>
+    <app-date-presets (rango)="aplicarPreset($event)"></app-date-presets>
 
     <!-- ⏳ PRUEBA POSTGRESQL: la data ahora se trae del backend (GET /ventas) según las fechas.
          Importar/Exportar Excel quedan comentados hasta nuevo aviso. -->

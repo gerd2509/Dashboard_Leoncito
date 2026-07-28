@@ -21,6 +21,7 @@
     <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
         <mat-icon>search</mat-icon> Actualizar
     </button>
+    <app-date-presets (rango)="aplicarPreset($event)"></app-date-presets>
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
     <button mat-flat-button (click)="fileInput.click()">
         <mat-icon>upload</mat-icon> Importar Excel

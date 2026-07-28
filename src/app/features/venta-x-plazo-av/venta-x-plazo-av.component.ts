@@ -6,9 +6,11 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
 
+import { DatePresetsComponent } from '../../shared/date-presets/date-presets.component';
+
 @Component({
   selector: 'app-venta-x-plazo-av',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, DatePresetsComponent],
   templateUrl: './venta-x-plazo-av.component.html',
   styleUrl: './venta-x-plazo-av.component.css'
 })
@@ -182,6 +184,12 @@ export class VentaXPlazoAvComponent implements OnInit {
     this.generarTotalesPorCuotasMenorIgualSiete();
     this.generarTotalesPorCuotasEntreNueveYDoce();
     this.generarTotalesPorCuota8();
+  }
+
+  /** Aplica un rango rápido (Hoy / Semana / Mes / Mes anterior) y recalcula. */
+  aplicarPreset(r: { desde: Date; hasta: Date }): void {
+    this.form.patchValue({ fechaInicio: r.desde, fechaFin: r.hasta });
+    this.actualizarFiltros();
   }
 
   exportar() { }

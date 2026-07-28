@@ -6,9 +6,11 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
 
+import { DatePresetsComponent } from '../../shared/date-presets/date-presets.component';
+
 @Component({
   selector: 'app-comparativo-ventas',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, DatePresetsComponent],
   templateUrl: './comparativo-ventas.component.html',
   styleUrl: './comparativo-ventas.component.css'
 })
@@ -141,6 +143,12 @@ export class ComparativoVentasComponent implements OnInit {
     if (this.formComparativo.valid) {
       this.aplicarFiltros();
     }
+  }
+
+  /** Aplica un rango rápido (Hoy / Semana / Mes / Mes anterior) y recarga. */
+  aplicarPreset(r: { desde: Date; hasta: Date }): void {
+    this.formComparativo.patchValue({ fechaInicio: r.desde, fechaFin: r.hasta });
+    this.actualizarFiltros();
   }
 
   aplicarFiltros(): void {
