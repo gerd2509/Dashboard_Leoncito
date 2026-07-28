@@ -40,7 +40,6 @@
 </form>
 </div><!-- /vd-fixed -->
 
-<div class="vd-scroll">
 <!-- ===== ESTADO: CARGANDO / ERROR / VACÍO ===== -->
 <div *ngIf="cargando" class="empty-state">
     <mat-progress-spinner mode="indeterminate" [diameter]="48" [strokeWidth]="4"></mat-progress-spinner>
@@ -58,8 +57,9 @@
 <!-- ════════════════════════════════════════════════════════════════════ -->
 <!-- ===== VISTA PRINCIPAL: RESUMEN POR SEDE ===== -->
 <!-- ════════════════════════════════════════════════════════════════════ -->
-<ng-container *ngIf="dataVentas.length > 0 && !sedeSeleccionada">
+<div class="vd-view" *ngIf="dataVentas.length > 0 && !sedeSeleccionada">
 
+    <div class="vd-fixed">
     <!-- KPIs Generales -->
     <div class="kpi-grid">
         <div class="card-resumen">
@@ -91,7 +91,9 @@
             <div class="valor">{{ totalGeneral.sedes }}</div>
         </div>
     </div>
+    </div><!-- /vd-fixed -->
 
+    <div class="vd-scroll">
     <!-- Tarjetas por sede (clic para ver detalle) -->
     <div class="section-header">
         <mat-icon>location_city</mat-icon>
@@ -221,14 +223,16 @@
             <dxi-total-item column="Participacion" summaryType="sum" displayFormat="{0}%" [valueFormat]="{ type: 'fixedPoint', precision: 1 }"></dxi-total-item>
         </dxo-summary>
     </dx-data-grid>
-</ng-container>
+    </div><!-- /vd-scroll -->
+</div><!-- /vd-view resumen -->
 
 <!-- ════════════════════════════════════════════════════════════════════ -->
 <!-- ===== DETALLE DE SEDE ===== -->
 <!-- ════════════════════════════════════════════════════════════════════ -->
-<div class="detalle-sede" *ngIf="dataVentas.length > 0 && sedeSeleccionada"
+<div class="detalle-sede vd-view" *ngIf="dataVentas.length > 0 && sedeSeleccionada"
     [style.--sede-color]="colorSedeActual">
 
+    <div class="vd-fixed">
     <!-- Banner de sede -->
     <div class="sede-banner" [style.background]="colorSedeActual">
         <button *ngIf="esGlobal || sedesDisponibles.length > 1" mat-icon-button class="banner-back" (click)="volverResumen()" title="Volver al resumen">
@@ -274,7 +278,9 @@
             <div class="valor">S/. {{ proyeccion | number:'1.0-0' }}</div>
         </div>
     </div>
+    </div><!-- /vd-fixed -->
 
+    <div class="vd-scroll">
     <!-- ===== TABLA BONOS POR ASESOR (deshabilitada por ahora — pendiente de definir) ===== -->
     <!--
     <div *ngIf="tablaBonosAsesor.length > 0" style="margin: 16px 0;">
@@ -1024,6 +1030,6 @@
             <dxi-total-item column="Vendedor" summaryType="count" displayFormat="{0} ops"></dxi-total-item>
         </dxo-summary>
     </dx-data-grid>
-</div>
-</div><!-- /vd-scroll -->
+    </div><!-- /vd-scroll (detalle sede) -->
+</div><!-- /vd-view detalle-sede -->
 </div><!-- /vd-shell -->
