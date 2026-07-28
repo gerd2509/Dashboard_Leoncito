@@ -5,6 +5,7 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import * as XLSX from 'xlsx';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { ExcelExportService } from '../../services/excel/excel.service';
+import { FiltrosStoreService } from '../../services/filtros-store.service';
 
 
 @Component({
@@ -15,6 +16,7 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 })
 export class VentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
+  private filtros = inject(FiltrosStoreService);
 
   formVentas: UntypedFormGroup;
 
@@ -208,6 +210,17 @@ export class VentasComponent implements OnInit {
 
   async ngOnInit() {
     this.configuracionesIniciales();
+    const s = this.filtros.leer('ventas');
+    if (s) {
+      const fi = this.filtros.fecha(s['fechaInicio']);
+      const ff = this.filtros.fecha(s['fechaFin']);
+      this.formVentas.patchValue({
+        ...(fi ? { fechaInicio: fi } : {}),
+        ...(ff ? { fechaFin: ff } : {}),
+        Asesores: s['Asesores'] ?? this.formVentas.value.Asesores,
+        TipoProducto: s['TipoProducto'] ?? this.formVentas.value.TipoProducto,
+      });
+    }
   }
 
   configuracionesIniciales(): void {
@@ -323,6 +336,12 @@ export class VentasComponent implements OnInit {
 
 
   aplicarFiltros(): void {
+    this.filtros.guardar('ventas', {
+      fechaInicio: this.formVentas.value.fechaInicio,
+      fechaFin: this.formVentas.value.fechaFin,
+      Asesores: this.formVentas.value.Asesores,
+      TipoProducto: this.formVentas.value.TipoProducto,
+    });
     const selectedAsesor   = (this.formVentas.value.Asesores || '').toString().trim().toUpperCase();
     const selectedTipoProd = this.formVentas.value.TipoProducto;
 
