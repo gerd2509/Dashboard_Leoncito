@@ -96,12 +96,32 @@
       </button>
       <div class="titulo-modulo">{{ getTituloModulo() }}</div>
       <div class="topbar-user">
-        <mat-icon>account_circle</mat-icon>
-        <span class="user-nombre">{{ usuario?.nombre }}</span>
-        <span class="user-sede" *ngIf="usuario?.sede !== 'todas'">{{ usuario?.sede | uppercase }}</span>
-        <button class="btn-logout" (click)="logout()" title="Cerrar sesión">
-          <mat-icon>logout</mat-icon>
+        <button class="user-trigger" [class.open]="userMenuOpen" (click)="toggleUserMenu()"
+                [style.--brand-rgb]="brand.rgb" title="Mi cuenta">
+          <span class="user-avatar">{{ inicial }}</span>
+          <span class="user-nombre">{{ usuario?.nombre }}</span>
+          <mat-icon class="user-caret">expand_more</mat-icon>
         </button>
+
+        <!-- Popup de cuenta -->
+        <div class="user-back" *ngIf="userMenuOpen" (click)="userMenuOpen = false"></div>
+        <div class="user-card" *ngIf="userMenuOpen" [style.--brand-rgb]="brand.rgb">
+          <div class="uc-head">
+            <span class="uc-avatar">{{ inicial }}</span>
+            <div class="uc-id">
+              <div class="uc-nombre">{{ usuario?.nombre }}</div>
+              <div class="uc-rol">{{ rolTexto }}</div>
+            </div>
+          </div>
+          <div class="uc-datos">
+            <div class="uc-row"><mat-icon>place</mat-icon><span>{{ sedesTexto }}</span></div>
+            <div class="uc-row" *ngIf="usuario?.canal"><mat-icon>headset_mic</mat-icon><span>{{ usuario?.canal | uppercase }}</span></div>
+            <div class="uc-row" *ngIf="usuario?.vendedor"><mat-icon>badge</mat-icon><span>{{ usuario?.vendedor }}</span></div>
+          </div>
+          <button class="uc-logout" (click)="userMenuOpen = false; logout()">
+            <mat-icon>logout</mat-icon> Cerrar sesión
+          </button>
+        </div>
       </div>
     </header>
 

@@ -21,6 +21,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   mostrarPassword = false;
   cargando = false;
   error = '';
+  transicion = false;         // splash de bienvenida tras el login
+  nombreBienvenida = '';
 
   // Marca mostrada en el panel izquierdo (cambia según el usuario que se escribe)
   brand: Brand;
@@ -79,8 +81,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     this.auth.login(this.usuario.trim(), this.password.trim()).subscribe({
       next: (res: any) => {
-        this.auth.guardarSesion({ nombre: res.nombre, rol: res.rol, sede: res.sede, sedes: res.sedes, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos });
         this.cargando = false;
+        // Splash de bienvenida entre el login y el dashboard.
+        this.nombreBienvenida = (res.nombre || '').toString().split(' ')[0] || res.nombre || '';
+        this.transicion = true;
+        const datos = { nombre: res.nombre, rol: res.rol, sede: res.sede, sedes: res.sedes, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos };
+        setTimeout(() => this.auth.guardarSesion(datos), 2000);
       },
       error: (err) => {
         this.cargando = false;

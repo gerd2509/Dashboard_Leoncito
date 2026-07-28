@@ -316,6 +316,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get usuario() { return this.auth.getUsuario(); }
 
+  // ── Menú/popup del usuario en el topbar ──
+  userMenuOpen = false;
+  toggleUserMenu(): void { this.userMenuOpen = !this.userMenuOpen; }
+
+  /** Rol con formato bonito (primera mayúscula). */
+  get rolTexto(): string {
+    const r = (this.usuario?.rol || '').toString();
+    return r ? r.charAt(0).toUpperCase() + r.slice(1).toLowerCase() : '—';
+  }
+
+  /** Texto de la(s) sede(s) del usuario (nombres bonitos). */
+  get sedesTexto(): string {
+    const u = this.usuario;
+    if (!u) return '—';
+    const tokens = this.auth.sedesUsuario();
+    if (this.sedeConfig.incluyeTodas(tokens) || u.rol === 'admin') return 'Todas las sedes';
+    const nombres = tokens.map(t => {
+      const nt = this.sedeConfig.normalizar(t);
+      if (['centro', 'norte', 'sur'].includes(nt)) return 'Zona ' + nt.charAt(0).toUpperCase() + nt.slice(1);
+      return this.sedeConfig.getConfig(t)?.nombre ?? t;
+    });
+    return nombres.length ? nombres.join(', ') : (u.sede || '—');
+  }
+
   // Ajusta el layout a móvil (≤768px): el sidebar pasa a ser un cajón (drawer)
   // que arranca cerrado; en escritorio queda visible.
   @HostListener('window:resize')

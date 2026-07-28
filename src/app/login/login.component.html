@@ -1,3 +1,16 @@
+<!-- ═══ SPLASH DE BIENVENIDA (entre el login y el dashboard) ═══ -->
+<div class="login-transicion" *ngIf="transicion" [style.--brand-rgb]="brand.rgb">
+  <div class="lt-stage">
+    <div class="lt-ring lt-r1"></div>
+    <div class="lt-ring lt-r2"></div>
+    <div class="lt-ring lt-r3"></div>
+    <div class="lt-lion"><app-lion-icon class="lt-emoji" [variant]="brand.id"></app-lion-icon></div>
+  </div>
+  <div class="lt-hola">¡Bienvenido, {{ nombreBienvenida }}!</div>
+  <div class="lt-sub">Preparando tu panel…</div>
+  <div class="lt-bar"><span></span></div>
+</div>
+
 <div class="login-page">
 
   <!-- Partículas flotantes -->
