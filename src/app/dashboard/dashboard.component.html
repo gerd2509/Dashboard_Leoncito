@@ -106,44 +106,44 @@
     </header>
 
     <section class="contenido">
-      <ng-container [ngSwitch]="moduloSeleccionado">
-        <app-agendamientos               *ngSwitchCase="'agendamientos'"></app-agendamientos>
-        <app-agendamientos-campo         *ngSwitchCase="'agendamientos-campo'"></app-agendamientos-campo>
-        <app-agendamientos-kommo         *ngSwitchCase="'agendamientos-kommo'"></app-agendamientos-kommo>
-        <app-agendamientos-sedes         *ngSwitchCase="'agendamientos-sedes'"></app-agendamientos-sedes>
-        <app-gestion-contact-x-hora      *ngSwitchCase="'gestion'"></app-gestion-contact-x-hora>
-        <app-gestion-campo-realzza       *ngSwitchCase="'gestion-campo'"></app-gestion-campo-realzza>
-        <app-gestion-post-venta          *ngSwitchCase="'gestion-post-venta'"></app-gestion-post-venta>
-        <app-gestion-kommo               *ngSwitchCase="'gestion-kommo'"></app-gestion-kommo>
-        <app-gestion-sede                *ngSwitchCase="'gestion-sede'"></app-gestion-sede>
-        <app-gestion-call-sedes          *ngSwitchCase="'gestion-call-sedes'"></app-gestion-call-sedes>
-        <app-cierre-gestion              *ngSwitchCase="'cierre'"></app-cierre-gestion>
-        <app-ventas                      *ngSwitchCase="'ventas'"></app-ventas>
-        <app-ventas-campo                *ngSwitchCase="'ventas-campo'"></app-ventas-campo>
-        <app-ventas-sedes                *ngSwitchCase="'ventas-sedes'"></app-ventas-sedes>
-        <app-comparativo-ventas          *ngSwitchCase="'ventas-comparativo'"></app-comparativo-ventas>
-        <app-evolucion-tipo-cliente      *ngSwitchCase="'evolucion-tipo-cliente'"></app-evolucion-tipo-cliente>
-        <app-venta-x-plazo-av            *ngSwitchCase="'ventas-plazo-av'"></app-venta-x-plazo-av>
-        <app-convertidor-excel-csv       *ngSwitchCase="'conversor-csv'"></app-convertidor-excel-csv>
-        <app-limpieza-bbdd               *ngSwitchCase="'limpieza-bbdd'"></app-limpieza-bbdd>
-        <app-gps-ruta                    *ngSwitchCase="'gps-ruta'"></app-gps-ruta>
-        <app-post-venta                  *ngSwitchCase="'post-venta'"></app-post-venta>
-        <app-control-gestion-sede        *ngSwitchCase="'control-gestion-sede'"></app-control-gestion-sede>
-        <app-control-call-sedes          *ngSwitchCase="'control-call-sedes'"></app-control-call-sedes>
-        <app-evolucion-registros         *ngSwitchCase="'evolucion-registros'"></app-evolucion-registros>
-        <app-mi-panel                    *ngSwitchCase="'mi-panel'"></app-mi-panel>
-        <app-pizarra-metas               *ngSwitchCase="'pizarra-metas'"></app-pizarra-metas>
-        <app-avance-cartera              *ngSwitchCase="'avance-cartera'"></app-avance-cartera>
-        <app-embudos-gestion             *ngSwitchCase="'embudos-gestion'"></app-embudos-gestion>
-        <app-registro-gestion            *ngSwitchCase="'registro-gestion'"></app-registro-gestion>
-        <app-registro-supervisor         *ngSwitchCase="'registro-supervisor'"></app-registro-supervisor>
-        <app-control-supervisor          *ngSwitchCase="'control-supervisor'"></app-control-supervisor>
-        <app-gestion-supervisor          *ngSwitchCase="'gestion-supervisor'"></app-gestion-supervisor>
-        <app-actividad-realzza           *ngSwitchCase="'actividad-realzza'"></app-actividad-realzza>
-        <app-comparativo-cartera-ventas  *ngSwitchCase="'comparativo-cartera-ventas'"></app-comparativo-cartera-ventas>
-        <app-carga-ventas                *ngSwitchCase="'carga-ventas'"></app-carga-ventas>
-        <app-seguridad                   *ngSwitchCase="'seguridad'"></app-seguridad>
-      </ng-container>
+      @switch (moduloSeleccionado) {
+                @case ('agendamientos') { @defer (on immediate) { <app-agendamientos></app-agendamientos> } }
+                @case ('agendamientos-campo') { @defer (on immediate) { <app-agendamientos-campo></app-agendamientos-campo> } }
+                @case ('agendamientos-kommo') { @defer (on immediate) { <app-agendamientos-kommo></app-agendamientos-kommo> } }
+                @case ('agendamientos-sedes') { @defer (on immediate) { <app-agendamientos-sedes></app-agendamientos-sedes> } }
+                @case ('gestion') { @defer (on immediate) { <app-gestion-contact-x-hora></app-gestion-contact-x-hora> } }
+                @case ('gestion-campo') { @defer (on immediate) { <app-gestion-campo-realzza></app-gestion-campo-realzza> } }
+                @case ('gestion-post-venta') { @defer (on immediate) { <app-gestion-post-venta></app-gestion-post-venta> } }
+                @case ('gestion-kommo') { @defer (on immediate) { <app-gestion-kommo></app-gestion-kommo> } }
+                @case ('gestion-sede') { @defer (on immediate) { <app-gestion-sede></app-gestion-sede> } }
+                @case ('gestion-call-sedes') { @defer (on immediate) { <app-gestion-call-sedes></app-gestion-call-sedes> } }
+                @case ('cierre') { @defer (on immediate) { <app-cierre-gestion></app-cierre-gestion> } }
+                @case ('ventas') { @defer (on immediate) { <app-ventas></app-ventas> } }
+                @case ('ventas-campo') { @defer (on immediate) { <app-ventas-campo></app-ventas-campo> } }
+                @case ('ventas-sedes') { @defer (on immediate) { <app-ventas-sedes></app-ventas-sedes> } }
+                @case ('ventas-comparativo') { @defer (on immediate) { <app-comparativo-ventas></app-comparativo-ventas> } }
+                @case ('evolucion-tipo-cliente') { @defer (on immediate) { <app-evolucion-tipo-cliente></app-evolucion-tipo-cliente> } }
+                @case ('ventas-plazo-av') { @defer (on immediate) { <app-venta-x-plazo-av></app-venta-x-plazo-av> } }
+                @case ('conversor-csv') { @defer (on immediate) { <app-convertidor-excel-csv></app-convertidor-excel-csv> } }
+                @case ('limpieza-bbdd') { @defer (on immediate) { <app-limpieza-bbdd></app-limpieza-bbdd> } }
+                @case ('gps-ruta') { @defer (on immediate) { <app-gps-ruta></app-gps-ruta> } }
+                @case ('post-venta') { @defer (on immediate) { <app-post-venta></app-post-venta> } }
+                @case ('control-gestion-sede') { @defer (on immediate) { <app-control-gestion-sede></app-control-gestion-sede> } }
+                @case ('control-call-sedes') { @defer (on immediate) { <app-control-call-sedes></app-control-call-sedes> } }
+                @case ('evolucion-registros') { @defer (on immediate) { <app-evolucion-registros></app-evolucion-registros> } }
+                @case ('mi-panel') { @defer (on immediate) { <app-mi-panel></app-mi-panel> } }
+                @case ('pizarra-metas') { @defer (on immediate) { <app-pizarra-metas></app-pizarra-metas> } }
+                @case ('avance-cartera') { @defer (on immediate) { <app-avance-cartera></app-avance-cartera> } }
+                @case ('embudos-gestion') { @defer (on immediate) { <app-embudos-gestion></app-embudos-gestion> } }
+                @case ('registro-gestion') { @defer (on immediate) { <app-registro-gestion></app-registro-gestion> } }
+                @case ('registro-supervisor') { @defer (on immediate) { <app-registro-supervisor></app-registro-supervisor> } }
+                @case ('control-supervisor') { @defer (on immediate) { <app-control-supervisor></app-control-supervisor> } }
+                @case ('gestion-supervisor') { @defer (on immediate) { <app-gestion-supervisor></app-gestion-supervisor> } }
+                @case ('actividad-realzza') { @defer (on immediate) { <app-actividad-realzza></app-actividad-realzza> } }
+                @case ('comparativo-cartera-ventas') { @defer (on immediate) { <app-comparativo-cartera-ventas></app-comparativo-cartera-ventas> } }
+                @case ('carga-ventas') { @defer (on immediate) { <app-carga-ventas></app-carga-ventas> } }
+                @case ('seguridad') { @defer (on immediate) { <app-seguridad></app-seguridad> } }
+      }
     </section>
   </div>
 </div>
