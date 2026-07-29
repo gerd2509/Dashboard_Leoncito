@@ -1,4 +1,7 @@
 
+<app-loading-overlay [visible]="isLoading" mensaje="Cargando cierre…"
+  submensaje="Consultando la gestión…" icon="fact_check"></app-loading-overlay>
+
 <form class="form mt-2" [formGroup]="formCierreGestion">
     <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true" label="Fecha de Gestión"
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
@@ -11,10 +14,6 @@
 </form>
 
 <div class="grid-container">
-    <div class="grid-overlay" *ngIf="isLoading">
-        <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando cierre…" icon="fact_check"></app-loading-overlay>
-    </div>
-
     <div class="contenedorPrincipal mt-3">
 
         <!-- KPIs RESUMEN -->

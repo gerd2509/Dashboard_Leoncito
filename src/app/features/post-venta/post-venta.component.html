@@ -1,4 +1,9 @@
 
+<app-loading-overlay [visible]="isLoading" mensaje="Cargando post-venta…"
+  submensaje="Consultando la base de datos…" icon="support_agent"></app-loading-overlay>
+
+<div class="vd-shell">
+<div class="vd-fixed">
 <form class="form mt-2" [formGroup]="formPostVentas">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
@@ -14,14 +19,8 @@
     </button>
 </form>
 
-<div class="grid-container">
-    <div class="grid-overlay" *ngIf="isLoading">
-        <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando post-venta…" icon="support_agent"></app-loading-overlay>
-    </div>
-
-    <div class="grid-container">
-        <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
-            class="dashboard-box mt-3">
+    <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
+        class="dashboard-box mt-3">
             <dxi-item baseSize="25%">
                 <div class="metric-card">
                     <div class="metric-title">CONTACTOS</div>
@@ -58,7 +57,9 @@
                 </div>
             </dxi-item>
         </dx-box>
+</div><!-- /vd-fixed -->
 
+<div class="vd-scroll">
         <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
             class="charts-box mt-3" wrap="wrap">
             <dxi-item baseSize="33%">
@@ -262,7 +263,7 @@
                 <dxi-column dataField="COMENTARIO" caption="Comentario"></dxi-column>
             </dx-data-grid>
         </div>
-    </div>
+</div><!-- /vd-scroll -->
 
     <dx-popup [visible]="popupGraficoVisible" [title]="tituloPopup" [showCloseButton]="true" [dragEnabled]="false"
         [hideOnOutsideClick]="true" [width]="'90%'" [height]="'90%'" [showTitle]="true"
@@ -374,4 +375,4 @@
             </dx-chart>
         </div>
     </dx-popup>
-</div>
+</div><!-- /vd-shell -->
