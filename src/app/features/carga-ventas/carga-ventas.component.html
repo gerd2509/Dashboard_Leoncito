@@ -1,4 +1,3 @@
-<app-loading-overlay [visible]="procesando" mensaje="Cargando ventas…" icon="cloud_upload"></app-loading-overlay>
 
 <div class="carga-wrap">
 
@@ -64,7 +63,7 @@
       </ng-container>
 
       <div class="procesando-box" *ngIf="procesando">
-        <mat-progress-spinner mode="indeterminate" [diameter]="46" [strokeWidth]="4"></mat-progress-spinner>
+        <app-loading-overlay [inline]="true" [visible]="procesando" mensaje="Procesando en el servidor…" submensaje="Guardando los registros…" icon="cloud_upload"></app-loading-overlay>
         <div class="procesando-info">
           <span class="procesando-title">Procesando en el servidor…</span>
           <span class="procesando-sub">Guardando los registros. Con archivos grandes puede tardar un momento.</span>
