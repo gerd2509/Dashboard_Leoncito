@@ -385,7 +385,7 @@ body {
   height: 100%;
   min-height: 0;
 }
-.vd-fixed { flex: none; }
+.vd-fixed { flex: none; padding-bottom: 10px; }
 .vd-scroll {
   flex: 1;
   min-height: 0;
@@ -398,6 +398,5 @@ body {
 .vd-scroll::-webkit-scrollbar-track { background: #EEF2F8; border-radius: 4px; }
 .vd-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
 .vd-scroll::-webkit-scrollbar-thumb:hover { background: #1A5FAD; }
-.vd-fixed .kpi-grid { margin-bottom: 6px; }
 /* Vista dentro de un vd-shell que a su vez tiene KPIs fijos + contenido con scroll */
 .vd-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
