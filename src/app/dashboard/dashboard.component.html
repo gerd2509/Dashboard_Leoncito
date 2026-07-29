@@ -127,42 +127,42 @@
 
     <section class="contenido">
       @switch (moduloSeleccionado) {
-                @case ('agendamientos') { @defer (on immediate) { <app-agendamientos></app-agendamientos> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('agendamientos-campo') { @defer (on immediate) { <app-agendamientos-campo></app-agendamientos-campo> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('agendamientos-kommo') { @defer (on immediate) { <app-agendamientos-kommo></app-agendamientos-kommo> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('agendamientos-sedes') { @defer (on immediate) { <app-agendamientos-sedes></app-agendamientos-sedes> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion') { @defer (on immediate) { <app-gestion-contact-x-hora></app-gestion-contact-x-hora> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion-campo') { @defer (on immediate) { <app-gestion-campo-realzza></app-gestion-campo-realzza> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion-post-venta') { @defer (on immediate) { <app-gestion-post-venta></app-gestion-post-venta> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion-kommo') { @defer (on immediate) { <app-gestion-kommo></app-gestion-kommo> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion-sede') { @defer (on immediate) { <app-gestion-sede></app-gestion-sede> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion-call-sedes') { @defer (on immediate) { <app-gestion-call-sedes></app-gestion-call-sedes> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('cierre') { @defer (on immediate) { <app-cierre-gestion></app-cierre-gestion> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('ventas') { @defer (on immediate) { <app-ventas></app-ventas> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('ventas-campo') { @defer (on immediate) { <app-ventas-campo></app-ventas-campo> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('ventas-sedes') { @defer (on immediate) { <app-ventas-sedes></app-ventas-sedes> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('ventas-comparativo') { @defer (on immediate) { <app-comparativo-ventas></app-comparativo-ventas> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('evolucion-tipo-cliente') { @defer (on immediate) { <app-evolucion-tipo-cliente></app-evolucion-tipo-cliente> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('ventas-plazo-av') { @defer (on immediate) { <app-venta-x-plazo-av></app-venta-x-plazo-av> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('conversor-csv') { @defer (on immediate) { <app-convertidor-excel-csv></app-convertidor-excel-csv> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('limpieza-bbdd') { @defer (on immediate) { <app-limpieza-bbdd></app-limpieza-bbdd> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gps-ruta') { @defer (on immediate) { <app-gps-ruta></app-gps-ruta> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('post-venta') { @defer (on immediate) { <app-post-venta></app-post-venta> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('control-gestion-sede') { @defer (on immediate) { <app-control-gestion-sede></app-control-gestion-sede> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('control-call-sedes') { @defer (on immediate) { <app-control-call-sedes></app-control-call-sedes> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('evolucion-registros') { @defer (on immediate) { <app-evolucion-registros></app-evolucion-registros> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('mi-panel') { @defer (on immediate) { <app-mi-panel></app-mi-panel> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('pizarra-metas') { @defer (on immediate) { <app-pizarra-metas></app-pizarra-metas> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('avance-cartera') { @defer (on immediate) { <app-avance-cartera></app-avance-cartera> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('embudos-gestion') { @defer (on immediate) { <app-embudos-gestion></app-embudos-gestion> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('registro-gestion') { @defer (on immediate) { <app-registro-gestion></app-registro-gestion> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('registro-supervisor') { @defer (on immediate) { <app-registro-supervisor></app-registro-supervisor> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('control-supervisor') { @defer (on immediate) { <app-control-supervisor></app-control-supervisor> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('gestion-supervisor') { @defer (on immediate) { <app-gestion-supervisor></app-gestion-supervisor> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('actividad-realzza') { @defer (on immediate) { <app-actividad-realzza></app-actividad-realzza> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('comparativo-cartera-ventas') { @defer (on immediate) { <app-comparativo-cartera-ventas></app-comparativo-cartera-ventas> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('carga-ventas') { @defer (on immediate) { <app-carga-ventas></app-carga-ventas> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
-                @case ('seguridad') { @defer (on immediate) { <app-seguridad></app-seguridad> } @loading (minimum 250ms) { <div class="mod-loading"><span class="mod-spin"></span>Cargando módulo…</div> } }
+                @case ('agendamientos') { @defer (on immediate) { <app-agendamientos></app-agendamientos> } }
+                @case ('agendamientos-campo') { @defer (on immediate) { <app-agendamientos-campo></app-agendamientos-campo> } }
+                @case ('agendamientos-kommo') { @defer (on immediate) { <app-agendamientos-kommo></app-agendamientos-kommo> } }
+                @case ('agendamientos-sedes') { @defer (on immediate) { <app-agendamientos-sedes></app-agendamientos-sedes> } }
+                @case ('gestion') { @defer (on immediate) { <app-gestion-contact-x-hora></app-gestion-contact-x-hora> } }
+                @case ('gestion-campo') { @defer (on immediate) { <app-gestion-campo-realzza></app-gestion-campo-realzza> } }
+                @case ('gestion-post-venta') { @defer (on immediate) { <app-gestion-post-venta></app-gestion-post-venta> } }
+                @case ('gestion-kommo') { @defer (on immediate) { <app-gestion-kommo></app-gestion-kommo> } }
+                @case ('gestion-sede') { @defer (on immediate) { <app-gestion-sede></app-gestion-sede> } }
+                @case ('gestion-call-sedes') { @defer (on immediate) { <app-gestion-call-sedes></app-gestion-call-sedes> } }
+                @case ('cierre') { @defer (on immediate) { <app-cierre-gestion></app-cierre-gestion> } }
+                @case ('ventas') { @defer (on immediate) { <app-ventas></app-ventas> } }
+                @case ('ventas-campo') { @defer (on immediate) { <app-ventas-campo></app-ventas-campo> } }
+                @case ('ventas-sedes') { @defer (on immediate) { <app-ventas-sedes></app-ventas-sedes> } }
+                @case ('ventas-comparativo') { @defer (on immediate) { <app-comparativo-ventas></app-comparativo-ventas> } }
+                @case ('evolucion-tipo-cliente') { @defer (on immediate) { <app-evolucion-tipo-cliente></app-evolucion-tipo-cliente> } }
+                @case ('ventas-plazo-av') { @defer (on immediate) { <app-venta-x-plazo-av></app-venta-x-plazo-av> } }
+                @case ('conversor-csv') { @defer (on immediate) { <app-convertidor-excel-csv></app-convertidor-excel-csv> } }
+                @case ('limpieza-bbdd') { @defer (on immediate) { <app-limpieza-bbdd></app-limpieza-bbdd> } }
+                @case ('gps-ruta') { @defer (on immediate) { <app-gps-ruta></app-gps-ruta> } }
+                @case ('post-venta') { @defer (on immediate) { <app-post-venta></app-post-venta> } }
+                @case ('control-gestion-sede') { @defer (on immediate) { <app-control-gestion-sede></app-control-gestion-sede> } }
+                @case ('control-call-sedes') { @defer (on immediate) { <app-control-call-sedes></app-control-call-sedes> } }
+                @case ('evolucion-registros') { @defer (on immediate) { <app-evolucion-registros></app-evolucion-registros> } }
+                @case ('mi-panel') { @defer (on immediate) { <app-mi-panel></app-mi-panel> } }
+                @case ('pizarra-metas') { @defer (on immediate) { <app-pizarra-metas></app-pizarra-metas> } }
+                @case ('avance-cartera') { @defer (on immediate) { <app-avance-cartera></app-avance-cartera> } }
+                @case ('embudos-gestion') { @defer (on immediate) { <app-embudos-gestion></app-embudos-gestion> } }
+                @case ('registro-gestion') { @defer (on immediate) { <app-registro-gestion></app-registro-gestion> } }
+                @case ('registro-supervisor') { @defer (on immediate) { <app-registro-supervisor></app-registro-supervisor> } }
+                @case ('control-supervisor') { @defer (on immediate) { <app-control-supervisor></app-control-supervisor> } }
+                @case ('gestion-supervisor') { @defer (on immediate) { <app-gestion-supervisor></app-gestion-supervisor> } }
+                @case ('actividad-realzza') { @defer (on immediate) { <app-actividad-realzza></app-actividad-realzza> } }
+                @case ('comparativo-cartera-ventas') { @defer (on immediate) { <app-comparativo-cartera-ventas></app-comparativo-cartera-ventas> } }
+                @case ('carga-ventas') { @defer (on immediate) { <app-carga-ventas></app-carga-ventas> } }
+                @case ('seguridad') { @defer (on immediate) { <app-seguridad></app-seguridad> } }
       }
     </section>
   </div>
