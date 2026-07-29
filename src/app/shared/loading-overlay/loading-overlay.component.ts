@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    <div class="lo-back" [class.full]="full" *ngIf="visible">
+    <div class="lo-back" [class.full]="full" *ngIf="mostrar">
       <div class="lo-card">
         <div class="lo-stage">
           <span class="lo-ring"></span>
@@ -76,9 +76,25 @@ import { MatIconModule } from '@angular/material/icon';
   `],
 })
 export class LoadingOverlayComponent {
-  @Input() visible = false;
   @Input() mensaje = 'Procesando…';
   @Input() submensaje = 'Esto puede tardar unos segundos';
   @Input() icon = 'description';
   @Input() full = false;   // true = overlay a pantalla completa; false = dentro del módulo
+  @Input() minMs = 500;    // tiempo mínimo visible (para que cargas rápidas se vean)
+
+  mostrar = false;
+  private shownAt = 0;
+  private hideTimer: any;
+
+  /** Al activar/desactivar, respeta un tiempo mínimo visible. */
+  @Input() set visible(v: boolean) {
+    if (v) {
+      clearTimeout(this.hideTimer);
+      if (!this.mostrar) { this.mostrar = true; this.shownAt = Date.now(); }
+    } else if (this.mostrar) {
+      const espera = Math.max(0, this.minMs - (Date.now() - this.shownAt));
+      clearTimeout(this.hideTimer);
+      this.hideTimer = setTimeout(() => { this.mostrar = false; }, espera);
+    }
+  }
 }

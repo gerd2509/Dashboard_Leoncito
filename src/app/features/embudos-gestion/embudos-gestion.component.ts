@@ -63,10 +63,12 @@ interface EstadoDni { gestionado: boolean; contactado: boolean; interesado: bool
 // Índice de la gestión por DNI y por teléfono.
 interface IndiceGestion { porDni: Map<string, EstadoDni>; porTel: Map<string, EstadoDni>; }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-embudos-gestion',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './embudos-gestion.component.html',
   styleUrls: ['./embudos-gestion.component.css'],
 })

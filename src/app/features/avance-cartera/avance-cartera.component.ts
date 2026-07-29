@@ -72,10 +72,12 @@ interface ResumenSede {
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-avance-cartera',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './avance-cartera.component.html',
   styleUrls: ['./avance-cartera.component.css'],
 })

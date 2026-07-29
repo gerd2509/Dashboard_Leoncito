@@ -3,6 +3,7 @@ import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { FiltrosStoreService } from '../../services/filtros-store.service';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
@@ -28,7 +29,7 @@ interface ResumenSede {
 
 @Component({
   selector: 'app-ventas-sedes',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './ventas-sedes.component.html',
   styleUrl: './ventas-sedes.component.css'
 })

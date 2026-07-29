@@ -1,5 +1,6 @@
 :host {
   display: block;
+  position: relative;
   --azul: #1A5FAD;
   --azul-claro: #EBF3FF;
   --azul-suave: #F0F6FF;

@@ -49,10 +49,12 @@ interface DniCall {
   numeros: NumeroEstado[];     // números únicos con su estado de gestión
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-limpieza-bbdd',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, ...DX_COMMON_MODULES],
+  imports: [CommonModule, FormsModule, MatIconModule, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './limpieza-bbdd.component.html',
   styleUrls: ['./limpieza-bbdd.component.css'],
 })

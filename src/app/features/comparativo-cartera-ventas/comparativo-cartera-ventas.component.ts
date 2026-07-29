@@ -41,9 +41,11 @@ interface ResumenSede {
   monto: number;
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-comparativo-cartera-ventas',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './comparativo-cartera-ventas.component.html',
   styleUrl: './comparativo-cartera-ventas.component.css'
 })
