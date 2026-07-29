@@ -26,10 +26,6 @@
 
     <!-- ⏳ PRUEBA POSTGRESQL: la data ahora se trae del backend (GET /ventas) según las fechas.
          Importar/Exportar Excel quedan comentados hasta nuevo aviso. -->
-    <span *ngIf="cargando" class="cargando-inline">
-        <mat-progress-spinner mode="indeterminate" [diameter]="22" [strokeWidth]="3"></mat-progress-spinner>
-        Cargando ventas…
-    </span>
 
     <!--
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
@@ -43,11 +39,7 @@
 </form>
 </div><!-- /vd-fixed -->
 
-<!-- ===== ESTADO: CARGANDO / ERROR / VACÍO ===== -->
-<div *ngIf="cargando" class="empty-state">
-    <mat-progress-spinner mode="indeterminate" [diameter]="48" [strokeWidth]="4"></mat-progress-spinner>
-    <p>Cargando ventas desde la base…</p>
-</div>
+<!-- ===== ESTADO: ERROR / VACÍO (el "cargando" lo muestra el overlay animado) ===== -->
 <div *ngIf="!cargando && errorCarga" class="empty-state">
     <mat-icon>error</mat-icon>
     <p>{{ errorCarga }}</p>
