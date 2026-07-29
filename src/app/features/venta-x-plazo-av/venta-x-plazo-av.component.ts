@@ -5,11 +5,12 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 
 @Component({
   selector: 'app-venta-x-plazo-av',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './venta-x-plazo-av.component.html',
   styleUrl: './venta-x-plazo-av.component.css'
 })
@@ -20,6 +21,7 @@ export class VentaXPlazoAvComponent implements OnInit {
 
   dataVentas: any[] = [];
   filtroVentas: any[] = [];
+  importando = false;   // overlay animado mientras se procesa el Excel
 
   cuotas: string[] = Array.from({ length: 13 }, (_, i) => i.toString());
 
@@ -78,7 +80,10 @@ export class VentaXPlazoAvComponent implements OnInit {
       });
 
       this.filtroVentas = [];
+      this.importando = false;
     };
+    reader.onerror = () => { this.importando = false; };
+    this.importando = true;
     reader.readAsArrayBuffer(file);
   }
 

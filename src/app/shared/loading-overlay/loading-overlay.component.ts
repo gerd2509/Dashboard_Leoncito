@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    <div class="lo-back" *ngIf="visible">
+    <div class="lo-back" [class.full]="full" *ngIf="visible">
       <div class="lo-card">
         <div class="lo-stage">
           <span class="lo-ring"></span>
@@ -26,11 +26,17 @@ import { MatIconModule } from '@angular/material/icon';
     </div>
   `,
   styles: [`
+    /* Por defecto: INLINE — cubre solo el módulo (su ancestro posicionado), no la pantalla. */
     .lo-back {
-      position: fixed; inset: 0; z-index: 9000;
+      position: absolute; inset: 0; z-index: 900; border-radius: inherit;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(14, 27, 51, .55); backdrop-filter: blur(3px);
+      background: rgba(240, 244, 250, .7); backdrop-filter: blur(2px);
       animation: lo-fade .2s ease both;
+    }
+    /* FULL — cubre toda la pantalla. */
+    .lo-back.full {
+      position: fixed; z-index: 9000;
+      background: rgba(14, 27, 51, .55); backdrop-filter: blur(3px);
     }
     @keyframes lo-fade { from { opacity: 0; } to { opacity: 1; } }
     .lo-card {
@@ -74,4 +80,5 @@ export class LoadingOverlayComponent {
   @Input() mensaje = 'Procesando…';
   @Input() submensaje = 'Esto puede tardar unos segundos';
   @Input() icon = 'description';
+  @Input() full = false;   // true = overlay a pantalla completa; false = dentro del módulo
 }

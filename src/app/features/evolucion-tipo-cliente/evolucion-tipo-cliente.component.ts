@@ -4,10 +4,11 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import * as XLSX from 'xlsx';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 @Component({
   selector: 'app-evolucion-tipo-cliente',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './evolucion-tipo-cliente.component.html',
   styleUrl: './evolucion-tipo-cliente.component.css'
 })
@@ -19,6 +20,7 @@ export class EvolucionTipoClienteComponent implements OnInit {
   dataVentas: any[] = [];
   filtroVentas: any[] = [];
   chartData: any[] = [];
+  importando = false;   // overlay animado mientras se procesa el Excel
 
   verPorTipo: boolean = true;
   tiposUnicos: string[] = [];
@@ -67,8 +69,11 @@ export class EvolucionTipoClienteComponent implements OnInit {
 
       this.filtroVentas = [...this.dataVentas];
       // Procesar data al cargar si es necesario, o esperar al botón
-      // this.actualizarFiltros(); 
+      // this.actualizarFiltros();
+      this.importando = false;
     };
+    reader.onerror = () => { this.importando = false; };
+    this.importando = true;
     reader.readAsArrayBuffer(file);
   }
 

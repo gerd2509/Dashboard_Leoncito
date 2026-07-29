@@ -1,3 +1,6 @@
+<app-loading-overlay [visible]="importando" mensaje="Procesando Excel…"
+  submensaje="Cargando evolución por tipo de cliente…" icon="insert_chart"></app-loading-overlay>
+
 <form class="form mt-2" [formGroup]="formComparativo">
     <div class="d-flex gap-2 align-items-center flex-wrap">
         <dx-date-box formControlName="fechaInicio" type="date" label="Inicio"
