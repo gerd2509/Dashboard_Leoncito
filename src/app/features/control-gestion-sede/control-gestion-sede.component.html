@@ -1,3 +1,5 @@
+<app-loading-overlay [visible]="isLoading" mensaje="Cargando control…" icon="location_city"></app-loading-overlay>
+
 <form class="form mt-2" [formGroup]="formCtrl">
     <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true"
         label="Fecha de Gestión" labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">

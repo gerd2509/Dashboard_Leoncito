@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    <div class="lo-back" [class.full]="full" *ngIf="mostrar">
+    <div class="lo-back" [class.full]="full" [class.inline]="inline" *ngIf="mostrar">
       <div class="lo-card">
         <div class="lo-stage">
           <span class="lo-ring"></span>
@@ -38,6 +38,12 @@ import { MatIconModule } from '@angular/material/icon';
       position: fixed; z-index: 9000;
       background: rgba(14, 27, 51, .55); backdrop-filter: blur(3px);
     }
+    /* INLINE — se renderiza en el flujo (donde estaba el loader viejo), sin cubrir ni atenuar. */
+    .lo-back.inline {
+      position: static; inset: auto; z-index: auto;
+      background: transparent; backdrop-filter: none; padding: 26px 16px;
+    }
+    .lo-back.inline .lo-card { box-shadow: none; background: transparent; padding: 8px; }
     @keyframes lo-fade { from { opacity: 0; } to { opacity: 1; } }
     .lo-card {
       display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -80,6 +86,7 @@ export class LoadingOverlayComponent {
   @Input() submensaje = 'Esto puede tardar unos segundos';
   @Input() icon = 'description';
   @Input() full = false;   // true = overlay a pantalla completa; false = dentro del módulo
+  @Input() inline = false; // true = se renderiza en el flujo (reemplaza al loader viejo en su lugar)
   @Input() minMs = 500;    // tiempo mínimo visible (para que cargas rápidas se vean)
 
   mostrar = false;

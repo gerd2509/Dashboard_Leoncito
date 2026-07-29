@@ -8,10 +8,12 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { lastValueFrom } from 'rxjs';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-kommo',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-kommo.component.html',
   styleUrl: './gestion-kommo.component.css'
 })

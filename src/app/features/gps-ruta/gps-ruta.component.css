@@ -1,3 +1,5 @@
+:host { display: block; position: relative; }
+
 .gps-ruta {
   display: flex;
   flex-direction: column;

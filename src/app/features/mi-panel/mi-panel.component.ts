@@ -21,9 +21,11 @@ interface HistMes {
   proyeccion: number | null;  // solo el mes en curso
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-mi-panel',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './mi-panel.component.html',
   styleUrl: './mi-panel.component.css',
 })

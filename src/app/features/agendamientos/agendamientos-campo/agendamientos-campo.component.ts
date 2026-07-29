@@ -8,9 +8,11 @@ import { DxDataGridComponent } from 'devextreme-angular';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-agendamientos-campo',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './agendamientos-campo.component.html',
   styleUrl: './agendamientos-campo.component.css'
 })

@@ -9,9 +9,11 @@ import { ExcelExportService } from '../../../services/excel/excel.service';
 import { AuthService } from '../../../services/auth.service';
 import { SedeConfigService } from '../../../services/sede-config.service';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-sede',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-sede.component.html',
   styleUrl: './gestion-sede.component.css'
 })

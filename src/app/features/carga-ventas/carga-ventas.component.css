@@ -1,3 +1,5 @@
+:host { display: block; position: relative; }
+
 .carga-wrap {
   max-width: 760px;
   margin: 0 auto;

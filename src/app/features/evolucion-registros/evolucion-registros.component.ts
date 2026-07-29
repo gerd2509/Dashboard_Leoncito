@@ -25,10 +25,12 @@ interface SedeCall {
  * defecto, con selector para ver una sede en concreto. Mismos datos que
  * Control Call Sedes (sheet de gestión de sedes).
  */
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-evolucion-registros',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './evolucion-registros.component.html',
   styleUrl: './evolucion-registros.component.css',
 })

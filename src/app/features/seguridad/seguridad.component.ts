@@ -18,10 +18,12 @@ interface PermisoFila {
   combos: Record<string, boolean>;   // key = combinacion.key (rol-perfil)
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-seguridad',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, MatSnackBarModule, ...DX_COMMON_MODULES],
+  imports: [CommonModule, FormsModule, MatIconModule, MatSnackBarModule, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './seguridad.component.html',
   styleUrl: './seguridad.component.css'
 })

@@ -21,9 +21,11 @@ interface MonitoreoAsesor {
   detalle: { dni: string; celular: string; tipoBase: string; estadoAsesor: string; resultado: string; hora: string }[];
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-cierre-gestion',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './cierre-gestion.component.html',
   styleUrl: './cierre-gestion.component.css'
 })

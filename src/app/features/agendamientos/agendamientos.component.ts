@@ -8,9 +8,11 @@ import { DxDataGridComponent } from 'devextreme-angular';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { AuthService } from '../../services/auth.service';
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-agendamientos',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './agendamientos.component.html',
   styleUrl: './agendamientos.component.css'
 })

@@ -1,4 +1,4 @@
-:host {
+:host { position: relative;
   --pz-primary: #1A5FAD;
   --pz-primary-dark: #12467f;
   --pz-meta: #1A5FAD;

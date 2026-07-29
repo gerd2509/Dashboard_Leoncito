@@ -1,3 +1,4 @@
+
 <form class="form mt-2" [formGroup]="formGestion">
     <!-- Selector de sede: solo admin general. El usuario de sede queda fijo (chip). -->
     <dx-select-box *ngIf="esAdmin" style="width: 200px;" formControlName="sede" [items]="sedesDisponibles"
@@ -30,7 +31,7 @@
 
 <div class="grid-container">
     <div class="grid-overlay" *ngIf="isLoading">
-        <mat-spinner diameter="40"></mat-spinner>
+        <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión…" icon="call"></app-loading-overlay>
     </div>
 
     <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada"

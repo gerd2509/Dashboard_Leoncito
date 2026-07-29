@@ -8,9 +8,11 @@ import { DxDataGridComponent } from 'devextreme-angular';
 import { custom } from 'devextreme/ui/dialog';
 import { ExcelExportService } from '../../../services/excel/excel.service';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-contact-x-hora',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-contact-x-hora.component.html',
   styleUrl: './gestion-contact-x-hora.component.css'
 })

@@ -9,6 +9,8 @@ import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-agendamientos-kommo',
   standalone: true,
@@ -17,7 +19,7 @@ import { AuthService } from '../../../services/auth.service';
     ReactiveFormsModule,
     ...SHARED_MATERIAL_IMPORTS,
     ...DX_COMMON_MODULES
-  ],
+  , LoadingOverlayComponent],
   templateUrl: './agendamientos-kommo.component.html',
   styleUrl: './agendamientos-kommo.component.css'
 })

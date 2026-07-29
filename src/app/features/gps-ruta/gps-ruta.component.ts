@@ -44,10 +44,12 @@ const MAX_PUNTOS_LINK = 10;
  * Uso standalone (módulo del menú): la grilla interna permite agregar, editar e
  * importar puntos manualmente.
  */
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gps-ruta',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, MatIconModule],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, MatIconModule, LoadingOverlayComponent],
   templateUrl: './gps-ruta.component.html',
   styleUrls: ['./gps-ruta.component.css'],
 })

@@ -1,3 +1,4 @@
+
 <div class="gs-toolbar">
   <form class="gs-form" [formGroup]="form">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
@@ -18,7 +19,7 @@
 <div *ngIf="error" class="gs-error">{{ error }}</div>
 
 <div class="gs-grid-wrap">
-  <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
+  <div class="grid-overlay" *ngIf="isLoading"><app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando…" icon="supervisor_account"></app-loading-overlay></div>
 
   <dx-data-grid #grid [dataSource]="vista" keyExpr="id" class="focqus-elevation mt-2"
     [allowColumnReordering]="true"

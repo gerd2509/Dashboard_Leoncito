@@ -15,9 +15,11 @@ interface FilaSup extends ControlSupervisor {
   nFotos: number;
 }
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-supervisor',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-supervisor.component.html',
   styleUrl: './gestion-supervisor.component.css'
 })

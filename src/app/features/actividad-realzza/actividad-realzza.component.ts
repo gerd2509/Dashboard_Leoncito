@@ -24,9 +24,11 @@ interface FilaAsesor {
  * por tipo (BD = gestión Realzza, KOMMO, MARKET PLACE). Heatmap asesora×hora, combo
  * por asesor, popup de detalle con la hora, y análisis individual.
  */
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-actividad-realzza',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './actividad-realzza.component.html',
   styleUrl: './actividad-realzza.component.css',
 })

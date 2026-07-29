@@ -7,9 +7,11 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { lastValueFrom } from 'rxjs/internal/lastValueFrom';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-post-venta',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-post-venta.component.html',
   styleUrl: './gestion-post-venta.component.css'
 })

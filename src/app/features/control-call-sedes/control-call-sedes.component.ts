@@ -26,9 +26,11 @@ interface VncRow {
   comentario: string;
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-control-call-sedes',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './control-call-sedes.component.html',
   styleUrl: './control-call-sedes.component.css'
 })

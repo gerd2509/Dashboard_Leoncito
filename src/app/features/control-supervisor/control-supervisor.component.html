@@ -1,3 +1,4 @@
+
 <div class="cs-toolbar">
   <form class="cs-form" [formGroup]="form">
     <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
@@ -38,7 +39,7 @@
 <div *ngIf="error" class="cs-error">{{ error }}</div>
 
 <div class="cs-grid-wrap">
-  <div class="grid-overlay" *ngIf="isLoading"><mat-spinner diameter="42"></mat-spinner></div>
+  <div class="grid-overlay" *ngIf="isLoading"><app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando control…" icon="supervisor_account"></app-loading-overlay></div>
 
   <!-- Barra: leyenda + botones de vista propios -->
   <div class="cs-cal-bar">

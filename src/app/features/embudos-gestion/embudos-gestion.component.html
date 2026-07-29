@@ -1,6 +1,3 @@
-<app-loading-overlay [visible]="procesando" mensaje="Procesando embudos…"
-  submensaje="Cruzando carteras por DNI…" icon="filter_alt"></app-loading-overlay>
-
 <div class="eg-wrap">
 
   <!-- Encabezado -->
@@ -52,8 +49,8 @@
         <p class="dz-formatos">Una hoja por cartera (con DNI) + una hoja <b>VENTAS</b> (DNI, CONTACTO KOMMO, MARKET PLACE).</p>
       </ng-container>
       <ng-template #cargando>
-        <div class="spinner"></div>
-        <p class="dz-titulo">Procesando y cruzando con la gestión…</p>
+        <app-loading-overlay [inline]="true" [visible]="procesando" icon="filter_alt"
+          mensaje="Procesando embudos…" submensaje="Cruzando carteras por DNI…"></app-loading-overlay>
       </ng-template>
     </div>
 

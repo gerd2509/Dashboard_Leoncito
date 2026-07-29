@@ -9,9 +9,11 @@ import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { ExcelExportService } from '../../../services/excel/excel.service';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-call-sedes',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-call-sedes.component.html',
   styleUrl: './gestion-call-sedes.component.css'
 })

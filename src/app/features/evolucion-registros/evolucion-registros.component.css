@@ -1,3 +1,5 @@
+:host { display: block; position: relative; }
+
 .ev-wrap {
     padding: 12px 6px;
     display: flex;

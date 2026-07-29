@@ -17,9 +17,11 @@ interface OpcionCarga {
   ayuda: string;
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-carga-ventas',
-  imports: [...SHARED_MATERIAL_IMPORTS],
+  imports: [...SHARED_MATERIAL_IMPORTS, LoadingOverlayComponent],
   templateUrl: './carga-ventas.component.html',
   styleUrl: './carga-ventas.component.css',
 })

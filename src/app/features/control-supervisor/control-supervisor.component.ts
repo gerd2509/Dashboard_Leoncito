@@ -42,9 +42,11 @@ interface CitaControl {
   fotos?: string[];        // pruebas (imágenes base64)
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-control-supervisor',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './control-supervisor.component.html',
   styleUrl: './control-supervisor.component.css'
 })

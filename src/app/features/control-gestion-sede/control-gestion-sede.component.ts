@@ -63,9 +63,11 @@ interface ZonaGrupo {
   pctAfiliaciones: number | null;
 }
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-control-gestion-sede',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './control-gestion-sede.component.html',
   styleUrl: './control-gestion-sede.component.css'
 })

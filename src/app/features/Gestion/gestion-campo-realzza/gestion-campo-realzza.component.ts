@@ -8,9 +8,11 @@ import { DxDataGridComponent } from 'devextreme-angular';
 import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 
+import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-gestion-campo-realzza',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-campo-realzza.component.html',
   styleUrl: './gestion-campo-realzza.component.css'
 })

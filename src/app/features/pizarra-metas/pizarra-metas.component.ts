@@ -33,10 +33,12 @@ interface Board { cabecera: Cabecera; vals: Record<string, Record<string, number
 
 const STORAGE_KEY = 'gd_pizarra_v2';
 
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
 @Component({
   selector: 'app-pizarra-metas',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, MatIconModule],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, MatIconModule, LoadingOverlayComponent],
   templateUrl: './pizarra-metas.component.html',
   styleUrls: ['./pizarra-metas.component.css'],
 })

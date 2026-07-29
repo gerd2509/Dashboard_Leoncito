@@ -1,3 +1,5 @@
+:host { display: block; position: relative; }
+
 .cs-toolbar {
   display: flex;
   flex-wrap: wrap;

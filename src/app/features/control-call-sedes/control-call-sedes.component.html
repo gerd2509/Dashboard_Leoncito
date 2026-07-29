@@ -1,3 +1,4 @@
+
 <form class="form mt-2" [formGroup]="formCtrl">
     <dx-date-box formControlName="fechaGestion" type="date" [openOnFieldClick]="true"
         label="Fecha de Gestión" labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
@@ -27,7 +28,7 @@
 
 <div class="grid-container">
     <div class="grid-overlay" *ngIf="isLoading">
-        <mat-spinner diameter="40"></mat-spinner>
+        <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando control…" icon="call"></app-loading-overlay>
     </div>
 
     <div class="contenedorPrincipal mt-3">
