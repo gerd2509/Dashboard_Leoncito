@@ -148,8 +148,21 @@
   height: 100%;
   border-radius: 6px;
   background: linear-gradient(90deg, #2E7D32, #43A047);
-  transition: width .2s ease;
+  transition: width .25s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 6px;
 }
+/* Brillo que recorre la barra mientras sube (se ve viva aunque el % avance a saltos) */
+.barra-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: translateX(-100%);
+  animation: barra-shimmer 1.1s ease-in-out infinite;
+}
+@keyframes barra-shimmer { to { transform: translateX(100%); } }
 .progreso-txt {
   font-size: 13px;
   font-weight: 600;

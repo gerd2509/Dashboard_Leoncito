@@ -109,9 +109,19 @@ export class CargaVentasComponent implements OnInit {
     const nombre = this.auth.getUsuario()?.nombre ?? '';
     this.srv.importar(this.tipo, this.archivo, nombre).subscribe({
       next: (ev) => {
-        if (ev.type === HttpEventType.UploadProgress && ev.total) {
-          this.progreso = Math.round((ev.loaded / ev.total) * 100);
-          if (this.progreso >= 100) this.procesando = true;
+        if (ev.type === HttpEventType.UploadProgress) {
+          if (ev.total) {
+            // Subida con tamaño conocido → porcentaje real.
+            this.progreso = Math.round((ev.loaded / ev.total) * 100);
+            if (this.progreso >= 100) this.procesando = true;
+          } else {
+            // No se puede medir el total → animación de procesamiento.
+            this.procesando = true;
+          }
+        } else if (ev.type === HttpEventType.ResponseHeader || ev.type === HttpEventType.DownloadProgress) {
+          // El servidor empezó a responder → subida completa, ahora procesa.
+          this.progreso = 100;
+          this.procesando = true;
         } else if (ev.type === HttpEventType.Response) {
           this.subiendo = false;
           this.procesando = false;

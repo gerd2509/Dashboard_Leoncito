@@ -55,6 +55,7 @@
 
     <!-- Progreso -->
     <div class="progreso" *ngIf="subiendo">
+      <!-- Fase 1: subiendo el archivo (barra con % real) -->
       <ng-container *ngIf="!procesando">
         <div class="barra-track">
           <div class="barra-fill" [style.width.%]="progreso"></div>
@@ -62,13 +63,11 @@
         <span class="progreso-txt">Subiendo archivo… {{ progreso }}%</span>
       </ng-container>
 
-      <div class="procesando-box" *ngIf="procesando">
-        <app-loading-overlay [inline]="true" [visible]="procesando" mensaje="Procesando en el servidor…" submensaje="Guardando los registros…" icon="cloud_upload"></app-loading-overlay>
-        <div class="procesando-info">
-          <span class="procesando-title">Procesando en el servidor…</span>
-          <span class="procesando-sub">Guardando los registros. Con archivos grandes puede tardar un momento.</span>
-        </div>
-      </div>
+      <!-- Fase 2: el servidor procesa (animación) -->
+      <app-loading-overlay *ngIf="procesando" [inline]="true" [visible]="procesando"
+        mensaje="Procesando en el servidor…"
+        submensaje="Guardando los registros. Con archivos grandes puede tardar un momento."
+        icon="cloud_upload"></app-loading-overlay>
     </div>
   </div>
 
