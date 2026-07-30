@@ -45,6 +45,14 @@
 <div class="vd-scroll">
   <div class="ml-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
 
+  <!-- Tiles de distribución por tiempo de maduración -->
+  <div class="ml-dist" *ngIf="filas.length">
+    <div class="ml-dist-tile t0"><mat-icon>bolt</mat-icon><span class="v">{{ distM0 | number:'1.1-1' }}%</span><span class="l">Cierran mismo mes</span></div>
+    <div class="ml-dist-tile t1"><mat-icon>event</mat-icon><span class="v">{{ distM1 | number:'1.1-1' }}%</span><span class="l">Cierran en 1 mes</span></div>
+    <div class="ml-dist-tile t2"><mat-icon>schedule</mat-icon><span class="v">{{ distM2 | number:'1.1-1' }}%</span><span class="l">Cierran en 2 meses</span></div>
+    <div class="ml-dist-tile t3"><mat-icon>warning</mat-icon><span class="v">{{ distM3plus | number:'1.1-1' }}%</span><span class="l">Cierran en 3+ meses</span></div>
+  </div>
+
   <!-- Tabla de maduración -->
   <div class="ml-card">
     <div class="ml-card-h"><mat-icon>calendar_month</mat-icon> CONTEO DE VENTAS POR TIEMPO DE MADURACIÓN
@@ -57,6 +65,9 @@
             <th class="l">Mes de venta</th>
             <th>Mismo Mes (0)</th><th>1 Mes</th><th>2 Meses</th><th>3 Meses</th><th>4+ Meses</th>
             <th>Total Ventas</th><th>Leads Ingresados</th>
+            <th *ngIf="hayLeads" title="Ventas del mes ÷ leads del mes">Conversión (Ventas/Leads)</th>
+            <th *ngIf="hayLeads" title="Ventas que cerraron el mismo mes ÷ leads">Conversión inmediata</th>
+            <th *ngIf="hayLeads" title="Crecimiento de leads vs el mes anterior">Var. Leads (MoM)</th>
           </tr>
         </thead>
         <tbody>
@@ -65,8 +76,13 @@
             <td>{{ f.m0 }}</td><td>{{ f.m1 }}</td><td>{{ f.m2 }}</td><td>{{ f.m3 }}</td><td>{{ f.m4 }}</td>
             <td class="tot">{{ f.totalVentas }}</td>
             <td class="leads">{{ f.leads | number }}</td>
+            <td *ngIf="hayLeads">{{ f.leads ? (pct(f.totalVentas, f.leads) | number:'1.1-1') + '%' : '—' }}</td>
+            <td *ngIf="hayLeads">{{ f.leads ? (pct(f.m0, f.leads) | number:'1.1-1') + '%' : '—' }}</td>
+            <td *ngIf="hayLeads" [class.pos]="(f.tendLeads ?? 0) > 0" [class.neg]="(f.tendLeads ?? 0) < 0">
+              {{ f.tendLeads === null ? '—' : ((f.tendLeads > 0 ? '+' : '') + (f.tendLeads | number:'1.1-1') + '%') }}
+            </td>
           </tr>
-          <tr *ngIf="!filas.length && !cargando"><td class="l vacio" colspan="8">Sin datos para el rango seleccionado.</td></tr>
+          <tr *ngIf="!filas.length && !cargando"><td class="l vacio" colspan="11">Sin datos para el rango seleccionado.</td></tr>
         </tbody>
         <tfoot *ngIf="filas.length">
           <tr>
@@ -74,6 +90,9 @@
             <td>{{ tot.m0 }}</td><td>{{ tot.m1 }}</td><td>{{ tot.m2 }}</td><td>{{ tot.m3 }}</td><td>{{ tot.m4 }}</td>
             <td class="tot">{{ tot.totalVentas }}</td>
             <td class="leads">{{ tot.leads | number }}</td>
+            <td *ngIf="hayLeads">{{ tot.leads ? (pct(tot.totalVentas, tot.leads) | number:'1.1-1') + '%' : '—' }}</td>
+            <td *ngIf="hayLeads">{{ tot.leads ? (pct(tot.m0, tot.leads) | number:'1.1-1') + '%' : '—' }}</td>
+            <td *ngIf="hayLeads">—</td>
           </tr>
         </tfoot>
       </table>

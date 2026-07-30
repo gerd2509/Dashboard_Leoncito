@@ -24,6 +24,21 @@
 .ml-kpi.k3 mat-icon { color: #2E7D32; }
 .ml-kpi.k4 mat-icon { color: #6A1B9A; }
 
+/* ── Tiles de distribución por maduración ── */
+.ml-dist { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 6px; }
+.ml-dist-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; border-radius: 14px; padding: 16px 12px; text-align: center; box-shadow: 0 4px 14px rgba(20,49,79,.12); }
+.ml-dist-tile mat-icon { font-size: 26px; width: 26px; height: 26px; opacity: .92; }
+.ml-dist-tile .v { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.ml-dist-tile .l { font-size: 12.5px; font-weight: 600; opacity: .95; }
+.ml-dist-tile.t0 { background: linear-gradient(135deg, #1A5FAD, #2E7BD6); }
+.ml-dist-tile.t1 { background: linear-gradient(135deg, #5B9BD5, #7FB3E0); }
+.ml-dist-tile.t2 { background: linear-gradient(135deg, #ED7D31, #F4995A); }
+.ml-dist-tile.t3 { background: linear-gradient(135deg, #C0392B, #D65448); }
+
+/* Tendencia MoM en la tabla */
+.ml-table td.pos { color: #2E7D32; font-weight: 800; }
+.ml-table td.neg { color: #C62828; font-weight: 800; }
+
 /* ── Cards ── */
 .ml-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 14px 16px; box-shadow: 0 3px 12px rgba(20,49,79,.05); margin-top: 16px; }
 .ml-card-h { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 12px; letter-spacing: .3px; }

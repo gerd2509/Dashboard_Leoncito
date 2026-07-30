@@ -21,6 +21,7 @@ interface FilaMes {
   mm0: number; mm1: number; mm2: number; mm3: number; mm4: number;
   montoTotal: number;
   leads: number;
+  tendLeads: number | null;   // variación % de leads vs el mes anterior (MoM)
 }
 
 /**
@@ -179,6 +180,13 @@ export class MaduracionLeadsComponent implements OnInit {
       .sort((a, b) => a.ym - b.ym)
       .filter(f => f.totalVentas > 0 || f.leads > 0);
 
+    // Variación de leads mes a mes (MoM) para la columna de tendencia.
+    let prevLeads: number | null = null;
+    for (const f of this.filas) {
+      f.tendLeads = (prevLeads !== null && prevLeads > 0) ? ((f.leads - prevLeads) / prevLeads) * 100 : null;
+      prevLeads = f.leads;
+    }
+
     // KPIs
     this.kTotalVentas = this.filas.reduce((s, f) => s + f.totalVentas, 0);
     this.kTotalLeads = this.filas.reduce((s, f) => s + f.leads, 0);
@@ -195,7 +203,7 @@ export class MaduracionLeadsComponent implements OnInit {
       f = {
         ym, label: `${this.MESES[mes - 1]} ${anio}`,
         m0: 0, m1: 0, m2: 0, m3: 0, m4: 0, totalVentas: 0,
-        mm0: 0, mm1: 0, mm2: 0, mm3: 0, mm4: 0, montoTotal: 0, leads: 0,
+        mm0: 0, mm1: 0, mm2: 0, mm3: 0, mm4: 0, montoTotal: 0, leads: 0, tendLeads: null,
       };
       mapa.set(ym, f);
     }
@@ -240,6 +248,15 @@ export class MaduracionLeadsComponent implements OnInit {
 
   /** % de una parte respecto del total (para la distribución por mes). */
   pct(parte: number, total: number): number { return total > 0 ? (parte / total) * 100 : 0; }
+
+  // KPIs de distribución (del total de ventas, por tiempo de maduración).
+  get distM0(): number { return this.pct(this.tot.m0, this.tot.totalVentas); }
+  get distM1(): number { return this.pct(this.tot.m1, this.tot.totalVentas); }
+  get distM2(): number { return this.pct(this.tot.m2, this.tot.totalVentas); }
+  get distM3plus(): number { return this.pct(this.tot.m3 + this.tot.m4, this.tot.totalVentas); }
+
+  /** ¿Hay leads para calcular conversión? (Market Place no tiene → columnas en "—"). */
+  get hayLeads(): boolean { return this.fuente === 'KOMMO'; }
 
   // ── Popup para ver el gráfico en grande ──
   chartPopupVisible = false;
