@@ -539,8 +539,8 @@ export class ControlSupervisorComponent implements OnInit {
   onCeldaClick(e: any): void {
     const fecha: Date = e?.cellData?.startDate;
     if (!fecha) return;
-    // Navega el calendario a ese día solo si cambió (evita re-render del scheduler).
-    if (!this.mismaFecha(this.currentDate, fecha)) this.currentDate = new Date(fecha);
+    // NO se cambia currentDate: hacerlo re-renderiza todo el scheduler (retardo en la
+    // 1ª apertura del popup). El popup muestra el detalle del día sin navegar el calendario.
     const delDia = this.citasFiltradas.filter(c => this.mismaFecha(c.startDate, fecha));
     if (!delDia.length) return;
     this.diaCitas = [...delDia].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
