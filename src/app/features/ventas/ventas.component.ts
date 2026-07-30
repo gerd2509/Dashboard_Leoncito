@@ -526,7 +526,8 @@ export class VentasComponent implements OnInit {
   generarVentasPorContacto(): void {
     const map = new Map<string, { monto: number; ops: number }>();
     this.filtroVentas.forEach(v => {
-      if (this.esCapRealzza(v.AsesorVenta)) return;
+      // Tabla agregada (por CONTACTO): incluye a BRENDA/Cap RealZZA para que el
+      // total cuadre con el KPI. El desglose por asesor se mantiene aparte.
       const c = (v.CONTACTO || 'SIN CONTACTO').toString().trim().toUpperCase();
       const cur = map.get(c) || { monto: 0, ops: 0 };
       map.set(c, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
