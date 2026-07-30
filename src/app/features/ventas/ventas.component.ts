@@ -381,8 +381,12 @@ export class VentasComponent implements OnInit {
   }
 
   calcularKPIs(): void {
-    this.totalVentas      = this.filtroVentas.length;
-    const rawTotal        = this.filtroVentas.reduce((s, v) => s + v.MontoConsolidado, 0);
+    // La "totalidad" = ventas reales (monto > 0), mismo criterio que el cuadro de
+    // Evolución. Antes se sumaban también las NC/refacturaciones negativas, por eso
+    // el KPI quedaba por debajo del evolutivo.
+    const ventasPos       = this.filtroVentas.filter(v => v.MontoConsolidado > 0);
+    this.totalVentas      = ventasPos.length;
+    const rawTotal        = ventasPos.reduce((s, v) => s + v.MontoConsolidado, 0);
     this.totalMontoVentas = Math.round(rawTotal);
     this.ticket           = this.totalVentas ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
 
