@@ -711,17 +711,32 @@ export class VentasComponent implements OnInit {
       const date_info = new Date(utc_days * 86400 * 1000);
       return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate());
     }
-    const str  = (excelDate || '').toString().trim();
-    const dmy  = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    // Solo la parte de fecha (descarta la hora si la trae: "dd/mm/yyyy hh:mm:ss").
+    const parte = (excelDate || '').toString().trim().split(/[ T]/)[0];
+    // dd/mm/yyyy | dd-mm-yyyy | dd.mm.yyyy  (respeta día/mes, no interpreta como US)
+    const dmy = parte.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
     if (dmy) return new Date(+dmy[3], +dmy[2] - 1, +dmy[1]);
-    const parsed = new Date(str);
+    // yyyy-mm-dd
+    const ymd = parte.match(/^(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})$/);
+    if (ymd) return new Date(+ymd[1], +ymd[2] - 1, +ymd[3]);
+    const parsed = new Date(parte);
     return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
 
   parseNumber(value: any): number {
     if (typeof value === 'number') return value;
-    if (typeof value === 'string') return Number(value.replace(/,/g, '').replace(/[^0-9.-]+/g, '')) || 0;
-    return 0;
+    if (typeof value !== 'string') return 0;
+    let s = value.replace(/[^0-9.,-]/g, '').trim();   // deja dígitos, . , -
+    if (!s) return 0;
+    const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      // La coma es el separador decimal (europeo): quita puntos de miles, coma→punto.
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // El punto es el decimal (US/PE): quita comas de miles.
+      s = s.replace(/,/g, '');
+    }
+    return Number(s) || 0;
   }
 
   getNombreMes(mes: number): string {
