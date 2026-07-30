@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 /** Datasets que se pueden cargar desde el módulo Carga de Ventas. */
-export type CargaTipo = 'ventas' | 'margen' | 'ventas-call' | 'ventas-realzza';
+export type CargaTipo = 'ventas' | 'margen' | 'ventas-call' | 'ventas-realzza' | 'kommo-call' | 'kommo-realzza';
 
 /** Resultado de una carga (POST .../import). Los campos varían según el dataset. */
 export interface ResultadoCargaVentas {
@@ -51,6 +51,8 @@ export class CargaVentasService {
       case 'margen':         return 'margen-ventas';
       case 'ventas-call':    return 'ventas-call';
       case 'ventas-realzza': return 'ventas-realzza';
+      case 'kommo-call':     return 'leads-kommo-call';
+      case 'kommo-realzza':  return 'leads-kommo-realzza';
       default:               return 'ventas';
     }
   }
@@ -119,5 +121,17 @@ export class CargaVentasService {
     if (filtro.anio)     params = params.set('anio', filtro.anio);
     if (filtro.mes)      params = params.set('mes', filtro.mes);
     return this.http.get<any[]>(`${this.root}/${path}`, { params });
+  }
+
+  /**
+   * Conteo de LEADS KOMMO ingresados por mes (tablas leads_kommo_call/realzza),
+   * según su fecha de creación. Para la "Maduración de Leads". Devuelve
+   * [{ anio, mes, total }]. Opcional: filtrar por año.
+   */
+  obtenerLeadsPorMes(canal: 'call' | 'realzza', anio?: number): Observable<{ anio: number; mes: number; total: number }[]> {
+    const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
+    let params = new HttpParams();
+    if (anio) params = params.set('anio', anio);
+    return this.http.get<{ anio: number; mes: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
 }

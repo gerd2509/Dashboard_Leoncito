@@ -36,6 +36,7 @@ import { ControlSupervisorComponent } from "../features/control-supervisor/contr
 import { GestionSupervisorComponent } from "../features/control-supervisor/gestion-supervisor/gestion-supervisor.component";
 import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
+import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
@@ -94,6 +95,7 @@ interface MenuItem {
     GestionSupervisorComponent,
     ActividadRealzzaComponent,
     ComparativoCarteraVentasComponent,
+    MaduracionLeadsComponent,
     CargaVentasComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -178,7 +180,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Avance de Cartera',     icon: 'trending_up',    modulo: 'avance-cartera' },
         { label: 'Embudos de Gestión',    icon: 'filter_alt',     modulo: 'embudos-gestion' },
         { label: 'Comparativo Cartera Ventas Piso', icon: 'compare_arrows', modulo: 'comparativo-cartera-ventas' },
-        { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' }
+        { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' },
+        { label: 'Maduración de Leads',   icon: 'hub',            modulo: 'maduracion-leads' }
       ]
     },
     {

@@ -83,6 +83,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'embudos-gestion',              label: 'Embudos de Gestión',           grupo: 'Análisis' },
   { key: 'comparativo-cartera-ventas',   label: 'Comparativo Cartera Ventas Piso', grupo: 'Análisis' },
   { key: 'post-venta',                   label: 'Post Venta — Análisis',        grupo: 'Análisis' },
+  { key: 'maduracion-leads',             label: 'Maduración de Leads',          grupo: 'Análisis' },
   { key: 'conversor-csv',                label: 'Conversor CSV',                grupo: 'Herramientas' },
   { key: 'limpieza-bbdd',                label: 'Limpieza BBDD',                grupo: 'Herramientas' },
   { key: 'gps-ruta',                     label: 'Optimizar Rutas GPS',          grupo: 'Herramientas' },
@@ -93,11 +94,11 @@ const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
-  'comparativo-cartera-ventas',
+  'comparativo-cartera-ventas', 'maduracion-leads',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
-  'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza',
+  'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
@@ -117,7 +118,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v23';
+const STORAGE_KEY = 'gd_permissions_v24';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

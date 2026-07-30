@@ -51,6 +51,16 @@ export class CargaVentasComponent implements OnInit {
       descripcion: 'Evolutivo de ventas del canal Realzza (por sede). Se actualiza por CodigoCV.',
       ayuda: 'Tabla propia (ventas_realzza). En Realzza el vendedor es la sede. Las notas de crédito y refacturaciones se aplican por su fecha de afectación (DiaAF/MesAF/AñoAF). El archivo debe incluir CodigoCV.',
     },
+    {
+      tipo: 'kommo-call', label: 'Kommo Call', icono: 'hub',
+      descripcion: 'Leads Kommo del canal Call. Se actualiza por ID de lead.',
+      ayuda: 'Tabla propia (leads_kommo_call). Exporta de Kommo con: ID, Nombre del lead, Contacto principal, Responsable, Embudo de ventas, Fecha de creación, Última modificación el, Modificado por, Etiquetas del lead. Sirve para "Maduración de Leads".',
+    },
+    {
+      tipo: 'kommo-realzza', label: 'Kommo Realzza', icono: 'hub',
+      descripcion: 'Leads Kommo del canal Realzza. Se actualiza por ID de lead.',
+      ayuda: 'Tabla propia (leads_kommo_realzza). Mismas columnas del export de Kommo. Sirve para "Maduración de Leads".',
+    },
   ];
   tipo: CargaTipo = 'ventas';
 

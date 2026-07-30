@@ -1,0 +1,119 @@
+<app-loading-overlay [visible]="cargando" mensaje="Cargando maduración…"
+  submensaje="Cruzando ventas con la gestión KOMMO…" icon="hub"></app-loading-overlay>
+
+<div class="vd-shell">
+<div class="vd-fixed">
+
+  <!-- Filtros -->
+  <div class="ml-toolbar">
+    <div class="ml-seg">
+      <button [class.on]="canal === 'call'" (click)="setCanal('call')"><mat-icon>headset_mic</mat-icon> Call</button>
+      <button [class.on]="canal === 'realzza'" (click)="setCanal('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
+    </div>
+
+    <div class="ml-seg ml-seg-alt">
+      <button [class.on]="fuente === 'KOMMO'" (click)="setFuente('KOMMO')"><mat-icon>hub</mat-icon> KOMMO</button>
+      <button [class.on]="fuente === 'MARKETPLACE'" (click)="setFuente('MARKETPLACE')"><mat-icon>shopping_cart</mat-icon> Market Place</button>
+    </div>
+
+    <form class="ml-fechas" [formGroup]="form">
+      <dx-date-box formControlName="desde" type="date" [displayFormat]="'dd/MM/yyyy'" label="Desde"
+        labelMode="floating" stylingMode="underlined" width="140"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" [displayFormat]="'dd/MM/yyyy'" label="Hasta"
+        labelMode="floating" stylingMode="underlined" width="140"></dx-date-box>
+      <button mat-flat-button color="primary" (click)="actualizar()"><mat-icon>search</mat-icon> Actualizar</button>
+    </form>
+  </div>
+
+  <!-- KPIs -->
+  <div class="ml-kpis">
+    <div class="ml-kpi k1"><mat-icon>point_of_sale</mat-icon>
+      <div><span class="v">{{ kTotalVentas | number }}</span><span class="l">Ventas {{ fuente === 'KOMMO' ? 'KOMMO' : 'Market Place' }}</span></div>
+    </div>
+    <div class="ml-kpi k2"><mat-icon>hub</mat-icon>
+      <div><span class="v">{{ kTotalLeads | number }}</span><span class="l">Leads ingresados</span></div>
+    </div>
+    <div class="ml-kpi k3"><mat-icon>bolt</mat-icon>
+      <div><span class="v">{{ kMismoMes | number:'1.0-0' }}%</span><span class="l">Maduran el mismo mes</span></div>
+    </div>
+    <div class="ml-kpi k4"><mat-icon>schedule</mat-icon>
+      <div><span class="v">{{ kMadPromedio | number:'1.1-1' }}</span><span class="l">Meses prom. de maduración</span></div>
+    </div>
+  </div>
+</div><!-- /vd-fixed -->
+
+<div class="vd-scroll">
+  <div class="ml-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+
+  <!-- Tabla de maduración -->
+  <div class="ml-card">
+    <div class="ml-card-h"><mat-icon>calendar_month</mat-icon> CONTEO DE VENTAS POR TIEMPO DE MADURACIÓN
+      <span class="ml-sub">{{ fuente === 'KOMMO' ? 'Origen KOMMO' : 'Market Place' }} · {{ canal | uppercase }}</span>
+    </div>
+    <div class="ml-table-wrap">
+      <table class="ml-table">
+        <thead>
+          <tr>
+            <th class="l">Mes de venta</th>
+            <th>Mismo Mes (0)</th><th>1 Mes</th><th>2 Meses</th><th>3 Meses</th><th>4+ Meses</th>
+            <th>Total Ventas</th><th>Leads Ingresados</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of filas">
+            <td class="l">{{ f.label }}</td>
+            <td>{{ f.m0 }}</td><td>{{ f.m1 }}</td><td>{{ f.m2 }}</td><td>{{ f.m3 }}</td><td>{{ f.m4 }}</td>
+            <td class="tot">{{ f.totalVentas }}</td>
+            <td class="leads">{{ f.leads | number }}</td>
+          </tr>
+          <tr *ngIf="!filas.length && !cargando"><td class="l vacio" colspan="8">Sin datos para el rango seleccionado.</td></tr>
+        </tbody>
+        <tfoot *ngIf="filas.length">
+          <tr>
+            <td class="l">TOTAL</td>
+            <td>{{ tot.m0 }}</td><td>{{ tot.m1 }}</td><td>{{ tot.m2 }}</td><td>{{ tot.m3 }}</td><td>{{ tot.m4 }}</td>
+            <td class="tot">{{ tot.totalVentas }}</td>
+            <td class="leads">{{ tot.leads | number }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Gráfico -->
+  <div class="ml-card" *ngIf="filas.length">
+    <div class="ml-card-h">
+      <span><mat-icon>insights</mat-icon> EVOLUCIÓN DE LA MADURACIÓN</span>
+      <span class="ml-chart-seg">
+        <button [class.on]="chartMetric === 'buckets'" (click)="setChartMetric('buckets')">Por maduración</button>
+        <button [class.on]="chartMetric === 'ventas-leads'" (click)="setChartMetric('ventas-leads')">Ventas vs Leads</button>
+      </span>
+    </div>
+
+    <!-- Barras apiladas por tiempo de maduración -->
+    <dx-chart *ngIf="chartMetric === 'buckets'" [dataSource]="chartData" [redrawOnResize]="true" class="ml-chart">
+      <dxo-common-series-settings argumentField="mes" type="stackedBar"></dxo-common-series-settings>
+      <dxi-series valueField="Mismo Mes" name="Mismo Mes" color="#2E7D32"></dxi-series>
+      <dxi-series valueField="1 Mes" name="1 Mes" color="#66BB6A"></dxi-series>
+      <dxi-series valueField="2 Meses" name="2 Meses" color="#FFB300"></dxi-series>
+      <dxi-series valueField="3 Meses" name="3 Meses" color="#EF6C00"></dxi-series>
+      <dxi-series valueField="4+ Meses" name="4+ Meses" color="#C62828"></dxi-series>
+      <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
+      <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+      <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
+    </dx-chart>
+
+    <!-- Total Ventas (barra) + Leads Ingresados (línea), doble eje -->
+    <dx-chart *ngIf="chartMetric === 'ventas-leads'" [dataSource]="chartData" [redrawOnResize]="true" class="ml-chart">
+      <dxo-common-series-settings argumentField="mes"></dxo-common-series-settings>
+      <dxi-value-axis name="izq" position="left"><dxo-title text="Ventas"></dxo-title></dxi-value-axis>
+      <dxi-value-axis name="der" position="right"><dxo-title text="Leads"></dxo-title></dxi-value-axis>
+      <dxi-series valueField="Total Ventas" name="Total Ventas" type="bar" axis="izq" color="#1A5FAD"></dxi-series>
+      <dxi-series valueField="Leads Ingresados" name="Leads Ingresados" type="spline" axis="der" color="#F07420"><dxo-point [size]="7"></dxo-point></dxi-series>
+      <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
+      <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
+      <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
+    </dx-chart>
+  </div>
+</div>
+</div><!-- /vd-shell -->
