@@ -13,27 +13,19 @@
 .ml-seg-alt button.on { background: #F07420; }
 .ml-fechas { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; }
 
-/* ── KPIs ── */
-.ml-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 6px; }
-.ml-kpi { display: flex; align-items: center; gap: 12px; background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 13px 16px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
-.ml-kpi mat-icon { font-size: 30px; width: 30px; height: 30px; }
-.ml-kpi .v { display: block; font-size: 22px; font-weight: 800; color: #1E3A5F; }
-.ml-kpi .l { display: block; font-size: 12px; color: #6b8299; }
-.ml-kpi.k1 mat-icon { color: #1A5FAD; }
-.ml-kpi.k2 mat-icon { color: #F07420; }
-.ml-kpi.k3 mat-icon { color: #2E7D32; }
-.ml-kpi.k4 mat-icon { color: #6A1B9A; }
-
-/* ── Tiles de distribución por maduración ── */
-.ml-dist { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 6px; }
-.ml-dist-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #fff; border-radius: 14px; padding: 16px 12px; text-align: center; box-shadow: 0 4px 14px rgba(20,49,79,.12); }
-.ml-dist-tile mat-icon { font-size: 26px; width: 26px; height: 26px; opacity: .92; }
-.ml-dist-tile .v { font-size: 26px; font-weight: 800; line-height: 1.1; }
-.ml-dist-tile .l { font-size: 12.5px; font-weight: 600; opacity: .95; }
-.ml-dist-tile.t0 { background: linear-gradient(135deg, #1A5FAD, #2E7BD6); }
-.ml-dist-tile.t1 { background: linear-gradient(135deg, #5B9BD5, #7FB3E0); }
-.ml-dist-tile.t2 { background: linear-gradient(135deg, #ED7D31, #F4995A); }
-.ml-dist-tile.t3 { background: linear-gradient(135deg, #C0392B, #D65448); }
+/* ── KPIs (una sola fila, todos con color) ── */
+.ml-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 6px; }
+.ml-kpi { display: flex; align-items: center; gap: 10px; color: #fff; border-radius: 13px; padding: 11px 13px; box-shadow: 0 4px 13px rgba(20,49,79,.12); }
+.ml-kpi mat-icon { font-size: 26px; width: 26px; height: 26px; opacity: .9; flex: none; }
+.ml-kpi .v { display: block; font-size: 20px; font-weight: 800; line-height: 1.1; }
+.ml-kpi .l { display: block; font-size: 11.5px; font-weight: 600; opacity: .95; }
+.ml-kpi.c-ventas { background: linear-gradient(135deg, #14315a, #1A5FAD); }
+.ml-kpi.c-leads  { background: linear-gradient(135deg, #C0632A, #ED7D31); }
+.ml-kpi.c-m0     { background: linear-gradient(135deg, #1A5FAD, #2E7BD6); }
+.ml-kpi.c-m1     { background: linear-gradient(135deg, #5B9BD5, #7FB3E0); }
+.ml-kpi.c-m2     { background: linear-gradient(135deg, #ED7D31, #F4995A); }
+.ml-kpi.c-m3     { background: linear-gradient(135deg, #C0392B, #D65448); }
+.ml-kpi.c-prom   { background: linear-gradient(135deg, #6A1B9A, #8E44AD); }
 
 /* Tendencia MoM en la tabla */
 .ml-table td.pos { color: #2E7D32; font-weight: 800; }

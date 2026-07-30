@@ -25,33 +25,34 @@
     </form>
   </div>
 
-  <!-- KPIs -->
+  <!-- KPIs (una sola fila, todos con color) -->
   <div class="ml-kpis">
-    <div class="ml-kpi k1"><mat-icon>point_of_sale</mat-icon>
+    <div class="ml-kpi c-ventas"><mat-icon>point_of_sale</mat-icon>
       <div><span class="v">{{ kTotalVentas | number }}</span><span class="l">Ventas {{ fuente === 'KOMMO' ? 'KOMMO' : 'Market Place' }}</span></div>
     </div>
-    <div class="ml-kpi k2"><mat-icon>hub</mat-icon>
+    <div class="ml-kpi c-leads" *ngIf="hayLeads"><mat-icon>hub</mat-icon>
       <div><span class="v">{{ kTotalLeads | number }}</span><span class="l">Leads ingresados</span></div>
     </div>
-    <div class="ml-kpi k3"><mat-icon>bolt</mat-icon>
-      <div><span class="v">{{ kMismoMes | number:'1.0-0' }}%</span><span class="l">Maduran el mismo mes</span></div>
+    <div class="ml-kpi c-m0"><mat-icon>bolt</mat-icon>
+      <div><span class="v">{{ distM0 | number:'1.1-1' }}%</span><span class="l">Cierran mismo mes</span></div>
     </div>
-    <div class="ml-kpi k4"><mat-icon>schedule</mat-icon>
-      <div><span class="v">{{ kMadPromedio | number:'1.1-1' }}</span><span class="l">Meses prom. de maduración</span></div>
+    <div class="ml-kpi c-m1"><mat-icon>event</mat-icon>
+      <div><span class="v">{{ distM1 | number:'1.1-1' }}%</span><span class="l">Cierran en 1 mes</span></div>
+    </div>
+    <div class="ml-kpi c-m2"><mat-icon>schedule</mat-icon>
+      <div><span class="v">{{ distM2 | number:'1.1-1' }}%</span><span class="l">Cierran en 2 meses</span></div>
+    </div>
+    <div class="ml-kpi c-m3"><mat-icon>warning</mat-icon>
+      <div><span class="v">{{ distM3plus | number:'1.1-1' }}%</span><span class="l">Cierran en 3+ meses</span></div>
+    </div>
+    <div class="ml-kpi c-prom"><mat-icon>trending_up</mat-icon>
+      <div><span class="v">{{ kMadPromedio | number:'1.1-1' }}</span><span class="l">Meses prom. maduración</span></div>
     </div>
   </div>
 </div><!-- /vd-fixed -->
 
 <div class="vd-scroll">
   <div class="ml-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
-
-  <!-- Tiles de distribución por tiempo de maduración -->
-  <div class="ml-dist" *ngIf="filas.length">
-    <div class="ml-dist-tile t0"><mat-icon>bolt</mat-icon><span class="v">{{ distM0 | number:'1.1-1' }}%</span><span class="l">Cierran mismo mes</span></div>
-    <div class="ml-dist-tile t1"><mat-icon>event</mat-icon><span class="v">{{ distM1 | number:'1.1-1' }}%</span><span class="l">Cierran en 1 mes</span></div>
-    <div class="ml-dist-tile t2"><mat-icon>schedule</mat-icon><span class="v">{{ distM2 | number:'1.1-1' }}%</span><span class="l">Cierran en 2 meses</span></div>
-    <div class="ml-dist-tile t3"><mat-icon>warning</mat-icon><span class="v">{{ distM3plus | number:'1.1-1' }}%</span><span class="l">Cierran en 3+ meses</span></div>
-  </div>
 
   <!-- Tabla de maduración -->
   <div class="ml-card">
