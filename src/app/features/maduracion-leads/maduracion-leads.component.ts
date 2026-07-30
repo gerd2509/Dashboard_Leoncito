@@ -155,16 +155,23 @@ export class MaduracionLeadsComponent implements OnInit {
       else fila.m4++;
     }
 
-    // Leads ingresados por mes (dentro del rango).
-    for (const l of this.leadsPorMes) {
-      if (!l.anio || !l.mes) continue;
-      const ym = l.anio * 12 + (l.mes - 1);
-      if (ym < ymDesde || ym > ymHasta) continue;
-      const fila = this.filaDe(mapa, ym, l.anio, l.mes);
-      fila.leads += l.total;
+    // Leads ingresados por mes (dentro del rango). Solo aplica a KOMMO:
+    // la tabla de leads es de Kommo, no hay leads propios de Market Place.
+    if (!soloMP) {
+      for (const l of this.leadsPorMes) {
+        if (!l.anio || !l.mes) continue;
+        const ym = l.anio * 12 + (l.mes - 1);
+        if (ym < ymDesde || ym > ymHasta) continue;
+        const fila = this.filaDe(mapa, ym, l.anio, l.mes);
+        fila.leads += l.total;
+      }
     }
 
-    this.filas = Array.from(mapa.values()).sort((a, b) => a.ym - b.ym);
+    // Ordena y quita los meses vacíos (sin ventas ni leads) — p.ej. Market Place
+    // que recién arranca en junio: no muestra los meses anteriores en cero.
+    this.filas = Array.from(mapa.values())
+      .sort((a, b) => a.ym - b.ym)
+      .filter(f => f.totalVentas > 0 || f.leads > 0);
 
     // KPIs
     this.kTotalVentas = this.filas.reduce((s, f) => s + f.totalVentas, 0);
@@ -186,14 +193,30 @@ export class MaduracionLeadsComponent implements OnInit {
   }
 
   private armarChart(): void {
-    this.chartData = this.filas.map(f => ({
-      mes: f.label,
-      'Mismo Mes': f.m0, '1 Mes': f.m1, '2 Meses': f.m2, '3 Meses': f.m3, '4+ Meses': f.m4,
-      'Total Ventas': f.totalVentas, 'Leads Ingresados': f.leads,
-    }));
+    let prev: number | null = null;
+    this.chartData = this.filas.map(f => {
+      // Crecimiento mes a mes de las ventas (%), como en Comparativo Ventas.
+      const crec = (prev !== null && prev > 0) ? Math.round(((f.totalVentas - prev) / prev) * 100) : null;
+      prev = f.totalVentas;
+      return {
+        mes: f.label,
+        'Mismo Mes': f.m0, '1 Mes': f.m1, '2 Meses': f.m2, '3 Meses': f.m3, '4+ Meses': f.m4,
+        'Total Ventas': f.totalVentas, 'Leads Ingresados': f.leads, crec,
+      };
+    });
   }
 
   setChartMetric(m: 'buckets' | 'ventas-leads'): void { this.chartMetric = m; }
+
+  /** Etiqueta que oculta los ceros (para las barras apiladas). */
+  lblNoCero = (info: any): string => (info?.value ? `${info.value}` : '');
+
+  /** Etiqueta de Total Ventas con el % de crecimiento debajo (+/−). */
+  lblVentas = (info: any): string => {
+    const c = info?.point?.data?.crec;
+    const cre = (c === null || c === undefined) ? '' : `\n${c > 0 ? '▲ +' : (c < 0 ? '▼ ' : '')}${c}%`;
+    return `${info.value}${cre}`;
+  };
 
   // ── Totales (fila TOTAL de la tabla) ──
   get tot() {

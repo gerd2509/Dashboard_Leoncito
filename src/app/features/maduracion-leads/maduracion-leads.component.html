@@ -92,7 +92,11 @@
 
     <!-- Barras apiladas por tiempo de maduración -->
     <dx-chart *ngIf="chartMetric === 'buckets'" [dataSource]="chartData" [redrawOnResize]="true" class="ml-chart">
-      <dxo-common-series-settings argumentField="mes" type="stackedBar"></dxo-common-series-settings>
+      <dxo-common-series-settings argumentField="mes" type="stackedBar">
+        <dxo-label [visible]="true" [customizeText]="lblNoCero" backgroundColor="transparent">
+          <dxo-font [size]="11" [weight]="700" color="#ffffff"></dxo-font>
+        </dxo-label>
+      </dxo-common-series-settings>
       <dxi-series valueField="Mismo Mes" name="Mismo Mes" color="#2E7D32"></dxi-series>
       <dxi-series valueField="1 Mes" name="1 Mes" color="#66BB6A"></dxi-series>
       <dxi-series valueField="2 Meses" name="2 Meses" color="#FFB300"></dxi-series>
@@ -108,8 +112,15 @@
       <dxo-common-series-settings argumentField="mes"></dxo-common-series-settings>
       <dxi-value-axis name="izq" position="left"><dxo-title text="Ventas"></dxo-title></dxi-value-axis>
       <dxi-value-axis name="der" position="right"><dxo-title text="Leads"></dxo-title></dxi-value-axis>
-      <dxi-series valueField="Total Ventas" name="Total Ventas" type="bar" axis="izq" color="#1A5FAD"></dxi-series>
-      <dxi-series valueField="Leads Ingresados" name="Leads Ingresados" type="spline" axis="der" color="#F07420"><dxo-point [size]="7"></dxo-point></dxi-series>
+      <dxi-series valueField="Total Ventas" name="Total Ventas" type="bar" axis="izq" color="#1A5FAD">
+        <dxo-label [visible]="true" [customizeText]="lblVentas" backgroundColor="transparent">
+          <dxo-font [size]="12" [weight]="700" color="#1E3A5F"></dxo-font>
+        </dxo-label>
+      </dxi-series>
+      <dxi-series valueField="Leads Ingresados" name="Leads Ingresados" type="spline" axis="der" color="#F07420">
+        <dxo-point [size]="7"></dxo-point>
+        <dxo-label [visible]="true" backgroundColor="transparent"><dxo-font [size]="11" [weight]="700" color="#C0632A"></dxo-font></dxo-label>
+      </dxi-series>
       <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
       <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
       <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
