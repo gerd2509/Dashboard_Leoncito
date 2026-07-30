@@ -539,7 +539,8 @@ export class ControlSupervisorComponent implements OnInit {
   onCeldaClick(e: any): void {
     const fecha: Date = e?.cellData?.startDate;
     if (!fecha) return;
-    this.currentDate = new Date(fecha);   // navega el calendario a ese día (útil al pasar a Día/Semana)
+    // Navega el calendario a ese día solo si cambió (evita re-render del scheduler).
+    if (!this.mismaFecha(this.currentDate, fecha)) this.currentDate = new Date(fecha);
     const delDia = this.citasFiltradas.filter(c => this.mismaFecha(c.startDate, fecha));
     if (!delDia.length) return;
     this.diaCitas = [...delDia].sort((a, b) => a.startDate.getTime() - b.startDate.getTime());

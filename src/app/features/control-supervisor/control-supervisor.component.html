@@ -103,7 +103,7 @@
 
 <!-- ══ Popup: detalle de un control ══ -->
 <dx-popup [(visible)]="detalleVisible" [width]="430" [height]="'auto'" [showTitle]="false"
-  [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-detalle-popup" [maxWidth]="'94vw'"
+  [dragEnabled]="false" [hideOnOutsideClick]="true" [deferRendering]="false" class="cs-detalle-popup" [maxWidth]="'94vw'"
   (onHidden)="onDetalleHidden()">
   <div *dxTemplate="let d of 'content'">
     <div class="cs-det" *ngIf="detalle">
@@ -183,7 +183,7 @@
 
 <!-- ══ Popup: todos los controles de un día ══ -->
 <dx-popup [(visible)]="diaVisible" [width]="620" [height]="'auto'" [maxHeight]="'84vh'" [maxWidth]="'96vw'"
-  [showTitle]="false" [dragEnabled]="false" [hideOnOutsideClick]="true" class="cs-dia-popup">
+  [showTitle]="false" [dragEnabled]="false" [hideOnOutsideClick]="true" [deferRendering]="false" class="cs-dia-popup">
   <div *dxTemplate="let d of 'content'">
     <!-- Encabezado propio (evita el título nativo que se corta en la 1ª apertura) -->
     <div class="cs-dia-head">
