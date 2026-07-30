@@ -2,7 +2,6 @@ import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { ExcelExportService } from '../../services/excel/excel.service';
-import { FiltrosStoreService } from '../../services/filtros-store.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
@@ -38,7 +37,6 @@ export class VentasSedesComponent implements OnInit {
   private auth = inject(AuthService);
   private sedeConfig = inject(SedeConfigService);
   private ventasSvc = inject(CargaVentasService);
-  private filtros = inject(FiltrosStoreService);
 
   // Carga de datos desde PostgreSQL (reemplaza la importación de Excel).
   cargando = false;
@@ -223,16 +221,6 @@ export class VentasSedesComponent implements OnInit {
       this.sedesUsuarioKeys = sedesFisicas.length ? sedesFisicas : [this.sedeConfig.normalizar(u.sede)];
       this.sedeForzada = this.sedesUsuarioKeys.length === 1 ? this.sedesUsuarioKeys[0] : '';
       this.sedeSeleccionada = this.sedesUsuarioKeys[0];
-    }
-    // Restaura el último rango que usó el usuario antes de la carga inicial.
-    const s = this.filtros.leer('ventas-sedes');
-    if (s) {
-      const fi = this.filtros.fecha(s['fechaInicio']);
-      const ff = this.filtros.fecha(s['fechaFin']);
-      this.formVentas.patchValue({
-        ...(fi ? { fechaInicio: fi } : {}),
-        ...(ff ? { fechaFin: ff } : {}),
-      });
     }
     // Carga inicial desde la base (año de la fecha fin seleccionada).
     this.cargarVentas();
@@ -668,10 +656,6 @@ export class VentasSedesComponent implements OnInit {
 
   actualizarFiltros(): void {
     if (!this.formVentas.valid) return;
-    this.filtros.guardar('ventas-sedes', {
-      fechaInicio: this.formVentas.value.fechaInicio,
-      fechaFin: this.formVentas.value.fechaFin,
-    });
     // Si cambió el año de la fecha fin, recargamos desde la base; si no, solo re-filtramos.
     const anio = new Date(this.formVentas.value.fechaFin).getFullYear();
     if (anio !== this.anioCargado) {

@@ -3,7 +3,6 @@ import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { ExcelExportService } from '../../services/excel/excel.service';
-import { FiltrosStoreService } from '../../services/filtros-store.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
@@ -17,7 +16,6 @@ import * as XLSX from 'xlsx';
 })
 export class ComparativoVentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
-  private filtros = inject(FiltrosStoreService);
   importando = false;   // overlay animado mientras se procesa el Excel
 
   formComparativo: UntypedFormGroup;
@@ -74,18 +72,7 @@ export class ComparativoVentasComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    const s = this.filtros.leer('comparativo-ventas');
-    if (s) {
-      const fi = this.filtros.fecha(s['fechaInicio']);
-      const ff = this.filtros.fecha(s['fechaFin']);
-      this.formComparativo.patchValue({
-        ...(fi ? { fechaInicio: fi } : {}),
-        ...(ff ? { fechaFin: ff } : {}),
-        Asesores: s['Asesores'] ?? this.formComparativo.value.Asesores,
-      });
-    }
-  }
+  ngOnInit(): void { }
 
   importar(event: any): void {
     const file = event.target.files[0];
@@ -161,11 +148,6 @@ export class ComparativoVentasComponent implements OnInit {
 
 
   aplicarFiltros(): void {
-    this.filtros.guardar('comparativo-ventas', {
-      fechaInicio: this.formComparativo.value.fechaInicio,
-      fechaFin: this.formComparativo.value.fechaFin,
-      Asesores: this.formComparativo.value.Asesores,
-    });
     const selectedAsesor = (this.formComparativo.value.Asesores || '').toString().trim().toUpperCase();
 
     const fechaInicio = new Date(this.formComparativo.value.fechaInicio);

@@ -5,7 +5,6 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
-import { FiltrosStoreService } from '../../services/filtros-store.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 @Component({
@@ -16,7 +15,6 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 })
 export class VentasCampoComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
-  private filtros = inject(FiltrosStoreService);
   importando = false;   // overlay animado mientras se procesa el Excel
 
   formVentas: UntypedFormGroup;
@@ -200,19 +198,7 @@ export class VentasCampoComponent implements OnInit {
     });
   }
 
-  async ngOnInit() {
-    // Restaura el último filtro que el usuario usó en este dashboard.
-    const s = this.filtros.leer('ventas-campo');
-    if (s) {
-      const fi = this.filtros.fecha(s['fechaInicio']);
-      const ff = this.filtros.fecha(s['fechaFin']);
-      this.formVentas.patchValue({
-        ...(fi ? { fechaInicio: fi } : {}),
-        ...(ff ? { fechaFin: ff } : {}),
-        Asesores: s['Asesores'] ?? this.formVentas.value.Asesores,
-      });
-    }
-  }
+  async ngOnInit() { }
 
   async importar(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -423,11 +409,6 @@ export class VentasCampoComponent implements OnInit {
 
 
   aplicarFiltros(): void {
-    this.filtros.guardar('ventas-campo', {
-      fechaInicio: this.formVentas.value.fechaInicio,
-      fechaFin: this.formVentas.value.fechaFin,
-      Asesores: this.formVentas.value.Asesores,
-    });
     const fechaInicio = new Date(this.formVentas.value.fechaInicio);
     const fechaFin = new Date(this.formVentas.value.fechaFin);
     fechaInicio.setHours(0, 0, 0, 0);
