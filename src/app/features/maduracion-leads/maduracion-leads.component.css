@@ -51,5 +51,11 @@
 .ml-table tfoot td { background: #0E1B33; color: #fff; font-weight: 800; border-color: #0E1B33; }
 .ml-table tfoot td.tot, .ml-table tfoot td.leads { background: #0E1B33 !important; color: #fff; }
 
-.ml-chart { height: 380px; width: 100%; }
+.ml-chart { height: 100%; width: 100%; display: block; }
+.ml-chart-box { height: 400px; }
+.ml-card-actions { display: inline-flex; align-items: center; gap: 8px; }
+.ml-max { display: inline-grid; place-items: center; width: 34px; height: 32px; border: 1px solid #cddcec; background: #fff; border-radius: 8px; color: #1A5FAD; cursor: pointer; transition: background .15s; }
+.ml-max:hover { background: #eef5fc; }
+.ml-max mat-icon { font-size: 19px; width: 19px; height: 19px; }
+.ml-popup-chart { height: 100%; padding: 6px; }
 .ml-error { display: flex; align-items: center; gap: 8px; background: #fdecea; border: 1px solid #f5c6cb; color: #B71C1C; border-radius: 8px; padding: 12px 14px; font-weight: 600; margin-bottom: 10px; }

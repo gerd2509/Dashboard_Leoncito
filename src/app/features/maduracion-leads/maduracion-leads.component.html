@@ -80,16 +80,66 @@
     </div>
   </div>
 
-  <!-- Gráfico -->
+  <!-- Tabla: MONTO por tiempo de maduración -->
   <div class="ml-card" *ngIf="filas.length">
-    <div class="ml-card-h">
-      <span><mat-icon>insights</mat-icon> EVOLUCIÓN DE LA MADURACIÓN</span>
-      <span class="ml-chart-seg">
-        <button [class.on]="chartMetric === 'buckets'" (click)="setChartMetric('buckets')">Por maduración</button>
-        <button [class.on]="chartMetric === 'ventas-leads'" (click)="setChartMetric('ventas-leads')">Ventas vs Leads</button>
-      </span>
+    <div class="ml-card-h"><span><mat-icon>payments</mat-icon> MONTO DE VENTAS POR TIEMPO DE MADURACIÓN</span></div>
+    <div class="ml-table-wrap">
+      <table class="ml-table">
+        <thead><tr>
+          <th class="l">Mes de venta</th>
+          <th>Mismo Mes (0)</th><th>1 Mes</th><th>2 Meses</th><th>3 Meses</th><th>4+ Meses</th><th>Total Ventas</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let f of filas">
+            <td class="l">{{ f.label }}</td>
+            <td>S/ {{ f.mm0 | number:'1.0-0' }}</td><td>S/ {{ f.mm1 | number:'1.0-0' }}</td>
+            <td>S/ {{ f.mm2 | number:'1.0-0' }}</td><td>S/ {{ f.mm3 | number:'1.0-0' }}</td>
+            <td>S/ {{ f.mm4 | number:'1.0-0' }}</td><td class="tot">S/ {{ f.montoTotal | number:'1.0-0' }}</td>
+          </tr>
+        </tbody>
+        <tfoot><tr>
+          <td class="l">TOTAL</td>
+          <td>S/ {{ tot.mm0 | number:'1.0-0' }}</td><td>S/ {{ tot.mm1 | number:'1.0-0' }}</td>
+          <td>S/ {{ tot.mm2 | number:'1.0-0' }}</td><td>S/ {{ tot.mm3 | number:'1.0-0' }}</td>
+          <td>S/ {{ tot.mm4 | number:'1.0-0' }}</td><td class="tot">S/ {{ tot.montoTotal | number:'1.0-0' }}</td>
+        </tr></tfoot>
+      </table>
     </div>
+  </div>
 
+  <!-- Tabla: DISTRIBUCIÓN PORCENTUAL por mes (sobre el conteo de ventas del mes) -->
+  <div class="ml-card" *ngIf="filas.length">
+    <div class="ml-card-h"><span><mat-icon>percent</mat-icon> DISTRIBUCIÓN PORCENTUAL POR MES DE VENTA</span></div>
+    <div class="ml-table-wrap">
+      <table class="ml-table">
+        <thead><tr>
+          <th class="l">Mes de venta</th>
+          <th>Mismo Mes (0)</th><th>1 Mes</th><th>2 Meses</th><th>3 Meses</th><th>4+ Meses</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let f of filas">
+            <td class="l">{{ f.label }}</td>
+            <td>{{ pct(f.m0, f.totalVentas) | number:'1.1-1' }}%</td>
+            <td>{{ pct(f.m1, f.totalVentas) | number:'1.1-1' }}%</td>
+            <td>{{ pct(f.m2, f.totalVentas) | number:'1.1-1' }}%</td>
+            <td>{{ pct(f.m3, f.totalVentas) | number:'1.1-1' }}%</td>
+            <td>{{ pct(f.m4, f.totalVentas) | number:'1.1-1' }}%</td>
+          </tr>
+        </tbody>
+        <tfoot><tr>
+          <td class="l">TOTAL</td>
+          <td>{{ pct(tot.m0, tot.totalVentas) | number:'1.1-1' }}%</td>
+          <td>{{ pct(tot.m1, tot.totalVentas) | number:'1.1-1' }}%</td>
+          <td>{{ pct(tot.m2, tot.totalVentas) | number:'1.1-1' }}%</td>
+          <td>{{ pct(tot.m3, tot.totalVentas) | number:'1.1-1' }}%</td>
+          <td>{{ pct(tot.m4, tot.totalVentas) | number:'1.1-1' }}%</td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Gráfico reutilizable (card + popup) ── -->
+  <ng-template #chartTpl>
     <!-- Barras apiladas por tiempo de maduración -->
     <dx-chart *ngIf="chartMetric === 'buckets'" [dataSource]="chartData" [redrawOnResize]="true" class="ml-chart">
       <dxo-common-series-settings argumentField="mes" type="stackedBar">
@@ -107,24 +157,54 @@
       <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
     </dx-chart>
 
-    <!-- Total Ventas (barra) + Leads Ingresados (línea), doble eje -->
+    <!-- Ventas + (KOMMO: Leads / Market Place: % crecimiento) -->
     <dx-chart *ngIf="chartMetric === 'ventas-leads'" [dataSource]="chartData" [redrawOnResize]="true" class="ml-chart">
       <dxo-common-series-settings argumentField="mes"></dxo-common-series-settings>
       <dxi-value-axis name="izq" position="left"><dxo-title text="Ventas"></dxo-title></dxi-value-axis>
-      <dxi-value-axis name="der" position="right"><dxo-title text="Leads"></dxo-title></dxi-value-axis>
+      <dxi-value-axis name="der" position="right"><dxo-title [text]="fuente === 'KOMMO' ? 'Leads' : '% crecimiento'"></dxo-title></dxi-value-axis>
       <dxi-series valueField="Total Ventas" name="Total Ventas" type="bar" axis="izq" color="#1A5FAD">
-        <dxo-label [visible]="true" [customizeText]="lblVentas" backgroundColor="transparent">
+        <dxo-label [visible]="true" [customizeText]="lblNoCero" backgroundColor="transparent">
           <dxo-font [size]="12" [weight]="700" color="#1E3A5F"></dxo-font>
         </dxo-label>
       </dxi-series>
-      <dxi-series valueField="Leads Ingresados" name="Leads Ingresados" type="spline" axis="der" color="#F07420">
+      <dxi-series *ngIf="fuente === 'KOMMO'" valueField="Leads Ingresados" name="Leads Ingresados" type="spline" axis="der" color="#F07420">
         <dxo-point [size]="7"></dxo-point>
         <dxo-label [visible]="true" backgroundColor="transparent"><dxo-font [size]="11" [weight]="700" color="#C0632A"></dxo-font></dxo-label>
+      </dxi-series>
+      <dxi-series *ngIf="fuente === 'MARKETPLACE'" valueField="crec" name="Crecimiento %" type="spline" axis="der" color="#6A1B9A">
+        <dxo-point [size]="7"></dxo-point>
+        <dxo-label [visible]="true" [customizeText]="lblCrec" backgroundColor="#f3e9fb"><dxo-font [size]="11" [weight]="700" color="#6A1B9A"></dxo-font></dxo-label>
       </dxi-series>
       <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
       <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
       <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
     </dx-chart>
+  </ng-template>
+
+  <!-- Card del gráfico -->
+  <div class="ml-card" *ngIf="filas.length">
+    <div class="ml-card-h">
+      <span><mat-icon>insights</mat-icon> EVOLUCIÓN DE LA MADURACIÓN</span>
+      <span class="ml-card-actions">
+        <span class="ml-chart-seg">
+          <button [class.on]="chartMetric === 'buckets'" (click)="setChartMetric('buckets')">Por maduración</button>
+          <button [class.on]="chartMetric === 'ventas-leads'" (click)="setChartMetric('ventas-leads')">
+            {{ fuente === 'KOMMO' ? 'Ventas vs Leads' : 'Ventas + %' }}
+          </button>
+        </span>
+        <button class="ml-max" (click)="verChartGrande()" title="Ver en grande"><mat-icon>open_in_full</mat-icon></button>
+      </span>
+    </div>
+    <div class="ml-chart-box"><ng-container *ngTemplateOutlet="chartTpl"></ng-container></div>
   </div>
 </div>
+
+<!-- Popup: gráfico en grande -->
+<dx-popup [(visible)]="chartPopupVisible" [width]="'92%'" [height]="'88%'" [showTitle]="true"
+  title="Evolución de la maduración" [deferRendering]="false" [hideOnOutsideClick]="true"
+  [showCloseButton]="true" [dragEnabled]="false">
+  <div *dxTemplate="let d of 'content'" class="ml-popup-chart">
+    <ng-container *ngTemplateOutlet="chartTpl"></ng-container>
+  </div>
+</dx-popup>
 </div><!-- /vd-shell -->

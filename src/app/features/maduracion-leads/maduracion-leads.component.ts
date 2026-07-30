@@ -14,8 +14,12 @@ type Fuente = 'KOMMO' | 'MARKETPLACE';
 interface FilaMes {
   ym: number;                 // anio*12 + (mes-1), para ordenar
   label: string;              // 'dic 2025'
+  // Conteo por bucket de maduración
   m0: number; m1: number; m2: number; m3: number; m4: number;
-  totalVentas: number;
+  totalVentas: number;        // conteo total
+  // Monto (S/) por bucket de maduración
+  mm0: number; mm1: number; mm2: number; mm3: number; mm4: number;
+  montoTotal: number;
   leads: number;
 }
 
@@ -141,18 +145,20 @@ export class MaduracionLeadsComponent implements OnInit {
       if (ymVenta < ymDesde || ymVenta > ymHasta) continue;
 
       const fila = this.filaDe(mapa, ymVenta, anio, mes);
+      const monto = Number(v.monto_consolidado || 0);
       fila.totalVentas++;
+      fila.montoTotal += monto;
 
       const dni = this.dig(v.doc_identidad) || this.dig(v.dni_txt);
       const ymLead = dni ? idxLead.get(dni) : undefined;
       let dif = 0;
       if (ymLead !== undefined) { dif = Math.max(0, ymVenta - ymLead); conLead++; sumaMeses += dif; }
       // Sin lead cruzado → se cuenta como maduración 0 (mismo mes) para no perder la venta.
-      if (dif <= 0) fila.m0++;
-      else if (dif === 1) fila.m1++;
-      else if (dif === 2) fila.m2++;
-      else if (dif === 3) fila.m3++;
-      else fila.m4++;
+      if (dif <= 0)      { fila.m0++; fila.mm0 += monto; }
+      else if (dif === 1) { fila.m1++; fila.mm1 += monto; }
+      else if (dif === 2) { fila.m2++; fila.mm2 += monto; }
+      else if (dif === 3) { fila.m3++; fila.mm3 += monto; }
+      else                { fila.m4++; fila.mm4 += monto; }
     }
 
     // Leads ingresados por mes (dentro del rango). Solo aplica a KOMMO:
@@ -186,7 +192,11 @@ export class MaduracionLeadsComponent implements OnInit {
   private filaDe(mapa: Map<number, FilaMes>, ym: number, anio: number, mes: number): FilaMes {
     let f = mapa.get(ym);
     if (!f) {
-      f = { ym, label: `${this.MESES[mes - 1]} ${anio}`, m0: 0, m1: 0, m2: 0, m3: 0, m4: 0, totalVentas: 0, leads: 0 };
+      f = {
+        ym, label: `${this.MESES[mes - 1]} ${anio}`,
+        m0: 0, m1: 0, m2: 0, m3: 0, m4: 0, totalVentas: 0,
+        mm0: 0, mm1: 0, mm2: 0, mm3: 0, mm4: 0, montoTotal: 0, leads: 0,
+      };
       mapa.set(ym, f);
     }
     return f;
@@ -211,20 +221,29 @@ export class MaduracionLeadsComponent implements OnInit {
   /** Etiqueta que oculta los ceros (para las barras apiladas). */
   lblNoCero = (info: any): string => (info?.value ? `${info.value}` : '');
 
-  /** Etiqueta de Total Ventas con el % de crecimiento debajo (+/−). */
-  lblVentas = (info: any): string => {
-    const c = info?.point?.data?.crec;
-    const cre = (c === null || c === undefined) ? '' : `\n${c > 0 ? '▲ +' : (c < 0 ? '▼ ' : '')}${c}%`;
-    return `${info.value}${cre}`;
+  /** Etiqueta de % de crecimiento (línea de Market Place): "+23%" / "−16%". */
+  lblCrec = (info: any): string => {
+    const c = info?.value;
+    if (c === null || c === undefined) return '';
+    return `${c > 0 ? '+' : ''}${c}%`;
   };
 
   // ── Totales (fila TOTAL de la tabla) ──
   get tot() {
     return this.filas.reduce((a, f) => ({
       m0: a.m0 + f.m0, m1: a.m1 + f.m1, m2: a.m2 + f.m2, m3: a.m3 + f.m3, m4: a.m4 + f.m4,
-      totalVentas: a.totalVentas + f.totalVentas, leads: a.leads + f.leads,
-    }), { m0: 0, m1: 0, m2: 0, m3: 0, m4: 0, totalVentas: 0, leads: 0 });
+      totalVentas: a.totalVentas + f.totalVentas,
+      mm0: a.mm0 + f.mm0, mm1: a.mm1 + f.mm1, mm2: a.mm2 + f.mm2, mm3: a.mm3 + f.mm3, mm4: a.mm4 + f.mm4,
+      montoTotal: a.montoTotal + f.montoTotal, leads: a.leads + f.leads,
+    }), { m0: 0, m1: 0, m2: 0, m3: 0, m4: 0, totalVentas: 0, mm0: 0, mm1: 0, mm2: 0, mm3: 0, mm4: 0, montoTotal: 0, leads: 0 });
   }
+
+  /** % de una parte respecto del total (para la distribución por mes). */
+  pct(parte: number, total: number): number { return total > 0 ? (parte / total) * 100 : 0; }
+
+  // ── Popup para ver el gráfico en grande ──
+  chartPopupVisible = false;
+  verChartGrande(): void { this.chartPopupVisible = true; }
 
   actualizar(): void { this.cargar(); }
 
