@@ -8,6 +8,9 @@ import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { SheetsService } from '../../services/service-google.service';
 import { ASESORES_CALL } from '../../shared/asesores';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
+import { exportDataGrid } from 'devextreme/excel_exporter';
 
 interface Agrupado { clave: string; monto: number; n: number; }
 interface ColDet { field: string; caption: string; width?: number; type?: 'date' | 'money' | 'number' | 'text'; }
@@ -609,6 +612,26 @@ export class MiPanelComponent implements OnInit {
 
   totalTabla = (d: AgrupadoTabla[]) => d.reduce((s, r) => s + r.monto, 0);
   totalOps = (d: AgrupadoTabla[]) => d.reduce((s, r) => s + r.ops, 0);
+
+  /**
+   * Exporta el detalle de ventas a Excel. dxo-export solo muestra el botón: la
+   * exportación real la hace este handler con exportDataGrid (respeta columnas,
+   * formato y filtros visibles del grid) + exceljs.
+   */
+  onExporting(e: any): void {
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('Mis ventas');
+    exportDataGrid({ component: e.component, worksheet, autoFilterEnabled: true }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        const nombre = (this.nombre || this.vendedor || 'detalle').replace(/[^\w]+/g, '-');
+        FileSaver.saveAs(
+          new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+          `Mis-ventas-${nombre}.xlsx`,
+        );
+      });
+    });
+    e.cancel = true;
+  }
 
   /** Hace el botón de exportar del grid más llamativo (icono + texto verde). */
   onToolbarPreparing(e: any): void {

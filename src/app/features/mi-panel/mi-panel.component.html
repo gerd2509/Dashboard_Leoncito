@@ -251,7 +251,7 @@
             <div class="mp-card full">
               <dx-data-grid [dataSource]="ventas" [showBorders]="true" [rowAlternationEnabled]="true"
                 [columnAutoWidth]="true" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
-                (onToolbarPreparing)="onToolbarPreparing($event)">
+                (onToolbarPreparing)="onToolbarPreparing($event)" (onExporting)="onExporting($event)">
                 <dxo-filter-row [visible]="true"></dxo-filter-row>
                 <dxo-header-filter [visible]="true"></dxo-header-filter>
                 <dxo-column-chooser [enabled]="true"></dxo-column-chooser>
