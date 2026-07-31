@@ -14,6 +14,7 @@ interface FormKommo {
   asesor: string; sede: string; fecha_lead_asignado: string;
   motivo_no_contacto: string; producto_interes: string; motivo_interes: string;
   fecha_interes_agend: string; hora_interes_agend: string; comentario_agend: string;
+  fecha_interes_deriv: string; hora_interes_deriv: string; comentario_deriv: string;
   motivo_agendamiento: string; motivo_no_atendible: string; comentario_na: string;
   motivo_no_interes: string; comentario_adicional: string;
   motivo_no_cierre: string; comentario_venta_no_concretada: string;
@@ -23,6 +24,7 @@ function blankForm(canal: Canal): FormKommo {
     canal, tienda: canal, estado_gestion: '', resultado_gestion: '', market_place: 'NO',
     tipo_cliente: '', dni_cliente: '', celular_gestionado: '', nombre_cliente: '', asesor: '', sede: '', fecha_lead_asignado: '',
     motivo_no_contacto: '', producto_interes: '', motivo_interes: '', fecha_interes_agend: '', hora_interes_agend: '', comentario_agend: '',
+    fecha_interes_deriv: '', hora_interes_deriv: '', comentario_deriv: '',
     motivo_agendamiento: '', motivo_no_atendible: '', comentario_na: '', motivo_no_interes: '', comentario_adicional: '',
     motivo_no_cierre: '', comentario_venta_no_concretada: '',
   };
@@ -56,21 +58,23 @@ export class RegistroKommoComponent implements OnInit {
 
   // Opciones (valores reales de la data KOMMO).
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
-  readonly resultados = ['INTERESADO', 'ENVIARÁ CATALOGO', 'NO ATENDIBLE', 'NO INTERESADO'];
+  readonly resultados = ['INTERESADO', 'NO INTERESADO', 'NO ATENDIBLE', 'ENVIARÁ CATALOGO'];
   readonly tiposCliente = ['NUEVO', 'DORMIDO', 'VIGENTE', 'NO VIGENTE', 'AFILIACIONES', 'REENGANCHE'];
   readonly siNo = ['SI', 'NO'];
-  readonly productos = ['MOTOCICLETA', 'MOTOTAXI', 'PEQUEÑOS ARTEFACTOS', 'TELEVISOR', 'MELANIMA', 'LAPTOP',
-    'REFRIGERADORA', 'IMPRESORA', 'COCINA', 'JUEGO MUEBLES', 'LAVADORA', 'TELEFONO CELULAR', 'CONGELADORA',
-    'CAMA + COLCHON', 'JUEGO COMEDOR', 'OTRO'];
-  readonly motivosInteres = ['CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)', 'VISITARÁ TIENDA',
+  readonly productos = ['REFRIGERADORA', 'VISICOOLER', 'COCINA', 'LAVADORA', 'CONGELADORA', 'TELEVISOR',
+    'EQUIPO SONIDO', 'LAPTOP', 'IMPRESORA', 'TELEFONO CELULAR', 'MOTOCICLETA', 'MOTOTAXI', 'JUEGO MUEBLES',
+    'JUEGO COMEDOR', 'MELANIMA', 'CAMA', 'COLCHON', 'CAMA + COLCHON', 'PEQUEÑOS ARTEFACTOS', 'MOTO CARGUERA'];
+  // MOTIVO INTERÉS ramifica: agendamiento / derivación / venta no concretada.
+  readonly motivosInteres = ['VISITARÁ TIENDA', 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)',
     'VENTA DERIVADA PARA CIERRE A SEDE', 'SE ENVIÓ A ASESOR VISITA A DOMICILIO', 'VENTA NO CONCRETADA'];
-  readonly motivosAgend = ['ENVIARÁ CATALOGO', 'INTERÉS A FUTURO', 'VISITARÁ TIENDA'];
-  readonly motivosNoInteres = ['NO EXPLICA - SIN RAZON', 'PRECIO ALTO', 'CORTA LLAMADA', 'YA COMPRÓ EN EL MES', 'FUERA DE ZONA'];
-  readonly motivosNoAtendible = ['RECHAZADO CRÉDITOS', 'FUERA DE ZONA', 'CON AFECTACION'];
-  readonly motivosNoContacto = ['NO CONTESTA', 'CELULAR APAGADO', 'CELULAR SUPENDIDO - NO EXISTE', 'NÚMERO EQUIVOCADO'];
-  readonly motivosNoCierre = ['NO CALIFICA (PROBLEMAS CREDITICIOS O REQUISITOS)', 'FALTA DE INICIAL',
-    'INCONTACTABLE POSTERIOR AL INTERES (DEJO DE CONTESTAR)', 'MUY CARO',
-    'DESISTIO DE LA COMPRA (CAMBIO DE OPINION EL TITULAR)', 'FALTA DE STOCK O DISPONIBILIDAD DE PRODUCTO'];
+  readonly motivosAgend = ['VISITARÁ TIENDA', 'ENVIARÁ CATALOGO', 'INTERÉS A FUTURO'];
+  readonly motivosNoInteres = ['ATENCIÓN POST VENTA', 'SERVICIO TÉCNICO NO ATENDIDO', 'YA COMPRÓ EN EL MES',
+    'PRECIO ALTO', 'NO EXPLICA - SIN RAZON', 'CORTA LLAMADA', 'FUERA DE ZONA'];
+  readonly motivosNoAtendible = ['CON AFECTACION', 'RECHAZADO CRÉDITOS', 'FUERA DE ZONA'];
+  readonly motivosNoContacto = ['NO CONTESTA', 'NÚMERO EQUIVOCADO', 'CELULAR SUPENDIDO - NO EXISTE', 'CELULAR APAGADO'];
+  readonly motivosNoCierre = ['MUY CARO', 'FALTA DE STOCK O DISPONIBILIDAD DE PRODUCTO',
+    'DESISTIO DE LA COMPRA (CAMBIO DE OPINION EL TITULAR)', 'NO CALIFICA (PROBLEMAS CREDITICIOS O REQUISITOS)',
+    'INCONTACTABLE POSTERIOR AL INTERES (DEJO DE CONTESTAR)', 'FALTA DE INICIAL'];
   readonly sedes = ['Lambayeque', 'Realzza', 'Fuera de Zona', 'Ferreñafe', 'Chongoyape', 'La Victoria',
     'Olmos', 'Jayanca', 'Cayalti', 'Motupe', 'Mochumi', 'Morrope', 'Oyotun'];
 
@@ -107,14 +111,22 @@ export class RegistroKommoComponent implements OnInit {
     this.f[campo] = (this.f[campo] ?? '').toString().replace(/\D/g, '').slice(0, max);
   }
 
-  // ── Visibilidad de campos según el flujo (como el form) ──
+  // ── Visibilidad de campos según el flujo del form KOMMO ──
   get esContacto(): boolean { return this.f.estado_gestion === 'CONTACTO'; }
   get esNoContacto(): boolean { return this.f.estado_gestion === 'NO CONTACTO'; }
   get esInteresado(): boolean { return this.esContacto && this.f.resultado_gestion === 'INTERESADO'; }
-  get esEnviaraCat(): boolean { return this.esContacto && this.f.resultado_gestion === 'ENVIARÁ CATALOGO'; }
   get esNoAtendible(): boolean { return this.esContacto && this.f.resultado_gestion === 'NO ATENDIBLE'; }
   get esNoInteresado(): boolean { return this.esContacto && this.f.resultado_gestion === 'NO INTERESADO'; }
-  get esRealzza(): boolean { return this.canal === 'REALZZA'; }
+  // INTERESADO → MOTIVO INTERÉS ramifica: agendamiento / derivación / venta no concretada.
+  get muestraAgend(): boolean {
+    return this.esInteresado && ['VISITARÁ TIENDA', 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)'].includes(this.f.motivo_interes);
+  }
+  get muestraDeriv(): boolean {
+    return this.esInteresado && ['VENTA DERIVADA PARA CIERRE A SEDE', 'SE ENVIÓ A ASESOR VISITA A DOMICILIO'].includes(this.f.motivo_interes);
+  }
+  get muestraNoCierre(): boolean {
+    return this.esInteresado && this.f.motivo_interes === 'VENTA NO CONCRETADA';
+  }
 
   private get errores(): string[] {
     const e: string[] = [];

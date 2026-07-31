@@ -78,7 +78,7 @@
           <dx-select-box [dataSource]="resultados" [(value)]="f.resultado_gestion" stylingMode="outlined"></dx-select-box>
         </div>
 
-        <!-- INTERESADO -->
+        <!-- INTERESADO → Producto + Motivo de interés (ramifica) -->
         <ng-container *ngIf="esInteresado">
           <div class="rk-field">
             <label>Producto de interés</label>
@@ -88,25 +88,55 @@
             <label>Motivo de interés</label>
             <dx-select-box [dataSource]="motivosInteres" [(value)]="f.motivo_interes" [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
           </div>
+        </ng-container>
+
+        <!-- INTERESADO → AGENDAMIENTO -->
+        <ng-container *ngIf="muestraAgend">
           <div class="rk-field">
-            <label>Fecha interés (agendamiento)</label>
+            <label>Motivo agendamiento</label>
+            <dx-select-box [dataSource]="motivosAgend" [(value)]="f.motivo_agendamiento" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rk-field">
+            <label>Fecha de interés</label>
             <dx-text-box [(value)]="f.fecha_interes_agend" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
           </div>
           <div class="rk-field">
-            <label>Hora aprox. (agendamiento)</label>
+            <label>Hora aprox.</label>
             <dx-text-box [(value)]="f.hora_interes_agend" placeholder="hh:mm" stylingMode="outlined"></dx-text-box>
           </div>
           <div class="rk-field rk-3">
-            <label>Comentario agendamiento</label>
+            <label>Comentario adicional agendamiento</label>
             <dx-text-area [(value)]="f.comentario_agend" [height]="60" stylingMode="outlined"></dx-text-area>
           </div>
         </ng-container>
 
-        <!-- ENVIARÁ CATALOGO -->
-        <div class="rk-field rk-2" *ngIf="esEnviaraCat">
-          <label>Motivo agendamiento</label>
-          <dx-select-box [dataSource]="motivosAgend" [(value)]="f.motivo_agendamiento" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
-        </div>
+        <!-- INTERESADO → DERIVACIÓN -->
+        <ng-container *ngIf="muestraDeriv">
+          <div class="rk-field">
+            <label>Fecha de interés (derivación)</label>
+            <dx-text-box [(value)]="f.fecha_interes_deriv" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
+          </div>
+          <div class="rk-field">
+            <label>Hora aprox. (derivación)</label>
+            <dx-text-box [(value)]="f.hora_interes_deriv" placeholder="hh:mm" stylingMode="outlined"></dx-text-box>
+          </div>
+          <div class="rk-field rk-3">
+            <label>Comentario adicional derivación</label>
+            <dx-text-area [(value)]="f.comentario_deriv" [height]="60" stylingMode="outlined"></dx-text-area>
+          </div>
+        </ng-container>
+
+        <!-- INTERESADO → VENTA NO CONCRETADA -->
+        <ng-container *ngIf="muestraNoCierre">
+          <div class="rk-field">
+            <label>Motivo de no cierre</label>
+            <dx-select-box [dataSource]="motivosNoCierre" [(value)]="f.motivo_no_cierre" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rk-field rk-2">
+            <label>Comentario venta no concretada</label>
+            <dx-text-box [(value)]="f.comentario_venta_no_concretada" stylingMode="outlined"></dx-text-box>
+          </div>
+        </ng-container>
 
         <!-- NO ATENDIBLE -->
         <ng-container *ngIf="esNoAtendible">
@@ -115,7 +145,7 @@
             <dx-select-box [dataSource]="motivosNoAtendible" [(value)]="f.motivo_no_atendible" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
           </div>
           <div class="rk-field rk-2">
-            <label>Comentario</label>
+            <label>Comentario adicional NA</label>
             <dx-text-box [(value)]="f.comentario_na" stylingMode="outlined"></dx-text-box>
           </div>
         </ng-container>
@@ -127,22 +157,10 @@
             <dx-select-box [dataSource]="motivosNoInteres" [(value)]="f.motivo_no_interes" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
           </div>
           <div class="rk-field rk-2">
-            <label>Comentario</label>
+            <label>Comentario adicional</label>
             <dx-text-box [(value)]="f.comentario_adicional" stylingMode="outlined"></dx-text-box>
           </div>
         </ng-container>
-      </div>
-
-      <!-- Realzza: venta no concretada -->
-      <div class="rk-grid rk-rama rz" *ngIf="esRealzza">
-        <div class="rk-field">
-          <label>Motivo de no cierre (Realzza)</label>
-          <dx-select-box [dataSource]="motivosNoCierre" [(value)]="f.motivo_no_cierre" [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
-        </div>
-        <div class="rk-field rk-2">
-          <label>Comentario venta no concretada</label>
-          <dx-text-box [(value)]="f.comentario_venta_no_concretada" stylingMode="outlined"></dx-text-box>
-        </div>
       </div>
 
       <div class="rk-actions">
