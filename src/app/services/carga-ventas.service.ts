@@ -134,4 +134,15 @@ export class CargaVentasService {
     if (anio) params = params.set('anio', anio);
     return this.http.get<{ anio: number; mes: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
+
+  /**
+   * Conteo de LEADS KOMMO ingresados por DÍA (para el gráfico de leads/día en la
+   * Maduración de Leads). Devuelve [{ anio, mes, dia, total }]. Opcional: por año.
+   */
+  obtenerLeadsPorDia(canal: 'call' | 'realzza', anio?: number): Observable<{ anio: number; mes: number; dia: number; total: number }[]> {
+    const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
+    let params = new HttpParams().set('por', 'dia');
+    if (anio) params = params.set('anio', anio);
+    return this.http.get<{ anio: number; mes: number; dia: number; total: number }[]>(`${this.root}/${path}`, { params });
+  }
 }

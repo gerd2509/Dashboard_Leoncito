@@ -56,8 +56,13 @@
 
   <!-- Tabla de maduración -->
   <div class="ml-card">
-    <div class="ml-card-h"><mat-icon>calendar_month</mat-icon> CONTEO DE VENTAS POR TIEMPO DE MADURACIÓN
-      <span class="ml-sub">{{ fuente === 'KOMMO' ? 'Origen KOMMO' : 'Market Place' }} · {{ canal | uppercase }}</span>
+    <div class="ml-card-h">
+      <span><mat-icon>calendar_month</mat-icon> CONTEO DE VENTAS POR TIEMPO DE MADURACIÓN
+        <span class="ml-sub">{{ fuente === 'KOMMO' ? 'Origen KOMMO' : 'Market Place' }} · {{ canal | uppercase }}</span>
+      </span>
+      <button class="ml-detalle-btn" *ngIf="filas.length" (click)="verDetalleTodo()" title="Ver el detalle de todas las ventas">
+        <mat-icon>receipt_long</mat-icon> Ver detalle
+      </button>
     </div>
     <div class="ml-table-wrap">
       <table class="ml-table">
@@ -65,7 +70,7 @@
           <tr>
             <th class="l">Mes de venta</th>
             <th>Mismo Mes (0)</th><th>1 Mes</th><th>2 Meses</th><th>3 Meses</th><th>4+ Meses</th>
-            <th>Total Ventas</th><th>Leads Ingresados</th>
+            <th>Total Ventas</th><th *ngIf="hayLeads">Leads Ingresados</th>
             <th *ngIf="hayLeads" title="Ventas del mes ÷ leads del mes">Conversión (Ventas/Leads)</th>
             <th *ngIf="hayLeads" title="Ventas que cerraron el mismo mes ÷ leads">Conversión inmediata</th>
             <th *ngIf="hayLeads" title="Crecimiento de leads vs el mes anterior">Var. Leads (MoM)</th>
@@ -75,8 +80,10 @@
           <tr *ngFor="let f of filas">
             <td class="l">{{ f.label }}</td>
             <td>{{ f.m0 }}</td><td>{{ f.m1 }}</td><td>{{ f.m2 }}</td><td>{{ f.m3 }}</td><td>{{ f.m4 }}</td>
-            <td class="tot">{{ f.totalVentas }}</td>
-            <td class="leads">{{ f.leads | number }}</td>
+            <td class="tot click" (click)="verDetalleMes(f)" title="Ver el detalle de estas ventas">
+              {{ f.totalVentas }} <mat-icon class="tot-ico">receipt_long</mat-icon>
+            </td>
+            <td class="leads" *ngIf="hayLeads">{{ f.leads | number }}</td>
             <td *ngIf="hayLeads">{{ f.leads ? (pct(f.totalVentas, f.leads) | number:'1.1-1') + '%' : '—' }}</td>
             <td *ngIf="hayLeads">{{ f.leads ? (pct(f.m0, f.leads) | number:'1.1-1') + '%' : '—' }}</td>
             <td *ngIf="hayLeads" [class.pos]="(f.tendLeads ?? 0) > 0" [class.neg]="(f.tendLeads ?? 0) < 0">
@@ -90,7 +97,7 @@
             <td class="l">TOTAL</td>
             <td>{{ tot.m0 }}</td><td>{{ tot.m1 }}</td><td>{{ tot.m2 }}</td><td>{{ tot.m3 }}</td><td>{{ tot.m4 }}</td>
             <td class="tot">{{ tot.totalVentas }}</td>
-            <td class="leads">{{ tot.leads | number }}</td>
+            <td class="leads" *ngIf="hayLeads">{{ tot.leads | number }}</td>
             <td *ngIf="hayLeads">{{ tot.leads ? (pct(tot.totalVentas, tot.leads) | number:'1.1-1') + '%' : '—' }}</td>
             <td *ngIf="hayLeads">{{ tot.leads ? (pct(tot.m0, tot.leads) | number:'1.1-1') + '%' : '—' }}</td>
             <td *ngIf="hayLeads">—</td>
@@ -154,6 +161,51 @@
           <td>{{ pct(tot.m3, tot.totalVentas) | number:'1.1-1' }}%</td>
           <td>{{ pct(tot.m4, tot.totalVentas) | number:'1.1-1' }}%</td>
         </tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Leads ingresados por día (solo KOMMO) ── -->
+  <ng-template #leadsDiaTpl>
+    <dx-chart [dataSource]="leadsDiaData" [redrawOnResize]="true" class="ml-chart">
+      <dxo-common-series-settings argumentField="dia"></dxo-common-series-settings>
+      <dxi-series valueField="leads" name="Leads ingresados" type="area" color="#F07420">
+        <dxo-point [size]="5" [visible]="true"></dxo-point>
+        <dxo-label [visible]="true" [customizeText]="lblLeadsDia" backgroundColor="transparent">
+          <dxo-font [size]="10" [weight]="700" color="#C0632A"></dxo-font>
+        </dxo-label>
+      </dxi-series>
+      <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-55"></dxo-label></dxo-argument-axis>
+      <dxo-value-axis><dxo-title text="Leads"></dxo-title></dxo-value-axis>
+      <dxo-legend [visible]="false"></dxo-legend>
+      <dxo-tooltip [enabled]="true"></dxo-tooltip>
+    </dx-chart>
+  </ng-template>
+
+  <div class="ml-card" *ngIf="hayLeadsDia">
+    <div class="ml-card-h">
+      <span><mat-icon>calendar_view_day</mat-icon> LEADS INGRESADOS POR DÍA
+        <span class="ml-sub">por fecha de creación · {{ canal | uppercase }} KOMMO</span>
+      </span>
+      <span class="ml-card-actions">
+        <span class="ml-dia-kpi"><b>{{ totalLeadsDia | number }}</b> total</span>
+        <span class="ml-dia-kpi"><b>{{ promLeadsDia | number }}</b> prom/día</span>
+        <span class="ml-dia-kpi max"><b>{{ maxLeadsDia | number }}</b> máx</span>
+        <span class="ml-chart-seg">
+          <button [class.on]="leadsDiaVista === 'grafico'" (click)="setLeadsDiaVista('grafico')">Gráfico</button>
+          <button [class.on]="leadsDiaVista === 'tabla'" (click)="setLeadsDiaVista('tabla')">Tabla</button>
+        </span>
+        <button class="ml-max" *ngIf="leadsDiaVista === 'grafico'" (click)="verLeadsDiaGrande()" title="Ver en grande"><mat-icon>open_in_full</mat-icon></button>
+      </span>
+    </div>
+    <div class="ml-chart-box" *ngIf="leadsDiaVista === 'grafico'"><ng-container *ngTemplateOutlet="leadsDiaTpl"></ng-container></div>
+    <div class="ml-dia-tabla-wrap" *ngIf="leadsDiaVista === 'tabla'">
+      <table class="ml-table ml-dia-tabla">
+        <thead><tr><th class="l">Día</th><th>Leads ingresados</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let d of leadsDiaData"><td class="l">{{ d.fecha }}</td><td class="leads">{{ d.leads | number }}</td></tr>
+        </tbody>
+        <tfoot><tr><td class="l">TOTAL</td><td class="tot">{{ totalLeadsDia | number }}</td></tr></tfoot>
       </table>
     </div>
   </div>
@@ -225,6 +277,58 @@
   [showCloseButton]="true" [dragEnabled]="false">
   <div *dxTemplate="let d of 'content'" class="ml-popup-chart">
     <ng-container *ngTemplateOutlet="chartTpl"></ng-container>
+  </div>
+</dx-popup>
+
+<!-- Popup: leads por día en grande -->
+<dx-popup [(visible)]="leadsDiaPopupVisible" [width]="'92%'" [height]="'82%'" [showTitle]="true"
+  title="Leads ingresados por día" [deferRendering]="false" [hideOnOutsideClick]="true"
+  [showCloseButton]="true" [dragEnabled]="false">
+  <div *dxTemplate="let d of 'content'" class="ml-popup-chart">
+    <ng-container *ngTemplateOutlet="leadsDiaTpl"></ng-container>
+  </div>
+</dx-popup>
+
+<!-- Popup: detalle de las ventas consideradas -->
+<dx-popup [(visible)]="detalleVisible" [width]="'90%'" [maxWidth]="1180" [height]="'auto'" [maxHeight]="'88vh'"
+  [showTitle]="false" [deferRendering]="false" [hideOnOutsideClick]="true" [dragEnabled]="false" class="ml-det-popup">
+  <div *dxTemplate="let d of 'content'" class="ml-det">
+    <div class="ml-det-head">
+      <div class="ml-det-title">
+        <mat-icon>receipt_long</mat-icon>
+        <div>
+          <b>Detalle de ventas consideradas</b>
+          <small>{{ detalleTitulo }} · {{ fuente === 'KOMMO' ? 'Origen KOMMO' : 'Market Place' }} · {{ canal | uppercase }}</small>
+        </div>
+      </div>
+      <div class="ml-det-resumen">
+        <span class="ml-det-chip"><b>{{ detalleFilas.length | number }}</b> ventas</span>
+        <span class="ml-det-chip monto"><b>S/ {{ detalleMonto | number:'1.0-0' }}</b></span>
+        <button class="ml-x" (click)="detalleVisible = false"><mat-icon>close</mat-icon></button>
+      </div>
+    </div>
+    <div class="ml-det-body">
+      <table class="ml-det-tabla">
+        <thead><tr>
+          <th class="l">Mes</th><th>Fecha venta</th><th>Código CV</th><th>DNI</th>
+          <th class="l">Vendedor</th><th class="l">Entidad</th><th class="l">Origen</th><th>Maduración</th><th>Monto (S/)</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let v of detalleFilas">
+            <td class="l">{{ mesDe(v.ym) }}</td>
+            <td>{{ v.fecha }}</td>
+            <td>{{ v.codigo }}</td>
+            <td>{{ v.dni }}</td>
+            <td class="l">{{ v.vendedor }}</td>
+            <td class="l">{{ v.entidad }}</td>
+            <td class="l">{{ v.origen }}</td>
+            <td><span class="ml-md" [ngClass]="madClase(v)">{{ madLabel(v) }}</span></td>
+            <td class="mto">S/ {{ v.monto | number:'1.0-0' }}</td>
+          </tr>
+          <tr *ngIf="!detalleFilas.length"><td colspan="9" class="vacio">Sin ventas.</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </dx-popup>
 </div><!-- /vd-shell -->

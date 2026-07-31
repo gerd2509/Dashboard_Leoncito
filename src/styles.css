@@ -188,9 +188,10 @@ body {
   color: #1A5FAD !important;
 }
 
-/* Reporte del supervisor: el contenido del popup no scrollea; cabecera + KPIs
-   quedan fijos y SOLO el cuerpo (.cs-rep-body) tiene scroll. */
-.cs-rep-popup .dx-popup-content {
+/* Popups con cabecera fija + cuerpo scrolleable: el contenido no scrollea, solo
+   su .*-body interno. Reporte del supervisor y detalle de maduración de leads. */
+.cs-rep-popup .dx-popup-content,
+.ml-det-popup .dx-popup-content {
   padding: 0 !important;
   overflow: hidden !important;
   display: flex;

@@ -24,6 +24,20 @@ interface FilaMes {
   tendLeads: number | null;   // variación % de leads vs el mes anterior (MoM)
 }
 
+/** Una venta considerada en la maduración (para el popup de detalle mes a mes). */
+interface VentaDetalle {
+  ym: number;             // mes de la venta (para filtrar por mes)
+  fecha: string;          // dd/MM/yyyy de la venta
+  codigo: string;         // código CV
+  dni: string;
+  vendedor: string;
+  entidad: string;        // entidad financiera de la venta/lead
+  monto: number;
+  maduracion: number;     // meses lead→venta (0 = mismo mes)
+  conLead: boolean;       // si se cruzó con un lead KOMMO (si no, maduración asumida 0)
+  origen: string;         // KOMMO / BBDD KOMMO / MARKET PLACE …
+}
+
 /**
  * Maduración de Leads (KOMMO / Market Place) por canal (Call / Realzza; luego Sedes).
  * Cuenta las ventas de origen KOMMO por mes y las clasifica por el tiempo que tardó
@@ -55,6 +69,11 @@ export class MaduracionLeadsComponent implements OnInit {
   private ventas: any[] = [];
   private kommo: any[] = [];
   private leadsPorMes: { anio: number; mes: number; total: number }[] = [];
+  private leadsPorDia: { anio: number; mes: number; dia: number; total: number }[] = [];
+
+  // Leads por día (gráfico) + detalle de ventas consideradas mes a mes.
+  leadsDiaData: any[] = [];
+  private ventasDetalle: VentaDetalle[] = [];
 
   // Resultado
   filas: FilaMes[] = [];
@@ -93,11 +112,13 @@ export class MaduracionLeadsComponent implements OnInit {
       ventas: forkJoin(ventas$.length ? ventas$ : [of([])]),
       kommo: this.sheets.getSheetKOMMO().pipe(catchError(() => of([]))),
       leads: this.ventasSvc.obtenerLeadsPorMes(this.canal).pipe(catchError(() => of([]))),
+      leadsDia: this.ventasSvc.obtenerLeadsPorDia(this.canal).pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ ventas, kommo, leads }) => {
+      next: ({ ventas, kommo, leads, leadsDia }) => {
         this.ventas = ([] as any[]).concat(...ventas);
         this.kommo = kommo || [];
         this.leadsPorMes = leads || [];
+        this.leadsPorDia = leadsDia || [];
         this.recomputar();
         this.cargando = false;
       },
@@ -137,6 +158,7 @@ export class MaduracionLeadsComponent implements OnInit {
     };
 
     const mapa = new Map<number, FilaMes>();
+    const detalle: VentaDetalle[] = [];
     let sumaMeses = 0, conLead = 0;
     for (const v of this.ventas) {
       if (!filtroVenta(v)) continue;
@@ -153,14 +175,31 @@ export class MaduracionLeadsComponent implements OnInit {
       const dni = this.dig(v.doc_identidad) || this.dig(v.dni_txt);
       const ymLead = dni ? idxLead.get(dni) : undefined;
       let dif = 0;
-      if (ymLead !== undefined) { dif = Math.max(0, ymVenta - ymLead); conLead++; sumaMeses += dif; }
+      const tieneLead = ymLead !== undefined;
+      if (tieneLead) { dif = Math.max(0, ymVenta - ymLead!); conLead++; sumaMeses += dif; }
       // Sin lead cruzado → se cuenta como maduración 0 (mismo mes) para no perder la venta.
       if (dif <= 0)      { fila.m0++; fila.mm0 += monto; }
       else if (dif === 1) { fila.m1++; fila.mm1 += monto; }
       else if (dif === 2) { fila.m2++; fila.mm2 += monto; }
       else if (dif === 3) { fila.m3++; fila.mm3 += monto; }
       else                { fila.m4++; fila.mm4 += monto; }
+
+      // Fila de detalle (para el popup "ver detalle de ventas mes a mes").
+      const origen = this.canal === 'call'
+        ? (v.contacto || '').toString().toUpperCase().trim()
+        : (v.tipo_base || '').toString().toUpperCase().trim();
+      const dd = String(+v.dia_cv || 1).padStart(2, '0');
+      detalle.push({
+        ym: ymVenta,
+        fecha: `${dd}/${String(mes).padStart(2, '0')}/${anio}`,
+        codigo: (v.codigo_cv ?? '').toString(),
+        dni: dni || '—',
+        vendedor: (v.vendedor || v.asesor_venta || '—').toString(),
+        entidad: (v.entidad || '—').toString(),
+        monto, maduracion: dif, conLead: tieneLead, origen: origen || '—',
+      });
     }
+    this.ventasDetalle = detalle.sort((a, b) => a.ym - b.ym || b.monto - a.monto);
 
     // Leads ingresados por mes (dentro del rango). Solo aplica a KOMMO:
     // la tabla de leads es de Kommo, no hay leads propios de Market Place.
@@ -195,6 +234,32 @@ export class MaduracionLeadsComponent implements OnInit {
     this.kMadPromedio = conLead ? sumaMeses / conLead : 0;
 
     this.armarChart();
+    this.armarLeadsDia();
+  }
+
+  /** Serie de leads ingresados por DÍA dentro del rango (solo aplica a KOMMO). */
+  private armarLeadsDia(): void {
+    const desde = this.form.value.desde as Date;
+    const hasta = this.form.value.hasta as Date;
+    const d0 = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate()).getTime();
+    const d1 = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate(), 23, 59, 59).getTime();
+    this.leadsDiaData = this.leadsPorDia
+      .map(l => ({ t: new Date(l.anio, l.mes - 1, l.dia).getTime(), l }))
+      .filter(x => x.t >= d0 && x.t <= d1)
+      .sort((a, b) => a.t - b.t)
+      .map(({ l }) => ({
+        dia: `${String(l.dia).padStart(2, '0')}/${String(l.mes).padStart(2, '0')}`,
+        fecha: `${String(l.dia).padStart(2, '0')}/${String(l.mes).padStart(2, '0')}/${l.anio}`,
+        leads: l.total,
+      }));
+  }
+
+  get hayLeadsDia(): boolean { return this.hayLeads && this.leadsDiaData.length > 0; }
+  get maxLeadsDia(): number { return this.leadsDiaData.reduce((m, x) => Math.max(m, x.leads), 0); }
+  get promLeadsDia(): number {
+    return this.leadsDiaData.length
+      ? Math.round(this.leadsDiaData.reduce((s, x) => s + x.leads, 0) / this.leadsDiaData.length)
+      : 0;
   }
 
   private filaDe(mapa: Map<number, FilaMes>, ym: number, anio: number, mes: number): FilaMes {
@@ -261,6 +326,50 @@ export class MaduracionLeadsComponent implements OnInit {
   // ── Popup para ver el gráfico en grande ──
   chartPopupVisible = false;
   verChartGrande(): void { this.chartPopupVisible = true; }
+
+  // ── Leads por día: vista gráfico / tabla + popup en grande ──
+  leadsDiaVista: 'grafico' | 'tabla' = 'grafico';
+  setLeadsDiaVista(v: 'grafico' | 'tabla'): void { this.leadsDiaVista = v; }
+  leadsDiaPopupVisible = false;
+  verLeadsDiaGrande(): void { this.leadsDiaPopupVisible = true; }
+  get totalLeadsDia(): number { return this.leadsDiaData.reduce((s, x) => s + x.leads, 0); }
+
+  /** Etiqueta compacta de la serie de leads/día (oculta ceros). */
+  lblLeadsDia = (info: any): string => (info?.value ? `${info.value}` : '');
+
+  // ── Popup de detalle de ventas consideradas (mes a mes) ──
+  detalleVisible = false;
+  detalleTitulo = '';
+  detalleFilas: VentaDetalle[] = [];
+
+  verDetalleMes(f: FilaMes): void {
+    this.detalleFilas = this.ventasDetalle.filter(v => v.ym === f.ym);
+    this.detalleTitulo = f.label;
+    this.detalleVisible = true;
+  }
+  verDetalleTodo(): void {
+    this.detalleFilas = this.ventasDetalle;
+    this.detalleTitulo = 'Todos los meses';
+    this.detalleVisible = true;
+  }
+  get detalleMonto(): number { return this.detalleFilas.reduce((s, v) => s + v.monto, 0); }
+
+  /** ym (anio*12+mes-1) → 'jul 2026'. */
+  mesDe(ym: number): string { return `${this.MESES[ym % 12]} ${Math.floor(ym / 12)}`; }
+
+  /** Etiqueta legible de la maduración de una venta del detalle. */
+  madLabel(v: VentaDetalle): string {
+    if (!v.conLead) return 'sin lead';
+    if (v.maduracion === 0) return 'mismo mes';
+    return v.maduracion === 1 ? '1 mes' : `${v.maduracion} meses`;
+  }
+  madClase(v: VentaDetalle): string {
+    if (!v.conLead) return 'md-nolead';
+    if (v.maduracion === 0) return 'md-0';
+    if (v.maduracion === 1) return 'md-1';
+    if (v.maduracion === 2) return 'md-2';
+    return 'md-3';
+  }
 
   actualizar(): void { this.cargar(); }
 

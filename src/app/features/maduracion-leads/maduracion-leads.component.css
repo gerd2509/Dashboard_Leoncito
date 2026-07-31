@@ -66,3 +66,62 @@
 .ml-max mat-icon { font-size: 19px; width: 19px; height: 19px; }
 .ml-popup-chart { height: 100%; padding: 6px; }
 .ml-error { display: flex; align-items: center; gap: 8px; background: #fdecea; border: 1px solid #f5c6cb; color: #B71C1C; border-radius: 8px; padding: 12px 14px; font-weight: 600; margin-bottom: 10px; }
+
+/* ── Botón "Ver detalle" + celda Total clickeable ── */
+.ml-detalle-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; background: #fff;
+  color: #1A5FAD; font-weight: 700; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  transition: background .15s;
+}
+.ml-detalle-btn:hover { background: #eef5fc; }
+.ml-detalle-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.ml-table td.tot.click { cursor: pointer; transition: background .15s; }
+.ml-table td.tot.click:hover { background: #dcebfb !important; }
+.ml-table td.tot .tot-ico { font-size: 14px; width: 14px; height: 14px; vertical-align: middle; opacity: .55; }
+
+/* ── KPIs mini de leads/día ── */
+.ml-dia-kpi { font-size: 12px; color: #7d93a8; font-weight: 600; }
+.ml-dia-kpi b { color: #C0632A; font-size: 14px; font-weight: 800; }
+.ml-dia-kpi.max b { color: #1A5FAD; }
+
+/* ── Popup detalle de ventas ──
+   La cabecera queda FIJA porque el cuerpo tiene un tope de alto en vh: así el
+   contenido total (cabecera + cuerpo) nunca supera el popup y el único scroll es
+   el del cuerpo (no depende del override de .dx-popup-content). */
+.ml-det { display: flex; flex-direction: column; }
+.ml-det-head {
+  position: sticky; top: 0; z-index: 3;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  background: linear-gradient(135deg, #14315a, #1A5FAD); color: #fff; padding: 12px 16px; border-radius: 10px 10px 0 0;
+}
+.ml-det-title { display: flex; align-items: center; gap: 11px; }
+.ml-det-title mat-icon { font-size: 27px; width: 27px; height: 27px; }
+.ml-det-title b { display: block; font-size: 15px; }
+.ml-det-title small { display: block; opacity: .88; font-size: 12px; margin-top: 2px; }
+.ml-det-resumen { display: flex; align-items: center; gap: 8px; }
+.ml-det-chip { background: rgba(255,255,255,.16); border-radius: 999px; padding: 5px 12px; font-size: 12px; }
+.ml-det-chip b { font-size: 14px; }
+.ml-det-chip.monto { background: #F07420; }
+.ml-x { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; background: rgba(255,255,255,.16); color: #fff; border-radius: 8px; cursor: pointer; }
+.ml-x:hover { background: rgba(255,255,255,.3); }
+
+.ml-det-body { overflow: auto; max-height: calc(88vh - 96px); }
+.ml-det-tabla { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ml-det-tabla th, .ml-det-tabla td { padding: 7px 11px; text-align: center; border-bottom: 1px solid #eef2f8; white-space: nowrap; }
+.ml-det-tabla th { background: #293964; color: #fff; font-weight: 700; font-size: 11.5px; position: sticky; top: 0; z-index: 1; }
+.ml-det-tabla th.l, .ml-det-tabla td.l { text-align: left; }
+.ml-det-tabla tbody tr:nth-child(even) td { background: #f7fafd; }
+.ml-det-tabla tbody tr:hover td { background: #eef5fc; }
+.ml-det-tabla td.mto { font-weight: 800; color: #0E1B33; }
+.ml-det-tabla td.vacio { color: #90a4ae; font-style: italic; padding: 16px; }
+.ml-md { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; }
+.ml-md.md-0 { background: #eafaf0; color: #2E7D32; }
+.ml-md.md-1 { background: #eaf7ec; color: #43A047; }
+.ml-md.md-2 { background: #fff6e5; color: #E08600; }
+.ml-md.md-3 { background: #fdecec; color: #C62828; }
+.ml-md.md-nolead { background: #eef2f6; color: #78909c; }
+
+/* ── Tabla de leads por día ── */
+.ml-dia-tabla-wrap { max-height: 400px; overflow-y: auto; border: 1px solid #e2e9f3; border-radius: 10px; }
+.ml-dia-tabla { margin: 0; }
+.ml-dia-tabla thead th { position: sticky; top: 0; z-index: 1; }
