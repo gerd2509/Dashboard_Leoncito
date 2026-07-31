@@ -452,3 +452,65 @@
 .cs-dia-item.mp-bad .cs-dia-badge { background: #fdeee0; color: #E65100; }
 .cs-dia-item.mp-upd .cs-dia-badge { background: #f3ecfb; color: #6A1B9A; }
 .cs-dia-flag { color: #E65100; font-size: 20px; height: 20px; width: 20px; }
+/* ══ Reporte del supervisor ══ */
+/* El scroll vive SOLO en .cs-rep-body (el override de .dx-popup-content está en styles.css). */
+.cs-rep { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.cs-rep-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  background: linear-gradient(135deg, #14315a, #1A5FAD); color: #fff; padding: 13px 18px;
+}
+.cs-rep-title { display: flex; align-items: center; gap: 11px; }
+.cs-rep-title mat-icon { font-size: 28px; width: 28px; height: 28px; }
+.cs-rep-title b { display: block; font-size: 15.5px; }
+.cs-rep-title small { display: block; opacity: .88; font-size: 12px; margin-top: 2px; }
+.cs-rep-actions { display: flex; align-items: center; gap: 8px; }
+.cs-rep-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer;
+  padding: 7px 13px; border-radius: 8px; font-weight: 700; font-size: 12.5px; color: #fff;
+}
+.cs-rep-btn mat-icon { font-size: 17px; width: 17px; height: 17px; }
+.cs-rep-btn.excel { background: #1D7044; } .cs-rep-btn.excel:hover { background: #185c38; }
+.cs-rep-btn.pdf { background: #C0392B; } .cs-rep-btn.pdf:hover { background: #a33124; }
+.cs-x-dark { color: #fff; }
+
+.cs-rep-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 6px 18px 20px; }
+/* KPIs fijos (fuera del scroll) */
+.cs-rep-kpis { flex: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 9px; padding: 14px 18px 6px; }
+.cs-rep-body > .cs-rep-h:first-child { margin-top: 6px; }
+.cs-rk { color: #fff; border-radius: 11px; padding: 9px 12px; }
+.cs-rk span { display: block; font-size: 21px; font-weight: 800; line-height: 1.1; }
+.cs-rk small { display: block; font-size: 11px; opacity: .95; }
+.cs-rk.k-tot { background: linear-gradient(135deg, #14315a, #1A5FAD); }
+.cs-rk.k-ok { background: linear-gradient(135deg, #2E7D32, #43A047); }
+.cs-rk.k-bad { background: linear-gradient(135deg, #c62828, #e53935); }
+.cs-rk.k-none { background: linear-gradient(135deg, #607d8b, #78909c); }
+.cs-rk.k-pct { background: linear-gradient(135deg, #1565C0, #1E88E5); }
+.cs-rk.k-mp { background: linear-gradient(135deg, #6A1B9A, #8E44AD); }
+
+.cs-rep-h {
+  display: flex; align-items: center; gap: 7px; font-size: 13.5px; color: #1E3A5F;
+  border-left: 4px solid #1A5FAD; padding-left: 9px; margin: 20px 0 8px;
+}
+.cs-rep-h mat-icon { font-size: 19px; width: 19px; height: 19px; color: #1A5FAD; }
+.cs-rep-count { background: #eaf2fb; color: #1A5FAD; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 999px; }
+.cs-rep-sub { font-size: 11.5px; font-weight: 600; color: #7d93a8; }
+
+/* Solo scroll horizontal por tabla; el vertical lo maneja .cs-rep-body (un único scrollbar). */
+.cs-rep-tabla-wrap { overflow-x: auto; overflow-y: visible; border: 1px solid #e2e9f3; border-radius: 9px; }
+.cs-rep-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cs-rep-tabla th, .cs-rep-tabla td { padding: 6px 9px; text-align: center; border-bottom: 1px solid #eef2f8; white-space: nowrap; }
+.cs-rep-tabla th { background: #293964; color: #fff; font-weight: 700; font-size: 11.5px; position: sticky; top: 0; z-index: 1; }
+.cs-rep-tabla.disc th { background: #b02a2a; }
+.cs-rep-tabla th.l, .cs-rep-tabla td.l { text-align: left; }
+.cs-rep-tabla td.mot { white-space: normal; color: #465468; min-width: 200px; }
+.cs-rep-tabla tr.asr td { background: #eaf2fb; font-weight: 700; color: #14315a; }
+.cs-rep-tabla tr.tip td { color: #667689; }
+.cs-rep-tabla tbody tr:hover td { background: #f5f9fe; }
+.cs-rep-tabla td.bad { color: #c62828; font-weight: 800; }
+.cs-rep-tabla td.ok { color: #2E7D32; font-weight: 800; }
+.cs-rep-tabla.mp th { background: #6A1B9A; }
+.cs-rep-tabla.kp th { background: #00695C; }
+.cs-rep-tabla td.vacio { color: #2E7D32; font-style: italic; padding: 14px; }
+.cs-rep-badge { font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 999px; }
+.cs-rep-badge.bad { background: #fdecec; color: #c62828; }
+.cs-rep-badge.none { background: #eef2f6; color: #607d8b; }

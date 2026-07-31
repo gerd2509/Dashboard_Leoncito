@@ -7,6 +7,8 @@ import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 import { ControlSupervisorService, ControlSupervisor } from '../../services/control-supervisor.service';
 import { SheetsService } from '../../services/service-google.service';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
 
 // Resultado del cruce control-supervisor ↔ gestión del asesor.
 type Resultado = 'COINCIDE' | 'DISCREPANCIA' | 'SIN GESTIÓN';
@@ -40,6 +42,40 @@ interface CitaControl {
   cliente?: string;        // nombre del cliente (kommo plataforma)
   estadoLead?: string;     // LEAD RESPONDIDO / ... (kommo plataforma)
   fotos?: string[];        // pruebas (imágenes base64)
+}
+
+// ── Estructuras del reporte del supervisor ──────────────────────────────────
+interface FilaTipoRep { tipoBase: string; total: number; coincide: number; discrepancia: number; sinGestion: number; obs: number; }
+interface FilaAsesorRep {
+  asesor: string; total: number; coincide: number; discrepancia: number; sinGestion: number; obs: number;
+  efectividad: number; tipos: FilaTipoRep[];
+}
+interface FilaDiscRep {
+  fecha: string; asesor: string; tipoBase: string; dni: string; celular: string;
+  estadoSup: string; estadoAsesor: string; resultado: string; motivo: string;
+}
+interface FilaDetRep {
+  fecha: string; asesor: string; tipo: string; tipoBase: string; ref: string;
+  estadoSup: string; estadoAsesor: string; resultado: string; obs: string; comentario: string;
+}
+// Market Place Plataforma por asesor (con cada cuánto actualiza sus publicaciones).
+interface FilaMpRep {
+  asesor: string; total: number; alDia: number; actualizado: number; desactualizado: number;
+  promDias: number | null; maxDias: number | null;
+}
+// Kommo Plataforma por asesor (si responden o no los leads).
+interface FilaKpRep {
+  asesor: string; total: number; respondido: number; soloDni: number; noResponde: number; otro: number;
+}
+interface ReporteSupervisor {
+  desde: string; hasta: string; asesor: string; generado: string;
+  totalGestion: number; coincide: number; discrepancia: number; sinGestion: number; contactabilidad: number;
+  totalMp: number; alDia: number; desactualizado: number; actualizado: number;
+  porAsesor: FilaAsesorRep[];
+  porAsesorMp: FilaMpRep[];
+  porAsesorKp: FilaKpRep[];
+  discrepancias: FilaDiscRep[];
+  detalle: FilaDetRep[];
 }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
@@ -616,4 +652,398 @@ export class ControlSupervisorComponent implements OnInit {
     return c.mpSubtipo === 'KOMMO PLATAFORMA' ? (c.estadoLead || '') : (c.estadoMp || '');
   }
   esKommoPlataforma(c: CitaControl): boolean { return c.mpSubtipo === 'KOMMO PLATAFORMA'; }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  REPORTE DEL SUPERVISOR
+  //  Arma un reporte del rango cargado (respeta el filtro de asesor si hay uno):
+  //  resumen, desglose por asesor → tipo de base, discrepancias con su motivo,
+  //  y el detalle completo. Se ve en pantalla y se exporta a Excel o PDF.
+  // ══════════════════════════════════════════════════════════════════════════
+  reporteVisible = false;
+  reporte: ReporteSupervisor | null = null;
+
+  abrirReporte(): void {
+    this.reporte = this.construirReporte();
+    this.reporteVisible = true;
+  }
+
+  // Motivo legible de una discrepancia / observación de una gestión.
+  motivo(c: CitaControl): string {
+    const partes: string[] = [];
+    if (c.resultado === 'DISCREPANCIA') {
+      partes.push(`Supervisor marcó "${c.estadoSup || '—'}" y el asesor "${c.estadoAsesor || '—'}"`);
+    } else if (c.resultado === 'SIN GESTIÓN') {
+      partes.push('El asesor no registró gestión para este DNI');
+    }
+    if (c.avisoTipo) partes.push(c.avisoTipo);
+    if (c.avisoCelular) partes.push(c.avisoCelular);
+    return partes.join(' · ');
+  }
+
+  private fmtFechaHora(d: Date): string {
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${this.horaDe(d)}`;
+  }
+  private fmtFechaCorta(d: Date): string {
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  }
+
+  private construirReporte(): ReporteSupervisor {
+    const asesorFiltro = (this.form.value.asesor || '').toString().trim();
+    const base = this.citas.filter(c => !asesorFiltro || c.asesor === asesorFiltro);
+    const gest = base.filter(c => c.tipo === 'GESTION');
+    const mp = base.filter(c => c.tipo === 'MARKET_PLACE');
+
+    const coincide = gest.filter(c => c.resultado === 'COINCIDE').length;
+    const discrepancia = gest.filter(c => c.resultado === 'DISCREPANCIA').length;
+    const sinGestion = gest.filter(c => c.resultado === 'SIN GESTIÓN').length;
+    const conGestion = coincide + discrepancia;   // donde SÍ hubo gestión del asesor
+    const contactabilidad = conGestion ? Math.round((coincide / conGestion) * 100) : 0;
+
+    // Por asesor → tipo de base
+    const porAsesorMap = new Map<string, CitaControl[]>();
+    for (const c of gest) {
+      const a = c.asesor || '—';
+      if (!porAsesorMap.has(a)) porAsesorMap.set(a, []);
+      porAsesorMap.get(a)!.push(c);
+    }
+    const porAsesor: FilaAsesorRep[] = Array.from(porAsesorMap.entries()).map(([asesor, cs]) => {
+      const porTipo = new Map<string, CitaControl[]>();
+      for (const c of cs) {
+        const tb = (c.tipoBase || '—').toString().trim().toUpperCase() || '—';
+        if (!porTipo.has(tb)) porTipo.set(tb, []);
+        porTipo.get(tb)!.push(c);
+      }
+      const tipos: FilaTipoRep[] = Array.from(porTipo.entries()).map(([tipoBase, ts]) => ({
+        tipoBase,
+        total: ts.length,
+        coincide: ts.filter(x => x.resultado === 'COINCIDE').length,
+        discrepancia: ts.filter(x => x.resultado === 'DISCREPANCIA').length,
+        sinGestion: ts.filter(x => x.resultado === 'SIN GESTIÓN').length,
+        obs: ts.filter(x => this.tieneAviso(x)).length,
+      })).sort((a, b) => b.total - a.total || a.tipoBase.localeCompare(b.tipoBase));
+
+      const co = cs.filter(x => x.resultado === 'COINCIDE').length;
+      const di = cs.filter(x => x.resultado === 'DISCREPANCIA').length;
+      const conG = co + di;
+      return {
+        asesor,
+        total: cs.length,
+        coincide: co,
+        discrepancia: di,
+        sinGestion: cs.filter(x => x.resultado === 'SIN GESTIÓN').length,
+        obs: cs.filter(x => this.tieneAviso(x)).length,
+        efectividad: conG ? Math.round((co / conG) * 100) : 0,
+        tipos,
+      };
+    }).sort((a, b) => b.discrepancia - a.discrepancia || b.total - a.total);
+
+    // Discrepancias detalladas (incluye SIN GESTIÓN, ambas con motivo)
+    const discrepancias: FilaDiscRep[] = gest
+      .filter(c => c.resultado === 'DISCREPANCIA' || c.resultado === 'SIN GESTIÓN')
+      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+      .map(c => ({
+        fecha: this.fmtFechaHora(c.startDate),
+        asesor: c.asesor || '—',
+        tipoBase: c.tipoBase || '—',
+        dni: c.dni || '',
+        celular: c.celular || '',
+        estadoSup: c.estadoSup || '—',
+        estadoAsesor: c.estadoAsesor || '—',
+        resultado: c.resultado || '',
+        motivo: this.motivo(c),
+      }));
+
+    // Market Place Plataforma por asesor: cada cuánto actualiza sus publicaciones.
+    const mpPlat = mp.filter(c => c.mpSubtipo !== 'KOMMO PLATAFORMA');
+    const mpMap = new Map<string, CitaControl[]>();
+    for (const c of mpPlat) { const a = c.asesor || '—'; if (!mpMap.has(a)) mpMap.set(a, []); mpMap.get(a)!.push(c); }
+    const porAsesorMp: FilaMpRep[] = Array.from(mpMap.entries()).map(([asesor, cs]) => {
+      const dias = cs.map(c => c.diasSinPublicar).filter((d): d is number => d != null);
+      return {
+        asesor, total: cs.length,
+        alDia: cs.filter(c => c.estadoMp === 'AL DÍA').length,
+        actualizado: cs.filter(c => c.estadoMp === 'ACTUALIZADO').length,
+        desactualizado: cs.filter(c => c.estadoMp === 'DESACTUALIZADO').length,
+        promDias: dias.length ? Math.round(dias.reduce((a, b) => a + b, 0) / dias.length) : null,
+        maxDias: dias.length ? Math.max(...dias) : null,
+      };
+    }).sort((a, b) => b.desactualizado - a.desactualizado || (b.promDias ?? -1) - (a.promDias ?? -1) || b.total - a.total);
+
+    // Kommo Plataforma por asesor: si están respondiendo o no los leads.
+    const kpPlat = mp.filter(c => c.mpSubtipo === 'KOMMO PLATAFORMA');
+    const kpMap = new Map<string, CitaControl[]>();
+    for (const c of kpPlat) { const a = c.asesor || '—'; if (!kpMap.has(a)) kpMap.set(a, []); kpMap.get(a)!.push(c); }
+    const conocidosKp = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE'];
+    const porAsesorKp: FilaKpRep[] = Array.from(kpMap.entries()).map(([asesor, cs]) => ({
+      asesor, total: cs.length,
+      respondido: cs.filter(c => c.estadoLead === 'LEAD RESPONDIDO').length,
+      soloDni: cs.filter(c => c.estadoLead === 'CLIENTE SOLO DIO DNI').length,
+      noResponde: cs.filter(c => c.estadoLead === 'CLIENTE AÚN NO RESPONDE').length,
+      otro: cs.filter(c => !!c.estadoLead && !conocidosKp.includes(c.estadoLead!)).length,
+    })).sort((a, b) => b.noResponde - a.noResponde || b.total - a.total);
+
+    // Detalle completo de supervisiones (gestión + market place)
+    const detalle: FilaDetRep[] = [...base]
+      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
+      .map(c => {
+        if (c.tipo === 'GESTION') {
+          return {
+            fecha: this.fmtFechaHora(c.startDate), asesor: c.asesor || '—', tipo: 'Gestión',
+            tipoBase: c.tipoBase || '—', ref: `DNI ${c.dni || '—'}`,
+            estadoSup: c.estadoSup || '—', estadoAsesor: c.estadoAsesor || '—',
+            resultado: c.resultado || '', obs: this.avisoTexto(c), comentario: c.comentario || '',
+          };
+        }
+        const esKp = c.mpSubtipo === 'KOMMO PLATAFORMA';
+        return {
+          fecha: this.fmtFechaHora(c.startDate), asesor: c.asesor || '—',
+          tipo: esKp ? 'Kommo Plataforma' : 'Market Place',
+          tipoBase: c.tipoBase || '—',
+          ref: esKp ? (c.cliente || '—') : `últ. pub. ${c.fechaPublicacion || '—'}`,
+          estadoSup: '—',
+          estadoAsesor: esKp ? (c.estadoLead || '—') : (c.estadoMp || '—'),
+          resultado: esKp ? (c.estadoLead || '') : (c.estadoMp || ''),
+          obs: '', comentario: c.comentario || '',
+        };
+      });
+
+    return {
+      desde: this.fmtFechaCorta(new Date(this.form.value.fechaInicio)),
+      hasta: this.fmtFechaCorta(new Date(this.form.value.fechaFin)),
+      asesor: asesorFiltro || 'Todos los asesores',
+      generado: this.fmtFechaHora(new Date()),
+      totalGestion: gest.length, coincide, discrepancia, sinGestion, contactabilidad,
+      totalMp: mp.length,
+      alDia: mp.filter(c => c.estadoMp === 'AL DÍA').length,
+      desactualizado: mp.filter(c => c.estadoMp === 'DESACTUALIZADO').length,
+      actualizado: mp.filter(c => c.estadoMp === 'ACTUALIZADO').length,
+      porAsesor, porAsesorMp, porAsesorKp, discrepancias, detalle,
+    };
+  }
+
+  // ── Exportar a Excel (multi-hoja) ────────────────────────────────────────
+  async exportarReporteExcel(): Promise<void> {
+    const r = this.reporte;
+    if (!r) return;
+    const wb = new Workbook();
+    const AZUL = 'FF1E3A5F', AZUL2 = 'FF293964';
+
+    const encabezar = (ws: any, cols: string[], fill = AZUL) => {
+      const row = ws.addRow(cols);
+      row.eachCell((cell: any) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFB0BEC5' } } };
+      });
+    };
+    const autoAncho = (ws: any, min = 10) => {
+      ws.columns.forEach((col: any) => {
+        let max = min;
+        col.eachCell({ includeEmpty: false }, (cell: any) => {
+          const l = (cell.value ?? '').toString().length + 2;
+          if (l > max) max = l;
+        });
+        col.width = Math.min(60, max);
+      });
+    };
+
+    // 1) Resumen
+    const wsR = wb.addWorksheet('Resumen');
+    wsR.mergeCells('A1:B1');
+    const t = wsR.getCell('A1');
+    t.value = 'REPORTE DE CONTROL DEL SUPERVISOR';
+    t.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AZUL } };
+    t.alignment = { vertical: 'middle', horizontal: 'center' };
+    wsR.getRow(1).height = 24;
+    wsR.addRow([]);
+    const kv = [
+      ['Periodo', `${r.desde} — ${r.hasta}`],
+      ['Asesor', r.asesor],
+      ['Generado', r.generado],
+      ['', ''],
+      ['Gestiones supervisadas', r.totalGestion],
+      ['Coinciden', r.coincide],
+      ['Discrepancias', r.discrepancia],
+      ['Sin gestión del asesor', r.sinGestion],
+      ['Contactabilidad confirmada', `${r.contactabilidad}%`],
+      ['', ''],
+      ['Market Place / Kommo revisados', r.totalMp],
+      ['Al día', r.alDia],
+      ['Desactualizados', r.desactualizado],
+      ['Actualizados', r.actualizado],
+    ];
+    kv.forEach(([k, v]) => {
+      const row = wsR.addRow([k, v]);
+      if (k) row.getCell(1).font = { bold: true, color: { argb: AZUL } };
+    });
+    autoAncho(wsR, 22);
+
+    // 2) Por asesor (con tipo de base)
+    const wsA = wb.addWorksheet('Por asesor');
+    encabezar(wsA, ['Asesor', 'Tipo de base', 'Supervisados', 'Coinciden', 'Discrepancias', 'Sin gestión', 'Observaciones', 'Efectividad %']);
+    r.porAsesor.forEach(a => {
+      const head = wsA.addRow([a.asesor, 'TOTAL', a.total, a.coincide, a.discrepancia, a.sinGestion, a.obs, a.efectividad]);
+      head.eachCell((cell: any) => {
+        cell.font = { bold: true, color: { argb: AZUL } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF2FB' } };
+      });
+      a.tipos.forEach(t2 => {
+        wsA.addRow(['', t2.tipoBase, t2.total, t2.coincide, t2.discrepancia, t2.sinGestion, t2.obs, '']);
+      });
+    });
+    autoAncho(wsA);
+
+    // 2b) Market Place Plataforma por asesor
+    if (r.porAsesorMp.length) {
+      const wsMp = wb.addWorksheet('Market Place');
+      encabezar(wsMp, ['Asesor', 'Revisadas', 'Al día', 'Actualizadas', 'Desactualizadas', 'Prom. días sin publicar', 'Máx. días'], 'FF6A1B9A');
+      r.porAsesorMp.forEach(m => {
+        wsMp.addRow([m.asesor, m.total, m.alDia, m.actualizado, m.desactualizado,
+          m.promDias == null ? '—' : m.promDias, m.maxDias == null ? '—' : m.maxDias]);
+      });
+      autoAncho(wsMp);
+    }
+
+    // 2c) Kommo Plataforma por asesor
+    if (r.porAsesorKp.length) {
+      const wsKp = wb.addWorksheet('Kommo Plataforma');
+      encabezar(wsKp, ['Asesor', 'Leads revisados', 'Respondidos', 'Solo dio DNI', 'Aún no responde', 'Otro'], 'FF00695C');
+      r.porAsesorKp.forEach(k => {
+        wsKp.addRow([k.asesor, k.total, k.respondido, k.soloDni, k.noResponde, k.otro]);
+      });
+      autoAncho(wsKp);
+    }
+
+    // 3) Discrepancias (con motivo)
+    const wsD = wb.addWorksheet('Discrepancias');
+    encabezar(wsD, ['Fecha', 'Asesor', 'Tipo base', 'DNI', 'Celular', 'Estado supervisor', 'Estado asesor', 'Resultado', 'Motivo'], 'FFC62828');
+    r.discrepancias.forEach(d => {
+      wsD.addRow([d.fecha, d.asesor, d.tipoBase, d.dni, d.celular, d.estadoSup, d.estadoAsesor, d.resultado, d.motivo]);
+    });
+    autoAncho(wsD);
+
+    // 4) Detalle completo
+    const wsT = wb.addWorksheet('Detalle');
+    encabezar(wsT, ['Fecha', 'Asesor', 'Tipo', 'Tipo base', 'Referencia', 'Estado supervisor', 'Estado asesor / MP', 'Resultado', 'Observación', 'Comentario'], AZUL2);
+    r.detalle.forEach(d => {
+      wsT.addRow([d.fecha, d.asesor, d.tipo, d.tipoBase, d.ref, d.estadoSup, d.estadoAsesor, d.resultado, d.obs, d.comentario]);
+    });
+    autoAncho(wsT);
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const suf = r.asesor === 'Todos los asesores' ? 'general' : r.asesor.split(' ')[0].toLowerCase();
+    FileSaver.saveAs(blob, `Reporte-Supervisor-${suf}-${r.desde.replace(/\//g, '-')}_${r.hasta.replace(/\//g, '-')}.xlsx`);
+    this.toast('✔ Reporte Excel descargado.');
+  }
+
+  // ── Imprimir / Guardar como PDF (ventana limpia, sin librerías) ───────────
+  imprimirReporte(): void {
+    const r = this.reporte;
+    if (!r) return;
+    const esc = (s: any) => (s ?? '').toString()
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const filasAsesor = r.porAsesor.map(a => {
+      const head = `<tr class="asr"><td>${esc(a.asesor)}</td><td><b>TOTAL</b></td>` +
+        `<td>${a.total}</td><td>${a.coincide}</td><td class="bad">${a.discrepancia}</td>` +
+        `<td>${a.sinGestion}</td><td>${a.obs}</td><td>${a.efectividad}%</td></tr>`;
+      const tipos = a.tipos.map(t => `<tr class="tip"><td></td><td>${esc(t.tipoBase)}</td>` +
+        `<td>${t.total}</td><td>${t.coincide}</td><td class="bad">${t.discrepancia || ''}</td>` +
+        `<td>${t.sinGestion || ''}</td><td>${t.obs || ''}</td><td></td></tr>`).join('');
+      return head + tipos;
+    }).join('');
+
+    const filasMp = r.porAsesorMp.map(m => `<tr><td>${esc(m.asesor)}</td><td>${m.total}</td>` +
+      `<td>${m.alDia}</td><td>${m.actualizado}</td><td class="bad">${m.desactualizado || ''}</td>` +
+      `<td>${m.promDias == null ? '—' : m.promDias}</td><td>${m.maxDias == null ? '—' : m.maxDias}</td></tr>`).join('');
+
+    const filasKp = r.porAsesorKp.map(k => `<tr><td>${esc(k.asesor)}</td><td>${k.total}</td>` +
+      `<td class="ok">${k.respondido}</td><td>${k.soloDni || ''}</td>` +
+      `<td class="bad">${k.noResponde || ''}</td><td>${k.otro || ''}</td></tr>`).join('');
+
+    const secMp = r.porAsesorMp.length ? `
+  <h2>Market Place Plataforma por asesor — actualización de publicaciones</h2>
+  <table><thead><tr><th>Asesor</th><th>Revisadas</th><th>Al día</th><th>Actualizadas</th><th>Desactualiz.</th><th>Prom. días sin publicar</th><th>Máx. días</th></tr></thead>
+  <tbody>${filasMp}</tbody></table>` : '';
+
+    const secKp = r.porAsesorKp.length ? `
+  <h2>Kommo Plataforma por asesor — respuesta a leads</h2>
+  <table><thead><tr><th>Asesor</th><th>Leads</th><th>Respondidos</th><th>Solo dio DNI</th><th>Aún no responde</th><th>Otro</th></tr></thead>
+  <tbody>${filasKp}</tbody></table>` : '';
+
+    const filasDisc = r.discrepancias.length
+      ? r.discrepancias.map(d => `<tr><td>${esc(d.fecha)}</td><td>${esc(d.asesor)}</td><td>${esc(d.tipoBase)}</td>` +
+        `<td>${esc(d.dni)}</td><td>${esc(d.celular)}</td><td>${esc(d.estadoSup)}</td><td>${esc(d.estadoAsesor)}</td>` +
+        `<td class="${d.resultado === 'DISCREPANCIA' ? 'bad' : 'none'}">${esc(d.resultado)}</td><td class="mot">${esc(d.motivo)}</td></tr>`).join('')
+      : '<tr><td colspan="9" class="vacio">Sin discrepancias en el periodo 🎉</td></tr>';
+
+    const filasDet = r.detalle.map(d => `<tr><td>${esc(d.fecha)}</td><td>${esc(d.asesor)}</td><td>${esc(d.tipo)}</td>` +
+      `<td>${esc(d.tipoBase)}</td><td>${esc(d.ref)}</td><td>${esc(d.estadoSup)}</td><td>${esc(d.estadoAsesor)}</td>` +
+      `<td>${esc(d.resultado)}</td><td class="mot">${esc(d.obs)}</td><td class="mot">${esc(d.comentario)}</td></tr>`).join('');
+
+    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Reporte Supervisor ${esc(r.desde)} — ${esc(r.hasta)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2a44; margin: 24px; }
+  h1 { font-size: 20px; color: #1E3A5F; margin: 0 0 2px; }
+  .meta { color: #5b7188; font-size: 13px; margin-bottom: 16px; }
+  .meta b { color: #1E3A5F; }
+  .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 22px; }
+  .kpi { flex: 1 1 120px; border-radius: 10px; padding: 10px 12px; color: #fff; }
+  .kpi .v { font-size: 22px; font-weight: 800; }
+  .kpi .l { font-size: 11px; opacity: .95; }
+  .k-tot { background: #14315a; } .k-ok { background: #2E7D32; }
+  .k-bad { background: #c62828; } .k-none { background: #78909c; } .k-pct { background: #1565C0; }
+  h2 { font-size: 14px; color: #1E3A5F; border-left: 4px solid #1A5FAD; padding-left: 8px; margin: 22px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 8px; }
+  th { background: #293964; color: #fff; padding: 6px 8px; text-align: center; font-weight: 700; }
+  td { border: 1px solid #dde5f0; padding: 5px 8px; text-align: center; }
+  th:first-child, td:first-child, td.mot { text-align: left; }
+  tr.asr td { background: #eaf2fb; font-weight: 700; color: #14315a; }
+  tr.tip td { color: #55677d; }
+  td.bad { color: #c62828; font-weight: 700; }
+  td.ok { color: #2E7D32; font-weight: 700; }
+  td.none { color: #78909c; font-weight: 700; }
+  td.mot { color: #444; }
+  td.vacio { color: #2E7D32; font-style: italic; }
+  .disc th { background: #b02a2a; }
+  footer { margin-top: 20px; font-size: 10.5px; color: #8a9bb0; text-align: center; }
+  @media print { body { margin: 10mm; } h2 { page-break-after: avoid; } tr { page-break-inside: avoid; } }
+</style></head><body onload="window.print()">
+  <h1>Reporte de Control del Supervisor</h1>
+  <div class="meta"><b>Periodo:</b> ${esc(r.desde)} — ${esc(r.hasta)} &nbsp;·&nbsp; <b>Asesor:</b> ${esc(r.asesor)} &nbsp;·&nbsp; <b>Generado:</b> ${esc(r.generado)}</div>
+
+  <div class="kpis">
+    <div class="kpi k-tot"><div class="v">${r.totalGestion}</div><div class="l">Gestiones supervisadas</div></div>
+    <div class="kpi k-ok"><div class="v">${r.coincide}</div><div class="l">Coinciden</div></div>
+    <div class="kpi k-bad"><div class="v">${r.discrepancia}</div><div class="l">Discrepancias</div></div>
+    <div class="kpi k-none"><div class="v">${r.sinGestion}</div><div class="l">Sin gestión</div></div>
+    <div class="kpi k-pct"><div class="v">${r.contactabilidad}%</div><div class="l">Contactabilidad confirmada</div></div>
+  </div>
+
+  <h2>Gestión por asesor y tipo de base</h2>
+  <table><thead><tr><th>Asesor</th><th>Tipo de base</th><th>Superv.</th><th>Coinc.</th><th>Discrep.</th><th>Sin gest.</th><th>Obs.</th><th>Efect.</th></tr></thead>
+  <tbody>${filasAsesor}</tbody></table>
+${secMp}${secKp}
+  <h2>Discrepancias detalladas y su motivo</h2>
+  <table class="disc"><thead><tr><th>Fecha</th><th>Asesor</th><th>Tipo base</th><th>DNI</th><th>Celular</th><th>Estado superv.</th><th>Estado asesor</th><th>Resultado</th><th>Motivo</th></tr></thead>
+  <tbody>${filasDisc}</tbody></table>
+
+  <h2>Detalle completo de supervisiones (${r.detalle.length})</h2>
+  <table><thead><tr><th>Fecha</th><th>Asesor</th><th>Tipo</th><th>Tipo base</th><th>Referencia</th><th>Est. superv.</th><th>Est. asesor / MP</th><th>Resultado</th><th>Observación</th><th>Comentario</th></tr></thead>
+  <tbody>${filasDet}</tbody></table>
+
+  <footer>Dashboard Leoncito · Control del Supervisor — documento generado automáticamente</footer>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) { this.toast('Habilita las ventanas emergentes para imprimir el reporte.', true); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
 }

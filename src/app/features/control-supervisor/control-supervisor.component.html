@@ -11,6 +11,10 @@
     <button mat-flat-button color="primary" (click)="cargar()">
       <mat-icon>search</mat-icon> Actualizar
     </button>
+    <button mat-flat-button color="primary" (click)="abrirReporte()"
+            [disabled]="isLoading || !citas.length">
+      <mat-icon>summarize</mat-icon> Reporte
+    </button>
   </form>
 
   <!-- Filtro por tipo de control -->
@@ -367,3 +371,154 @@
   <button class="cs-foto-visor-x"><mat-icon>close</mat-icon></button>
   <img [src]="fotoAmpliada" alt="prueba" (click)="$event.stopPropagation()" />
 </div>
+
+<!-- ══ Popup: reporte del supervisor ══ -->
+<dx-popup [(visible)]="reporteVisible" [width]="1240" [height]="'88vh'" [maxWidth]="'97vw'"
+  [showTitle]="false" [dragEnabled]="false" [hideOnOutsideClick]="true" [deferRendering]="false" class="cs-rep-popup">
+  <div *dxTemplate="let d of 'content'">
+    <div class="cs-rep" *ngIf="reporte as r">
+      <!-- Cabecera -->
+      <div class="cs-rep-head">
+        <div class="cs-rep-title">
+          <mat-icon>summarize</mat-icon>
+          <div>
+            <b>Reporte de Control del Supervisor</b>
+            <small>{{ r.desde }} — {{ r.hasta }} · {{ r.asesor }}</small>
+          </div>
+        </div>
+        <div class="cs-rep-actions">
+          <button class="cs-rep-btn excel" (click)="exportarReporteExcel()"><mat-icon>table_view</mat-icon> Excel</button>
+          <button class="cs-rep-btn pdf" (click)="imprimirReporte()"><mat-icon>picture_as_pdf</mat-icon> PDF / Imprimir</button>
+          <button class="cs-x cs-x-dark" (click)="reporteVisible = false"><mat-icon>close</mat-icon></button>
+        </div>
+      </div>
+
+      <!-- Resumen (fijo) -->
+      <div class="cs-rep-kpis">
+        <div class="cs-rk k-tot"><span>{{ r.totalGestion }}</span><small>Supervisadas</small></div>
+        <div class="cs-rk k-ok"><span>{{ r.coincide }}</span><small>Coinciden</small></div>
+        <div class="cs-rk k-bad"><span>{{ r.discrepancia }}</span><small>Discrepancias</small></div>
+        <div class="cs-rk k-none"><span>{{ r.sinGestion }}</span><small>Sin gestión</small></div>
+        <div class="cs-rk k-pct"><span>{{ r.contactabilidad }}%</span><small>Contactabilidad</small></div>
+        <div class="cs-rk k-mp"><span>{{ r.totalMp }}</span><small>MP / Kommo</small></div>
+      </div>
+
+      <div class="cs-rep-body">
+        <!-- Por asesor y tipo de base -->
+        <h3 class="cs-rep-h"><mat-icon>groups</mat-icon> Gestión por asesor y tipo de base</h3>
+        <div class="cs-rep-tabla-wrap">
+          <table class="cs-rep-tabla">
+            <thead><tr>
+              <th class="l">Asesor</th><th class="l">Tipo de base</th><th>Superv.</th>
+              <th>Coinc.</th><th>Discrep.</th><th>Sin gest.</th><th>Obs.</th><th>Efect.</th>
+            </tr></thead>
+            <tbody>
+              <ng-container *ngFor="let a of r.porAsesor">
+                <tr class="asr">
+                  <td class="l">{{ a.asesor }}</td><td class="l"><b>TOTAL</b></td>
+                  <td>{{ a.total }}</td><td>{{ a.coincide }}</td>
+                  <td [class.bad]="a.discrepancia">{{ a.discrepancia }}</td>
+                  <td>{{ a.sinGestion }}</td><td>{{ a.obs }}</td><td>{{ a.efectividad }}%</td>
+                </tr>
+                <tr class="tip" *ngFor="let t of a.tipos">
+                  <td class="l"></td><td class="l">{{ t.tipoBase }}</td>
+                  <td>{{ t.total }}</td><td>{{ t.coincide }}</td>
+                  <td [class.bad]="t.discrepancia">{{ t.discrepancia || '' }}</td>
+                  <td>{{ t.sinGestion || '' }}</td><td>{{ t.obs || '' }}</td><td></td>
+                </tr>
+              </ng-container>
+              <tr *ngIf="!r.porAsesor.length"><td colspan="8" class="vacio">Sin gestiones supervisadas en el periodo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Market Place Plataforma por asesor -->
+        <ng-container *ngIf="r.porAsesorMp.length">
+          <h3 class="cs-rep-h"><mat-icon>storefront</mat-icon> Market Place Plataforma por asesor
+            <span class="cs-rep-sub">actualización de publicaciones</span></h3>
+          <div class="cs-rep-tabla-wrap">
+            <table class="cs-rep-tabla mp">
+              <thead><tr>
+                <th class="l">Asesor</th><th>Revisadas</th><th>Al día</th><th>Actualiz.</th>
+                <th>Desactualiz.</th><th>Prom. días sin publicar</th><th>Máx. días</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let m of r.porAsesorMp">
+                  <td class="l">{{ m.asesor }}</td><td>{{ m.total }}</td>
+                  <td>{{ m.alDia }}</td><td>{{ m.actualizado }}</td>
+                  <td [class.bad]="m.desactualizado">{{ m.desactualizado }}</td>
+                  <td>{{ m.promDias === null ? '—' : m.promDias }}</td>
+                  <td>{{ m.maxDias === null ? '—' : m.maxDias }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <!-- Kommo Plataforma por asesor -->
+        <ng-container *ngIf="r.porAsesorKp.length">
+          <h3 class="cs-rep-h"><mat-icon>public</mat-icon> Kommo Plataforma por asesor
+            <span class="cs-rep-sub">respuesta a leads</span></h3>
+          <div class="cs-rep-tabla-wrap">
+            <table class="cs-rep-tabla kp">
+              <thead><tr>
+                <th class="l">Asesor</th><th>Leads</th><th>Respondidos</th>
+                <th>Solo dio DNI</th><th>Aún no responde</th><th>Otro</th>
+              </tr></thead>
+              <tbody>
+                <tr *ngFor="let k of r.porAsesorKp">
+                  <td class="l">{{ k.asesor }}</td><td>{{ k.total }}</td>
+                  <td class="ok">{{ k.respondido }}</td><td>{{ k.soloDni }}</td>
+                  <td [class.bad]="k.noResponde">{{ k.noResponde }}</td><td>{{ k.otro }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <!-- Discrepancias con motivo -->
+        <h3 class="cs-rep-h"><mat-icon>report_problem</mat-icon> Discrepancias detalladas y su motivo
+          <span class="cs-rep-count">{{ r.discrepancias.length }}</span></h3>
+        <div class="cs-rep-tabla-wrap">
+          <table class="cs-rep-tabla disc">
+            <thead><tr>
+              <th>Fecha</th><th class="l">Asesor</th><th>Tipo base</th><th>DNI</th><th>Celular</th>
+              <th>Est. superv.</th><th>Est. asesor</th><th>Resultado</th><th class="l">Motivo</th>
+            </tr></thead>
+            <tbody>
+              <tr *ngFor="let d of r.discrepancias">
+                <td>{{ d.fecha }}</td><td class="l">{{ d.asesor }}</td><td>{{ d.tipoBase }}</td>
+                <td>{{ d.dni }}</td><td>{{ d.celular || '—' }}</td>
+                <td>{{ d.estadoSup }}</td><td>{{ d.estadoAsesor }}</td>
+                <td><span class="cs-rep-badge" [ngClass]="d.resultado === 'DISCREPANCIA' ? 'bad' : 'none'">{{ d.resultado }}</span></td>
+                <td class="l mot">{{ d.motivo }}</td>
+              </tr>
+              <tr *ngIf="!r.discrepancias.length"><td colspan="9" class="vacio">Sin discrepancias en el periodo 🎉</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Detalle completo -->
+        <h3 class="cs-rep-h"><mat-icon>fact_check</mat-icon> Detalle completo de supervisiones
+          <span class="cs-rep-count">{{ r.detalle.length }}</span></h3>
+        <div class="cs-rep-tabla-wrap alto">
+          <table class="cs-rep-tabla">
+            <thead><tr>
+              <th>Fecha</th><th class="l">Asesor</th><th>Tipo</th><th>Tipo base</th><th class="l">Referencia</th>
+              <th>Est. superv.</th><th>Est. asesor / MP</th><th>Resultado</th><th class="l">Observación</th>
+            </tr></thead>
+            <tbody>
+              <tr *ngFor="let d of r.detalle">
+                <td>{{ d.fecha }}</td><td class="l">{{ d.asesor }}</td><td>{{ d.tipo }}</td>
+                <td>{{ d.tipoBase }}</td><td class="l">{{ d.ref }}</td>
+                <td>{{ d.estadoSup }}</td><td>{{ d.estadoAsesor }}</td>
+                <td>{{ d.resultado }}</td><td class="l mot">{{ d.obs || '—' }}</td>
+              </tr>
+              <tr *ngIf="!r.detalle.length"><td colspan="9" class="vacio">Sin supervisiones en el periodo.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</dx-popup>
