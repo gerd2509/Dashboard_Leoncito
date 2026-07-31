@@ -144,6 +144,21 @@ export class MiPanelComponent implements OnInit {
   get esCall(): boolean { return (this.canal || '').toLowerCase() === 'call'; }
   get esRealzza(): boolean { return (this.canal || '').toLowerCase() === 'realzza'; }
 
+  // Casos híbridos: vendedores cuyas VENTAS son de un canal pero sus GESTIONES se
+  // registran en otro. BRENDA vende como Realzza pero gestiona en Call (como antes);
+  // el sheet de gestión Call la tiene con otra ortografía del nombre.
+  //   clave = vendedor (el de ventas)  →  { canal de gestión, nombre en el sheet de gestión }
+  private readonly overrideGestion: Record<string, { canal: string; nombre: string }> = {
+    'BERNAL BAZAN BRENDA NICOLL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
+  };
+  /** Canal a usar SOLO para las gestiones (respeta el override; si no, el canal real). */
+  private get canalGestion(): string {
+    const o = this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+    return o ? o.canal : (this.canal || '').toLowerCase();
+  }
+  /** Nombre del asesor a usar SOLO para las gestiones (respeta el override). */
+  private nombreGestion = '';
+
   /** Columnas del detalle de ventas según el canal del vendedor. */
   private columnasPorCanal(): ColDet[] {
     if (this.esCall) return [
@@ -200,7 +215,11 @@ export class MiPanelComponent implements OnInit {
    * del asesor y la fecha de hoy. Muestra gestiones generales + KOMMO + Market Place.
    */
   cargarGestiones(): void {
-    const canal = (this.canal || '').toLowerCase();
+    // Las gestiones respetan el override híbrido (p.ej. BRENDA: ventas Realzza,
+    // gestiones Call con el nombre del sheet Call).
+    const canal = this.canalGestion;
+    const o = this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+    this.nombreGestion = o ? o.nombre : this.vendedor;
     this.gestAplica = true;                       // aplica a todo vendedor con nombre
     this.gestSede = (canal !== 'call' && canal !== 'realzza');
     this.gestCargando = true;
@@ -299,7 +318,7 @@ export class MiPanelComponent implements OnInit {
     return dd === d.getDate() && mm === (d.getMonth() + 1) && yy === d.getFullYear();
   }
   private mios(rows: any[], colAsesor: string, d: Date): any[] {
-    const nombre = this.vendedor.toUpperCase().trim();
+    const nombre = (this.nombreGestion || this.vendedor).toUpperCase().trim();
     return rows.filter(r =>
       (r[colAsesor] ?? '').toString().toUpperCase().trim() === nombre && this.esFecha(r['Marca temporal'], d));
   }
