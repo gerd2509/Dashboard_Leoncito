@@ -37,6 +37,7 @@ import { GestionSupervisorComponent } from "../features/control-supervisor/gesti
 import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
+import { RegistroKommoComponent } from "../features/registro-kommo/registro-kommo.component";
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
@@ -96,6 +97,7 @@ interface MenuItem {
     ActividadRealzzaComponent,
     ComparativoCarteraVentasComponent,
     MaduracionLeadsComponent,
+    RegistroKommoComponent,
     CargaVentasComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -139,6 +141,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'REALZZA',     icon: 'storefront', modulo: 'gestion-campo' },
         { label: 'Post Venta',  icon: 'storefront', modulo: 'gestion-post-venta' },
         { label: 'KOMMO',       icon: 'public',        modulo: 'gestion-kommo' },
+        { label: 'REGISTRO KOMMO', icon: 'hub',        modulo: 'registro-kommo' },
         { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
         { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' },
         { label: 'REGISTRO',    icon: 'assignment_turned_in', modulo: 'registro-gestion' }

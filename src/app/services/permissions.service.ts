@@ -61,6 +61,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'gestion-campo',                label: 'Gestión — Realzza',            grupo: 'Gestión' },
   { key: 'gestion-post-venta',           label: 'Gestión — Post Venta',         grupo: 'Gestión' },
   { key: 'gestion-kommo',                label: 'Gestión — Kommo',              grupo: 'Gestión' },
+  { key: 'registro-kommo',               label: 'Registro KOMMO',               grupo: 'Gestión' },
   { key: 'gestion-sede',                 label: 'Gestión Sede',                 grupo: 'Gestión', sedeScoped: true },
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',           grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-gestion',             label: 'Registro de Gestión',          grupo: 'Gestión', sedeScoped: true },
@@ -94,11 +95,12 @@ const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
-  'comparativo-cartera-ventas', 'maduracion-leads',
+  'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
+  'registro-kommo',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
@@ -118,7 +120,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v24';
+const STORAGE_KEY = 'gd_permissions_v25';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

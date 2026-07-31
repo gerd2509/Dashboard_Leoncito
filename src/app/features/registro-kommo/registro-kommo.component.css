@@ -1,0 +1,47 @@
+:host { display: block; height: 100%; min-height: 0; }
+.rk-wrap { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
+
+.rk-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px 18px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
+.rk-head { display: flex; align-items: center; gap: 11px; margin-bottom: 14px; }
+.rk-head.between { justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.rk-head-l { display: flex; align-items: center; gap: 11px; }
+.rk-head mat-icon { color: #1A5FAD; font-size: 28px; width: 28px; height: 28px; }
+.rk-head b { display: block; font-size: 15.5px; color: #1E3A5F; }
+.rk-head small { display: block; font-size: 12px; color: #7d93a8; }
+
+/* Selector de canal */
+.rk-canal { display: inline-flex; border: 1px solid #cddcec; border-radius: 10px; overflow: hidden; background: #fff; }
+.rk-canal button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
+  padding: 9px 16px; font-weight: 700; font-size: 13px; color: #4a6a88; cursor: pointer; transition: background .15s, color .15s; }
+.rk-canal button + button { border-left: 1px solid #e3ecf5; }
+.rk-canal button mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.rk-canal button.on { background: #1A5FAD; color: #fff; }
+.rk-canal button.rz.on { background: #F07420; }
+.rk-canal.chico button { padding: 6px 12px; font-size: 12px; }
+
+.rk-form { margin-top: 14px; }
+.rk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }
+.rk-rama { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #dce6f1; }
+.rk-rama.rz { border-top-color: #f6d3b6; }
+.rk-field { display: flex; flex-direction: column; gap: 4px; }
+.rk-field.rk-2 { grid-column: span 2; }
+.rk-field.rk-3 { grid-column: span 3; }
+.rk-field label { font-size: 12px; font-weight: 700; color: #4a6a88; }
+
+.rk-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+.rk-btn { display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer;
+  background: linear-gradient(135deg, #14315a, #1A5FAD); color: #fff; font-weight: 700; font-size: 14px;
+  padding: 11px 22px; border-radius: 10px; box-shadow: 0 4px 13px rgba(20,49,79,.18); transition: opacity .15s; }
+.rk-btn:disabled { opacity: .5; cursor: not-allowed; }
+.rk-btn mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+.rk-grid-wrap { position: relative; }
+
+@media (max-width: 820px) {
+  .rk-grid { grid-template-columns: 1fr 1fr; }
+  .rk-field.rk-3 { grid-column: span 2; }
+}
+@media (max-width: 560px) {
+  .rk-grid { grid-template-columns: 1fr; }
+  .rk-field.rk-2, .rk-field.rk-3 { grid-column: span 1; }
+}

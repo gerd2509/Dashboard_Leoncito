@@ -1,0 +1,199 @@
+<div class="rk-wrap">
+  <!-- ════ REGISTRO ════ -->
+  <div class="rk-card">
+    <div class="rk-head">
+      <mat-icon>hub</mat-icon>
+      <div><b>Registro de Gestión KOMMO</b><small>Se guarda directo en base de datos</small></div>
+    </div>
+
+    <!-- Canal -->
+    <div class="rk-canal">
+      <button [class.on]="canal === 'LEONCITO'" (click)="setCanal('LEONCITO')"><mat-icon>headset_mic</mat-icon> Leoncito (Call)</button>
+      <button class="rz" [class.on]="canal === 'REALZZA'" (click)="setCanal('REALZZA')"><mat-icon>storefront</mat-icon> Realzza</button>
+    </div>
+
+    <div class="rk-form">
+      <!-- Datos base -->
+      <div class="rk-grid">
+        <div class="rk-field rk-2">
+          <label>Asesor *</label>
+          <dx-select-box [dataSource]="asesores" [(value)]="f.asesor" [searchEnabled]="true"
+            [acceptCustomValue]="true" placeholder="Selecciona o escribe" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rk-field">
+          <label>Sede</label>
+          <dx-select-box [dataSource]="sedes" [(value)]="f.sede" [searchEnabled]="true"
+            [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rk-field">
+          <label>Fecha lead asignado</label>
+          <dx-text-box [(value)]="f.fecha_lead_asignado" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
+        </div>
+
+        <div class="rk-field">
+          <label>DNI cliente *</label>
+          <dx-text-box [(value)]="f.dni_cliente" (onValueChanged)="soloNumeros('dni_cliente', 8)" mode="tel"
+            [maxLength]="8" stylingMode="outlined"></dx-text-box>
+        </div>
+        <div class="rk-field">
+          <label>Celular gestionado</label>
+          <dx-text-box [(value)]="f.celular_gestionado" (onValueChanged)="soloNumeros('celular_gestionado', 9)" mode="tel"
+            [maxLength]="9" stylingMode="outlined"></dx-text-box>
+        </div>
+        <div class="rk-field rk-2">
+          <label>Nombre cliente</label>
+          <dx-text-box [(value)]="f.nombre_cliente" stylingMode="outlined"></dx-text-box>
+        </div>
+
+        <div class="rk-field">
+          <label>Tipo de cliente</label>
+          <dx-select-box [dataSource]="tiposCliente" [(value)]="f.tipo_cliente" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rk-field">
+          <label>Market Place</label>
+          <dx-select-box [dataSource]="siNo" [(value)]="f.market_place" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rk-field">
+          <label>Estado de gestión *</label>
+          <dx-select-box [dataSource]="estados" [(value)]="f.estado_gestion" stylingMode="outlined"></dx-select-box>
+        </div>
+      </div>
+
+      <!-- Rama NO CONTACTO -->
+      <div class="rk-grid rk-rama" *ngIf="esNoContacto">
+        <div class="rk-field rk-2">
+          <label>Motivo no contacto *</label>
+          <dx-select-box [dataSource]="motivosNoContacto" [(value)]="f.motivo_no_contacto" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+      </div>
+
+      <!-- Rama CONTACTO -->
+      <div class="rk-grid rk-rama" *ngIf="esContacto">
+        <div class="rk-field rk-2">
+          <label>Resultado de gestión *</label>
+          <dx-select-box [dataSource]="resultados" [(value)]="f.resultado_gestion" stylingMode="outlined"></dx-select-box>
+        </div>
+
+        <!-- INTERESADO -->
+        <ng-container *ngIf="esInteresado">
+          <div class="rk-field">
+            <label>Producto de interés</label>
+            <dx-select-box [dataSource]="productos" [(value)]="f.producto_interes" [searchEnabled]="true" [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rk-field rk-2">
+            <label>Motivo de interés</label>
+            <dx-select-box [dataSource]="motivosInteres" [(value)]="f.motivo_interes" [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rk-field">
+            <label>Fecha interés (agendamiento)</label>
+            <dx-text-box [(value)]="f.fecha_interes_agend" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
+          </div>
+          <div class="rk-field">
+            <label>Hora aprox. (agendamiento)</label>
+            <dx-text-box [(value)]="f.hora_interes_agend" placeholder="hh:mm" stylingMode="outlined"></dx-text-box>
+          </div>
+          <div class="rk-field rk-3">
+            <label>Comentario agendamiento</label>
+            <dx-text-area [(value)]="f.comentario_agend" [height]="60" stylingMode="outlined"></dx-text-area>
+          </div>
+        </ng-container>
+
+        <!-- ENVIARÁ CATALOGO -->
+        <div class="rk-field rk-2" *ngIf="esEnviaraCat">
+          <label>Motivo agendamiento</label>
+          <dx-select-box [dataSource]="motivosAgend" [(value)]="f.motivo_agendamiento" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+
+        <!-- NO ATENDIBLE -->
+        <ng-container *ngIf="esNoAtendible">
+          <div class="rk-field">
+            <label>Motivo no atendible</label>
+            <dx-select-box [dataSource]="motivosNoAtendible" [(value)]="f.motivo_no_atendible" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rk-field rk-2">
+            <label>Comentario</label>
+            <dx-text-box [(value)]="f.comentario_na" stylingMode="outlined"></dx-text-box>
+          </div>
+        </ng-container>
+
+        <!-- NO INTERESADO -->
+        <ng-container *ngIf="esNoInteresado">
+          <div class="rk-field">
+            <label>Motivo no interés</label>
+            <dx-select-box [dataSource]="motivosNoInteres" [(value)]="f.motivo_no_interes" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rk-field rk-2">
+            <label>Comentario</label>
+            <dx-text-box [(value)]="f.comentario_adicional" stylingMode="outlined"></dx-text-box>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Realzza: venta no concretada -->
+      <div class="rk-grid rk-rama rz" *ngIf="esRealzza">
+        <div class="rk-field">
+          <label>Motivo de no cierre (Realzza)</label>
+          <dx-select-box [dataSource]="motivosNoCierre" [(value)]="f.motivo_no_cierre" [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rk-field rk-2">
+          <label>Comentario venta no concretada</label>
+          <dx-text-box [(value)]="f.comentario_venta_no_concretada" stylingMode="outlined"></dx-text-box>
+        </div>
+      </div>
+
+      <div class="rk-actions">
+        <button class="rk-btn" [disabled]="guardando || !formValido" (click)="registrar()">
+          <mat-icon>save</mat-icon> {{ guardando ? 'Guardando…' : 'Registrar gestión' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ VER / EDITAR ════ -->
+  <div class="rk-card">
+    <div class="rk-head between">
+      <span class="rk-head-l"><mat-icon>fact_check</mat-icon>
+        <div><b>Gestiones registradas</b><small>Editables · incluye lo migrado del sheet</small></div>
+      </span>
+      <div class="rk-canal chico">
+        <button [class.on]="filtroCanal === ''" (click)="setFiltroCanal('')">Todos</button>
+        <button [class.on]="filtroCanal === 'LEONCITO'" (click)="setFiltroCanal('LEONCITO')">Leoncito</button>
+        <button class="rz" [class.on]="filtroCanal === 'REALZZA'" (click)="setFiltroCanal('REALZZA')">Realzza</button>
+      </div>
+    </div>
+
+    <div class="rk-grid-wrap">
+      <app-loading-overlay [inline]="true" [visible]="cargando" mensaje="Cargando gestiones…" icon="hub"></app-loading-overlay>
+      <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
+        [columnAutoWidth]="true" [hoverStateEnabled]="true" [height]="560"
+        (onRowUpdating)="onRowUpdating($event)" (onRowRemoving)="onRowRemoving($event)">
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar…"></dxo-search-panel>
+        <dxo-header-filter [visible]="true"></dxo-header-filter>
+        <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true">
+          <dxo-popup title="Editar gestión KOMMO" [showTitle]="true" [width]="700" [height]="'auto'"></dxo-popup>
+          <dxo-form [colCount]="2"></dxo-form>
+        </dxo-editing>
+
+        <dxi-column dataField="marca_temporal" caption="Fecha" [allowEditing]="false" [width]="150"></dxi-column>
+        <dxi-column dataField="canal" caption="Canal" [width]="100"></dxi-column>
+        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="180"></dxi-column>
+        <dxi-column dataField="dni_cliente" caption="DNI" [width]="110"></dxi-column>
+        <dxi-column dataField="celular_gestionado" caption="Celular" [width]="110"></dxi-column>
+        <dxi-column dataField="nombre_cliente" caption="Cliente" [minWidth]="150"></dxi-column>
+        <dxi-column dataField="sede" caption="Sede" [width]="120"></dxi-column>
+        <dxi-column dataField="tipo_cliente" caption="Tipo cliente" [width]="120"></dxi-column>
+        <dxi-column dataField="estado_gestion" caption="Estado" [width]="120"></dxi-column>
+        <dxi-column dataField="resultado_gestion" caption="Resultado" [width]="140"></dxi-column>
+        <dxi-column dataField="market_place" caption="MP" [width]="70"></dxi-column>
+        <dxi-column dataField="producto_interes" caption="Producto" [width]="140" [visible]="false"></dxi-column>
+        <dxi-column dataField="motivo_interes" caption="Motivo interés" [width]="160" [visible]="false"></dxi-column>
+        <dxi-column dataField="motivo_no_atendible" caption="Motivo no atendible" [width]="160" [visible]="false"></dxi-column>
+        <dxi-column dataField="motivo_no_contacto" caption="Motivo no contacto" [width]="160" [visible]="false"></dxi-column>
+        <dxi-column dataField="motivo_no_cierre" caption="Motivo no cierre" [width]="160" [visible]="false"></dxi-column>
+        <dxi-column dataField="origen" caption="Origen" [width]="100" [allowEditing]="false"></dxi-column>
+      </dx-data-grid>
+    </div>
+  </div>
+</div>
