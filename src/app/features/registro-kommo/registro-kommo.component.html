@@ -6,10 +6,14 @@
       <div><b>Registro de Gestión KOMMO</b><small>Se guarda directo en base de datos</small></div>
     </div>
 
-    <!-- Canal -->
-    <div class="rk-canal">
+    <!-- Canal (según permisos: admin elige; Call/Realzza fijo) -->
+    <div class="rk-canal" *ngIf="puedeElegirCanal">
       <button [class.on]="canal === 'LEONCITO'" (click)="setCanal('LEONCITO')"><mat-icon>headset_mic</mat-icon> Leoncito (Call)</button>
       <button class="rz" [class.on]="canal === 'REALZZA'" (click)="setCanal('REALZZA')"><mat-icon>storefront</mat-icon> Realzza</button>
+    </div>
+    <div class="rk-canal-fijo" *ngIf="!puedeElegirCanal" [class.rz]="canal === 'REALZZA'">
+      <mat-icon>{{ canal === 'REALZZA' ? 'storefront' : 'headset_mic' }}</mat-icon>
+      Canal: <b>{{ canal === 'REALZZA' ? 'Realzza' : 'Leoncito (Call)' }}</b>
     </div>
 
     <div class="rk-form">
@@ -149,51 +153,5 @@
     </div>
   </div>
 
-  <!-- ════ VER / EDITAR ════ -->
-  <div class="rk-card">
-    <div class="rk-head between">
-      <span class="rk-head-l"><mat-icon>fact_check</mat-icon>
-        <div><b>Gestiones registradas</b><small>Editables · incluye lo migrado del sheet</small></div>
-      </span>
-      <div class="rk-canal chico">
-        <button [class.on]="filtroCanal === ''" (click)="setFiltroCanal('')">Todos</button>
-        <button [class.on]="filtroCanal === 'LEONCITO'" (click)="setFiltroCanal('LEONCITO')">Leoncito</button>
-        <button class="rz" [class.on]="filtroCanal === 'REALZZA'" (click)="setFiltroCanal('REALZZA')">Realzza</button>
-      </div>
-    </div>
-
-    <div class="rk-grid-wrap">
-      <app-loading-overlay [inline]="true" [visible]="cargando" mensaje="Cargando gestiones…" icon="hub"></app-loading-overlay>
-      <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
-        [columnAutoWidth]="true" [hoverStateEnabled]="true" [height]="560"
-        (onRowUpdating)="onRowUpdating($event)" (onRowRemoving)="onRowRemoving($event)">
-        <dxo-scrolling mode="virtual"></dxo-scrolling>
-        <dxo-filter-row [visible]="true"></dxo-filter-row>
-        <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar…"></dxo-search-panel>
-        <dxo-header-filter [visible]="true"></dxo-header-filter>
-        <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true">
-          <dxo-popup title="Editar gestión KOMMO" [showTitle]="true" [width]="700" [height]="'auto'"></dxo-popup>
-          <dxo-form [colCount]="2"></dxo-form>
-        </dxo-editing>
-
-        <dxi-column dataField="marca_temporal" caption="Fecha" [allowEditing]="false" [width]="150"></dxi-column>
-        <dxi-column dataField="canal" caption="Canal" [width]="100"></dxi-column>
-        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="180"></dxi-column>
-        <dxi-column dataField="dni_cliente" caption="DNI" [width]="110"></dxi-column>
-        <dxi-column dataField="celular_gestionado" caption="Celular" [width]="110"></dxi-column>
-        <dxi-column dataField="nombre_cliente" caption="Cliente" [minWidth]="150"></dxi-column>
-        <dxi-column dataField="sede" caption="Sede" [width]="120"></dxi-column>
-        <dxi-column dataField="tipo_cliente" caption="Tipo cliente" [width]="120"></dxi-column>
-        <dxi-column dataField="estado_gestion" caption="Estado" [width]="120"></dxi-column>
-        <dxi-column dataField="resultado_gestion" caption="Resultado" [width]="140"></dxi-column>
-        <dxi-column dataField="market_place" caption="MP" [width]="70"></dxi-column>
-        <dxi-column dataField="producto_interes" caption="Producto" [width]="140" [visible]="false"></dxi-column>
-        <dxi-column dataField="motivo_interes" caption="Motivo interés" [width]="160" [visible]="false"></dxi-column>
-        <dxi-column dataField="motivo_no_atendible" caption="Motivo no atendible" [width]="160" [visible]="false"></dxi-column>
-        <dxi-column dataField="motivo_no_contacto" caption="Motivo no contacto" [width]="160" [visible]="false"></dxi-column>
-        <dxi-column dataField="motivo_no_cierre" caption="Motivo no cierre" [width]="160" [visible]="false"></dxi-column>
-        <dxi-column dataField="origen" caption="Origen" [width]="100" [allowEditing]="false"></dxi-column>
-      </dx-data-grid>
-    </div>
-  </div>
+  <p class="rk-nota"><mat-icon>info</mat-icon> Para ver y editar las gestiones registradas, entra a <b>Gestión → KOMMO</b>.</p>
 </div>

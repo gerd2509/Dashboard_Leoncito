@@ -18,6 +18,12 @@
 .rk-canal button.on { background: #1A5FAD; color: #fff; }
 .rk-canal button.rz.on { background: #F07420; }
 .rk-canal.chico button { padding: 6px 12px; font-size: 12px; }
+.rk-canal-fijo { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px;
+  background: #eaf2fb; color: #1A5FAD; font-size: 13px; font-weight: 600; }
+.rk-canal-fijo.rz { background: #fdeee0; color: #C0632A; }
+.rk-canal-fijo mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.rk-nota { display: flex; align-items: center; gap: 8px; color: #7d93a8; font-size: 13px; margin: 2px 4px; }
+.rk-nota mat-icon { font-size: 18px; width: 18px; height: 18px; color: #1A5FAD; }
 
 .rk-form { margin-top: 14px; }
 .rk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; }

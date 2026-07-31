@@ -1,219 +1,109 @@
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../../common_imports';
 import { DX_COMMON_MODULES } from '../../dx_common_modules';
-import { SheetsService } from '../../../services/service-google.service';
-import { ExcelExportService } from '../../../services/excel/excel.service';
 import { AuthService } from '../../../services/auth.service';
-import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { GestionKommoService, GestionKommo } from '../../../services/gestion-kommo.service';
+import { ExcelExportService } from '../../../services/excel/excel.service';
+import { canalDeUsuario, Canal } from '../../../shared/canal-usuario';
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
-import { lastValueFrom } from 'rxjs';
-
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
 
+/**
+ * Gestión Kommo — vista de las gestiones KOMMO desde la BD (tabla gestion_kommo),
+ * con EDICIÓN y eliminación. Reemplaza la lectura del Google Sheet. Acotada por
+ * rol: Call ve solo Leoncito, Realzza solo Realzza, admin ve todo (con toggle).
+ * El REGISTRO de nuevas gestiones está en el módulo Registro KOMMO.
+ */
 @Component({
   selector: 'app-gestion-kommo',
   standalone: true,
   imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './gestion-kommo.component.html',
-  styleUrl: './gestion-kommo.component.css'
+  styleUrl: './gestion-kommo.component.css',
 })
 export class GestionKommoComponent implements OnInit {
-  protected service = inject(SheetsService);
-  protected excelService = inject(ExcelExportService);
   private auth = inject(AuthService);
-
-  formGestion: UntypedFormGroup;
-  dataFiltrada: any[] = [];
-  listData: any[] = [];
-  isLoading = false;
-
-  tiendaSeleccionada: string = '';
-  tiendaBloqueada = false;   // true para gerente/supervisor Realzza (solo ven Realzza)
-  asesoresFiltrados: any[] = [];
-  labelAsesor: string = 'Asesor';
-
-  columnaAsesor: string = 'ASESOR CONTACT';
-  columnaDni: string = 'DNI CLIENTE';
-  columnaCelular: string = 'CELULAR GESTIONADO';
-  columnaEstado: string = 'ESTADO DE GESTIÓN';
-  columnaMotivoNoAtendible: string = 'MOTIVO NO ATENDIBLE';
-  columnaMarketPlace: string = 'MARKET PLACE L';
-
-  asesoresCall = [
-    { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
-    { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
-    { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
-    { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
-    { value: 'CC10', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' }
-  ];
-
-  // Asesores Realzza — mismos nombres que el módulo Ventas Campo (fuente única).
-  asesoresRealzza = [
-    { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
-    { value: 'AV5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'AV9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
-  ];
+  private srv = inject(GestionKommoService);
+  private excelService = inject(ExcelExportService);
+  private snack = inject(MatSnackBar);
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
-  constructor(private fb: UntypedFormBuilder) {
-    this.formGestion = this.fb.group({
-      tienda: [''],
-      fechaInicio: [null],
-      fechaFin: [null],
-      Asesores: [''],
+  // Gating por rol.
+  readonly scope = canalDeUsuario(this.auth.getUsuario());   // '' (admin) | LEONCITO | REALZZA
+  get esAdmin(): boolean { return this.scope === ''; }
+  filtroCanal: '' | Canal = '';
+
+  isLoading = false;
+  registros: GestionKommo[] = [];
+
+  ngOnInit(): void {
+    this.filtroCanal = this.scope || '';   // no-admin arranca fijo en su canal
+    this.cargar();
+  }
+
+  private get canalEfectivo(): '' | Canal {
+    return this.scope ? this.scope : this.filtroCanal;   // no-admin siempre su canal
+  }
+
+  setFiltroCanal(c: '' | Canal): void {
+    if (!this.esAdmin) return;   // solo admin cambia el filtro
+    this.filtroCanal = c;
+    this.cargar();
+  }
+
+  cargar(): void {
+    this.isLoading = true;
+    const canal = this.canalEfectivo;
+    this.srv.listar(canal ? { canal } : undefined).subscribe({
+      next: (rows) => { this.registros = rows || []; this.isLoading = false; },
+      error: () => { this.registros = []; this.isLoading = false; },
     });
   }
 
-  async ngOnInit() {
-    await this.cargarDatos();
-    this.aplicarPerfilUsuario();
+  onRowUpdating(e: any): void {
+    const id = e.oldData?.id;
+    if (!id) return;
+    e.cancel = new Promise<boolean>((resolve) => {
+      this.srv.actualizar(id, e.newData).subscribe({
+        next: () => { this.toast('✔ Registro actualizado.'); resolve(false); },
+        error: () => { this.toast('❌ No se pudo actualizar.', true); resolve(true); },
+      });
+    });
   }
-
-  // Si entra un gerente/supervisor de Realzza: preselecciona la tienda REALZZA,
-  // configura columnas/asesores de Realzza, bloquea el combo y carga su data.
-  private aplicarPerfilUsuario(): void {
-    const u = this.auth.getUsuario();
-    if (!u || u.rol === 'admin') return;
-    const esRealzza = (u.sede || '').toString().toLowerCase().includes('realzza');
-    if (!esRealzza) return;
-
-    this.tiendaBloqueada = true;
-    this.formGestion.get('tienda')?.setValue('REALZZA');
-    this.onTiendaChanged({ value: 'REALZZA' });
-    this.aplicarFiltros();   // carga la data de Realzza
-  }
-
-  async cargarDatos() {
-    this.isLoading = true;
-    try {
-      this.listData = await lastValueFrom(this.service.getSheetKOMMO());
-      // Al inicio trae todos los datos tal cual
-      this.dataFiltrada = [...this.listData];
-    } catch (error) {
-      console.error('Error al cargar los datos:', error);
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  onTiendaChanged(e: any) {
-    const seleccion = e.value;
-    this.tiendaSeleccionada = seleccion;
-
-    // 1. Limpiar la tabla inmediatamente al cambiar de opción
-    this.dataFiltrada = [];
-
-    // 2. Configurar columnas y asesores según selección
-    if (seleccion === 'LEONCITO') {
-      this.labelAsesor = 'Asesor Contact';
-      this.asesoresFiltrados = this.asesoresCall;
-      this.columnaAsesor = 'ASESOR CONTACT';
-      this.columnaDni = 'DNI CLIENTE';
-      this.columnaCelular = 'CELULAR GESTIONADO';
-      this.columnaEstado = 'ESTADO DE GESTIÓN';
-      this.columnaMotivoNoAtendible = 'MOTIVO NO ATENDIBLE';
-      this.columnaMarketPlace = 'MARKET PLACE L';
-    } else if (seleccion === 'REALZZA') {
-      this.labelAsesor = 'Asesor Realzza';
-      this.asesoresFiltrados = this.asesoresRealzza;
-      this.columnaAsesor = 'ASESOR REALZZA';
-      this.columnaDni = 'DNI CLIENTE REALZZA';
-      this.columnaCelular = 'CELULAR GESTIONADO REALZZA';
-      this.columnaEstado = 'ESTADO DE GESTIÓN REALZZA';
-      this.columnaMotivoNoAtendible = 'MOTIVO NO ATENDIBLE';
-      this.columnaMarketPlace = 'MARKET PLACE R';
-    } else {
-      this.asesoresFiltrados = [];
-      this.labelAsesor = 'Asesor';
-      // Si vuelve a "SELECCIONE", podemos mostrar todo de nuevo o dejarlo vacío
-      this.dataFiltrada = [...this.listData];
-    }
-
-    this.formGestion.get('Asesores')?.setValue('');
-  }
-
-  async aplicarFiltros(): Promise<void> {
-    const { fechaInicio, fechaFin, Asesores, tienda } = this.formGestion.value;
-
-    this.isLoading = true;
-    try {
-      let datos = [...this.listData];
-
-      if (tienda) {
-        datos = datos.filter(item => item['TIENDA'] === tienda);
-      }
-
-      if (fechaInicio && fechaFin) {
-        const desde = new Date(fechaInicio);
-        desde.setHours(0, 0, 0, 0);
-        const hasta = new Date(fechaFin);
-        hasta.setHours(23, 59, 59, 999);
-
-        datos = datos.filter(item => {
-          const fecha = this.parseMarcaTemporal(item['Marca temporal']);
-          return fecha && fecha >= desde && fecha <= hasta;
-        });
-      }
-
-      if (Asesores) {
-        const asesorObj = this.asesoresFiltrados.find(a => a.value === Asesores);
-        const nombreBuscado = asesorObj?.viewValue?.trim().toUpperCase();
-
-        datos = datos.filter(item => {
-          const colBusqueda = this.columnaAsesor || 'ASESOR CONTACT';
-          const asesorEnDato = (item[colBusqueda] || '').toString().trim().toUpperCase();
-          return asesorEnDato === nombreBuscado;
-        });
-      }
-
-      this.dataFiltrada = datos;
-
-      if (this.dataGrid && this.dataGrid.instance) {
-        this.dataGrid.instance.refresh();
-      }
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  filtrarPorFecha() {
-    this.aplicarFiltros();
+  onRowRemoving(e: any): void {
+    const id = e.data?.id;
+    if (!id) return;
+    e.cancel = new Promise<boolean>((resolve) => {
+      this.srv.eliminar(id).subscribe({
+        next: () => { this.toast('✔ Registro eliminado.'); resolve(false); },
+        error: () => { this.toast('❌ No se pudo eliminar.', true); resolve(true); },
+      });
+    });
   }
 
   exportar(): void {
     if (this.dataGrid) {
-      const nombreTienda = this.tiendaSeleccionada || 'GENERAL';
-      this.excelService.exportarDesdeGrid(`Reporte_Kommo_${nombreTienda}`, this.dataGrid);
+      const suf = this.canalEfectivo || 'GENERAL';
+      this.excelService.exportarDesdeGrid(`Gestion_Kommo_${suf}`, this.dataGrid);
     }
   }
 
-  onCellPrepared(e: any) {
+  onCellPrepared(e: any): void {
     if (e.rowType === 'header') {
-      e.cellElement.style.backgroundColor = "#293964";
-      e.cellElement.style.color = "white";
-      e.cellElement.style.fontWeight = "bold";
-      e.cellElement.style.border = "1.5px solid black";
-      e.cellElement.style.textAlign = "center";
+      e.cellElement.style.backgroundColor = '#293964';
+      e.cellElement.style.color = 'white';
+      e.cellElement.style.fontWeight = 'bold';
+      e.cellElement.style.textAlign = 'center';
     }
   }
 
-  private parseMarcaTemporal(texto: string): Date | null {
-    if (!texto) return null;
-    const regex = /(\d{1,2})\/(\d{1,2})\/(\d{4})/;
-    const m = texto.match(regex);
-    if (!m) return null;
-    return new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+  private toast(msg: string, error = false): void {
+    this.snack.open(msg, 'OK', {
+      duration: error ? 5000 : 3000,
+      horizontalPosition: 'end', verticalPosition: 'top',
+      panelClass: error ? 'toast-error' : 'toast-ok',
+    });
   }
 }

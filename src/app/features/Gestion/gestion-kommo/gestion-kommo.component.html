@@ -1,63 +1,61 @@
-
-<form class="form mt-2" [formGroup]="formGestion">
-    <dx-select-box style="width: 250px;"
-        [items]="[{value: '', text: 'SELECCIONE'}, {value: 'LEONCITO', text: 'LEONCITO'}, {value: 'REALZZA', text: 'REALZZA'}]"
-        displayExpr="text" valueExpr="value" formControlName="tienda" label="Tienda" labelMode="floating"
-        stylingMode="underlined" [readOnly]="tiendaBloqueada" (onValueChanged)="onTiendaChanged($event)">
-    </dx-select-box>
-
-    <dx-date-box formControlName="fechaInicio" type="date" label="Fecha Inicio" labelMode="floating"
-        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-
-    <dx-date-box formControlName="fechaFin" type="date" label="Fecha Fin" labelMode="floating" stylingMode="underlined"
-        [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-
-    <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesoresFiltrados"
-        displayExpr="viewValue" valueExpr="value" [label]="labelAsesor" labelMode="floating" stylingMode="underlined"
-        placeholder="">
-    </dx-select-box>
-
-    <button mat-flat-button color="primary" (click)="filtrarPorFecha()">
-        <mat-icon>search</mat-icon> Actualizar
-    </button>
-
-    <button mat-flat-button (click)="exportar()" [disabled]="dataFiltrada.length === 0">
-        <mat-icon>file_download</mat-icon> Exportar
-    </button>
-</form>
-
-<div class="grid-container">
-    <div class="grid-overlay" *ngIf="isLoading">
-        <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión…" icon="chat"></app-loading-overlay>
+<div class="gk-wrap">
+  <div class="gk-head">
+    <span class="gk-title"><mat-icon>public</mat-icon>
+      <div><b>Gestión KOMMO</b><small>Desde base de datos · editable</small></div>
+    </span>
+    <div class="gk-actions">
+      <!-- Toggle de canal: solo admin; Call/Realzza queda fijo en su canal -->
+      <div class="gk-canal" *ngIf="esAdmin">
+        <button [class.on]="filtroCanal === ''" (click)="setFiltroCanal('')">Todos</button>
+        <button [class.on]="filtroCanal === 'LEONCITO'" (click)="setFiltroCanal('LEONCITO')">Leoncito</button>
+        <button class="rz" [class.on]="filtroCanal === 'REALZZA'" (click)="setFiltroCanal('REALZZA')">Realzza</button>
+      </div>
+      <span class="gk-canal-fijo" *ngIf="!esAdmin" [class.rz]="scope === 'REALZZA'">
+        {{ scope === 'REALZZA' ? 'Realzza' : 'Leoncito' }}
+      </span>
+      <button class="gk-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Actualizar</button>
+      <button class="gk-btn excel" (click)="exportar()"><mat-icon>table_view</mat-icon> Excel</button>
     </div>
+  </div>
 
-    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" [showBorders]="true"
-        [rowAlternationEnabled]="true" [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+  <div class="gk-grid-wrap">
+    <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestiones…" icon="public"></app-loading-overlay>
+    <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
+      [columnAutoWidth]="true" [hoverStateEnabled]="true" [height]="640"
+      (onRowUpdating)="onRowUpdating($event)" (onRowRemoving)="onRowRemoving($event)"
+      (onCellPrepared)="onCellPrepared($event)">
+      <dxo-scrolling mode="virtual"></dxo-scrolling>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar…"></dxo-search-panel>
+      <dxo-header-filter [visible]="true"></dxo-header-filter>
+      <dxo-column-chooser [enabled]="true"></dxo-column-chooser>
+      <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true">
+        <dxo-popup title="Editar gestión KOMMO" [showTitle]="true" [width]="720" [height]="'auto'"></dxo-popup>
+        <dxo-form [colCount]="2"></dxo-form>
+      </dxo-editing>
 
-        <dxo-paging [pageSize]="15"></dxo-paging>
-        <dxo-filter-row [visible]="true" />
-
-        <dxi-column dataField="Marca temporal" caption="Fecha/Hora"></dxi-column>
-        <dxi-column dataField="TIENDA" caption="Tienda"></dxi-column>
-        <dxi-column dataField="FECHA DE LEAD ASIGNADO" caption="Fecha Lead Asignado"></dxi-column>
-
-        <dxi-column [dataField]="columnaAsesor" [caption]="'Asesor ' + tiendaSeleccionada"></dxi-column>
-        <dxi-column [dataField]="columnaDni" caption="DNI Cliente"></dxi-column>
-        <dxi-column dataField="NOMBRE CLIENTE" caption="Nombre Cliente"></dxi-column>
-        <dxi-column [dataField]="columnaCelular" caption="Celular"></dxi-column>
-        <dxi-column [dataField]="columnaEstado" caption="Estado Gestión"></dxi-column>
-        <dxi-column [dataField]="columnaMotivoNoAtendible" caption="Motivo No Atendible"></dxi-column>
-
-        <dxi-column [dataField]="columnaMarketPlace" caption="Market Place"></dxi-column>
-
-        <dxi-column dataField="RESULTADO DE GESTIÓN" caption="Resultado"></dxi-column>
-        <dxi-column dataField="PRODUCTO INTERÉS" caption="Producto"></dxi-column>
-        <dxi-column dataField="MOTIVO NO INTERÉS" caption="Motivo No Int."></dxi-column>
-
-        <dxo-summary>
-            <dxi-total-item column="Marca temporal" summaryType="count" displayFormat="Total: {0}"></dxi-total-item>
-        </dxo-summary>
+      <dxi-column dataField="marca_temporal" caption="Fecha" [allowEditing]="false" [width]="150"></dxi-column>
+      <dxi-column dataField="canal" caption="Canal" [width]="100" [allowEditing]="false"></dxi-column>
+      <dxi-column dataField="asesor" caption="Asesor" [minWidth]="180"></dxi-column>
+      <dxi-column dataField="dni_cliente" caption="DNI" [width]="110"></dxi-column>
+      <dxi-column dataField="celular_gestionado" caption="Celular" [width]="110"></dxi-column>
+      <dxi-column dataField="nombre_cliente" caption="Cliente" [minWidth]="150"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [width]="120"></dxi-column>
+      <dxi-column dataField="tipo_cliente" caption="Tipo cliente" [width]="120"></dxi-column>
+      <dxi-column dataField="estado_gestion" caption="Estado" [width]="120"></dxi-column>
+      <dxi-column dataField="resultado_gestion" caption="Resultado" [width]="140"></dxi-column>
+      <dxi-column dataField="market_place" caption="MP" [width]="70"></dxi-column>
+      <dxi-column dataField="producto_interes" caption="Producto" [width]="140" [visible]="false"></dxi-column>
+      <dxi-column dataField="motivo_interes" caption="Motivo interés" [width]="170" [visible]="false"></dxi-column>
+      <dxi-column dataField="motivo_agendamiento" caption="Motivo agend." [width]="150" [visible]="false"></dxi-column>
+      <dxi-column dataField="motivo_no_interes" caption="Motivo no interés" [width]="160" [visible]="false"></dxi-column>
+      <dxi-column dataField="motivo_no_atendible" caption="Motivo no atendible" [width]="170" [visible]="false"></dxi-column>
+      <dxi-column dataField="motivo_no_contacto" caption="Motivo no contacto" [width]="170" [visible]="false"></dxi-column>
+      <dxi-column dataField="comentario_adicional" caption="Comentario" [width]="180" [visible]="false"></dxi-column>
+      <dxi-column dataField="motivo_no_cierre" caption="Motivo no cierre (RZ)" [width]="180" [visible]="false"></dxi-column>
+      <dxi-column dataField="comentario_venta_no_concretada" caption="Coment. venta no concretada" [width]="200" [visible]="false"></dxi-column>
+      <dxi-column dataField="fecha_lead_asignado" caption="Fecha lead" [width]="120" [visible]="false"></dxi-column>
+      <dxi-column dataField="origen" caption="Origen" [width]="100" [allowEditing]="false"></dxi-column>
     </dx-data-grid>
+  </div>
 </div>

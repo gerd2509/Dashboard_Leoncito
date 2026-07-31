@@ -5,9 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { GestionKommoService, GestionKommo } from '../../services/gestion-kommo.service';
 import { ASESORES_CALL } from '../../shared/asesores';
-import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
-
-type Canal = 'LEONCITO' | 'REALZZA';
+import { canalDeUsuario, Canal } from '../../shared/canal-usuario';
 
 // Modelo del formulario (todos string para el binding de DevExtreme).
 interface FormKommo {
@@ -40,14 +38,14 @@ const ASESORES_REALZZA = [
 
 /**
  * Registro de Gestión KOMMO (Leoncito + Realzza) → escribe directo a la BD
- * (tabla gestion_kommo), reemplazando el Google Form. Ramifica los campos según
- * el canal y el resultado, igual que el formulario. Debajo, una grilla para VER
- * y EDITAR / eliminar los registros existentes (incluye los migrados del sheet).
+ * (tabla gestion_kommo), reemplazando el Google Form. El canal disponible se
+ * limita según el rol: Call registra Leoncito, Realzza registra Realzza, admin
+ * puede ambos. Para VER/EDITAR los registros está el módulo Gestión Kommo.
  */
 @Component({
   selector: 'app-registro-kommo',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
   templateUrl: './registro-kommo.component.html',
   styleUrl: './registro-kommo.component.css',
 })
@@ -80,26 +78,25 @@ export class RegistroKommoComponent implements OnInit {
   private readonly asesoresRealzza = [...ASESORES_REALZZA].sort();
   get asesores(): string[] { return this.canal === 'REALZZA' ? this.asesoresRealzza : this.asesoresCall; }
 
+  // Gating por rol: qué canal(es) puede registrar este usuario.
+  readonly scope = canalDeUsuario(this.auth.getUsuario());   // '' (admin/ambos) | 'LEONCITO' | 'REALZZA'
+  get puedeElegirCanal(): boolean { return this.scope === ''; }
+  get canalesPermitidos(): Canal[] { return this.scope ? [this.scope] : ['LEONCITO', 'REALZZA']; }
+
   canal: Canal = 'LEONCITO';
   guardando = false;
   hoy = new Date();
-
   f: FormKommo = blankForm('LEONCITO');
 
-  // Grilla ver/editar.
-  cargando = false;
-  registros: GestionKommo[] = [];
-  filtroCanal: '' | Canal = '';
-
   ngOnInit(): void {
+    this.canal = this.canalesPermitidos[0];
     this.resetForm();
-    this.cargar();
   }
 
   get registrador(): string { return this.auth.getUsuario()?.nombre ?? ''; }
 
   setCanal(c: Canal): void {
-    if (this.canal === c) return;
+    if (this.canal === c || !this.canalesPermitidos.includes(c)) return;
     this.canal = c;
     this.resetForm();
   }
@@ -140,44 +137,11 @@ export class RegistroKommoComponent implements OnInit {
       next: () => {
         this.guardando = false;
         this.toast('✔ Gestión registrada correctamente.');
-        // Conserva asesor y sede para el siguiente registro.
-        const asesor = this.f.asesor, sede = this.f.sede;
+        const asesor = this.f.asesor, sede = this.f.sede;   // conserva para el siguiente
         this.resetForm();
         this.f.asesor = asesor; this.f.sede = sede;
-        this.cargar();
       },
       error: () => { this.guardando = false; this.toast('❌ No se pudo registrar (revisa el servidor).', true); },
-    });
-  }
-
-  // ── Ver / editar ──
-  cargar(): void {
-    this.cargando = true;
-    this.srv.listar(this.filtroCanal ? { canal: this.filtroCanal } : undefined).subscribe({
-      next: (rows) => { this.registros = rows || []; this.cargando = false; },
-      error: () => { this.registros = []; this.cargando = false; },
-    });
-  }
-  setFiltroCanal(c: '' | Canal): void { this.filtroCanal = c; this.cargar(); }
-
-  onRowUpdating(e: any): void {
-    const id = e.oldData?.id;
-    if (!id) return;
-    e.cancel = new Promise<boolean>((resolve) => {
-      this.srv.actualizar(id, e.newData).subscribe({
-        next: () => { this.toast('✔ Registro actualizado.'); resolve(false); },
-        error: () => { this.toast('❌ No se pudo actualizar.', true); resolve(true); },
-      });
-    });
-  }
-  onRowRemoving(e: any): void {
-    const id = e.data?.id;
-    if (!id) return;
-    e.cancel = new Promise<boolean>((resolve) => {
-      this.srv.eliminar(id).subscribe({
-        next: () => { this.toast('✔ Registro eliminado.'); resolve(false); },
-        error: () => { this.toast('❌ No se pudo eliminar.', true); resolve(true); },
-      });
     });
   }
 

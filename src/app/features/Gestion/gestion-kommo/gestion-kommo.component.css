@@ -1,41 +1,26 @@
 :host { display: block; position: relative; }
 
+.gk-wrap { display: flex; flex-direction: column; gap: 14px; padding: 4px; }
+.gk-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.gk-title { display: flex; align-items: center; gap: 11px; }
+.gk-title mat-icon { color: #1A5FAD; font-size: 28px; width: 28px; height: 28px; }
+.gk-title b { display: block; font-size: 15.5px; color: #1E3A5F; }
+.gk-title small { display: block; font-size: 12px; color: #7d93a8; }
 
-.form {
-    display: flex;
-    flex-direction: row;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-    padding: 14px 18px;
-    background: #FFFFFF;
-    border-radius: 12px;
-    border: 1px solid #CCDAEE;
-    margin-bottom: 18px;
-}
+.gk-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gk-canal { display: inline-flex; border: 1px solid #cddcec; border-radius: 9px; overflow: hidden; background: #fff; }
+.gk-canal button { border: 0; background: transparent; padding: 7px 13px; font-weight: 700; font-size: 12.5px; color: #4a6a88; cursor: pointer; }
+.gk-canal button + button { border-left: 1px solid #e3ecf5; }
+.gk-canal button.on { background: #1A5FAD; color: #fff; }
+.gk-canal button.rz.on { background: #F07420; }
+.gk-canal-fijo { padding: 6px 13px; border-radius: 999px; background: #eaf2fb; color: #1A5FAD; font-weight: 700; font-size: 12.5px; }
+.gk-canal-fijo.rz { background: #fdeee0; color: #C0632A; }
 
-.button {
-    height: 40px;
-    border-radius: 8px !important;
-    background: #1A5FAD !important;
-    color: #fff !important;
-    border: none !important;
-    font-weight: 600 !important;
-    box-shadow: 0 2px 10px rgba(26,95,173,0.25) !important;
-    transition: all 0.18s !important;
-}
+.gk-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; background: #fff;
+  color: #1A5FAD; font-weight: 700; font-size: 12.5px; padding: 7px 13px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.gk-btn:hover { background: #eef5fc; }
+.gk-btn.excel { border-color: #1D7044; color: #1D7044; }
+.gk-btn.excel:hover { background: #e9f5ee; }
+.gk-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-.button:hover { background: #2B73D1 !important; transform: translateY(-1px); }
-
-.grid-container { position: relative; }
-
-.grid-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(238,242,248,0.88);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-    border-radius: 10px;
-}
+.gk-grid-wrap { position: relative; }
