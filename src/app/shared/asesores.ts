@@ -25,6 +25,7 @@ export const ASESORES_REALZZA: AsesorRef[] = [
   { value: 'RZ7', nombre: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
   { value: 'RZ8', nombre: 'BUSTAMANTE CHALAN ANA RUT' },
   { value: 'RZ9', nombre: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
+  { value: 'RZ10', nombre: 'GUILLEN MACKUADO AURORA FERNANDA' },
 ];
 
 /** Nombres (solo) de un canal Call/Realzza. */
