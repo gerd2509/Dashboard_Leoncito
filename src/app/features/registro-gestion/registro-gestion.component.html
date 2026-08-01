@@ -13,6 +13,29 @@
     </div>
   </header>
 
+  <!-- ── Selector de canal + asesor (admin/supervisor que registra a nombre de otro) ── -->
+  <div class="rg-canal-sel" *ngIf="elegirCanal && !guardado">
+    <div class="rg-canal-btns">
+      <button [class.on]="canal === 'sede'" (click)="setCanalManual('sede')"><mat-icon>location_city</mat-icon> Sede</button>
+      <button [class.on]="canal === 'call'" (click)="setCanalManual('call')"><mat-icon>headset_mic</mat-icon> Call</button>
+      <button [class.on]="canal === 'realzza'" (click)="setCanalManual('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
+    </div>
+    <div class="rg-asesor-sel" *ngIf="canal === 'call'">
+      <label>Asesor Call <b>*</b></label>
+      <select class="inp" [(ngModel)]="call.asesor">
+        <option value="">Selecciona un asesor…</option>
+        <option *ngFor="let a of asesoresCall" [value]="a">{{ a }}</option>
+      </select>
+    </div>
+    <div class="rg-asesor-sel" *ngIf="canal === 'realzza'">
+      <label>Asesor Realzza <b>*</b></label>
+      <select class="inp" [(ngModel)]="rz.asesor">
+        <option value="">Selecciona un asesor…</option>
+        <option *ngFor="let a of asesoresRealzza" [value]="a">{{ a }}</option>
+      </select>
+    </div>
+  </div>
+
   <!-- ── Pantalla de éxito ── -->
   <div class="rg-ok" *ngIf="guardado">
     <div class="ok-ico"><mat-icon>check_circle</mat-icon></div>

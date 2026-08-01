@@ -113,3 +113,15 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml;utf8,<s
   .rg-nav { position: static; background: transparent; border: 0; padding: 16px 0 0; }
   .rg-wrap { padding-bottom: 24px; }
 }
+
+/* ── Selector de canal + asesor (admin/supervisor) ── */
+.rg-canal-sel { margin: 0 0 14px; }
+.rg-canal-btns { display: inline-flex; border: 1px solid #cddcec; border-radius: 10px; overflow: hidden; background: #fff; }
+.rg-canal-btns button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent;
+  padding: 9px 16px; font-weight: 700; font-size: 13px; color: #4a6a88; cursor: pointer; transition: background .15s, color .15s; }
+.rg-canal-btns button + button { border-left: 1px solid #e3ecf5; }
+.rg-canal-btns button mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.rg-canal-btns button.on { background: #1A5FAD; color: #fff; }
+.rg-asesor-sel { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; max-width: 420px; }
+.rg-asesor-sel label { font-size: 13px; font-weight: 700; color: #4a6a88; }
+.rg-asesor-sel label b { color: #C62828; }

@@ -6,6 +6,15 @@ import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { RegistroGestionService, GestionPayload, GestionRealzzaPayload, GestionCallPayload } from '../../services/registro-gestion.service';
+import { ASESORES_CALL } from '../../shared/asesores';
+
+// Asesores para cuando un admin/supervisor registra a nombre de otro (no vendedor).
+const ASESORES_REALZZA_LISTA = [
+  'ACOSTA JIMENEZ MARIELA NATALY', 'PEREZ TINEO MARICIELO TATIANA', 'RIVAS PURISACA KAREN YUDITH',
+  'BERNAL BAZAN BRENDA NICOLL', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'MONTALVO LUYO ERNESTO ADOLFO',
+  'SANTAMARIA GUZMAN MERLY BRIGHITE', 'UCHOFEN VIGO FELICITA', 'BUSTAMANTE CHALAN ANA RUT',
+  'GUILLEN MACKUADO AURORA FERNANDA', 'LLONTOP DAVILA DENNIS CHRISTIAN',
+];
 
 // ── Catálogos (fáciles de editar) ──────────────────────────────────────────────
 const TIPOS_GESTION = ['ENTREGA DE CARTA', 'LLAMADA TELEFONICA'];
@@ -185,6 +194,12 @@ export class RegistroGestionComponent implements OnInit {
   // Canal del formulario según el login: 'realzza', 'call' o 'sede' (piso, el actual).
   canal: 'sede' | 'realzza' | 'call' = 'sede';
 
+  // Admin/supervisor (no vendedor): puede ELEGIR el canal y el asesor a nombre de quien registra.
+  elegirCanal = false;
+  readonly asesoresCall = ASESORES_CALL.map(a => a.nombre).sort();
+  readonly asesoresRealzza = [...ASESORES_REALZZA_LISTA].sort();
+  get asesorActual(): string { return this.canal === 'call' ? this.call.asesor : this.rz.asesor; }
+
   modelo: Modelo = this.modeloVacio();
   rz: RzModelo = this.rzVacio();
   call: CallModelo = this.callVacio();
@@ -213,12 +228,26 @@ export class RegistroGestionComponent implements OnInit {
     }
 
     // Piso/Sedes (comportamiento actual): asesores del CAP; sede del login si es concreta.
+    // Además, como no es un vendedor Call/Realzza, puede ELEGIR el canal (Sede/Call/
+    // Realzza) y registrar a nombre de un asesor (para admin/supervisor).
+    this.elegirCanal = true;
     this.canal = 'sede';
     this.cap.cargar();
     if (key && key !== 'todas' && this.sedes.some(s => s.key === key)) {
       this.sedeFija = true;
       this.seleccionarSede(this.sedes.find(x => x.key === key)!);
     }
+  }
+
+  /** Cambia el canal manualmente (solo admin/supervisor) y reinicia el wizard. */
+  setCanalManual(c: 'sede' | 'realzza' | 'call'): void {
+    if (!this.elegirCanal || this.canal === c) return;
+    this.canal = c;
+    this.pasoIndex = 0;
+    this.error = '';
+    this.modelo = this.modeloVacio();
+    this.rz = this.rzVacio();
+    this.call = this.callVacio();
   }
 
   // ── Flujo de pasos (dinámico según respuestas) ──
@@ -454,7 +483,13 @@ export class RegistroGestionComponent implements OnInit {
     }
   }
 
+  /** Admin/supervisor: falta elegir el asesor a nombre de quien se registra (Call/Realzza). */
+  get faltaAsesor(): boolean {
+    return this.elegirCanal && this.canal !== 'sede' && !this.asesorActual;
+  }
+
   siguiente(): void {
+    if (this.faltaAsesor) { this.error = 'Selecciona el asesor.'; return; }
     if (!this.pasoValido()) { this.error = 'Completa este paso para continuar.'; return; }
     this.error = '';
     if (this.pasoIndex < this.pasos.length - 1) this.pasoIndex++;
@@ -466,6 +501,7 @@ export class RegistroGestionComponent implements OnInit {
 
   // ── Guardar ──
   async guardar(): Promise<void> {
+    if (this.faltaAsesor) { this.error = 'Selecciona el asesor.'; return; }
     if (this.canal === 'realzza') { this.guardarRealzza(); return; }
     if (this.canal === 'call') { this.guardarCall(); return; }
     this.guardando = true;
