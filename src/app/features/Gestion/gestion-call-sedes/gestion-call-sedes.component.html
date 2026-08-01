@@ -1,33 +1,25 @@
 
-<form class="form mt-2" [formGroup]="formGestion">
-    <!-- Selector de sede: solo admin general. El usuario de sede queda fijo (chip). -->
-    <dx-select-box *ngIf="esAdmin" style="width: 200px;" formControlName="sede" [items]="sedesDisponibles"
-        displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
-        stylingMode="underlined" (onValueChanged)="onSedeChange($event)" />
-
-    <dx-select-box style="width: 300px;" formControlName="asesor" [dataSource]="asesores"
-        label="Asesor" labelMode="floating" stylingMode="underlined"
-        [showClearButton]="true" placeholder="Todos los asesores"
-        (onValueChanged)="onAsesorChanged($event)" />
-
-    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
-        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"
-        [showClearButton]="true" />
-    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin"
-        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"
-        [showClearButton]="true" />
-
-    <button mat-flat-button (click)="filtrarPorFecha()">
-        <mat-icon>search</mat-icon>
-        Filtrar
-    </button>
-    <button mat-flat-button (click)="exportar()">
-        <mat-icon>file_download</mat-icon>
-        Exportar
-    </button>
-    <span class="sede-chip" *ngIf="!esAdmin">📍 {{ sedeNombre }}</span>
-    <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
-</form>
+<div class="gk-head">
+  <span class="gk-title"><mat-icon>call</mat-icon>
+    <div><b>Gestión Call Sedes</b><small>Call por sede{{ !esAdmin ? ' · 📍 ' + sedeNombre : '' }}</small></div>
+  </span>
+  <div class="gk-actions">
+    <form class="gk-filtros" [formGroup]="formGestion">
+      <dx-select-box *ngIf="esAdmin" width="170" formControlName="sede" [items]="sedesDisponibles"
+          displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
+          stylingMode="outlined" (onValueChanged)="onSedeChange($event)" />
+      <dx-select-box width="220" formControlName="asesor" [dataSource]="asesores"
+          label="Asesor" labelMode="floating" stylingMode="outlined"
+          [showClearButton]="true" placeholder="Todos" (onValueChanged)="onAsesorChanged($event)" />
+      <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [showClearButton]="true" />
+      <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [showClearButton]="true" />
+    </form>
+    <button class="gk-btn" (click)="filtrarPorFecha()"><mat-icon>refresh</mat-icon> Actualizar</button>
+    <button class="gk-btn excel" (click)="exportar()"><mat-icon>table_view</mat-icon> Excel</button>
+  </div>
+</div>
 
 <div class="grid-container">
     <div class="grid-overlay" *ngIf="isLoading">

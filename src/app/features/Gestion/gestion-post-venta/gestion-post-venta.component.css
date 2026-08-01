@@ -39,3 +39,16 @@
     z-index: 10;
     border-radius: 10px;
 }
+/* ── Header estilo Gestión KOMMO ── */
+.gk-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 6px 0 14px; }
+.gk-title { display: flex; align-items: center; gap: 11px; }
+.gk-title mat-icon { color: #1A5FAD; font-size: 28px; width: 28px; height: 28px; }
+.gk-title b { display: block; font-size: 15.5px; color: #1E3A5F; }
+.gk-title small { display: block; font-size: 12px; color: #7d93a8; }
+.gk-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gk-filtros { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
+.gk-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; background: #fff; color: #1A5FAD; font-weight: 700; font-size: 12.5px; padding: 7px 13px; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.gk-btn:hover { background: #eef5fc; }
+.gk-btn.excel { border-color: #1D7044; color: #1D7044; }
+.gk-btn.excel:hover { background: #e9f5ee; }
+.gk-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }

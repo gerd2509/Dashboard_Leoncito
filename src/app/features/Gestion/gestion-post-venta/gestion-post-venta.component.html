@@ -1,20 +1,19 @@
 
-<form class="form mt-2" [formGroup]="formGestion">
-    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
-        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
-        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-    <button mat-flat-button (click)="filtrarPorFecha()">
-        <mat-icon>search</mat-icon>
-        Actualizar
-    </button>
-    <button mat-flat-button (click)="exportar()">
-        <mat-icon>file_download</mat-icon>
-        Exportar
-    </button>
-</form>
+<div class="gk-head">
+  <span class="gk-title"><mat-icon>support_agent</mat-icon>
+    <div><b>Gestión Post Venta</b><small>Seguimiento post venta</small></div>
+  </span>
+  <div class="gk-actions">
+    <form class="gk-filtros" [formGroup]="formGestion">
+      <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+    </form>
+    <button class="gk-btn" (click)="filtrarPorFecha()"><mat-icon>refresh</mat-icon> Actualizar</button>
+    <button class="gk-btn excel" (click)="exportar()"><mat-icon>table_view</mat-icon> Excel</button>
+  </div>
+</div>
 
 <div class="grid-container">
     <!-- Spinner superpuesto -->
