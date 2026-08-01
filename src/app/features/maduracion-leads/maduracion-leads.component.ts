@@ -2,7 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
-import { forkJoin, of } from 'rxjs';
+import { forkJoin, of, lastValueFrom } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SheetsService } from '../../services/service-google.service';
@@ -106,47 +106,33 @@ export class MaduracionLeadsComponent implements OnInit {
     const anios: number[] = [];
     for (let y = desde.getFullYear(); y <= hasta.getFullYear(); y++) anios.push(y);
 
-    // Ventas de cada año del rango (merge) + gestión KOMMO (todo) + leads por mes.
+    // Ventas de cada año del rango (merge) + leads por mes/día. El cruce con los
+    // leads KOMMO YA NO descarga toda la hoja: se hace por DNI en SQL (lead-match).
     const ventas$ = anios.map(a => this.ventasSvc.obtenerVentasCanal(this.canal, { anio: a }).pipe(catchError(() => of([]))));
     forkJoin({
       ventas: forkJoin(ventas$.length ? ventas$ : [of([])]),
-      kommo: this.sheets.getSheetKOMMO().pipe(catchError(() => of([]))),
       leads: this.ventasSvc.obtenerLeadsPorMes(this.canal).pipe(catchError(() => of([]))),
       leadsDia: this.ventasSvc.obtenerLeadsPorDia(this.canal).pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ ventas, kommo, leads, leadsDia }) => {
+      next: ({ ventas, leads, leadsDia }) => {
         this.ventas = ([] as any[]).concat(...ventas);
-        this.kommo = kommo || [];
         this.leadsPorMes = leads || [];
         this.leadsPorDia = leadsDia || [];
-        this.recomputar();
-        this.cargando = false;
+        this.recomputar();   // async: hace el lead-match y apaga el spinner al terminar
       },
       error: () => { this.error = 'No se pudo cargar la información.'; this.cargando = false; },
     });
   }
 
   // ── Cálculo de la maduración ────────────────────────────────────────────────
-  private recomputar(): void {
+  private async recomputar(): Promise<void> {
+    this.cargando = true;
     const desde = this.form.value.desde as Date;
     const hasta = this.form.value.hasta as Date;
     const ymDesde = desde.getFullYear() * 12 + desde.getMonth();
     const ymHasta = hasta.getFullYear() * 12 + hasta.getMonth();
 
-    // Índice DNI → mes de ingreso del lead (FECHA DE LEAD ASIGNADO más antigua).
-    const dniCol = this.canal === 'call' ? 'DNI CLIENTE' : 'DNI CLIENTE REALZZA';
-    const mpCol = this.canal === 'call' ? 'MARKET PLACE L' : 'MARKET PLACE R';
     const soloMP = this.fuente === 'MARKETPLACE';
-    const idxLead = new Map<string, number>();   // dni → ym de ingreso (mínimo)
-    for (const r of this.kommo) {
-      const dni = this.dig(r[dniCol]);
-      if (!dni) continue;
-      if (soloMP && !this.esSi(r[mpCol])) continue;
-      const ym = this.ymDe(r['FECHA DE LEAD ASIGNADO']);
-      if (ym === null) continue;
-      const prev = idxLead.get(dni);
-      if (prev === undefined || ym < prev) idxLead.set(dni, ym);
-    }
 
     // Ventas del origen elegido (KOMMO o Market Place) dentro del rango.
     const filtroVenta = (v: any): boolean => {
@@ -156,6 +142,20 @@ export class MaduracionLeadsComponent implements OnInit {
       if (soloMP) return clave === 'MARKET PLACE';
       return clave === 'KOMMO' || clave === 'BD KOMMO LEONCITO' || clave === 'BBDD KOMMO';
     };
+
+    // Índice DNI → mes de ingreso del lead (FECHA DE LEAD ASIGNADO más antigua),
+    // calculado por DNI EN SQL (no se descarga toda la hoja KOMMO al navegador).
+    const canalDb: 'LEONCITO' | 'REALZZA' = this.canal === 'call' ? 'LEONCITO' : 'REALZZA';
+    const dnisSet = new Set<string>();
+    for (const v of this.ventas) {
+      if (!filtroVenta(v)) continue;
+      const dni = this.dig(v.doc_identidad) || this.dig(v.dni_txt);
+      if (dni) dnisSet.add(dni);
+    }
+    let idxLead: Record<string, number> = {};
+    try {
+      idxLead = await lastValueFrom(this.sheets.leadMatchKommo(canalDb, soloMP, [...dnisSet]));
+    } catch { idxLead = {}; }
 
     const mapa = new Map<number, FilaMes>();
     const detalle: VentaDetalle[] = [];
@@ -173,7 +173,7 @@ export class MaduracionLeadsComponent implements OnInit {
       fila.montoTotal += monto;
 
       const dni = this.dig(v.doc_identidad) || this.dig(v.dni_txt);
-      const ymLead = dni ? idxLead.get(dni) : undefined;
+      const ymLead = dni ? idxLead[dni] : undefined;
       let dif = 0;
       const tieneLead = ymLead !== undefined;
       if (tieneLead) { dif = Math.max(0, ymVenta - ymLead!); conLead++; sumaMeses += dif; }
@@ -235,6 +235,7 @@ export class MaduracionLeadsComponent implements OnInit {
 
     this.armarChart();
     this.armarLeadsDia();
+    this.cargando = false;
   }
 
   /** Serie de leads ingresados por DÍA dentro del rango (solo aplica a KOMMO). */

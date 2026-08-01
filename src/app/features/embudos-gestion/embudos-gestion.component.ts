@@ -185,7 +185,7 @@ export class EmbudosGestionComponent {
         lastValueFrom(this.modo === 'realzza'
           ? this.sheets.getSheetDataCampoRango({ desde, hasta })   // Google Form campo/realzza
           : this.sheets.getSheetDataCallRango({ desde, hasta })),  // Google Form call
-        lastValueFrom(this.sheets.getSheetKOMMO()),
+        lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes + 1, leadAnio: anio })),   // solo leads del mes (BD)
       ]);
     } catch {
       throw new Error('No se pudo cargar la gestión (revisa la conexión al servidor).');

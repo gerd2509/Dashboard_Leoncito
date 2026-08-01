@@ -43,11 +43,19 @@ export class SheetsService {
 
   // 🆕 Gestión KOMMO desde PostgreSQL (tabla gestion_kommo, en gestion-service).
   // ?shape=sheet devuelve las mismas cabeceras del sheet KOMMO → drop-in de getSheetKOMMO().
-  getGestionKommo(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+  getGestionKommo(rango?: { desde?: Date; hasta?: Date; leadMes?: number; leadAnio?: number }): Observable<any[]> {
     let params = new HttpParams().set('shape', 'sheet');
     if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    if (rango?.leadMes) params = params.set('leadMes', rango.leadMes);   // filtra por FECHA DE LEAD ASIGNADO (Embudos)
+    if (rango?.leadAnio) params = params.set('leadAnio', rango.leadAnio);
     return this.http.get<any[]>(`${environment.gestionBase || environment.apiBase}/gestion-kommo`, { params });
+  }
+
+  /** Cruce por DNI en SQL (Maduración): { <dni>: ym } con el lead más antiguo por DNI. */
+  leadMatchKommo(canal: 'LEONCITO' | 'REALZZA', soloMP: boolean, dnis: string[]): Observable<Record<string, number>> {
+    return this.http.post<Record<string, number>>(
+      `${environment.gestionBase || environment.apiBase}/gestion-kommo/lead-match`, { canal, soloMP, dnis });
   }
 
   // 🆕 Gestión Realzza desde PostgreSQL (reemplaza el Google Form de campo).
