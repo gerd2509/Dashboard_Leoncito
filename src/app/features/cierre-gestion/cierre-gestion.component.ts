@@ -252,14 +252,22 @@ export class CierreGestionComponent implements OnInit {
     });
   }
 
+  // Rango = mes de la fecha de gestión seleccionada (los cálculos filtran por
+  // marca_temporal del día/mes) → se traen solo las gestiones de ese mes, no todo.
+  private rangoMes(): { desde: Date; hasta: Date } {
+    const f: Date = this.formCierreGestion?.value?.fechaGestion || new Date();
+    return { desde: new Date(f.getFullYear(), f.getMonth(), 1), hasta: new Date(f.getFullYear(), f.getMonth() + 1, 0) };
+  }
+
   async ngOnInit() {
     this.isLoading = true;
     try {
+      const r = this.rangoMes();
       const [dataCall, dataRealzza, dataPost, dataKOMMO] = await Promise.all([
-        lastValueFrom(this.service.getSheetData()), // Google Form call
-        lastValueFrom(this.service.getSheetDataCampo()), // Google Form campo/realzza
+        lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
+        lastValueFrom(this.service.getSheetDataCampoRango(r)),  // BD gestion_realzza (mes)
         lastValueFrom(this.service.getSheetDataPostVenta()),
-        lastValueFrom(this.service.getSheetKOMMO())
+        lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
 
       this.dataOriginal = dataCall;
@@ -310,11 +318,12 @@ export class CierreGestionComponent implements OnInit {
   async actualizar() {
     this.isLoading = true;
     try {
+      const r = this.rangoMes();
       const [dataCall, dataRealzza, dataPost, dataKOMMO] = await Promise.all([
-        lastValueFrom(this.service.getSheetData()), // Google Form call
-        lastValueFrom(this.service.getSheetDataCampo()), // Google Form campo/realzza
+        lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
+        lastValueFrom(this.service.getSheetDataCampoRango(r)),  // BD gestion_realzza (mes)
         lastValueFrom(this.service.getSheetDataPostVenta()),
-        lastValueFrom(this.service.getSheetKOMMO())
+        lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
       this.dataOriginal = dataCall;
       this.dataRealzza = dataRealzza;
