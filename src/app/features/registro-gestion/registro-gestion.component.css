@@ -12,9 +12,7 @@
 }
 
 .rg-wrap {
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 16px 14px 100px;   /* espacio para la barra de navegación fija */
+  padding: 4px;   /* ancho completo, como el Registro KOMMO */
 }
 
 /* Encabezado */
