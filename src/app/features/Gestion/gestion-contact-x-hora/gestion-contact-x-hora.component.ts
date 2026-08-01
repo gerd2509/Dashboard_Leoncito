@@ -85,6 +85,7 @@ export class GestionContactXHoraComponent implements OnInit {
   }
 
   // ── Editar / eliminar registros del grid (persisten en la BD) ──
+
   onRowUpdated(e: any): void {
     const id = e?.key ?? e?.data?.id;
     if (!id) return;

@@ -36,7 +36,7 @@
     <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada"
         [allowColumnReordering]="true"
         [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-        (onCellPrepared)="onCellPrepared($event)"
+        (onCellPrepared)="onCellPrepared($event)" (onEditingStart)="onEditingStart($event)"
         [hoverStateEnabled]="true" [wordWrapEnabled]="true"
         [columnAutoWidth]="true" [selection]="{mode: 'single'}">
 

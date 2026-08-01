@@ -62,6 +62,18 @@ export class GestionKommoComponent implements OnInit {
     });
   }
 
+  /** Al editar: en el popup solo se muestran los campos que tienen valor en ese registro. */
+  onEditingStart(e: any): void {
+    const grid = e.component;
+    const data = e.data || {};
+    Object.keys(data).forEach(field => {
+      if (field === 'id') return;
+      const v = data[field];
+      const lleno = v !== null && v !== undefined && `${v}`.trim() !== '';
+      try { grid.columnOption(field, 'formItem.visible', lleno); } catch { /* columna no editable */ }
+    });
+  }
+
   onRowUpdating(e: any): void {
     const id = e.oldData?.id;
     if (!id) return;

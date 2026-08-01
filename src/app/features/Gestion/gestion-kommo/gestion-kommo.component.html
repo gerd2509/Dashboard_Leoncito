@@ -23,7 +23,7 @@
     <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
       [columnAutoWidth]="true" [hoverStateEnabled]="true" [height]="640"
       (onRowUpdating)="onRowUpdating($event)" (onRowRemoving)="onRowRemoving($event)"
-      (onCellPrepared)="onCellPrepared($event)">
+      (onEditingStart)="onEditingStart($event)" (onCellPrepared)="onCellPrepared($event)">
       <dxo-scrolling mode="virtual"></dxo-scrolling>
       <dxo-filter-row [visible]="true"></dxo-filter-row>
       <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar…"></dxo-search-panel>
