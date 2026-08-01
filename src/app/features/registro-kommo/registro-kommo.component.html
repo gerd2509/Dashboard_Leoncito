@@ -31,7 +31,8 @@
         </div>
         <div class="rk-field">
           <label>Fecha lead asignado</label>
-          <dx-text-box [(value)]="f.fecha_lead_asignado" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
+          <dx-date-box [(value)]="fechaLead" type="date" displayFormat="dd/MM/yyyy" [openOnFieldClick]="true"
+            [showClearButton]="true" stylingMode="outlined"></dx-date-box>
         </div>
 
         <div class="rk-field">
@@ -98,11 +99,13 @@
           </div>
           <div class="rk-field">
             <label>Fecha de interés</label>
-            <dx-text-box [(value)]="f.fecha_interes_agend" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
+            <dx-date-box [(value)]="fechaAgend" type="date" displayFormat="dd/MM/yyyy" [openOnFieldClick]="true"
+              [showClearButton]="true" stylingMode="outlined"></dx-date-box>
           </div>
           <div class="rk-field">
             <label>Hora aprox.</label>
-            <dx-text-box [(value)]="f.hora_interes_agend" placeholder="hh:mm" stylingMode="outlined"></dx-text-box>
+            <dx-date-box [(value)]="horaAgend" type="time" displayFormat="HH:mm" [openOnFieldClick]="true"
+              [showClearButton]="true" stylingMode="outlined"></dx-date-box>
           </div>
           <div class="rk-field rk-3">
             <label>Comentario adicional agendamiento</label>
@@ -114,11 +117,13 @@
         <ng-container *ngIf="muestraDeriv">
           <div class="rk-field">
             <label>Fecha de interés (derivación)</label>
-            <dx-text-box [(value)]="f.fecha_interes_deriv" placeholder="d/m/aaaa" stylingMode="outlined"></dx-text-box>
+            <dx-date-box [(value)]="fechaDeriv" type="date" displayFormat="dd/MM/yyyy" [openOnFieldClick]="true"
+              [showClearButton]="true" stylingMode="outlined"></dx-date-box>
           </div>
           <div class="rk-field">
             <label>Hora aprox. (derivación)</label>
-            <dx-text-box [(value)]="f.hora_interes_deriv" placeholder="hh:mm" stylingMode="outlined"></dx-text-box>
+            <dx-date-box [(value)]="horaDeriv" type="time" displayFormat="HH:mm" [openOnFieldClick]="true"
+              [showClearButton]="true" stylingMode="outlined"></dx-date-box>
           </div>
           <div class="rk-field rk-3">
             <label>Comentario adicional derivación</label>

@@ -92,6 +92,11 @@ export class RegistroKommoComponent implements OnInit {
   hoy = new Date();
   f: FormKommo = blankForm('LEONCITO');
 
+  // Pickers de fecha/hora (dx-date-box trabaja con Date; se convierten a string al registrar).
+  fechaLead: Date | null = null;
+  fechaAgend: Date | null = null; horaAgend: Date | null = null;
+  fechaDeriv: Date | null = null; horaDeriv: Date | null = null;
+
   ngOnInit(): void {
     this.canal = this.canalesPermitidos[0];
     this.resetForm();
@@ -105,7 +110,17 @@ export class RegistroKommoComponent implements OnInit {
     this.resetForm();
   }
 
-  private resetForm(): void { this.f = blankForm(this.canal); }
+  private resetForm(): void {
+    this.f = blankForm(this.canal);
+    this.fechaLead = this.fechaAgend = this.horaAgend = this.fechaDeriv = this.horaDeriv = null;
+  }
+
+  private fmtFecha(d: Date | null): string {
+    return d ? `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}` : '';
+  }
+  private fmtHora(d: Date | null): string {
+    return d ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
+  }
 
   soloNumeros(campo: 'dni_cliente' | 'celular_gestionado', max: number): void {
     this.f[campo] = (this.f[campo] ?? '').toString().replace(/\D/g, '').slice(0, max);
@@ -143,6 +158,12 @@ export class RegistroKommoComponent implements OnInit {
   registrar(): void {
     const errs = this.errores;
     if (errs.length) { this.toast(errs[0], true); return; }
+    // Fecha/hora de los pickers → strings del form (d/m/aaaa · HH:mm).
+    this.f.fecha_lead_asignado = this.fmtFecha(this.fechaLead);
+    this.f.fecha_interes_agend = this.fmtFecha(this.fechaAgend);
+    this.f.hora_interes_agend = this.fmtHora(this.horaAgend);
+    this.f.fecha_interes_deriv = this.fmtFecha(this.fechaDeriv);
+    this.f.hora_interes_deriv = this.fmtHora(this.horaDeriv);
     this.guardando = true;
     const payload: Partial<GestionKommo> = { ...(this.f as any), canal: this.canal, tienda: this.canal, registrado_por: this.registrador };
     this.srv.registrar(payload).subscribe({
