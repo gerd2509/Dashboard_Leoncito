@@ -125,3 +125,23 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml;utf8,<s
 .rg-asesor-sel { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; max-width: 420px; }
 .rg-asesor-sel label { font-size: 13px; font-weight: 700; color: #4a6a88; }
 .rg-asesor-sel label b { color: #C62828; }
+
+/* ── Formulario de una sola página (responsive) ── */
+.rg-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; margin-top: 8px; }
+.rg-sec { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(20,49,79,.04); }
+.rg-sec.full { grid-column: 1 / -1; }
+.rg-sec .preg:first-child { margin-top: 0; }
+.rg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rg-row.mt { margin-top: 10px; }
+.mt { margin-top: 10px; }
+
+/* Barra de acción fija abajo */
+.rg-actions { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end;
+  padding: 12px 4px; margin-top: 8px; background: #fff; border-top: 1px solid #e6edf5; box-shadow: 0 -4px 14px rgba(20,49,79,.06); }
+.rg-actions .btn.guardar { min-width: 200px; justify-content: center; }
+
+@media (max-width: 560px) {
+  .rg-form { grid-template-columns: 1fr; }
+  .rg-row { grid-template-columns: 1fr; }
+  .rg-actions .btn.guardar { width: 100%; }
+}

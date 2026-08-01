@@ -214,6 +214,15 @@ export class RegistroGestionComponent implements OnInit {
     const u = this.auth.getUsuario();
     const key = this.sedeCfg.normalizar(u?.sede ?? '');
 
+    // BRENDA: aunque su login sea Realzza, en gestión normal trabaja como Call
+    // (igual que su override en KOMMO / Mi Panel). Solo ella.
+    const ident = [(u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
+    if (ident.includes('BERNAL BAZAN BRENDA')) {
+      this.canal = 'call';
+      this.call.asesor = u?.nombre ?? '';
+      return;
+    }
+
     // Realzza → formulario de campo; el asesor sale del login (nombre del vendedor).
     if (key === 'realzza') {
       this.canal = 'realzza';
@@ -486,6 +495,87 @@ export class RegistroGestionComponent implements OnInit {
   /** Admin/supervisor: falta elegir el asesor a nombre de quien se registra (Call/Realzza). */
   get faltaAsesor(): boolean {
     return this.elegirCanal && this.canal !== 'sede' && !this.asesorActual;
+  }
+
+  // ══ Visibilidad de secciones (formulario de UNA PÁGINA) ══
+  // Sede
+  get sMotivoContacto(): boolean { return this.modelo.resultado === 'CONTACTO'; }
+  get sFormulario(): boolean { return MOTIVOS_CONTACTO_FORM.includes(this.modelo.motivo_contacto); }
+  get sDetalle(): boolean { return MOTIVOS_CONTACTO_DETALLE.includes(this.modelo.motivo_contacto); }
+  get sNoContacto(): boolean { return this.modelo.resultado === 'NO CONTACTO'; }
+  // Realzza
+  get rzNoCont(): boolean { return this.rz.estado_gestion === 'NO CONTACTO'; }
+  get rzCont(): boolean { return this.rz.estado_gestion === 'CONTACTO'; }
+  get rzInteres(): boolean { return this.rzCont && this.rz.resultado_gestion === 'INTERESADO'; }
+  get rzDeriv(): boolean { return this.rzInteres && this.rz.motivo_interes === 'VENTA DERIVADA PARA CIERRE A SEDE'; }
+  get rzAgend(): boolean { return this.rzInteres && this.rz.motivo_interes === 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)'; }
+  get rzNoConcret(): boolean { return this.rzInteres && this.rz.motivo_interes === 'VENTA NO CONCRETADA'; }
+  get rzNoInt(): boolean { return this.rzCont && this.rz.resultado_gestion === 'NO INTERESADO'; }
+  get rzNoAtend(): boolean { return this.rzCont && this.rz.resultado_gestion === 'NO ATENDIBLE'; }
+  get rzTerc(): boolean { return this.rzCont && this.rz.resultado_gestion === 'TERCERO RELACIONADO'; }
+  get rzTercAgenda(): boolean { return this.rzTerc && RZ_TERCERO_CON_AGENDA.includes(this.rz.motivos_tercero_relacionado); }
+  // Call
+  get cNoCont(): boolean { return this.call.estado_gestion === 'NO CONTACTO'; }
+  get cCont(): boolean { return this.call.estado_gestion === 'CONTACTO'; }
+  get cInteres(): boolean { return this.cCont && this.call.resultado_gestion === 'INTERESADO'; }
+  get cDeriv(): boolean { return this.cInteres && CALL_MOTIVO_DERIVACION.includes(this.call.motivo_interes); }
+  get cAgend(): boolean { return this.cInteres && this.call.motivo_interes === 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)'; }
+  get cNoConcret(): boolean { return this.cInteres && this.call.motivo_interes === 'VENTA NO CONCRETADA'; }
+  get cNoInt(): boolean { return this.cCont && this.call.resultado_gestion === 'NO INTERESADO'; }
+  get cNoAtend(): boolean { return this.cCont && this.call.resultado_gestion === 'NO ATENDIBLE'; }
+  get cTerc(): boolean { return this.cCont && this.call.resultado_gestion === 'TERCERO RELACIONADO'; }
+  get cTercAgenda(): boolean { return this.cTerc && RZ_TERCERO_CON_AGENDA.includes(this.call.motivos_tercero_relacionado); }
+
+  // Validación total del formulario de una página.
+  get formOk(): boolean {
+    if (this.faltaAsesor) return false;
+    const d8 = (v: string) => /^\d{8}$/.test(v || '');
+    const d9 = (v: string) => /^\d{9}$/.test(v || '');
+    const t = (v: any) => `${v ?? ''}`.trim().length > 0;
+    if (this.canal === 'realzza') {
+      const m = this.rz;
+      if (!d8(m.dni_cliente) || !d9(m.celular_gestionado) || !m.tipo_base || !m.estado_gestion) return false;
+      if (this.rzNoCont) return !!m.motivo_no_contacto;
+      if (!m.medio_primer_contacto || !m.resultado_gestion) return false;
+      if (this.rzInteres) {
+        if (!m.producto_interes || !m.motivo_interes) return false;
+        if (this.rzDeriv) return !!m.fecha_interes_derivacion && !!m.hora_interes_derivacion && t(m.comentario_derivacion);
+        if (this.rzAgend) return !!m.motivo_agendamiento && !!m.fecha_interes_agendamiento && !!m.hora_interes_agendamiento && t(m.comentario_agendamiento);
+        if (this.rzNoConcret) return !!m.motivo_no_cierre && t(m.comentario_venta_no_concretada);
+        return true;
+      }
+      if (this.rzNoInt) return !!m.motivo_no_interes && t(m.comentario_no_interes);
+      if (this.rzNoAtend) return !!m.motivo_no_atendible && t(m.comentario_no_atendible);
+      if (this.rzTerc) { if (!m.motivos_tercero_relacionado) return false; return this.rzTercAgenda ? (!!m.fecha_rellamada && !!m.hora_rellamada && d9(m.numero_titular_actual)) : true; }
+      return true;
+    }
+    if (this.canal === 'call') {
+      const m = this.call;
+      if (!d8(m.dni_cliente) || !d9(m.celular_gestionado) || !m.sede || !m.kommo || !m.tipo_cliente || !m.estado_gestion) return false;
+      if (this.cNoCont) return !!m.motivo_no_contacto;
+      if (!m.medio_primer_contacto || !m.resultado_gestion) return false;
+      if (this.cInteres) {
+        if (!m.producto_interes || !m.motivo_interes) return false;
+        if (this.cDeriv) return !!m.fecha_interes_derivacion && !!m.hora_interes_derivacion && t(m.comentario_derivacion);
+        if (this.cAgend) return !!m.motivo_agendamiento && !!m.fecha_interes_agendamiento && !!m.hora_interes_agendamiento && t(m.comentario_agendamiento);
+        if (this.cNoConcret) return !!m.motivo_no_cierre && t(m.comentario_venta_no_concretada);
+        return true;
+      }
+      if (this.cNoInt) return !!m.motivo_no_interes && t(m.comentario_no_interes);
+      if (this.cNoAtend) return !!m.motivo_no_atendible && t(m.comentario_no_atendible);
+      if (this.cTerc) { if (!m.motivos_tercero_relacionado) return false; return this.cTercAgenda ? (!!m.fecha_rellamada && !!m.hora_rellamada && d9(m.numero_titular_actual)) : true; }
+      return true;
+    }
+    const m = this.modelo;
+    if (!d8(m.dni_cliente) || !m.sede || !m.asesor || !m.tipo_gestion || !m.resultado) return false;
+    if (this.sNoContacto) return !!m.motivo_no_contacto;
+    if (this.sMotivoContacto) {
+      if (!m.motivo_contacto) return false;
+      if (this.sFormulario) return !!m.fecha_compromiso && t(m.valor_venta) && !!m.producto_interes;
+      if (this.sDetalle) return t(m.detalle_contacto) && d9(m.celular_actualizado);
+      return true;
+    }
+    return false;
   }
 
   siguiente(): void {
