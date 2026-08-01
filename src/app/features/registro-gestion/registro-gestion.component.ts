@@ -7,6 +7,7 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { RegistroGestionService, GestionPayload, GestionRealzzaPayload, GestionCallPayload } from '../../services/registro-gestion.service';
 import { ASESORES_CALL } from '../../shared/asesores';
+import { DX_COMMON_MODULES } from '../dx_common_modules';
 
 // Asesores para cuando un admin/supervisor registra a nombre de otro (no vendedor).
 const ASESORES_REALZZA_LISTA = [
@@ -145,7 +146,7 @@ interface Modelo {
 @Component({
   selector: 'app-registro-gestion',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule, ...DX_COMMON_MODULES],
   templateUrl: './registro-gestion.component.html',
   styleUrls: ['./registro-gestion.component.css'],
 })

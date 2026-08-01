@@ -13,27 +13,11 @@
     </div>
   </header>
 
-  <!-- ── Selector de canal + asesor (admin/supervisor que registra a nombre de otro) ── -->
-  <div class="rg-canal-sel" *ngIf="elegirCanal && !guardado">
-    <div class="rg-canal-btns">
-      <button [class.on]="canal === 'sede'" (click)="setCanalManual('sede')"><mat-icon>location_city</mat-icon> Sede</button>
-      <button [class.on]="canal === 'call'" (click)="setCanalManual('call')"><mat-icon>headset_mic</mat-icon> Call</button>
-      <button [class.on]="canal === 'realzza'" (click)="setCanalManual('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
-    </div>
-    <div class="rg-asesor-sel" *ngIf="canal === 'call'">
-      <label>Asesor Call <b>*</b></label>
-      <select class="inp" [(ngModel)]="call.asesor">
-        <option value="">Selecciona un asesor…</option>
-        <option *ngFor="let a of asesoresCall" [value]="a">{{ a }}</option>
-      </select>
-    </div>
-    <div class="rg-asesor-sel" *ngIf="canal === 'realzza'">
-      <label>Asesor Realzza <b>*</b></label>
-      <select class="inp" [(ngModel)]="rz.asesor">
-        <option value="">Selecciona un asesor…</option>
-        <option *ngFor="let a of asesoresRealzza" [value]="a">{{ a }}</option>
-      </select>
-    </div>
+  <!-- ── Selector de canal (admin/supervisor) ── -->
+  <div class="rg-canal" *ngIf="elegirCanal && !guardado">
+    <button [class.on]="canal === 'sede'" (click)="setCanalManual('sede')"><mat-icon>location_city</mat-icon> Sede</button>
+    <button [class.on]="canal === 'call'" (click)="setCanalManual('call')"><mat-icon>headset_mic</mat-icon> Call</button>
+    <button class="rz" [class.on]="canal === 'realzza'" (click)="setCanalManual('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
   </div>
 
   <!-- ── Pantalla de éxito ── -->
@@ -41,334 +25,220 @@
     <div class="ok-ico"><mat-icon>check_circle</mat-icon></div>
     <h3>¡Gestión registrada!</h3>
     <p>Se guardó correctamente.</p>
-    <button class="btn primary grande" (click)="registrarOtra()">
-      <mat-icon>add</mat-icon> Registrar otra
-    </button>
+    <button class="btn primary grande" (click)="registrarOtra()"><mat-icon>add</mat-icon> Registrar otra</button>
   </div>
 
-  <!-- ── Formulario (una sola página, responsive) ── -->
+  <!-- ── Formulario (una página, estilo KOMMO) ── -->
   <ng-container *ngIf="!guardado">
-    <div class="rg-form">
 
-      <!-- ══════════ SEDE ══════════ -->
-      <ng-container *ngIf="canal === 'sede'">
-        <div class="rg-sec">
-          <label class="preg">DNI CLIENTE <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="8"
-                 [ngModel]="modelo.dni_cliente" (ngModelChange)="modelo.dni_cliente = soloNum($event, 8)" placeholder="8 dígitos">
-          <p class="msg-err" *ngIf="dniInvalido()">El DNI debe tener <b>8 dígitos</b>.</p>
-        </div>
-        <div class="rg-sec" *ngIf="!sedeFija">
-          <label class="preg">TIENDA SEDE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let s of sedes" class="op" [class.sel]="modelo.sede === s.nombre" (click)="seleccionarSede(s)"><span class="radio"></span>{{ s.nombre }}</button>
-          </div>
-        </div>
-        <div class="rg-sec" *ngIf="modelo.sede">
-          <label class="preg">ASESOR — {{ modelo.sede }} <b>*</b></label>
-          <div *ngIf="cargandoAsesores" class="cargando"><span class="spin"></span> Cargando…</div>
-          <div class="opciones" *ngIf="!cargandoAsesores">
-            <button *ngFor="let a of asesores" class="op" [class.sel]="modelo.asesor === a" (click)="modelo.asesor = a"><span class="radio"></span>{{ a }}</button>
-            <p class="vacio" *ngIf="asesores.length === 0">No hay asesores activos en el CAP.</p>
-          </div>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">TIPO DE GESTIÓN <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let t of tipos" class="op" [class.sel]="modelo.tipo_gestion === t" (click)="modelo.tipo_gestion = t"><span class="radio"></span>{{ t }}</button>
-          </div>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">RESULTADO DE GESTIÓN <b>*</b></label>
-          <div class="opciones">
-            <button class="op" [class.sel]="modelo.resultado === 'CONTACTO'" (click)="modelo.resultado = 'CONTACTO'; onResultadoChange()"><span class="radio"></span>CONTACTO</button>
-            <button class="op" [class.sel]="modelo.resultado === 'NO CONTACTO'" (click)="modelo.resultado = 'NO CONTACTO'; onResultadoChange()"><span class="radio"></span>NO CONTACTO</button>
-          </div>
-        </div>
-        <div class="rg-sec" *ngIf="sMotivoContacto">
-          <label class="preg">MOTIVO "CONTACTO" <b>*</b></label>
-          <select class="inp" [(ngModel)]="modelo.motivo_contacto" (ngModelChange)="onMotivoContactoChange()">
-            <option value="" disabled>Elegir…</option>
-            <option *ngFor="let m of motivosContacto" [value]="m">{{ m }}</option>
-          </select>
-        </div>
-        <div class="rg-sec" *ngIf="sNoContacto">
-          <label class="preg">MOTIVO "NO CONTACTO" <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of motivosNoContacto" class="op" [class.sel]="modelo.motivo_no_contacto === m" (click)="modelo.motivo_no_contacto = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-        </div>
-        <div class="rg-sec full" *ngIf="sFormulario">
-          <div class="rg-row">
-            <div><label class="preg">FECHA COMPROMISO/VISITA <b>*</b></label><input class="inp" type="date" [(ngModel)]="modelo.fecha_compromiso"></div>
-            <div><label class="preg">VALOR DE LA VENTA <b>*</b></label><input class="inp" type="number" inputmode="decimal" [(ngModel)]="modelo.valor_venta" placeholder="S/ 0.00"></div>
-          </div>
-          <label class="preg mt">PRODUCTO DE INTERÉS <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let p of productos" class="op" [class.sel]="modelo.producto_interes === p" (click)="modelo.producto_interes = p"><span class="radio"></span>{{ p }}</button>
-          </div>
-        </div>
-        <div class="rg-sec full" *ngIf="sDetalle">
-          <label class="preg">DETALLE (COMENTARIO) <b>*</b></label>
-          <textarea class="inp area" rows="3" [(ngModel)]="modelo.detalle_contacto" placeholder="Escribe el comentario…"></textarea>
-          <label class="preg mt">N° CELULAR ACTUALIZADO <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="9" [ngModel]="modelo.celular_actualizado" (ngModelChange)="modelo.celular_actualizado = soloNum($event, 9)" placeholder="9 dígitos">
-          <p class="msg-err" *ngIf="celularInvalido()">El celular debe tener <b>9 dígitos</b>.</p>
-        </div>
+    <!-- ══════════ SEDE ══════════ -->
+    <div class="rg-grid" *ngIf="canal === 'sede'">
+      <div class="rg-field" *ngIf="!sedeFija">
+        <label>Sede *</label>
+        <dx-select-box [dataSource]="sedes" displayExpr="nombre" [value]="modelo.sede" [searchEnabled]="true"
+          (onSelectionChanged)="$event.selectedItem && seleccionarSede($event.selectedItem)" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field">
+        <label>Asesor *</label>
+        <dx-select-box [dataSource]="asesores" [(value)]="modelo.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
+          [placeholder]="cargandoAsesores ? 'Cargando…' : 'Selecciona…'" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field">
+        <label>DNI cliente *</label>
+        <dx-text-box [(value)]="modelo.dni_cliente" (onValueChanged)="modelo.dni_cliente = soloNum(modelo.dni_cliente, 8)" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box>
+      </div>
+      <div class="rg-field">
+        <label>Tipo de gestión *</label>
+        <dx-select-box [dataSource]="tipos" [(value)]="modelo.tipo_gestion" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field">
+        <label>Resultado *</label>
+        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="modelo.resultado" (onValueChanged)="onResultadoChange()" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field" *ngIf="sMotivoContacto">
+        <label>Motivo contacto *</label>
+        <dx-select-box [dataSource]="motivosContacto" [(value)]="modelo.motivo_contacto" (onValueChanged)="onMotivoContactoChange()" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field" *ngIf="sNoContacto">
+        <label>Motivo no contacto *</label>
+        <dx-select-box [dataSource]="motivosNoContacto" [(value)]="modelo.motivo_no_contacto" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+      </div>
+      <ng-container *ngIf="sFormulario">
+        <div class="rg-field"><label>Fecha compromiso/visita *</label>
+          <dx-date-box type="date" [(value)]="modelo.fecha_compromiso" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Valor de la venta *</label>
+          <dx-number-box [(value)]="$any(modelo).valor_venta" format="S/ #,##0.00" [min]="0" stylingMode="outlined"></dx-number-box></div>
+        <div class="rg-field rg-3"><label>Producto de interés *</label>
+          <dx-select-box [dataSource]="productos" [(value)]="modelo.producto_interes" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
       </ng-container>
-
-      <!-- ══════════ REALZZA ══════════ -->
-      <ng-container *ngIf="canal === 'realzza'">
-        <div class="rg-sec">
-          <label class="preg">DNI CLIENTE <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="8" [ngModel]="rz.dni_cliente" (ngModelChange)="rz.dni_cliente = soloNum($event, 8)" placeholder="8 dígitos">
-          <p class="msg-err" *ngIf="rzDniInvalido()">El DNI debe tener <b>8 dígitos</b>.</p>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">CELULAR GESTIONADO <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="9" [ngModel]="rz.celular_gestionado" (ngModelChange)="rz.celular_gestionado = soloNum($event, 9)" placeholder="9 dígitos">
-          <p class="msg-err" *ngIf="rzCelInvalido()">El celular debe tener <b>9 dígitos</b>.</p>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">TIPO DE BASE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let t of rzTipoBase" class="op" [class.sel]="rz.tipo_base === t" (click)="rz.tipo_base = t"><span class="radio"></span>{{ t }}</button>
-          </div>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">ESTADO DE GESTIÓN <b>*</b></label>
-          <div class="opciones">
-            <button class="op" [class.sel]="rz.estado_gestion === 'CONTACTO'" (click)="rz.estado_gestion = 'CONTACTO'; onRzEstadoChange()"><span class="radio"></span>CONTACTO</button>
-            <button class="op" [class.sel]="rz.estado_gestion === 'NO CONTACTO'" (click)="rz.estado_gestion = 'NO CONTACTO'; onRzEstadoChange()"><span class="radio"></span>NO CONTACTO</button>
-          </div>
-        </div>
-        <div class="rg-sec" *ngIf="rzNoCont">
-          <label class="preg">MOTIVO NO CONTACTO <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of rzMotivoNoContacto" class="op" [class.sel]="rz.motivo_no_contacto === m" (click)="rz.motivo_no_contacto = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-        </div>
-        <ng-container *ngIf="rzCont">
-          <div class="rg-sec">
-            <label class="preg">MEDIO DE PRIMER CONTACTO <b>*</b></label>
-            <div class="opciones">
-              <button *ngFor="let x of rzMedio" class="op" [class.sel]="rz.medio_primer_contacto === x" (click)="rz.medio_primer_contacto = x"><span class="radio"></span>{{ x }}</button>
-            </div>
-          </div>
-          <div class="rg-sec">
-            <label class="preg">RESULTADO DE GESTIÓN <b>*</b></label>
-            <div class="opciones">
-              <button *ngFor="let x of rzResultado" class="op" [class.sel]="rz.resultado_gestion === x" (click)="rz.resultado_gestion = x; onRzResultadoChange()"><span class="radio"></span>{{ x }}</button>
-            </div>
-          </div>
-        </ng-container>
-        <div class="rg-sec" *ngIf="rzInteres">
-          <label class="preg">PRODUCTO INTERÉS <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let p of rzProductos" class="op" [class.sel]="rz.producto_interes === p" (click)="rz.producto_interes = p"><span class="radio"></span>{{ p }}</button>
-          </div>
-          <label class="preg mt">MOTIVO INTERÉS <b>*</b></label>
-          <select class="inp" [(ngModel)]="rz.motivo_interes" (ngModelChange)="onRzMotivoInteresChange()">
-            <option value="" disabled>Elegir…</option>
-            <option *ngFor="let m of rzMotivoInteres" [value]="m">{{ m }}</option>
-          </select>
-        </div>
-        <div class="rg-sec full" *ngIf="rzDeriv">
-          <div class="rg-row">
-            <div><label class="preg">FECHA DERIVACIÓN <b>*</b></label><input class="inp" type="date" [(ngModel)]="rz.fecha_interes_derivacion"></div>
-            <div><label class="preg">HORA <b>*</b></label><input class="inp" type="time" [(ngModel)]="rz.hora_interes_derivacion"></div>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="rz.comentario_derivacion"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="rzAgend">
-          <label class="preg">MOTIVO AGENDAMIENTO <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of rzMotivoAgendamiento" class="op" [class.sel]="rz.motivo_agendamiento === m" (click)="rz.motivo_agendamiento = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <div class="rg-row mt">
-            <div><label class="preg">FECHA <b>*</b></label><input class="inp" type="date" [(ngModel)]="rz.fecha_interes_agendamiento"></div>
-            <div><label class="preg">HORA <b>*</b></label><input class="inp" type="time" [(ngModel)]="rz.hora_interes_agendamiento"></div>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="rz.comentario_agendamiento"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="rzNoConcret">
-          <label class="preg">MOTIVO DE NO CIERRE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of rzMotivoNoCierre" class="op" [class.sel]="rz.motivo_no_cierre === m" (click)="rz.motivo_no_cierre = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <label class="preg mt">COMENTARIO VENTA NO CONCRETADA <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="rz.comentario_venta_no_concretada"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="rzNoInt">
-          <label class="preg">MOTIVO NO INTERÉS <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of rzMotivoNoInteres" class="op" [class.sel]="rz.motivo_no_interes === m" (click)="rz.motivo_no_interes = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="rz.comentario_no_interes"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="rzNoAtend">
-          <label class="preg">MOTIVO NO ATENDIBLE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of rzMotivoNoAtendible" class="op" [class.sel]="rz.motivo_no_atendible === m" (click)="rz.motivo_no_atendible = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="rz.comentario_no_atendible"></textarea>
-        </div>
-        <div class="rg-sec" *ngIf="rzTerc">
-          <label class="preg">MOTIVOS TERCERO RELACIONADO <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of rzMotivosTercero" class="op" [class.sel]="rz.motivos_tercero_relacionado === m" (click)="rz.motivos_tercero_relacionado = m; onRzTerceroChange()"><span class="radio"></span>{{ m }}</button>
-          </div>
-        </div>
-        <div class="rg-sec full" *ngIf="rzTercAgenda">
-          <div class="rg-row">
-            <div><label class="preg">FECHA RE-LLAMADA <b>*</b></label><input class="inp" type="date" [(ngModel)]="rz.fecha_rellamada"></div>
-            <div><label class="preg">HORA RE-LLAMADA <b>*</b></label><input class="inp" type="time" [(ngModel)]="rz.hora_rellamada"></div>
-          </div>
-          <label class="preg mt">N° TITULAR ACTUAL <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="9" [ngModel]="rz.numero_titular_actual" (ngModelChange)="rz.numero_titular_actual = soloNum($event, 9)" placeholder="9 dígitos">
-          <p class="msg-err" *ngIf="rzTitularInvalido()">El número debe tener <b>9 dígitos</b>.</p>
-        </div>
+      <ng-container *ngIf="sDetalle">
+        <div class="rg-field rg-2"><label>Detalle (comentario) *</label>
+          <dx-text-area [(value)]="modelo.detalle_contacto" [height]="60" stylingMode="outlined"></dx-text-area></div>
+        <div class="rg-field"><label>Celular actualizado *</label>
+          <dx-text-box [(value)]="modelo.celular_actualizado" (onValueChanged)="modelo.celular_actualizado = soloNum(modelo.celular_actualizado, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
       </ng-container>
+    </div>
 
-      <!-- ══════════ CALL CENTER ══════════ -->
-      <ng-container *ngIf="canal === 'call'">
-        <div class="rg-sec">
-          <label class="preg">DNI CLIENTE <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="8" [ngModel]="call.dni_cliente" (ngModelChange)="call.dni_cliente = soloNum($event, 8)" placeholder="8 dígitos">
-          <p class="msg-err" *ngIf="callDniInvalido()">El DNI debe tener <b>8 dígitos</b>.</p>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">CELULAR GESTIONADO <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="9" [ngModel]="call.celular_gestionado" (ngModelChange)="call.celular_gestionado = soloNum($event, 9)" placeholder="9 dígitos">
-          <p class="msg-err" *ngIf="callCelInvalido()">El celular debe tener <b>9 dígitos</b>.</p>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">SEDE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let s of callSedes" class="op" [class.sel]="call.sede === s" (click)="call.sede = s"><span class="radio"></span>{{ s }}</button>
-          </div>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">KOMMO <b>*</b></label>
-          <div class="opciones">
-            <button class="op" [class.sel]="call.kommo === 'SI'" (click)="call.kommo = 'SI'"><span class="radio"></span>SI</button>
-            <button class="op" [class.sel]="call.kommo === 'NO'" (click)="call.kommo = 'NO'"><span class="radio"></span>NO</button>
-          </div>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">TIPO DE CLIENTE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let t of callTipoCliente" class="op" [class.sel]="call.tipo_cliente === t" (click)="call.tipo_cliente = t"><span class="radio"></span>{{ t }}</button>
-          </div>
-        </div>
-        <div class="rg-sec">
-          <label class="preg">ESTADO DE GESTIÓN <b>*</b></label>
-          <div class="opciones">
-            <button class="op" [class.sel]="call.estado_gestion === 'CONTACTO'" (click)="call.estado_gestion = 'CONTACTO'; onCallEstadoChange()"><span class="radio"></span>CONTACTO</button>
-            <button class="op" [class.sel]="call.estado_gestion === 'NO CONTACTO'" (click)="call.estado_gestion = 'NO CONTACTO'; onCallEstadoChange()"><span class="radio"></span>NO CONTACTO</button>
-          </div>
-        </div>
-        <div class="rg-sec" *ngIf="cNoCont">
-          <label class="preg">MOTIVO NO CONTACTO <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of callMotivoNoContacto" class="op" [class.sel]="call.motivo_no_contacto === m" (click)="call.motivo_no_contacto = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-        </div>
-        <ng-container *ngIf="cCont">
-          <div class="rg-sec">
-            <label class="preg">MEDIO DE PRIMER CONTACTO <b>*</b></label>
-            <div class="opciones">
-              <button *ngFor="let x of callMedio" class="op" [class.sel]="call.medio_primer_contacto === x" (click)="call.medio_primer_contacto = x"><span class="radio"></span>{{ x }}</button>
-            </div>
-          </div>
-          <div class="rg-sec">
-            <label class="preg">RESULTADO DE GESTIÓN <b>*</b></label>
-            <div class="opciones">
-              <button *ngFor="let x of callResultado" class="op" [class.sel]="call.resultado_gestion === x" (click)="call.resultado_gestion = x; onCallResultadoChange()"><span class="radio"></span>{{ x }}</button>
-            </div>
-          </div>
-        </ng-container>
-        <div class="rg-sec" *ngIf="cInteres">
-          <label class="preg">PRODUCTO INTERÉS <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let p of callProductos" class="op" [class.sel]="call.producto_interes === p" (click)="call.producto_interes = p"><span class="radio"></span>{{ p }}</button>
-          </div>
-          <label class="preg mt">MOTIVO INTERÉS <b>*</b></label>
-          <select class="inp" [(ngModel)]="call.motivo_interes" (ngModelChange)="onCallMotivoInteresChange()">
-            <option value="" disabled>Elegir…</option>
-            <option *ngFor="let m of callMotivoInteres" [value]="m">{{ m }}</option>
-          </select>
-        </div>
-        <div class="rg-sec full" *ngIf="cDeriv">
-          <div class="rg-row">
-            <div><label class="preg">FECHA DERIVACIÓN <b>*</b></label><input class="inp" type="date" [(ngModel)]="call.fecha_interes_derivacion"></div>
-            <div><label class="preg">HORA <b>*</b></label><input class="inp" type="time" [(ngModel)]="call.hora_interes_derivacion"></div>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="call.comentario_derivacion"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="cAgend">
-          <label class="preg">MOTIVO AGENDAMIENTO <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of callMotivoAgendamiento" class="op" [class.sel]="call.motivo_agendamiento === m" (click)="call.motivo_agendamiento = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <div class="rg-row mt">
-            <div><label class="preg">FECHA <b>*</b></label><input class="inp" type="date" [(ngModel)]="call.fecha_interes_agendamiento"></div>
-            <div><label class="preg">HORA <b>*</b></label><input class="inp" type="time" [(ngModel)]="call.hora_interes_agendamiento"></div>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="call.comentario_agendamiento"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="cNoConcret">
-          <label class="preg">MOTIVO DE NO CIERRE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of callMotivoNoCierre" class="op" [class.sel]="call.motivo_no_cierre === m" (click)="call.motivo_no_cierre = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <label class="preg mt">COMENTARIO VENTA NO CONCRETADA <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="call.comentario_venta_no_concretada"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="cNoInt">
-          <label class="preg">MOTIVO NO INTERÉS <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of callMotivoNoInteres" class="op" [class.sel]="call.motivo_no_interes === m" (click)="call.motivo_no_interes = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="call.comentario_no_interes"></textarea>
-        </div>
-        <div class="rg-sec full" *ngIf="cNoAtend">
-          <label class="preg">MOTIVO NO ATENDIBLE <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of callMotivoNoAtendible" class="op" [class.sel]="call.motivo_no_atendible === m" (click)="call.motivo_no_atendible = m"><span class="radio"></span>{{ m }}</button>
-          </div>
-          <label class="preg mt">COMENTARIO ADICIONAL <b>*</b></label>
-          <textarea class="inp area" rows="2" [(ngModel)]="call.comentario_no_atendible"></textarea>
-        </div>
-        <div class="rg-sec" *ngIf="cTerc">
-          <label class="preg">MOTIVOS TERCERO RELACIONADO <b>*</b></label>
-          <div class="opciones">
-            <button *ngFor="let m of callMotivosTercero" class="op" [class.sel]="call.motivos_tercero_relacionado === m" (click)="call.motivos_tercero_relacionado = m; onCallTerceroChange()"><span class="radio"></span>{{ m }}</button>
-          </div>
-        </div>
-        <div class="rg-sec full" *ngIf="cTercAgenda">
-          <div class="rg-row">
-            <div><label class="preg">FECHA RE-LLAMADA <b>*</b></label><input class="inp" type="date" [(ngModel)]="call.fecha_rellamada"></div>
-            <div><label class="preg">HORA RE-LLAMADA <b>*</b></label><input class="inp" type="time" [(ngModel)]="call.hora_rellamada"></div>
-          </div>
-          <label class="preg mt">N° TITULAR ACTUAL <b>*</b></label>
-          <input class="inp" type="tel" inputmode="numeric" maxlength="9" [ngModel]="call.numero_titular_actual" (ngModelChange)="call.numero_titular_actual = soloNum($event, 9)" placeholder="9 dígitos">
-          <p class="msg-err" *ngIf="callTitularInvalido()">El número debe tener <b>9 dígitos</b>.</p>
-        </div>
+    <!-- ══════════ REALZZA ══════════ -->
+    <div class="rg-grid" *ngIf="canal === 'realzza'">
+      <div class="rg-field rg-2">
+        <label>Asesor Realzza *</label>
+        <dx-select-box [dataSource]="asesoresRealzza" [(value)]="rz.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
+          [disabled]="!elegirCanal" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field"><label>DNI cliente *</label>
+        <dx-text-box [(value)]="rz.dni_cliente" (onValueChanged)="rz.dni_cliente = soloNum(rz.dni_cliente, 8)" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box></div>
+      <div class="rg-field"><label>Celular gestionado *</label>
+        <dx-text-box [(value)]="rz.celular_gestionado" (onValueChanged)="rz.celular_gestionado = soloNum(rz.celular_gestionado, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
+      <div class="rg-field"><label>Tipo de base *</label>
+        <dx-select-box [dataSource]="rzTipoBase" [(value)]="rz.tipo_base" stylingMode="outlined"></dx-select-box></div>
+      <div class="rg-field"><label>Estado de gestión *</label>
+        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="rz.estado_gestion" (onValueChanged)="onRzEstadoChange()" stylingMode="outlined"></dx-select-box></div>
+      <div class="rg-field" *ngIf="rzNoCont"><label>Motivo no contacto *</label>
+        <dx-select-box [dataSource]="rzMotivoNoContacto" [(value)]="rz.motivo_no_contacto" stylingMode="outlined"></dx-select-box></div>
+      <ng-container *ngIf="rzCont">
+        <div class="rg-field"><label>Medio primer contacto *</label>
+          <dx-select-box [dataSource]="rzMedio" [(value)]="rz.medio_primer_contacto" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field"><label>Resultado de gestión *</label>
+          <dx-select-box [dataSource]="rzResultado" [(value)]="rz.resultado_gestion" (onValueChanged)="onRzResultadoChange()" stylingMode="outlined"></dx-select-box></div>
       </ng-container>
+      <ng-container *ngIf="rzInteres">
+        <div class="rg-field"><label>Producto interés *</label>
+          <dx-select-box [dataSource]="rzProductos" [(value)]="rz.producto_interes" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Motivo interés *</label>
+          <dx-select-box [dataSource]="rzMotivoInteres" [(value)]="rz.motivo_interes" (onValueChanged)="onRzMotivoInteresChange()" stylingMode="outlined"></dx-select-box></div>
+      </ng-container>
+      <ng-container *ngIf="rzDeriv">
+        <div class="rg-field"><label>Fecha derivación *</label>
+          <dx-date-box type="date" [(value)]="rz.fecha_interes_derivacion" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Hora *</label>
+          <dx-date-box type="time" [(value)]="rz.hora_interes_derivacion" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Comentario *</label>
+          <dx-text-box [(value)]="rz.comentario_derivacion" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <ng-container *ngIf="rzAgend">
+        <div class="rg-field"><label>Motivo agendamiento *</label>
+          <dx-select-box [dataSource]="rzMotivoAgendamiento" [(value)]="rz.motivo_agendamiento" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field"><label>Fecha *</label>
+          <dx-date-box type="date" [(value)]="rz.fecha_interes_agendamiento" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Hora *</label>
+          <dx-date-box type="time" [(value)]="rz.hora_interes_agendamiento" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field rg-3"><label>Comentario *</label>
+          <dx-text-area [(value)]="rz.comentario_agendamiento" [height]="56" stylingMode="outlined"></dx-text-area></div>
+      </ng-container>
+      <ng-container *ngIf="rzNoConcret">
+        <div class="rg-field"><label>Motivo de no cierre *</label>
+          <dx-select-box [dataSource]="rzMotivoNoCierre" [(value)]="rz.motivo_no_cierre" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Comentario venta no concretada *</label>
+          <dx-text-box [(value)]="rz.comentario_venta_no_concretada" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <ng-container *ngIf="rzNoInt">
+        <div class="rg-field"><label>Motivo no interés *</label>
+          <dx-select-box [dataSource]="rzMotivoNoInteres" [(value)]="rz.motivo_no_interes" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Comentario *</label>
+          <dx-text-box [(value)]="rz.comentario_no_interes" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <ng-container *ngIf="rzNoAtend">
+        <div class="rg-field"><label>Motivo no atendible *</label>
+          <dx-select-box [dataSource]="rzMotivoNoAtendible" [(value)]="rz.motivo_no_atendible" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Comentario *</label>
+          <dx-text-box [(value)]="rz.comentario_no_atendible" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <div class="rg-field rg-2" *ngIf="rzTerc"><label>Motivos tercero relacionado *</label>
+        <dx-select-box [dataSource]="rzMotivosTercero" [(value)]="rz.motivos_tercero_relacionado" (onValueChanged)="onRzTerceroChange()" stylingMode="outlined"></dx-select-box></div>
+      <ng-container *ngIf="rzTercAgenda">
+        <div class="rg-field"><label>Fecha re-llamada *</label>
+          <dx-date-box type="date" [(value)]="rz.fecha_rellamada" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Hora re-llamada *</label>
+          <dx-date-box type="time" [(value)]="rz.hora_rellamada" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>N° titular actual *</label>
+          <dx-text-box [(value)]="rz.numero_titular_actual" (onValueChanged)="rz.numero_titular_actual = soloNum(rz.numero_titular_actual, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+    </div>
 
+    <!-- ══════════ CALL CENTER ══════════ -->
+    <div class="rg-grid" *ngIf="canal === 'call'">
+      <div class="rg-field rg-2">
+        <label>Asesor Call *</label>
+        <dx-select-box [dataSource]="asesoresCall" [(value)]="call.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
+          [disabled]="!elegirCanal" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field"><label>DNI cliente *</label>
+        <dx-text-box [(value)]="call.dni_cliente" (onValueChanged)="call.dni_cliente = soloNum(call.dni_cliente, 8)" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box></div>
+      <div class="rg-field"><label>Celular gestionado *</label>
+        <dx-text-box [(value)]="call.celular_gestionado" (onValueChanged)="call.celular_gestionado = soloNum(call.celular_gestionado, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
+      <div class="rg-field"><label>Sede *</label>
+        <dx-select-box [dataSource]="callSedes" [(value)]="call.sede" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
+      <div class="rg-field"><label>KOMMO *</label>
+        <dx-select-box [dataSource]="['SI','NO']" [(value)]="call.kommo" stylingMode="outlined"></dx-select-box></div>
+      <div class="rg-field"><label>Tipo de cliente *</label>
+        <dx-select-box [dataSource]="callTipoCliente" [(value)]="call.tipo_cliente" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
+      <div class="rg-field"><label>Estado de gestión *</label>
+        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="call.estado_gestion" (onValueChanged)="onCallEstadoChange()" stylingMode="outlined"></dx-select-box></div>
+      <div class="rg-field" *ngIf="cNoCont"><label>Motivo no contacto *</label>
+        <dx-select-box [dataSource]="callMotivoNoContacto" [(value)]="call.motivo_no_contacto" stylingMode="outlined"></dx-select-box></div>
+      <ng-container *ngIf="cCont">
+        <div class="rg-field"><label>Medio primer contacto *</label>
+          <dx-select-box [dataSource]="callMedio" [(value)]="call.medio_primer_contacto" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field"><label>Resultado de gestión *</label>
+          <dx-select-box [dataSource]="callResultado" [(value)]="call.resultado_gestion" (onValueChanged)="onCallResultadoChange()" stylingMode="outlined"></dx-select-box></div>
+      </ng-container>
+      <ng-container *ngIf="cInteres">
+        <div class="rg-field"><label>Producto interés *</label>
+          <dx-select-box [dataSource]="callProductos" [(value)]="call.producto_interes" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Motivo interés *</label>
+          <dx-select-box [dataSource]="callMotivoInteres" [(value)]="call.motivo_interes" (onValueChanged)="onCallMotivoInteresChange()" stylingMode="outlined"></dx-select-box></div>
+      </ng-container>
+      <ng-container *ngIf="cDeriv">
+        <div class="rg-field"><label>Fecha derivación *</label>
+          <dx-date-box type="date" [(value)]="call.fecha_interes_derivacion" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Hora *</label>
+          <dx-date-box type="time" [(value)]="call.hora_interes_derivacion" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Comentario *</label>
+          <dx-text-box [(value)]="call.comentario_derivacion" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <ng-container *ngIf="cAgend">
+        <div class="rg-field"><label>Motivo agendamiento *</label>
+          <dx-select-box [dataSource]="callMotivoAgendamiento" [(value)]="call.motivo_agendamiento" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field"><label>Fecha *</label>
+          <dx-date-box type="date" [(value)]="call.fecha_interes_agendamiento" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Hora *</label>
+          <dx-date-box type="time" [(value)]="call.hora_interes_agendamiento" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field rg-3"><label>Comentario *</label>
+          <dx-text-area [(value)]="call.comentario_agendamiento" [height]="56" stylingMode="outlined"></dx-text-area></div>
+      </ng-container>
+      <ng-container *ngIf="cNoConcret">
+        <div class="rg-field"><label>Motivo de no cierre *</label>
+          <dx-select-box [dataSource]="callMotivoNoCierre" [(value)]="call.motivo_no_cierre" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Comentario venta no concretada *</label>
+          <dx-text-box [(value)]="call.comentario_venta_no_concretada" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <ng-container *ngIf="cNoInt">
+        <div class="rg-field"><label>Motivo no interés *</label>
+          <dx-select-box [dataSource]="callMotivoNoInteres" [(value)]="call.motivo_no_interes" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Comentario *</label>
+          <dx-text-box [(value)]="call.comentario_no_interes" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <ng-container *ngIf="cNoAtend">
+        <div class="rg-field"><label>Motivo no atendible *</label>
+          <dx-select-box [dataSource]="callMotivoNoAtendible" [(value)]="call.motivo_no_atendible" stylingMode="outlined"></dx-select-box></div>
+        <div class="rg-field rg-2"><label>Comentario *</label>
+          <dx-text-box [(value)]="call.comentario_no_atendible" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
+      <div class="rg-field rg-2" *ngIf="cTerc"><label>Motivos tercero relacionado *</label>
+        <dx-select-box [dataSource]="callMotivosTercero" [(value)]="call.motivos_tercero_relacionado" (onValueChanged)="onCallTerceroChange()" stylingMode="outlined"></dx-select-box></div>
+      <ng-container *ngIf="cTercAgenda">
+        <div class="rg-field"><label>Fecha re-llamada *</label>
+          <dx-date-box type="date" [(value)]="call.fecha_rellamada" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>Hora re-llamada *</label>
+          <dx-date-box type="time" [(value)]="call.hora_rellamada" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+        <div class="rg-field"><label>N° titular actual *</label>
+          <dx-text-box [(value)]="call.numero_titular_actual" (onValueChanged)="call.numero_titular_actual = soloNum(call.numero_titular_actual, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
+      </ng-container>
     </div>
 
     <p class="rg-error" *ngIf="error">{{ error }}</p>
 
-    <!-- Acción fija -->
     <div class="rg-actions">
       <button class="btn guardar" (click)="guardar()" [disabled]="!formOk || guardando">
         <mat-icon>{{ guardando ? 'hourglass_top' : 'save' }}</mat-icon>
