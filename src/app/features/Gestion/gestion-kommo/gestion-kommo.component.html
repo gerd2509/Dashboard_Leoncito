@@ -19,7 +19,9 @@
   </div>
 
   <div class="gk-grid-wrap">
-    <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestiones…" icon="public"></app-loading-overlay>
+    <div class="grid-overlay" *ngIf="isLoading">
+      <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestiones…" icon="public"></app-loading-overlay>
+    </div>
     <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
       [columnAutoWidth]="true" [hoverStateEnabled]="true" [height]="640"
       (onRowUpdating)="onRowUpdating($event)" (onRowRemoving)="onRowRemoving($event)"

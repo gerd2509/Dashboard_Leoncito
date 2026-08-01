@@ -27,16 +27,21 @@
         <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión…" icon="headset_mic"></app-loading-overlay>
     </div>
 
-    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada"
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" keyExpr="id"
         [allowColumnReordering]="true"
         [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
         (onCellPrepared)="onCellPrepared($event)" (onEditingStart)="onEditingStart($event)"
+        (onRowUpdated)="onRowUpdated($event)" (onRowRemoving)="onRowRemoving($event)"
         [hoverStateEnabled]="true" [wordWrapEnabled]="true"
         [columnAutoWidth]="true" [selection]="{mode: 'single'}">
 
         <dxo-paging [pageSize]="10"></dxo-paging>
         <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
         <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+        <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true">
+          <dxo-popup title="Editar gestión Realzza" [showTitle]="true" [width]="720" [height]="'auto'"></dxo-popup>
+          <dxo-form [colCount]="2"></dxo-form>
+        </dxo-editing>
 
         <dxi-column dataField="id" [visible]="false" [allowEditing]="false" [showInColumnChooser]="false" [formItem]="{ visible: false }"></dxi-column>
         <dxi-column dataField="Marca temporal" caption="Marca temporal" [allowEditing]="false"></dxi-column>

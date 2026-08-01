@@ -23,4 +23,6 @@
 .gk-btn.excel:hover { background: #e9f5ee; }
 .gk-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-.gk-grid-wrap { position: relative; }
+.gk-grid-wrap { position: relative; min-height: 300px; }
+.grid-overlay { position: absolute; inset: 0; z-index: 10; display: grid; place-items: center;
+  background: rgba(238, 242, 248, .85); border-radius: 10px; }
