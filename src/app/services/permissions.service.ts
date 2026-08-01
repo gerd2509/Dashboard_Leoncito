@@ -66,6 +66,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',           grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-gestion',             label: 'Registro de Gestión',          grupo: 'Gestión', sedeScoped: true },
   { key: 'ventas',                       label: 'Ventas — Call Center',         grupo: 'Ventas' },
+  { key: 'atribucion-call',              label: 'Atribución Ventas Call',       grupo: 'Ventas' },
   { key: 'ventas-campo',                 label: 'Ventas — Realzza',             grupo: 'Ventas' },
   { key: 'ventas-comparativo',           label: 'Ventas — Comparativo',         grupo: 'Ventas' },
   { key: 'evolucion-tipo-cliente',       label: 'Ventas — Evolutivo',           grupo: 'Ventas' },
@@ -95,7 +96,7 @@ const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
-  'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo',
+  'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
@@ -120,7 +121,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v25';
+const STORAGE_KEY = 'gd_permissions_v26';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

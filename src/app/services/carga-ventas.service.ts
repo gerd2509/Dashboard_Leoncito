@@ -145,4 +145,21 @@ export class CargaVentasService {
     if (anio) params = params.set('anio', anio);
     return this.http.get<{ anio: number; mes: number; dia: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
+
+  // ── Atribución de Ventas Call (AsesorVenta por derivación) ──
+  /** Cruza ventas_call con la gestión de derivación y atribuye el CC automáticamente. */
+  cruzarDerivacionCall(anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number; sinDerivacion: number }> {
+    let params = new HttpParams();
+    if (anio) params = params.set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.post<{ success: boolean; actualizados: number; sinDerivacion: number }>(`${this.root}/ventas-call/cruzar`, {}, { params });
+  }
+  /** Ventas Call de un DNI + la sugerencia de derivación (para revisar/editar a mano). */
+  buscarVentaCall(dni: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.root}/ventas-call/buscar`, { params: new HttpParams().set('dni', dni) });
+  }
+  /** Fija el vendedor (CC) de una venta a mano (queda protegido del cruce). */
+  setVendedorVentaCall(codigo: number, vendedor: string): Observable<any> {
+    return this.http.put(`${this.root}/ventas-call/${codigo}`, { vendedor });
+  }
 }

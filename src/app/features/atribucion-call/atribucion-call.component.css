@@ -1,0 +1,42 @@
+:host { display: block; }
+.ac-wrap { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
+
+.ac-head { display: flex; align-items: center; gap: 11px; }
+.ac-head mat-icon { color: #1A5FAD; font-size: 30px; width: 30px; height: 30px; }
+.ac-head b { display: block; font-size: 16px; color: #1E3A5F; }
+.ac-head small { display: block; font-size: 12.5px; color: #7d93a8; }
+
+.ac-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 15px 17px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
+.ac-card-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 12px; }
+.ac-card-h mat-icon { color: #1A5FAD; }
+.ac-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.ac-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; background: #fff; color: #1A5FAD;
+  font-weight: 700; font-size: 13px; padding: 9px 15px; border-radius: 9px; cursor: pointer; transition: background .15s; }
+.ac-btn:hover:not(:disabled) { background: #eef5fc; }
+.ac-btn:disabled { opacity: .55; cursor: not-allowed; }
+.ac-btn.primary { background: linear-gradient(135deg, #14315a, #1A5FAD); color: #fff; border: 0; }
+.ac-btn.mini { padding: 7px 10px; }
+.ac-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+.ac-result { display: flex; gap: 10px; margin-top: 13px; }
+.ac-chip { border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+.ac-chip b { font-size: 15px; }
+.ac-chip.ok { background: #eafaf0; color: #2E7D32; }
+.ac-chip.warn { background: #fff6e5; color: #B26A00; }
+
+.ac-table-wrap { overflow-x: auto; margin-top: 14px; border: 1px solid #e2e9f3; border-radius: 10px; }
+.ac-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ac-table th, .ac-table td { padding: 8px 11px; text-align: center; border-bottom: 1px solid #eef2f8; white-space: nowrap; }
+.ac-table th { background: #293964; color: #fff; font-weight: 700; font-size: 11.5px; }
+.ac-table th.l, .ac-table td.l { text-align: left; }
+.ac-table tbody tr:nth-child(even) td { background: #f7fafd; }
+.ac-table td.mto { font-weight: 800; color: #0E1B33; }
+.ac-cc { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: #1A5FAD; }
+.ac-cc.manual { color: #B26A00; }
+.ac-cc mat-icon { font-size: 14px; width: 14px; height: 14px; }
+.ac-sug { display: inline-flex; align-items: center; gap: 3px; cursor: pointer; color: #2E7D32; font-weight: 800; background: #eafaf0; padding: 3px 9px; border-radius: 999px; }
+.ac-sug mat-icon { font-size: 15px; width: 15px; height: 15px; }
+.ac-nada { color: #90a4ae; font-style: italic; }
+.ac-asignar { display: inline-flex; align-items: center; gap: 6px; }
+.ac-vacio { color: #90a4ae; font-style: italic; margin: 12px 2px; }

@@ -38,6 +38,7 @@ import { ActividadRealzzaComponent } from "../features/actividad-realzza/activid
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
 import { RegistroKommoComponent } from "../features/registro-kommo/registro-kommo.component";
+import { AtribucionCallComponent } from "../features/atribucion-call/atribucion-call.component";
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
@@ -98,6 +99,7 @@ interface MenuItem {
     ComparativoCarteraVentasComponent,
     MaduracionLeadsComponent,
     RegistroKommoComponent,
+    AtribucionCallComponent,
     CargaVentasComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -151,6 +153,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'shopping_cart', label: 'Ventas',
       submenu: [
         { label: 'CALL CENTER',  icon: 'call',      modulo: 'ventas' },
+        { label: 'ATRIBUCIÓN CALL', icon: 'how_to_reg', modulo: 'atribucion-call' },
         { label: 'REALZZA',      icon: 'storefront', modulo: 'ventas-campo' },
         { label: 'SEDES',        icon: 'location_city', modulo: 'ventas-sedes' },
         { label: 'COMPARATIVO',  icon: 'balance',    modulo: 'ventas-comparativo' },
