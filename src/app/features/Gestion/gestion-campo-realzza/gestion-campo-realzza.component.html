@@ -1,25 +1,24 @@
 
-<form class="form mt-2" [formGroup]="formGestion">
-    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
-        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
-        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-    <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
-        valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
-        (onValueChanged)="onAsesorChanged($event)" />
-    <dx-check-box text="Derivación" [(value)]="filtroDerivacionActivo" [disabled]="!formGestion.valid"
-        (onValueChanged)="aplicarFiltros()" stylingMode="outlined" />
-    <button mat-flat-button (click)="filtrarPorFecha()">
-        <mat-icon>search</mat-icon>
-        Actualizar
-    </button>
-    <button mat-flat-button (click)="exportar()">
-        <mat-icon>file_download</mat-icon>
-        Exportar
-    </button>
-</form>
+<div class="gk-head">
+  <span class="gk-title"><mat-icon>storefront</mat-icon>
+    <div><b>Gestión Realzza</b><small>Desde base de datos · editable</small></div>
+  </span>
+  <div class="gk-actions">
+    <form class="gk-filtros" [formGroup]="formGestion">
+      <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <dx-select-box width="220" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
+          valueExpr="value" label="Asesor" labelMode="floating" stylingMode="outlined" placeholder=""
+          [showClearButton]="true" (onValueChanged)="onAsesorChanged($event)" />
+      <dx-check-box text="Derivación" [(value)]="filtroDerivacionActivo" [disabled]="!formGestion.valid"
+          (onValueChanged)="aplicarFiltros()" stylingMode="outlined" />
+    </form>
+    <button class="gk-btn" (click)="filtrarPorFecha()"><mat-icon>refresh</mat-icon> Actualizar</button>
+    <button class="gk-btn excel" (click)="exportar()"><mat-icon>table_view</mat-icon> Excel</button>
+  </div>
+</div>
 
 <div class="grid-container">
     <!-- Spinner superpuesto -->
