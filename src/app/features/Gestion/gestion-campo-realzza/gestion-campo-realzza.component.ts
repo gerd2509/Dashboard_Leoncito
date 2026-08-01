@@ -143,7 +143,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
   async cargasIniciales() {
     this.isLoading = true;
     try {
-      this.listData = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
+      this.listData = await lastValueFrom(this.service.getGestionRealzza()); // BD gestion_realzza (drop-in del sheet)
 
       // 🔹 Calculamos la columna dinámica desde el inicio
       this.listData = this.listData.map(item => ({
@@ -172,7 +172,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
         return;
       }
 
-      this.listData = await lastValueFrom(this.service.getSheetDataCampo()); // Google Form campo/realzza
+      this.listData = await lastValueFrom(this.service.getGestionRealzza()); // BD gestion_realzza (drop-in del sheet)
 
       // 🔹 Aplicamos la misma lógica de fecha dinámica al cargar nueva data
       this.listData = this.listData.map(item => ({

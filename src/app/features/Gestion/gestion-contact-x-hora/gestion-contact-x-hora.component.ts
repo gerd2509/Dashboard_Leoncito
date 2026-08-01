@@ -116,7 +116,7 @@ export class GestionContactXHoraComponent implements OnInit {
   async ngOnInit() {
     this.isLoading = true;
     try {
-      this.listData = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
+      this.listData = await lastValueFrom(this.service.getGestionCall()) /* BD gestion_call (drop-in del sheet) */;
       this.dataFiltrada = [...this.listData];
     } catch (error) {
       console.error('Error al cargar los datos:', error);
@@ -137,7 +137,7 @@ export class GestionContactXHoraComponent implements OnInit {
         return;
       }
 
-      this.listData = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
+      this.listData = await lastValueFrom(this.service.getGestionCall()) /* BD gestion_call (drop-in del sheet) */;
 
       const desde = new Date(fechaInicio);
       desde.setHours(0, 0, 0, 0);
