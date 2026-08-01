@@ -144,7 +144,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'REGISTRO KOMMO', icon: 'hub',        modulo: 'registro-kommo' },
         { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
         { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' },
-        { label: 'REGISTRO',    icon: 'assignment_turned_in', modulo: 'registro-gestion' }
+        { label: 'REGISTRO GESTIÓN', icon: 'assignment_turned_in', modulo: 'registro-gestion' }
       ]
     },
     {
