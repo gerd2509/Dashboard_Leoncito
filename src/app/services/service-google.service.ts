@@ -29,12 +29,25 @@ export class SheetsService {
 
   constructor(private http: HttpClient) { }
 
+  // Gestión Call/Realzza/KOMMO: TODA la gestión se lee ahora de la BD (tablas
+  // gestion_call/gestion_realzza/gestion_kommo), no del Google Sheet. Estos métodos
+  // quedan como alias que delegan en los de BD (mismas cabeceras → drop-in para
+  // los 11 consumidores: cierre, control-supervisor, maduración, mi-panel, etc.).
   getSheetData(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlCall);
+    return this.getGestionCall();
   }
 
   getSheetDataCampo(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlCampo);
+    return this.getGestionRealzza();
+  }
+
+  // 🆕 Gestión KOMMO desde PostgreSQL (tabla gestion_kommo, en gestion-service).
+  // ?shape=sheet devuelve las mismas cabeceras del sheet KOMMO → drop-in de getSheetKOMMO().
+  getGestionKommo(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    let params = new HttpParams().set('shape', 'sheet');
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any[]>(`${environment.gestionBase || environment.apiBase}/gestion-kommo`, { params });
   }
 
   // 🆕 Gestión Realzza desde PostgreSQL (reemplaza el Google Form de campo).
@@ -80,13 +93,13 @@ export class SheetsService {
 
   // Variantes con rango de fechas (mes) para no traer todo el histórico (usadas por Embudos).
   getSheetDataCallRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlCall, { params: this.rangoParams(rango) });
+    return this.getGestionCall(rango);
   }
   getSheetDataCampoRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlCampo, { params: this.rangoParams(rango) });
+    return this.getGestionRealzza(rango);
   }
   getSheetKOMMORango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlKOMMO, { params: this.rangoParams(rango) });
+    return this.getGestionKommo(rango);
   }
 
   private rangoParams(rango?: { desde?: Date; hasta?: Date }): HttpParams {
@@ -129,7 +142,7 @@ export class SheetsService {
   }
 
   getSheetKOMMO(): Observable<any[]> {
-    return this.http.get<any[]>(this.apiUrlKOMMO);
+    return this.getGestionKommo();
   }
 
   getSheetDataBySede(endpointKey: string): Observable<any[]> {
