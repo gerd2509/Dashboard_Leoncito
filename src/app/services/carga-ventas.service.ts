@@ -146,20 +146,45 @@ export class CargaVentasService {
     return this.http.get<{ anio: number; mes: number; dia: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
 
-  // ── Atribución de Ventas Call (AsesorVenta por derivación) ──
-  /** Cruza ventas_call con la gestión de derivación y atribuye el CC automáticamente. */
-  cruzarDerivacionCall(anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number; sinDerivacion: number }> {
+  // ── Atribución de Ventas (AsesorVenta por derivación en gestion_call) ──
+  /** Cruza la tabla `ventas` con la gestión de derivación y atribuye el CC (asesor_venta). */
+  cruzarDerivacionCall(anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number; total: number }> {
     let params = new HttpParams();
     if (anio) params = params.set('anio', anio);
     if (mes) params = params.set('mes', mes);
-    return this.http.post<{ success: boolean; actualizados: number; sinDerivacion: number }>(`${this.root}/ventas-call/cruzar`, {}, { params });
+    return this.http.post<{ success: boolean; actualizados: number; total: number }>(`${this.root}/ventas-call/cruzar`, {}, { params });
   }
-  /** Ventas Call de un DNI + la sugerencia de derivación (para revisar/editar a mano). */
-  buscarVentaCall(dni: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.root}/ventas-call/buscar`, { params: new HttpParams().set('dni', dni) });
+  /**
+   * Consolida (merge/upsert por IDVenta) las ventas atribuidas del mes desde `ventas`
+   * hacia `ventas_call` (histórico que consume el módulo Ventas Call).
+   */
+  consolidarVentasCall(anio?: number, mes?: number): Observable<{ success: boolean; total: number; insertados: number; actualizados: number }> {
+    let params = new HttpParams();
+    if (anio) params = params.set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.post<{ success: boolean; total: number; insertados: number; actualizados: number }>(`${this.root}/ventas-call/consolidar`, {}, { params });
   }
-  /** Fija el vendedor (CC) de una venta a mano (queda protegido del cruce). */
-  setVendedorVentaCall(codigo: number, vendedor: string): Observable<any> {
-    return this.http.put(`${this.root}/ventas-call/${codigo}`, { vendedor });
+  /** Lista TODAS las ventas Call del mes con su atribución (para la tabla de revisión). */
+  listarAtribucionCall(anio?: number, mes?: number): Observable<any[]> {
+    let params = new HttpParams();
+    if (anio) params = params.set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/ventas-call/atribucion`, { params });
+  }
+  /** Busca ese DNI en TODAS las afectaciones del mes + sugerencia de derivación (asignar a mano). */
+  buscarVentaCall(dni: string, anio?: number, mes?: number): Observable<any[]> {
+    let params = new HttpParams().set('dni', dni);
+    if (anio) params = params.set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/ventas-call/buscar`, { params });
+  }
+  /**
+   * Edita a mano la atribución de una venta (queda protegida del re-cruce). Solo se
+   * mandan los campos presentes: vendedor (AsesorVenta/CC), contacto, tipo_cliente, tipo_base.
+   */
+  guardarAtribucionVenta(codigo: number, datos: {
+    vendedor?: string; contacto?: string; tipo_cliente?: string; tipo_base?: string;
+  }): Observable<any> {
+    return this.http.put(`${this.root}/ventas-call/${codigo}`, datos);
   }
 }

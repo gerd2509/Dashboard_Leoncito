@@ -5,7 +5,10 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import * as XLSX from 'xlsx';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { ExcelExportService } from '../../services/excel/excel.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 
 @Component({
@@ -16,7 +19,9 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 })
 export class VentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
+  private ventasSvc = inject(CargaVentasService);
   importando = false;   // overlay animado mientras se procesa el Excel
+  cargandoBD = false;   // overlay mientras se trae la data de ventas_call (BD)
 
   formVentas: UntypedFormGroup;
 
@@ -210,6 +215,57 @@ export class VentasComponent implements OnInit {
 
   async ngOnInit() {
     this.configuracionesIniciales();
+    this.cargarDesdeBD();   // carga la data real de ventas_call al abrir el módulo
+  }
+
+  /**
+   * Trae las ventas Call desde la BD (tabla `ventas_call`, consolidada desde la
+   * Atribución) para el/los año(s) del rango, mapea al formato interno y aplica los
+   * filtros. Es lo que alimenta KPIs, gráficos y tablas — ya no depende del Excel.
+   */
+  cargarDesdeBD(): void {
+    if (!this.formVentas.valid) return;
+    const ini = new Date(this.formVentas.value.fechaInicio);
+    const fin = new Date(this.formVentas.value.fechaFin);
+    const anios = new Set<number>();
+    if (!isNaN(ini.getTime())) anios.add(ini.getFullYear());
+    if (!isNaN(fin.getTime())) anios.add(fin.getFullYear());
+    if (!anios.size) anios.add(new Date().getFullYear());
+
+    this.cargandoBD = true;
+    const reqs = Array.from(anios).map(a =>
+      this.ventasSvc.obtenerVentasCanal('call', { anio: a }).pipe(catchError(() => of([] as any[]))));
+    forkJoin(reqs).subscribe({
+      next: (resArrays) => {
+        const rows = ([] as any[]).concat(...resArrays);
+        this.dataVentas = rows.map(r => this.mapVentaCall(r));
+        this.cargandoBD = false;
+        this.actualizarFiltros();
+      },
+      error: () => { this.cargandoBD = false; this.actualizarFiltros(); },
+    });
+  }
+
+  /** Mapea una fila de ventas_call (snake_case) al formato interno del módulo. */
+  private mapVentaCall(r: any): any {
+    return {
+      IDVENTA:          r.codigo_cv,
+      // Fecha en hora LOCAL desde dia/mes/anio (evita el corrimiento por zona horaria de un DATE).
+      FECHAVENTA:       new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1),
+      Sede:             r.sede,
+      MontoConsolidado: this.parseNumber(r.monto_consolidado),
+      CuotaInicial:     this.parseNumber(r.cuota_inicial),
+      Productos:        r.productos,
+      Cuotas:           r.cuotas,
+      DocIdentidad:     r.doc_identidad,
+      TipoVenta:        r.tipo_credito,
+      TipoBase:         r.tipo_base,
+      TipoCliente:      r.tipo_cliente,
+      AsesorVenta:      r.vendedor,
+      EstadoVenta:      r.estado_venta,
+      Entidad:          r.entidad,
+      CONTACTO:         r.contacto,
+    };
   }
 
   configuracionesIniciales(): void {
@@ -340,6 +396,8 @@ export class VentasComponent implements OnInit {
       const fv = new Date(v.FECHAVENTA);
       if (fv < fechaInicio || fv > fechaFin) return false;
       const asesor = (v.AsesorVenta || '').toString().trim().toUpperCase();
+      if (asesor === 'NAS') return false;                       // NAS no cuenta en Call
+      if ((this.parseNumber(v.MontoConsolidado) || 0) <= 0) return false;  // solo montos > 0
       if (selectedAsesor && asesor !== selectedAsesor) return false;
       if (selectedTipoProd === '1') return v.TipoProducto !== 'LEO' && v.TipoProducto !== 'DSK.';
       if (selectedTipoProd === '2') return v.TipoProducto === 'LEO' || v.TipoProducto === 'DSK.';

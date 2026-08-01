@@ -1,5 +1,7 @@
 <app-loading-overlay [visible]="importando" mensaje="Procesando Excel de Ventas Call…"
   submensaje="Ordenando ventas por asesor…" icon="insert_chart"></app-loading-overlay>
+<app-loading-overlay [visible]="cargandoBD" mensaje="Cargando ventas Call…"
+  submensaje="Trayendo la data consolidada de la base…" icon="cloud_download"></app-loading-overlay>
 
 <div class="vd-shell">
 <div class="vd-fixed">
@@ -21,7 +23,7 @@
         displayExpr="HeaderName" valueExpr="HeaderField" placeholder="Columnas" label="Columnas"
         labelMode="floating" stylingMode="underlined" [showSelectionControls]="true"
         (onValueChanged)="onColumnsChange()" [showDropDownButton]="true" [maxDisplayedTags]="0" />
-    <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
+    <button mat-flat-button [disabled]="formVentas.invalid || cargandoBD" (click)="cargarDesdeBD()">
         <mat-icon>search</mat-icon> Actualizar
     </button>
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
