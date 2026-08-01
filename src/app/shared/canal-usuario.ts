@@ -11,6 +11,10 @@ export type Canal = 'LEONCITO' | 'REALZZA';
 export function canalDeUsuario(u: any): '' | Canal {
   const rol = (u?.rol || '').toString().toLowerCase();
   if (rol === 'admin') return '';
+  // Caso especial BRENDA: sus VENTAS son Realzza, pero en KOMMO/gestión trabaja
+  // como Leoncito (Call) — igual que su override de gestiones en Mi Panel. Solo ella.
+  const ident = [(u?.usuario || ''), (u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
+  if (ident.includes('BERNAL BAZAN BRENDA') || ident.includes('CC_BRENDA')) return 'LEONCITO';
   const campos = [rol, (u?.canal || ''), (u?.sede || '')].join(' ').toLowerCase();
   if (campos.includes('realzza')) return 'REALZZA';
   return 'LEONCITO';
