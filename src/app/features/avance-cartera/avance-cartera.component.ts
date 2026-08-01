@@ -303,11 +303,13 @@ export class AvanceCarteraComponent implements OnInit {
   /** Gestión Call/Realzza → índice por DNI y por teléfono del mes seleccionado. */
   private async cargarGestion(): Promise<IndiceGestion> {
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
+    // Solo el mes seleccionado (la BD filtra por marca_temporal) → payload mínimo.
+    const desde = new Date(anio, mes, 1), hasta = new Date(anio, mes + 1, 0);
     let data: any[] = [];
     try {
       data = this.modo === 'realzza'
-        ? await lastValueFrom(this.sheets.getSheetDataCampo())   // Google Form (campo/realzza)
-        : await lastValueFrom(this.sheets.getSheetData());       // Google Form (call)
+        ? await lastValueFrom(this.sheets.getSheetDataCampoRango({ desde, hasta }))   // BD gestion_realzza (mes)
+        : await lastValueFrom(this.sheets.getSheetDataCallRango({ desde, hasta }));    // BD gestion_call (mes)
     } catch {
       throw new Error('No se pudo cargar la gestión (revisa la conexión al servidor).');
     }
