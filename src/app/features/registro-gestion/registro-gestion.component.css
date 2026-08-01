@@ -167,3 +167,9 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml;utf8,<s
   .rg-grid { grid-template-columns: 1fr; }
   .rg-field.rg-2, .rg-field.rg-3 { grid-column: span 1; }
 }
+
+/* Input de hora nativo, estilizado como los dx-box */
+.rg-time { height: 36px; width: 100%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px;
+  padding: 0 10px; font: inherit; font-size: 14px; color: #333; background: #fff; }
+.rg-time:hover { border-color: #999; }
+.rg-time:focus { border-color: #1A5FAD; outline: none; }

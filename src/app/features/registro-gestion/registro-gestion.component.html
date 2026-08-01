@@ -112,7 +112,7 @@
         <div class="rg-field"><label>Fecha derivación *</label>
           <dx-date-box type="date" [(value)]="rz.fecha_interes_derivacion" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
         <div class="rg-field"><label>Hora *</label>
-          <dx-date-box type="time" [(value)]="rz.hora_interes_derivacion" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+          <input class="rg-time" type="time" [(ngModel)]="rz.hora_interes_derivacion"></div>
         <div class="rg-field"><label>Comentario *</label>
           <dx-text-box [(value)]="rz.comentario_derivacion" stylingMode="outlined"></dx-text-box></div>
       </ng-container>
@@ -122,7 +122,7 @@
         <div class="rg-field"><label>Fecha *</label>
           <dx-date-box type="date" [(value)]="rz.fecha_interes_agendamiento" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
         <div class="rg-field"><label>Hora *</label>
-          <dx-date-box type="time" [(value)]="rz.hora_interes_agendamiento" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+          <input class="rg-time" type="time" [(ngModel)]="rz.hora_interes_agendamiento"></div>
         <div class="rg-field rg-3"><label>Comentario *</label>
           <dx-text-area [(value)]="rz.comentario_agendamiento" [height]="56" stylingMode="outlined"></dx-text-area></div>
       </ng-container>
@@ -150,7 +150,7 @@
         <div class="rg-field"><label>Fecha re-llamada *</label>
           <dx-date-box type="date" [(value)]="rz.fecha_rellamada" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
         <div class="rg-field"><label>Hora re-llamada *</label>
-          <dx-date-box type="time" [(value)]="rz.hora_rellamada" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+          <input class="rg-time" type="time" [(ngModel)]="rz.hora_rellamada"></div>
         <div class="rg-field"><label>N° titular actual *</label>
           <dx-text-box [(value)]="rz.numero_titular_actual" (onValueChanged)="rz.numero_titular_actual = soloNum(rz.numero_titular_actual, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
       </ng-container>
@@ -193,7 +193,7 @@
         <div class="rg-field"><label>Fecha derivación *</label>
           <dx-date-box type="date" [(value)]="call.fecha_interes_derivacion" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
         <div class="rg-field"><label>Hora *</label>
-          <dx-date-box type="time" [(value)]="call.hora_interes_derivacion" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+          <input class="rg-time" type="time" [(ngModel)]="call.hora_interes_derivacion"></div>
         <div class="rg-field"><label>Comentario *</label>
           <dx-text-box [(value)]="call.comentario_derivacion" stylingMode="outlined"></dx-text-box></div>
       </ng-container>
@@ -203,7 +203,7 @@
         <div class="rg-field"><label>Fecha *</label>
           <dx-date-box type="date" [(value)]="call.fecha_interes_agendamiento" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
         <div class="rg-field"><label>Hora *</label>
-          <dx-date-box type="time" [(value)]="call.hora_interes_agendamiento" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+          <input class="rg-time" type="time" [(ngModel)]="call.hora_interes_agendamiento"></div>
         <div class="rg-field rg-3"><label>Comentario *</label>
           <dx-text-area [(value)]="call.comentario_agendamiento" [height]="56" stylingMode="outlined"></dx-text-area></div>
       </ng-container>
@@ -231,7 +231,7 @@
         <div class="rg-field"><label>Fecha re-llamada *</label>
           <dx-date-box type="date" [(value)]="call.fecha_rellamada" displayFormat="dd/MM/yyyy" dateSerializationFormat="yyyy-MM-dd" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
         <div class="rg-field"><label>Hora re-llamada *</label>
-          <dx-date-box type="time" [(value)]="call.hora_rellamada" displayFormat="HH:mm" dateSerializationFormat="HH:mm" [openOnFieldClick]="true" stylingMode="outlined"></dx-date-box></div>
+          <input class="rg-time" type="time" [(ngModel)]="call.hora_rellamada"></div>
         <div class="rg-field"><label>N° titular actual *</label>
           <dx-text-box [(value)]="call.numero_titular_actual" (onValueChanged)="call.numero_titular_actual = soloNum(call.numero_titular_actual, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
       </ng-container>
