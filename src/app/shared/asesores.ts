@@ -13,6 +13,7 @@ export const ASESORES_CALL: AsesorRef[] = [
   { value: 'CC15', nombre: 'TORRES ALVARADO JUDY ESMERALDA' },
   { value: 'CC21', nombre: 'CHANAME SOTO ANITA NOEMI' },
   { value: 'CC22', nombre: 'BERNAL BAZAN FABRICIO ROLANDO' },
+  { value: 'CC26', nombre: 'RUIZ SAMPEN LUCRECIA NOEMI' },
 ];
 
 export const ASESORES_REALZZA: AsesorRef[] = [
