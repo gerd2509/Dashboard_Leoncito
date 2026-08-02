@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { GestionKommoService, GestionKommo } from '../../services/gestion-kommo.service';
 import { ASESORES_CALL } from '../../shared/asesores';
-import { canalDeUsuario, Canal } from '../../shared/canal-usuario';
+import { canalDeUsuario, asesorGestion, Canal } from '../../shared/canal-usuario';
 
 // Modelo del formulario (todos string para el binding de DevExtreme).
 interface FormKommo {
@@ -87,6 +87,11 @@ export class RegistroKommoComponent implements OnInit {
   get puedeElegirCanal(): boolean { return this.scope === ''; }
   get canalesPermitidos(): Canal[] { return this.scope ? [this.scope] : ['LEONCITO', 'REALZZA']; }
 
+  // Si el usuario es un vendedor (no admin), su asesor es fijo (predeterminado del
+  // login) y no se elige. El admin sí lo elige del combo.
+  get esVendedor(): boolean { return this.scope !== ''; }
+  readonly asesorFijo = this.esVendedor ? asesorGestion(this.auth.getUsuario()) : '';
+
   canal: Canal = 'LEONCITO';
   guardando = false;
   hoy = new Date();
@@ -112,6 +117,7 @@ export class RegistroKommoComponent implements OnInit {
 
   private resetForm(): void {
     this.f = blankForm(this.canal);
+    this.f.asesor = this.asesorFijo;   // vendedor → asesor predeterminado; admin → vacío (lo elige)
     this.fechaLead = this.fechaAgend = this.horaAgend = this.fechaDeriv = this.horaDeriv = null;
   }
 

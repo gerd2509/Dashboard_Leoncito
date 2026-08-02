@@ -22,7 +22,8 @@
         <div class="rk-field rk-2">
           <label>Asesor *</label>
           <dx-select-box [dataSource]="asesores" [(value)]="f.asesor" [searchEnabled]="true"
-            [acceptCustomValue]="true" placeholder="Selecciona o escribe" stylingMode="outlined"></dx-select-box>
+            [acceptCustomValue]="true" [disabled]="esVendedor" placeholder="Selecciona o escribe"
+            stylingMode="outlined"></dx-select-box>
         </div>
         <div class="rk-field">
           <label>Sede</label>

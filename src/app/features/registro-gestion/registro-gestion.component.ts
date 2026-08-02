@@ -7,6 +7,7 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { RegistroGestionService, GestionPayload, GestionRealzzaPayload, GestionCallPayload } from '../../services/registro-gestion.service';
 import { ASESORES_CALL } from '../../shared/asesores';
+import { asesorGestion } from '../../shared/canal-usuario';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 
 // Asesores para cuando un admin/supervisor registra a nombre de otro (no vendedor).
@@ -214,32 +215,42 @@ export class RegistroGestionComponent implements OnInit {
     this.sedes = this.sedeCfg.getSedesParaCombo().sort((a, b) => a.nombre.localeCompare(b.nombre));
     const u = this.auth.getUsuario();
     const key = this.sedeCfg.normalizar(u?.sede ?? '');
+    const rol = (u?.rol || '').toString().toLowerCase();
+    const canalU = (u?.canal || '').toString().toLowerCase();
 
-    // BRENDA: aunque su login sea Realzza, en gestión normal trabaja como Call
-    // (igual que su override en KOMMO / Mi Panel). Solo ella.
+    // El asesor de la gestión SIEMPRE sale del login (nombre canónico = vendedor,
+    // con override de Brenda), no de `u.nombre` (que puede diferir/tener typos y por
+    // eso Mi Panel no encontraba las gestiones de Brenda/Aurora).
+    const asesor = asesorGestion(u);
+
+    // El canal del vendedor se detecta por su `canal` (o sede) — igual que en KOMMO —,
+    // no solo por la sede (p.ej. KAREN es Call con sede 'todas'). El admin sí elige.
     const ident = [(u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
-    if (ident.includes('BERNAL BAZAN BRENDA')) {
-      this.canal = 'call';
-      this.call.asesor = u?.nombre ?? '';
-      return;
+    if (rol !== 'admin') {
+      // BRENDA: aunque su login sea Realzza, en gestión normal trabaja como Call
+      // (igual que su override en KOMMO / Mi Panel). Solo ella.
+      if (ident.includes('BERNAL BAZAN BRENDA')) {
+        this.canal = 'call';
+        this.call.asesor = asesor;
+        return;
+      }
+      // Realzza → solo formulario Realzza; el asesor sale del login (vendedor).
+      if (canalU === 'realzza' || key === 'realzza') {
+        this.canal = 'realzza';
+        this.rz.asesor = asesor;
+        return;
+      }
+      // Call Center → solo formulario Call; el asesor sale del login.
+      if (canalU === 'call' || key === 'call') {
+        this.canal = 'call';
+        this.call.asesor = asesor;
+        return;
+      }
     }
 
-    // Realzza → formulario de campo; el asesor sale del login (nombre del vendedor).
-    if (key === 'realzza') {
-      this.canal = 'realzza';
-      this.rz.asesor = u?.nombre ?? '';
-      return;
-    }
-    // Call Center → formulario de call; el asesor sale del login.
-    if (key === 'call') {
-      this.canal = 'call';
-      this.call.asesor = u?.nombre ?? '';
-      return;
-    }
-
-    // Piso/Sedes (comportamiento actual): asesores del CAP; sede del login si es concreta.
-    // Además, como no es un vendedor Call/Realzza, puede ELEGIR el canal (Sede/Call/
-    // Realzza) y registrar a nombre de un asesor (para admin/supervisor).
+    // Admin/supervisor (o vendedor de sede sin canal Call/Realzza): asesores del CAP;
+    // sede del login si es concreta. Puede ELEGIR el canal (Sede/Call/Realzza) y
+    // registrar a nombre de un asesor.
     this.elegirCanal = true;
     this.canal = 'sede';
     this.cap.cargar();

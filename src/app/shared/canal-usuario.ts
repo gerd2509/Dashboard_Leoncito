@@ -19,3 +19,16 @@ export function canalDeUsuario(u: any): '' | Canal {
   if (campos.includes('realzza')) return 'REALZZA';
   return 'LEONCITO';
 }
+
+/**
+ * Nombre CANÓNICO del asesor para las GESTIONES: es el que guardan los registros
+ * (Call/Realzza/KOMMO) y por el que Mi Panel filtra. Usa `vendedor` (identidad
+ * estable) y NO `nombre` (que puede tener typos/variantes, p.ej. "Aurora Guilllen").
+ * BRENDA se normaliza a la ortografía del Call ("...NICOL") para que empate con su
+ * override en Mi Panel y con la data histórica. Solo ella.
+ */
+export function asesorGestion(u: any): string {
+  const v = (u?.vendedor || u?.nombre || '').toString().trim();
+  if (v.toUpperCase().includes('BERNAL BAZAN BRENDA')) return 'BERNAL BAZAN BRENDA NICOL';
+  return v;
+}
