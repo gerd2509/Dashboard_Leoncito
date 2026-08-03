@@ -1,5 +1,7 @@
 <app-loading-overlay [visible]="importando" mensaje="Procesando Excel de Ventas Realzza…"
   submensaje="Cruzando ventas, notas de crédito y margen…" icon="insert_chart"></app-loading-overlay>
+<app-loading-overlay [visible]="cargandoBD" mensaje="Cargando Ventas Realzza…"
+  submensaje="Trayendo la data consolidada de la base…" icon="cloud_download"></app-loading-overlay>
 
 <div class="vd-shell">
 <!-- ===== ZONA FIJA: filtros + KPIs (no scrollea) ===== -->
@@ -15,7 +17,7 @@
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
         valueExpr="value" label="Filtrar Vendedor" labelMode="floating" stylingMode="underlined" placeholder=""
         (onValueChanged)="onAsesorChanged($event)" [showClearButton]="true" />
-    <button mat-flat-button [disabled]="formVentas.invalid" (click)="actualizarFiltros()">
+    <button mat-flat-button [disabled]="formVentas.invalid || cargandoBD" (click)="cargarDesdeBD()">
         <mat-icon>search</mat-icon> Actualizar
     </button>
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
@@ -545,6 +547,26 @@
         </dx-data-grid>
     </div>
 </div>
+
+<!-- ===== VENTAS POR ASESOR × TIPO DE BASE — PIVOTE (neto) ===== -->
+<div class="section-header">
+    <mat-icon>groups</mat-icon>
+    Ventas por Asesor y Tipo de Base
+</div>
+<dx-data-grid [dataSource]="ventasPorAsesorTipoBase" [showBorders]="true" [showColumnLines]="true"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true">
+    <dxi-column dataField="Asesor" caption="ASESOR" alignment="left" [fixed]="true" [minWidth]="130" />
+    <dxi-column *ngFor="let tipo of tiposBaseUnicos" [dataField]="tipo" [caption]="tipo" alignment="center"
+        dataType="number" cellTemplate="mpTpl"></dxi-column>
+    <dxi-column dataField="Total" caption="TOTAL" alignment="center" dataType="number" cellTemplate="mtTpl" [minWidth]="120" />
+    <dxo-summary>
+        <dxi-total-item column="Asesor" displayFormat="TOTAL"></dxi-total-item>
+        <dxi-total-item *ngFor="let tipo of tiposBaseUnicos" [column]="tipo" summaryType="sum" valueFormat="#,##0" displayFormat="S/ {0}"></dxi-total-item>
+        <dxi-total-item column="Total" summaryType="sum" valueFormat="#,##0" displayFormat="S/ {0}"></dxi-total-item>
+    </dxo-summary>
+    <div *dxTemplate="let c of 'mpTpl'" style="text-align:center; font-size:13px;">{{ c.value ? ('S/ ' + (c.value | number:'1.0-0')) : '—' }}</div>
+    <div *dxTemplate="let c of 'mtTpl'" style="text-align:center; font-size:13px; font-weight:800; color:#1A5FAD;">S/ {{ c.value | number:'1.0-0' }}</div>
+</dx-data-grid>
 
 <!-- ===== GRÁFICOS ===== -->
 <div class="section-header">

@@ -2,10 +2,13 @@ import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { ExcelExportService } from '../../services/excel/excel.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-ventas-campo',
@@ -15,7 +18,9 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 })
 export class VentasCampoComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
+  private ventasSvc = inject(CargaVentasService);
   importando = false;   // overlay animado mientras se procesa el Excel
+  cargandoBD = false;   // overlay mientras se trae la data de ventas_realzza (BD)
 
   formVentas: UntypedFormGroup;
 
@@ -84,6 +89,9 @@ export class VentasCampoComponent implements OnInit {
   maxMontoMotoTipo = 1;
   ventasPorTipoBase: any[] = [];
   maxMontoTipoBase = 1;
+  // Pivot ventas por asesor (vendedor) × tipo de base (neto), como en Call.
+  ventasPorAsesorTipoBase: any[] = [];
+  tiposBaseUnicos: string[] = [];
   metasPorTipoBase: Record<string, number> = {};
   // Metas de la hoja METAS por mes (mesKey 'yyyy-mm' → { tipoBase → meta }).
   metasPorMes: Record<string, Record<string, number>> = {};
@@ -198,7 +206,137 @@ export class VentasCampoComponent implements OnInit {
     });
   }
 
-  async ngOnInit() { }
+  async ngOnInit() {
+    this.cargarDesdeBD();   // carga la data real de ventas_realzza al abrir el módulo
+  }
+
+  /**
+   * Carga Ventas Realzza directo de la BD (tabla `ventas_realzza`, consolidada desde
+   * la Atribución) + el margen (`margen_ventas`), sin depender del Excel. Alimenta
+   * KPIs, tablas y gráficos igual que el import. Metas/Evolutivo (que no están en BD)
+   * quedan vacíos; se pueden traer con "Importar Excel" si se necesitan.
+   */
+  cargarDesdeBD(): void {
+    if (!this.formVentas.valid) return;
+    const ini = new Date(this.formVentas.value.fechaInicio);
+    const fin = new Date(this.formVentas.value.fechaFin);
+    const anios = new Set<number>();
+    if (!isNaN(ini.getTime())) anios.add(ini.getFullYear());
+    if (!isNaN(fin.getTime())) anios.add(fin.getFullYear());
+    if (!anios.size) anios.add(new Date().getFullYear());
+    const yrs = Array.from(anios);
+
+    this.cargandoBD = true;
+    // Reconstruye los 2 movimientos (venta en su mes CV + NC en su mes de AF), respetando
+    // el TipoBase de ventas_realzza (Realzza tal cual; CALL solo si se puso a mano).
+    const ventasReq = yrs.map(a => this.ventasSvc.obtenerVentasRealzzaModulo(a).pipe(catchError(() => of([] as any[]))));
+    const margenReq = yrs.map(a => this.ventasSvc.obtenerMargen(a).pipe(catchError(() => of([] as any[]))));
+    const evoReq = this.ventasSvc.obtenerVentasRealzzaEvolutivo().pipe(catchError(() => of([] as any[])));
+    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq }).subscribe({
+      next: ({ ventas, margen, evo }) => {
+        this.procesarBD(([] as any[]).concat(...ventas), ([] as any[]).concat(...margen));
+        this.setEvolutivo(evo);        // gráfico evolutivo (neto por mes) desde ventas_realzza
+        this.generarMesesGlobalGo();   // arma el selector de Mes + filtroGlobalGo (Detalle Global GO)
+        this.cargandoBD = false;
+        this.actualizarFiltros();
+      },
+      error: () => { this.cargandoBD = false; this.actualizarFiltros(); },
+    });
+  }
+
+  /** Arma dataVentas / dataNotasCredito / dataGlobalGo / dataMargen desde filas de la BD. */
+  private procesarBD(vrows: any[], mrows: any[]): void {
+    // Margen: mapa por CodigoCV (líneas), cliente, y totales (valor/margen) por venta.
+    const margenMap = new Map<string, { linea: string; valorVenta: number }[]>();
+    const margenCliente = new Map<string, string>();
+    const margenTot = new Map<string, { vv: number; mt: number }>();
+    this.dataMargen = [];
+    for (const mr of mrows) {
+      const codigo = (mr.codigo_cv ?? '').toString().trim();
+      const linea = (mr.linea_real || 'SIN LÍNEA').toString().trim().toUpperCase();
+      const vv = this.parseNumber(mr.valor_venta);
+      const mt = this.parseNumber(mr.margen_total);
+      if (!codigo) continue;
+      let arr = margenMap.get(codigo); if (!arr) { arr = []; margenMap.set(codigo, arr); }
+      arr.push({ linea, valorVenta: vv });
+      if (mr.cliente && !margenCliente.has(codigo)) margenCliente.set(codigo, mr.cliente);
+      const t = margenTot.get(codigo) || { vv: 0, mt: 0 }; t.vv += vv; t.mt += mt; margenTot.set(codigo, t);
+      if ((mr.sede || '').toString().trim().toUpperCase() === 'REALZZA') {
+        this.dataMargen.push({ Codigo: codigo, LineaReal: linea, ValorVenta: vv, MargenTotal: mt, FECHAVENTA: mr.fecha ? new Date(mr.fecha) : null });
+      }
+    }
+
+    this.dataVentas = [];
+    this.dataNotasCredito = [];
+    this.dataGlobalGo = [];
+
+    for (const r of vrows) {
+      const sede = (r.sede || '').toString().trim().toUpperCase();
+      const estadoVenta = (r.estado_venta || '').toString().trim().toUpperCase();
+      const entidad = (r.entidad || '').toString().trim().toUpperCase();
+      const monto = this.parseNumber(r.monto_consolidado);
+      const esNC = estadoVenta === 'NOTA DE CRÉDITO' || estadoVenta === 'NOTA DE CREDITO';
+      const id = (r.codigo_cv ?? '').toString().trim();
+      const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
+      if (sede !== 'SEDE REALZZA STORE') continue;
+
+      if (!esNC && monto > 0) {
+        const items = margenMap.get(id) || [];
+        const primaryLinea = items.length ? items.reduce((mx, i) => i.valorVenta > mx.valorVenta ? i : mx, items[0]).linea : 'SIN LÍNEA';
+        const tot = margenTot.get(id);
+        this.dataVentas.push({
+          IDVENTA: r.codigo_cv, FECHAVENTA: fechaCv, Sede: r.sede, MontoConsolidado: monto,
+          CuotaInicial: this.parseNumber(r.cuota_inicial), Productos: r.productos, Cuotas: r.cuotas,
+          DocIdentidad: (r.doc_identidad || '').toString().trim(), ClienteVenta: margenCliente.get(id) || r.cliente_venta || '',
+          Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+          EstadoVenta: r.estado_venta, Entidad: r.entidad, AsesorVenta: r.asesor_venta,
+          TipoCredito: r.tipo_credito, TipoProducto: r.tipo_producto,
+          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
+          Margen: tot ? tot.mt : 0, ValorVenta: tot ? tot.vv : 0, LineaReal: primaryLinea,
+        });
+      } else if (esNC) {
+        const items = margenMap.get(id) || [];
+        const totVV = items.reduce((s, i) => s + i.valorVenta, 0);
+        const lineaRealItems = items.length
+          ? items.map(i => ({ linea: i.linea, proporcion: totVV > 0 ? i.valorVenta / totVV : 1 / items.length }))
+          : [{ linea: 'SIN LÍNEA', proporcion: 1 }];
+        this.dataNotasCredito.push({
+          IDVENTA: r.codigo_cv, FECHAVENTA: fechaCv, MontoConsolidado: Math.abs(monto), Productos: r.productos,
+          ClienteVenta: margenCliente.get(id) || r.cliente_venta || '', DocIdentidad: (r.doc_identidad || '').toString().trim(),
+          Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(), EstadoVenta: r.estado_venta,
+          AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito,
+          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems,
+          DiaAF: this.parseNumber(r.dia_af), MesAF: this.parseNumber(r.mes_af), AñoAF: this.parseNumber(r.anio_af),
+        });
+      }
+
+      if (!esNC && monto > 0 && entidad === 'GLOBAL GO') {
+        this.dataGlobalGo.push({
+          ClienteVenta: margenCliente.get(id) || r.cliente_venta || '', DocIdentidad: r.doc_identidad, FECHAVENTA: fechaCv,
+          MontoConsolidado: monto, Productos: r.productos,
+          TipoProducto: (r.tipo_producto || 'SIN TIPO').toString().trim().toUpperCase(),
+          Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+          AsesorVenta: (r.asesor_venta || '').toString().trim(),
+        });
+      }
+    }
+
+    // Metas no están en BD (vienen del Excel): quedan vacías en carga directa.
+    this.metasPorMes = {}; this.metasTotalPorMes = {};
+    // El evolutivo se arma aparte (setEvolutivo) desde ventas_realzza. rawEvolutivoMap
+    // vacío para que aplicarAjustesEvolutivo no lo pise.
+    this.rawEvolutivoMap.clear();
+  }
+
+  /** Arma el gráfico evolutivo (neto por mes) desde el endpoint de ventas_realzza. */
+  private setEvolutivo(evo: { anio: number; mes: number; neto: number }[]): void {
+    this.dataEvolutivo = (evo || []).map(e => ({
+      Periodo: `${this.getNombreMes(e.mes).substring(0, 3).toUpperCase()} ${e.anio}`,
+      Ventas: e.neto,
+    }));
+    this.seriesEvolutivoMain = ['Ventas'];
+    this.seriesEvolutivoTrend = [];
+  }
 
   async importar(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -440,6 +578,7 @@ export class VentasCampoComponent implements OnInit {
     this.generarDetalleMotosGlobalGo();
     this.generarVentasPorTipoCredito();
     this.generarVentasPorTipoBase();
+    this.generarVentasPorAsesorTipoBase();
     this.generarVentasPorLineaReal();
     this.generarChartMontoPorDia();
     this.generarChartNroVentasPorDia();
@@ -774,9 +913,10 @@ export class VentasCampoComponent implements OnInit {
     const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
 
     const rows: any[] = [];
-    mapVentas.forEach((data, nombre) => {
+    new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(nombre => {
+      const data = mapVentas.get(nombre) || { monto: 0, ops: 0 };
       const montoNC = mapNC.get(nombre) || 0;
-      const montoNeto = Math.max(0, data.monto - montoNC);
+      const montoNeto = data.monto - montoNC;
       rows.push({
         Vendedor: nombre,
         MontoVentas: Math.round(data.monto),
@@ -849,9 +989,10 @@ export class VentasCampoComponent implements OnInit {
     });
     const mapNC = this.agruparNCSinRefacturacion(nc => this.entidadDisplay(nc.Entidad));
     const rows: any[] = [];
-    mapVentas.forEach((data, ent) => {
+    new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(ent => {
+      const data = mapVentas.get(ent) || { monto: 0, ops: 0 };
       const montoNC = Math.round(mapNC.get(ent) || 0);
-      const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
+      const montoNeto = Math.round(data.monto) - montoNC;
       rows.push({ Entidad: ent, MontoVentas: Math.round(data.monto), MontoNC: montoNC,
         MontoNeto: montoNeto, NroOps: data.ops,
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0, Participacion: 0 });
@@ -912,13 +1053,14 @@ export class VentasCampoComponent implements OnInit {
     const mapNC = this.agruparNCSinRefacturacion(tipoKey);
 
     const rows: any[] = [];
-    mapVentas.forEach((data, tipo) => {
+    new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(tipo => {
+      const data = mapVentas.get(tipo) || { monto: 0, ops: 0 };
       const montoNC = Math.round(mapNC.get(tipo) || 0);
       rows.push({
         TipoCredito: tipo,
         MontoVentas: Math.round(data.monto),
         MontoNC: montoNC,
-        MontoNeto: Math.max(0, Math.round(data.monto) - montoNC),
+        MontoNeto: Math.round(data.monto) - montoNC,
         NroOps: data.ops,
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0
@@ -932,6 +1074,39 @@ export class VentasCampoComponent implements OnInit {
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
     this.maxMontoTipoCredito = rows.length > 0 ? rows[0].MontoVentas : 1;
     this.ventasPorTipoCredito = rows;
+  }
+
+  /** Pivot: vendedor (asesor) × TipoBase, con el monto NETO (ventas − NC sin refacturación). */
+  generarVentasPorAsesorTipoBase(): void {
+    const tiposSet = new Set<string>();
+    this.filtroVentas.forEach(v => tiposSet.add((v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()));
+    this.filtroNotasCredito.forEach(nc => { if (!nc.esRefacturacion) tiposSet.add((nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()); });
+    this.tiposBaseUnicos = Array.from(tiposSet).sort();
+
+    const map = new Map<string, Map<string, number>>();   // asesor → tipoBase → monto
+    const acum = (nombre: string, tipo: string, monto: number) => {
+      if (!map.has(nombre)) map.set(nombre, new Map());
+      const inner = map.get(nombre)!;
+      inner.set(tipo, (inner.get(tipo) || 0) + monto);
+    };
+    this.filtroVentas.forEach(v => {
+      acum(this.resolverNombreVendedor(v.Vendedor, v.TipoBase), (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), v.MontoConsolidado || 0);
+    });
+    this.filtroNotasCredito.forEach(nc => {
+      if (nc.esRefacturacion) return;
+      acum(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), -(nc.MontoConsolidado || 0));
+    });
+
+    const rows: any[] = [];
+    map.forEach((tiposMap, nombre) => {
+      const row: any = { Asesor: nombre };
+      let total = 0;
+      this.tiposBaseUnicos.forEach(tipo => { const raw = Math.round(tiposMap.get(tipo) || 0); row[tipo] = raw; total += raw; });
+      row['Total'] = total;
+      rows.push(row);
+    });
+    rows.sort((a, b) => b.Total - a.Total);
+    this.ventasPorAsesorTipoBase = rows;
   }
 
   generarVentasPorTipoBase(): void {
@@ -949,14 +1124,17 @@ export class VentasCampoComponent implements OnInit {
     const mesKey = `${fechaFin.getFullYear()}-${String(fechaFin.getMonth() + 1).padStart(2, '0')}`;
     const metasMes = this.metasPorMes[mesKey] || {};
 
-    // Se muestran todos los tipos de base que tengan ventas O meta (aunque no tengan ventas aún).
-    const tipos = new Set<string>([...mapVentas.keys(), ...Object.keys(metasMes)]);
+    // Todos los tipos con ventas, con NC (aunque no tengan ventas ese mes) o con meta.
+    // Incluir los de solo-NC es clave para que la suma de netos cuadre con el Monto Real.
+    const tipos = new Set<string>([...mapVentas.keys(), ...mapNC.keys(), ...Object.keys(metasMes)]);
 
     const rows: any[] = [];
     tipos.forEach(tipo => {
       const data = mapVentas.get(tipo) || { monto: 0, ops: 0 };
       const montoNC = Math.round(mapNC.get(tipo) || 0);
-      const montoNeto = Math.max(0, Math.round(data.monto) - montoNC);
+      // Sin clamp a 0: el neto puede ser negativo (más NC que ventas ese mes) para que la
+      // suma de netos cuadre con el Monto Real global (ventas − NC + refacturación).
+      const montoNeto = Math.round(data.monto) - montoNC;
       const meta = metasMes[tipo] || 0;
       rows.push({
         TipoBase: tipo,

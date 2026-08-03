@@ -66,7 +66,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',           grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-gestion',             label: 'Registro de Gestión',          grupo: 'Gestión', sedeScoped: true },
   { key: 'ventas',                       label: 'Ventas — Call Center',         grupo: 'Ventas' },
-  { key: 'atribucion-call',              label: 'Atribución Ventas Call',       grupo: 'Ventas' },
+  { key: 'atribucion-call',              label: 'Atribución Ventas (Call/Realzza)', grupo: 'Ventas' },
   { key: 'ventas-campo',                 label: 'Ventas — Realzza',             grupo: 'Ventas' },
   { key: 'ventas-comparativo',           label: 'Ventas — Comparativo',         grupo: 'Ventas' },
   { key: 'evolucion-tipo-cliente',       label: 'Ventas — Evolutivo',           grupo: 'Ventas' },

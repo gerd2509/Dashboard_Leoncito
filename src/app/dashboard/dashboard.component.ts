@@ -153,7 +153,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'shopping_cart', label: 'Ventas',
       submenu: [
         { label: 'CALL CENTER',  icon: 'call',      modulo: 'ventas' },
-        { label: 'ATRIBUCIÓN CALL', icon: 'how_to_reg', modulo: 'atribucion-call' },
+        { label: 'ATRIBUCIÓN', icon: 'how_to_reg', modulo: 'atribucion-call' },
         { label: 'REALZZA',      icon: 'storefront', modulo: 'ventas-campo' },
         { label: 'SEDES',        icon: 'location_city', modulo: 'ventas-sedes' },
         { label: 'COMPARATIVO',  icon: 'balance',    modulo: 'ventas-comparativo' },

@@ -1,141 +1,167 @@
 <div class="ac-wrap">
   <div class="ac-head">
     <mat-icon>how_to_reg</mat-icon>
-    <div><b>Atribución de Ventas (AsesorVenta)</b>
-      <small>Cruza las afectaciones (ventas) con la última gestión de derivación en gestion_call (≤31 días): asigna AsesorVenta y TipoCliente. AsesorVenta / CONTACTO / TipoCliente / TipoBase son editables.</small>
+    <div><b>Atribución de Ventas</b>
+      <small *ngIf="!esRealzza">Call: lista las afectaciones del mes ya con el AsesorVenta y TipoCliente de la última derivación en gestion_call (≤31 días). AsesorVenta / CONTACTO / TipoCliente / TipoBase editables.</small>
+      <small *ngIf="esRealzza">Realzza: lista TODAS las ventas SEDE REALZZA STORE del mes, ya con el TipoBase de la derivación en gestion_realzza + margen/valor. TipoBase / AsesorVenta editables.</small>
     </div>
   </div>
 
-  <!-- Barra: periodo + acciones -->
+  <!-- Selector de canal -->
+  <div class="ac-canal">
+    <button [class.on]="!esRealzza" (click)="setCanal('call')"><mat-icon>headset_mic</mat-icon> Call</button>
+    <button class="rz" [class.on]="esRealzza" (click)="setCanal('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
+  </div>
+
+  <!-- Toolbar: izquierda (periodo + acciones) · derecha (buscar por DNI) -->
   <div class="ac-card">
     <div class="ac-row">
-      <dx-number-box [(value)]="anio" [min]="2024" [max]="2030" [showSpinButtons]="true" label="Año" labelMode="floating" stylingMode="outlined" width="120"></dx-number-box>
-      <dx-select-box [dataSource]="meses" displayExpr="t" valueExpr="v" [(value)]="mes" label="Mes" labelMode="floating" stylingMode="outlined" width="180"></dx-select-box>
+      <dx-number-box [(value)]="anio" [min]="2024" [max]="2030" [showSpinButtons]="true" label="Año" labelMode="floating" stylingMode="outlined" width="110"></dx-number-box>
+      <dx-select-box [dataSource]="meses" displayExpr="t" valueExpr="v" [(value)]="mes" label="Mes" labelMode="floating" stylingMode="outlined" width="160"></dx-select-box>
       <button class="ac-btn" [disabled]="cargando" (click)="cargar()">
         <mat-icon>{{ cargando ? 'hourglass_top' : 'refresh' }}</mat-icon> {{ cargando ? 'Cargando…' : 'Cargar lista' }}
       </button>
-      <button class="ac-btn primary" [disabled]="cruzando" (click)="cruzar()">
-        <mat-icon>{{ cruzando ? 'hourglass_top' : 'sync' }}</mat-icon> {{ cruzando ? 'Cruzando…' : 'Cruzar derivación' }}
+      <button class="ac-btn ok" [disabled]="consolidando" (click)="consolidar()"
+              [title]="esRealzza ? 'Agrega a Ventas Realzza las ventas nuevas (no cambia las existentes)' : 'Copia las ventas atribuidas del mes a Ventas Call'">
+        <mat-icon>{{ consolidando ? 'hourglass_top' : 'move_to_inbox' }}</mat-icon>
+        {{ consolidando ? 'Consolidando…' : (esRealzza ? 'Consolidar → Ventas Realzza' : 'Consolidar → Ventas Call') }}
       </button>
+
       <div class="ac-spacer"></div>
-      <button class="ac-btn ok" [disabled]="consolidando || !ventas.length" (click)="consolidar()"
-              title="Copia las ventas atribuidas del mes a Ventas Call">
-        <mat-icon>{{ consolidando ? 'hourglass_top' : 'move_to_inbox' }}</mat-icon> {{ consolidando ? 'Consolidando…' : 'Consolidar → Ventas Call' }}
-      </button>
-    </div>
 
-    <div class="ac-result" *ngIf="resultado">
-      <span class="ac-chip ok"><b>{{ resultado.actualizados }}</b> atribuidas ahora</span>
-      <span class="ac-chip info"><b>{{ resultado.total }}</b> con derivación en total</span>
-    </div>
-  </div>
-
-  <!-- Búsqueda por DNI (server-side, sobre TODAS las afectaciones del mes) -->
-  <div class="ac-card ac-buscar">
-    <div class="ac-card-h"><mat-icon>manage_search</mat-icon> Buscar DNI en las afectaciones del mes y asignar a mano</div>
-    <div class="ac-row">
-      <dx-text-box [(value)]="dni" mode="tel" [maxLength]="8" placeholder="DNI del cliente" stylingMode="outlined" width="200"
+      <dx-text-box [(value)]="dni" mode="tel" [maxLength]="8" placeholder="Buscar DNI del cliente" stylingMode="outlined" width="210"
         (onEnterKey)="buscar()"></dx-text-box>
       <button class="ac-btn" [disabled]="buscando" (click)="buscar()">
-        <mat-icon>{{ buscando ? 'hourglass_top' : 'search' }}</mat-icon> {{ buscando ? 'Buscando…' : 'Buscar' }}
+        <mat-icon>{{ buscando ? 'hourglass_top' : 'search' }}</mat-icon> {{ buscando ? '…' : 'Buscar' }}
       </button>
-      <button class="ac-btn ghost" *ngIf="resultados.length || yaBusco" (click)="limpiarBusqueda()"><mat-icon>close</mat-icon> Limpiar</button>
+      <button class="ac-btn ghost" *ngIf="resultados.length || yaBusco" (click)="limpiarBusqueda()"><mat-icon>close</mat-icon></button>
     </div>
-
-    <div class="ac-table-wrap sm" *ngIf="resultados.length">
-      <table class="ac-table">
-        <thead><tr>
-          <th>Estado</th><th>IDVenta</th><th>Fecha</th><th>DocIdentidad</th><th class="l">Cliente</th><th>Sede</th>
-          <th>Monto</th><th>C. Inicial</th><th class="l">Productos</th><th>Cuotas</th><th>TipoVenta</th><th>EstadoVenta</th><th>Entidad</th>
-          <th>AsesorVenta</th><th>CONTACTO</th><th>TipoCliente</th><th>TipoBase</th><th></th>
-        </tr></thead>
-        <tbody>
-          <ng-container *ngFor="let v of resultados" [ngTemplateOutlet]="filaTpl" [ngTemplateOutletContext]="{ $implicit: v }"></ng-container>
-        </tbody>
-      </table>
-    </div>
-    <p class="ac-vacio sm" *ngIf="yaBusco && !buscando && !resultados.length">Sin afectaciones para ese DNI en el mes seleccionado.</p>
+    <p class="ac-vacio sm" *ngIf="yaBusco && !buscando && !resultados.length">Sin ventas para ese DNI en el mes seleccionado.</p>
   </div>
 
-  <!-- Filtros por estado (la lista solo trae ventas ya atribuidas) -->
-  <div class="ac-filtros">
+  <!-- Filtros por estado (solo en modo lista, no en búsqueda) -->
+  <div class="ac-filtros" *ngIf="!resultados.length">
     <button class="ac-fchip" [class.on]="filtro === 'todos'" (click)="setFiltro('todos')">
-      Atribuidas <b>{{ ventas.length }}</b></button>
+      {{ esRealzza ? 'Todas' : 'Atribuidas' }} <b>{{ ventas.length }}</b></button>
     <button class="ac-fchip deriv" [class.on]="filtro === 'DERIVACION'" (click)="setFiltro('DERIVACION')">
       <mat-icon>call_split</mat-icon> Derivación <b>{{ nDeriv }}</b></button>
     <button class="ac-fchip manual" [class.on]="filtro === 'MANUAL'" (click)="setFiltro('MANUAL')">
       <mat-icon>edit</mat-icon> Manual <b>{{ nManual }}</b></button>
+    <span class="ac-busq-tag" *ngIf="resultados.length"><mat-icon>manage_search</mat-icon> Resultados de búsqueda</span>
   </div>
 
-  <!-- Lista completa del mes -->
-  <div class="ac-card ac-list">
-    <div class="ac-table-wrap">
-      <table class="ac-table">
-        <thead><tr>
-          <th>Estado</th><th>IDVenta</th><th>Fecha</th><th>DocIdentidad</th><th class="l">Cliente</th><th>Sede</th>
-          <th>Monto</th><th>C. Inicial</th><th class="l">Productos</th><th>Cuotas</th><th>TipoVenta</th><th>EstadoVenta</th><th>Entidad</th>
-          <th>AsesorVenta</th><th>CONTACTO</th><th>TipoCliente</th><th>TipoBase</th><th></th>
-        </tr></thead>
-        <tbody>
-          <ng-container *ngFor="let v of ventasFiltradas" [ngTemplateOutlet]="filaTpl" [ngTemplateOutletContext]="{ $implicit: v }"></ng-container>
-        </tbody>
-      </table>
-    </div>
+  <!-- ══ GRID CALL ══ -->
+  <div class="ac-card ac-list" *ngIf="!esRealzza">
+    <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="true"
+      [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true" [rowAlternationEnabled]="true"
+      [height]="gridHeight" (onRowPrepared)="onRowPrepared($event)">
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-scrolling mode="virtual" [useNative]="true"></dxo-scrolling>
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxo-sorting mode="none"></dxo-sorting>
 
-    <p class="ac-vacio" *ngIf="!cargando && !ventasFiltradas.length">
-      {{ ventas.length ? 'No hay ventas en este filtro.' : 'Sin ventas para este periodo.' }}
-    </p>
+      <dxi-column dataField="_estadoTxt" caption="Estado" [width]="120" cellTemplate="estadoTpl" [allowSorting]="false"></dxi-column>
+      <dxi-column dataField="codigo_cv" caption="IDVenta" [width]="85"></dxi-column>
+      <dxi-column dataField="_fecha" caption="Fecha" [width]="95"></dxi-column>
+      <dxi-column dataField="doc_identidad" caption="DocIdentidad" [width]="105"></dxi-column>
+      <dxi-column dataField="cliente" caption="Cliente" [width]="200"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [width]="150"></dxi-column>
+      <dxi-column dataField="monto_consolidado" caption="Monto" [width]="115" [customizeText]="montoTexto" alignment="center"></dxi-column>
+      <dxi-column dataField="cuota_inicial" caption="C. Inicial" [width]="100" [customizeText]="montoEnteroTexto" alignment="center"></dxi-column>
+      <dxi-column dataField="productos" caption="Productos" [width]="150" cellTemplate="prodTpl"></dxi-column>
+      <dxi-column dataField="tipo_venta" caption="TipoVenta" [width]="120"></dxi-column>
+      <dxi-column dataField="estado_venta" caption="EstadoVenta" [width]="110"></dxi-column>
+      <dxi-column dataField="entidad" caption="Entidad" [width]="110"></dxi-column>
+      <dxi-column dataField="vendedor" caption="AsesorVenta" [width]="115" cellTemplate="ccTpl"></dxi-column>
+      <dxi-column dataField="contacto" caption="CONTACTO" [width]="130" cellTemplate="tagTpl"></dxi-column>
+      <dxi-column dataField="tipo_cliente" caption="TipoCliente" [width]="120" cellTemplate="tagTpl"></dxi-column>
+      <dxi-column dataField="tipo_base" caption="TipoBase" [width]="120" cellTemplate="tagTpl"></dxi-column>
+      <dxi-column type="buttons" [width]="50" caption="" [allowFiltering]="false">
+        <dxi-button icon="edit" hint="Editar atribución" [onClick]="onEditClick"></dxi-button>
+      </dxi-column>
+
+      <div *dxTemplate="let c of 'estadoTpl'"><span class="ac-est" [ngClass]="c.data._estado.toLowerCase()"><mat-icon>{{ estadoIcon(c.data) }}</mat-icon> {{ c.data._estadoTxt }}</span></div>
+      <div *dxTemplate="let c of 'ccTpl'"><span class="ac-cc" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'tagTpl'"><span class="ac-tag" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'prodTpl'"><span class="ac-prod" [title]="c.value">{{ c.value }}</span></div>
+    </dx-data-grid>
+  </div>
+
+  <!-- ══ GRID REALZZA ══ -->
+  <div class="ac-card ac-list" *ngIf="esRealzza">
+    <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="true"
+      [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true" [rowAlternationEnabled]="true"
+      [height]="gridHeight" (onRowPrepared)="onRowPrepared($event)">
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-scrolling mode="virtual" [useNative]="true"></dxo-scrolling>
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxo-sorting mode="none"></dxo-sorting>
+
+      <dxi-column dataField="_estadoTxt" caption="Estado" [width]="120" cellTemplate="estadoTpl" [allowSorting]="false"></dxi-column>
+      <dxi-column dataField="tipo_base" caption="TipoBase" [width]="130" cellTemplate="tagTpl"></dxi-column>
+      <dxi-column dataField="codigo_cv" caption="IDVenta" [width]="85"></dxi-column>
+      <dxi-column dataField="_fecha" caption="Fecha" [width]="95"></dxi-column>
+      <dxi-column dataField="doc_identidad" caption="DocIdentidad" [width]="105"></dxi-column>
+      <dxi-column dataField="cliente" caption="Cliente" [width]="200"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [width]="150"></dxi-column>
+      <dxi-column dataField="monto_consolidado" caption="Monto" [width]="115" [customizeText]="montoTexto" alignment="center"></dxi-column>
+      <dxi-column dataField="cuota_inicial" caption="C. Inicial" [width]="100" [customizeText]="montoEnteroTexto" alignment="center"></dxi-column>
+      <dxi-column dataField="productos" caption="Productos" [width]="150" cellTemplate="prodTpl"></dxi-column>
+      <dxi-column dataField="cuotas" caption="Cuotas" [width]="75"></dxi-column>
+      <dxi-column dataField="tipo_credito" caption="TipoCredito" [width]="120"></dxi-column>
+      <dxi-column dataField="tipo_producto" caption="TipoProducto" [width]="120"></dxi-column>
+      <dxi-column dataField="estado_venta" caption="EstadoVenta" [width]="110"></dxi-column>
+      <dxi-column dataField="entidad" caption="Entidad" [width]="110"></dxi-column>
+      <dxi-column dataField="_af" caption="AF" [width]="95"></dxi-column>
+      <dxi-column dataField="vendedor" caption="Vendedor" [width]="180"></dxi-column>
+      <dxi-column dataField="asesor_venta" caption="AsesorVenta" [width]="115" cellTemplate="ccTpl"></dxi-column>
+      <dxi-column dataField="valor_venta" caption="ValorVenta" [width]="115" [customizeText]="montoTexto" alignment="center"></dxi-column>
+      <dxi-column dataField="margen_total" caption="MargenTotal" [width]="115" [customizeText]="montoTexto" alignment="center"></dxi-column>
+      <dxi-column type="buttons" [width]="50" caption="" [allowFiltering]="false">
+        <dxi-button icon="edit" hint="Editar TipoBase / AsesorVenta" [onClick]="onEditClick"></dxi-button>
+      </dxi-column>
+
+      <div *dxTemplate="let c of 'estadoTpl'"><span class="ac-est" [ngClass]="c.data._estado.toLowerCase()"><mat-icon>{{ estadoIcon(c.data) }}</mat-icon> {{ c.data._estadoTxt }}</span></div>
+      <div *dxTemplate="let c of 'ccTpl'"><span class="ac-cc" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'tagTpl'"><span class="ac-tag" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'prodTpl'"><span class="ac-prod" [title]="c.value">{{ c.value }}</span></div>
+    </dx-data-grid>
   </div>
 </div>
 
-<!-- Fila reutilizable (lista y búsqueda) -->
-<ng-template #filaTpl let-v>
-  <tr [class.row-manual]="estado(v) === 'MANUAL'">
-    <td><span class="ac-est" [ngClass]="estado(v).toLowerCase()"><mat-icon>{{ estadoIcon(v) }}</mat-icon> {{ estadoTxt(v) }}</span></td>
-    <td>{{ v.codigo_cv }}</td>
-    <td>{{ fecha(v) }}</td>
-    <td>{{ v.doc_identidad || '—' }}</td>
-    <td class="l">{{ v.cliente || '—' }}</td>
-    <td>{{ v.sede || '—' }}</td>
-    <td class="mto">S/ {{ v.monto_consolidado | number:'1.0-0' }}</td>
-    <td>S/ {{ v.cuota_inicial | number:'1.0-0' }}</td>
-    <td class="l">{{ v.productos }}</td>
-    <td>{{ v.cuotas ?? '—' }}</td>
-    <td>{{ v.tipo_venta || '—' }}</td>
-    <td>{{ v.estado_venta || '—' }}</td>
-    <td>{{ v.entidad || '—' }}</td>
-    <td><span class="ac-cc" [class.vacio]="!v.vendedor">{{ v.vendedor || '—' }}</span></td>
-    <td><span class="ac-tag" [class.vacio]="!v.contacto">{{ v.contacto || '—' }}</span></td>
-    <td><span class="ac-tag" [class.vacio]="!v.tipo_cliente">{{ v.tipo_cliente || '—' }}</span></td>
-    <td><span class="ac-tag" [class.vacio]="!v.tipo_base">{{ v.tipo_base || '—' }}</span></td>
-    <td><button class="ac-btn mini" (click)="abrirEdicion(v)" title="Editar atribución"><mat-icon>edit</mat-icon></button></td>
-  </tr>
-</ng-template>
-
-<!-- Popup de edición de la atribución -->
+<!-- Popup de edición -->
 <dx-popup [(visible)]="editVisible" [width]="440" [height]="'auto'" [showTitle]="true" title="Editar atribución"
           [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true">
   <div *dxTemplate="let d of 'content'" class="ac-edit">
     <div class="ac-edit-info" *ngIf="editando">
       <b>IDVenta {{ editando.codigo_cv }}</b> · {{ editando.cliente || editando.doc_identidad }}
-      <span *ngIf="editando.cc_sugerido" class="ac-edit-sug">Derivación sugerida: <b>{{ editando.cc_sugerido }}</b><span *ngIf="editando.tc_sugerido"> · {{ editando.tc_sugerido }}</span></span>
+      <span *ngIf="!esRealzza && editando.cc_sugerido" class="ac-edit-sug">Derivación sugerida: <b>{{ editando.cc_sugerido }}</b><span *ngIf="editando.tc_sugerido"> · {{ editando.tc_sugerido }}</span></span>
+      <span *ngIf="esRealzza && editando.derivado" class="ac-edit-sug">Derivada · TipoBase sugerido: <b>{{ editando.tb_sugerido || '—' }}</b></span>
     </div>
 
-    <label class="ac-edit-lbl">AsesorVenta (CC)</label>
-    <dx-select-box [dataSource]="ccOpciones" displayExpr="label" valueExpr="cc" [(value)]="modelo.vendedor"
-      [searchEnabled]="true" placeholder="Elegir asesor…" stylingMode="outlined"></dx-select-box>
+    <ng-container *ngIf="!esRealzza">
+      <label class="ac-edit-lbl">AsesorVenta (CC)</label>
+      <dx-select-box [dataSource]="ccOpciones" displayExpr="label" valueExpr="cc" [(value)]="modelo.vendedor"
+        [searchEnabled]="true" placeholder="Elegir asesor…" stylingMode="outlined"></dx-select-box>
+      <label class="ac-edit-lbl">CONTACTO</label>
+      <dx-select-box [dataSource]="contactoOpciones" [(value)]="modelo.contacto"
+        [acceptCustomValue]="true" placeholder="Elegir origen…" stylingMode="outlined"></dx-select-box>
+      <label class="ac-edit-lbl">TipoCliente</label>
+      <dx-select-box [dataSource]="tipoOpciones" [(value)]="modelo.tipo_cliente" (onValueChanged)="onTipoClienteChange($event.value)"
+        [acceptCustomValue]="true" [searchEnabled]="true" placeholder="Elegir tipo cliente…" stylingMode="outlined"></dx-select-box>
+      <label class="ac-edit-lbl">TipoBase <small>(por defecto = TipoCliente)</small></label>
+      <dx-select-box [dataSource]="tipoOpciones" [(value)]="modelo.tipo_base"
+        [acceptCustomValue]="true" [searchEnabled]="true" placeholder="Elegir tipo base…" stylingMode="outlined"></dx-select-box>
+    </ng-container>
 
-    <label class="ac-edit-lbl">CONTACTO</label>
-    <dx-select-box [dataSource]="contactoOpciones" [(value)]="modelo.contacto"
-      [acceptCustomValue]="true" placeholder="Elegir origen…" stylingMode="outlined"></dx-select-box>
-
-    <label class="ac-edit-lbl">TipoCliente</label>
-    <dx-select-box [dataSource]="tipoOpciones" [(value)]="modelo.tipo_cliente" (onValueChanged)="onTipoClienteChange($event.value)"
-      [acceptCustomValue]="true" [searchEnabled]="true" placeholder="Elegir tipo cliente…" stylingMode="outlined"></dx-select-box>
-
-    <label class="ac-edit-lbl">TipoBase <small>(por defecto = TipoCliente)</small></label>
-    <dx-select-box [dataSource]="tipoOpciones" [(value)]="modelo.tipo_base"
-      [acceptCustomValue]="true" [searchEnabled]="true" placeholder="Elegir tipo base…" stylingMode="outlined"></dx-select-box>
+    <ng-container *ngIf="esRealzza">
+      <label class="ac-edit-lbl">TipoBase</label>
+      <dx-select-box [dataSource]="tipoBaseRzOpciones" [(value)]="modelo.tipo_base"
+        [acceptCustomValue]="true" [searchEnabled]="true" placeholder="Elegir TipoBase…" stylingMode="outlined"></dx-select-box>
+      <label class="ac-edit-lbl">AsesorVenta (CC)</label>
+      <dx-select-box [dataSource]="ccOpciones" displayExpr="label" valueExpr="cc" [(value)]="modelo.asesor_venta"
+        [searchEnabled]="true" [acceptCustomValue]="true" placeholder="Elegir asesor…" stylingMode="outlined"></dx-select-box>
+    </ng-container>
 
     <div class="ac-edit-acc">
       <button class="ac-btn ghost" (click)="editVisible = false">Cancelar</button>

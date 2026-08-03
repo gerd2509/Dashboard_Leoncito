@@ -96,6 +96,14 @@ export class CargaVentasService {
     return this.http.get<any[]>(`${this.root}/margen-ventas`, { params });
   }
 
+  /**
+   * Neto real mensual por SEDE (todos los meses/años) para el evolutivo de Ventas Sedes:
+   * ventas − NC no refacturadas − incautaciones. Devuelve [{sede, anio, mes, ...neto}].
+   */
+  obtenerEvolutivoSedes(): Observable<{ sede: string; anio: number; mes: number; ventas: number; nc: number; inc: number; neto: number }[]> {
+    return this.http.get<{ sede: string; anio: number; mes: number; ventas: number; nc: number; inc: number; neto: number }[]>(`${this.root}/ventas/evolutivo`);
+  }
+
   /** Todas las ventas de un vendedor (para "Mi Panel"). Opcional: filtrar por año/mes. */
   obtenerVentasPorVendedor(vendedor: string, opts?: { anio?: number; mes?: number }): Observable<any[]> {
     let params = new HttpParams().set('vendedor', vendedor);
@@ -146,45 +154,63 @@ export class CargaVentasService {
     return this.http.get<{ anio: number; mes: number; dia: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
 
-  // ── Atribución de Ventas (AsesorVenta por derivación en gestion_call) ──
-  /** Cruza la tabla `ventas` con la gestión de derivación y atribuye el CC (asesor_venta). */
-  cruzarDerivacionCall(anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number; total: number }> {
-    let params = new HttpParams();
-    if (anio) params = params.set('anio', anio);
-    if (mes) params = params.set('mes', mes);
-    return this.http.post<{ success: boolean; actualizados: number; total: number }>(`${this.root}/ventas-call/cruzar`, {}, { params });
-  }
   /**
-   * Consolida (merge/upsert por IDVenta) las ventas atribuidas del mes desde `ventas`
-   * hacia `ventas_call` (histórico que consume el módulo Ventas Call).
+   * Data del módulo Ventas Realzza reconstruyendo los 2 movimientos (CV y NC) de cada
+   * venta por AÑO: la venta cuenta en su mes CV, la NC resta en su mes de AF. Respeta el
+   * TipoBase de ventas_realzza (Realzza tal cual; CALL solo si se puso a mano).
    */
-  consolidarVentasCall(anio?: number, mes?: number): Observable<{ success: boolean; total: number; insertados: number; actualizados: number }> {
+  obtenerVentasRealzzaModulo(anio: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.root}/ventas-realzza/modulo`, { params: new HttpParams().set('anio', anio) });
+  }
+  /** Evolutivo mensual Realzza (neto por mes) desde ventas_realzza; para el gráfico. */
+  obtenerVentasRealzzaEvolutivo(): Observable<{ anio: number; mes: number; ventas: number; nc: number; neto: number }[]> {
+    return this.http.get<{ anio: number; mes: number; ventas: number; nc: number; neto: number }[]>(`${this.root}/ventas-realzza/evolutivo`);
+  }
+
+  // ── Atribución de Ventas por canal ──
+  //   Call    → tabla `ventas` × gestion_call (AsesorVenta/CC + TipoCliente/TipoBase).
+  //   Realzza → tabla `ventas_realzza` × gestion_realzza (TipoBase) + margen_ventas.
+  private atribBase(canal: 'call' | 'realzza'): string {
+    return canal === 'realzza' ? 'ventas-realzza' : 'ventas-call';
+  }
+  private anioMes(anio?: number, mes?: number): HttpParams {
     let params = new HttpParams();
     if (anio) params = params.set('anio', anio);
     if (mes) params = params.set('mes', mes);
-    return this.http.post<{ success: boolean; total: number; insertados: number; actualizados: number }>(`${this.root}/ventas-call/consolidar`, {}, { params });
+    return params;
   }
-  /** Lista TODAS las ventas Call del mes con su atribución (para la tabla de revisión). */
-  listarAtribucionCall(anio?: number, mes?: number): Observable<any[]> {
-    let params = new HttpParams();
-    if (anio) params = params.set('anio', anio);
-    if (mes) params = params.set('mes', mes);
-    return this.http.get<any[]>(`${this.root}/ventas-call/atribucion`, { params });
+
+  /** Cruza las ventas del canal con su gestión de derivación (Call: CC+tipos; Realzza: TipoBase). */
+  cruzarDerivacion(canal: 'call' | 'realzza', anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number; total: number }> {
+    return this.http.post<{ success: boolean; actualizados: number; total: number }>(
+      `${this.root}/${this.atribBase(canal)}/cruzar`, {}, { params: this.anioMes(anio, mes) });
   }
-  /** Busca ese DNI en TODAS las afectaciones del mes + sugerencia de derivación (asignar a mano). */
-  buscarVentaCall(dni: string, anio?: number, mes?: number): Observable<any[]> {
-    let params = new HttpParams().set('dni', dni);
-    if (anio) params = params.set('anio', anio);
-    if (mes) params = params.set('mes', mes);
-    return this.http.get<any[]>(`${this.root}/ventas-call/buscar`, { params });
+  /** Lista TODAS las ventas del mes con su atribución (para la tabla de revisión). */
+  listarAtribucion(canal: 'call' | 'realzza', anio?: number, mes?: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.root}/${this.atribBase(canal)}/atribucion`, { params: this.anioMes(anio, mes) });
+  }
+  /** Busca ese DNI en las ventas del mes + sugerencia de derivación (asignar a mano). */
+  buscarVenta(canal: 'call' | 'realzza', dni: string, anio?: number, mes?: number): Observable<any[]> {
+    let params = this.anioMes(anio, mes).set('dni', dni);
+    return this.http.get<any[]>(`${this.root}/${this.atribBase(canal)}/buscar`, { params });
   }
   /**
    * Edita a mano la atribución de una venta (queda protegida del re-cruce). Solo se
-   * mandan los campos presentes: vendedor (AsesorVenta/CC), contacto, tipo_cliente, tipo_base.
+   * mandan los campos presentes. Call: vendedor/contacto/tipo_cliente/tipo_base.
+   * Realzza: tipo_base/asesor_venta.
    */
-  guardarAtribucionVenta(codigo: number, datos: {
-    vendedor?: string; contacto?: string; tipo_cliente?: string; tipo_base?: string;
+  guardarAtribucion(canal: 'call' | 'realzza', codigo: number, datos: {
+    vendedor?: string; contacto?: string; tipo_cliente?: string; tipo_base?: string; asesor_venta?: string;
   }): Observable<any> {
-    return this.http.put(`${this.root}/ventas-call/${codigo}`, datos);
+    return this.http.put(`${this.root}/${this.atribBase(canal)}/${codigo}`, datos);
+  }
+  /**
+   * Consolida el mes hacia la tabla histórica del canal.
+   *  - Call:    merge/upsert desde `ventas` → ventas_call (actualiza + agrega).
+   *  - Realzza: agrega desde `ventas` → ventas_realzza SOLO lo nuevo (no cambia lo existente).
+   */
+  consolidarVentas(canal: 'call' | 'realzza', anio?: number, mes?: number): Observable<{ success: boolean; insertados: number; actualizados?: number; total?: number }> {
+    return this.http.post<{ success: boolean; insertados: number; actualizados?: number; total?: number }>(
+      `${this.root}/${this.atribBase(canal)}/consolidar`, {}, { params: this.anioMes(anio, mes) });
   }
 }

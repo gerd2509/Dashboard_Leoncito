@@ -6,6 +6,14 @@
 .ac-head b { display: block; font-size: 16px; color: #1E3A5F; }
 .ac-head small { display: block; font-size: 12.5px; color: #7d93a8; }
 
+/* Selector de canal Call / Realzza */
+.ac-canal { display: inline-flex; gap: 6px; background: #eef2f8; border-radius: 12px; padding: 5px; }
+.ac-canal button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #52657a;
+  font-weight: 800; font-size: 13px; padding: 8px 18px; border-radius: 9px; cursor: pointer; transition: all .15s; }
+.ac-canal button mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.ac-canal button.on { background: #1A5FAD; color: #fff; box-shadow: 0 2px 8px rgba(26,95,173,.3); }
+.ac-canal button.rz.on { background: #7A1FA2; box-shadow: 0 2px 8px rgba(122,31,162,.3); }
+
 .ac-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 15px 17px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
 .ac-card-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 12px; }
 .ac-card-h mat-icon { color: #1A5FAD; }
@@ -47,8 +55,21 @@
 .ac-fchip.manual.on { background: #B26A00; }
 .ac-fchip.pend.on { background: #C62828; }
 
-/* Tabla */
-.ac-list { padding: 0; overflow: hidden; }
+.ac-busq-tag { display: inline-flex; align-items: center; gap: 5px; color: #1A5FAD; font-weight: 700; font-size: 12.5px; margin-left: auto; }
+.ac-busq-tag mat-icon { font-size: 17px; width: 17px; height: 17px; }
+
+/* Grid (dx-data-grid): celdas compactas + Productos con ellipsis */
+.ac-list { padding: 6px; overflow: hidden; }
+.ac-list ::ng-deep .dx-datagrid { border-radius: 10px; }
+.ac-list ::ng-deep .dx-datagrid-headers { background: #293964; }
+.ac-list ::ng-deep .dx-datagrid-headers .dx-header-row td { color: #fff; font-weight: 700; font-size: 11.5px; }
+.ac-list ::ng-deep .dx-datagrid-filter-row td { background: #f2f6fb; }
+.ac-list ::ng-deep .dx-data-row td { font-size: 12.5px; vertical-align: middle; }
+.ac-list ::ng-deep .dx-data-row.row-manual td { background: #fff8ef !important; }
+.ac-prod { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* (estilos de la tabla HTML anterior, aún usados por los badges) */
+.ac-list-old { padding: 0; overflow: hidden; }
 .ac-table-wrap { overflow: auto; max-height: calc(100vh - 320px); border-radius: 14px; }
 .ac-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .ac-table th, .ac-table td { padding: 8px 11px; text-align: center; border-bottom: 1px solid #eef2f8; white-space: nowrap; }
