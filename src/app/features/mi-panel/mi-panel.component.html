@@ -72,6 +72,53 @@
             </div>
           </div>
 
+          <!-- ── Simulador editable "¿cuánto quiero ganar?" ── -->
+          <div class="msim">
+            <div class="msim-h"><mat-icon>calculate</mat-icon> Simula cuánto quieres ganar</div>
+            <div class="msim-hint">El sueldo base es fijo. Edita el monto de ventas y las motos para ver tu total.</div>
+            <div class="msim-inputs">
+              <div class="msim-f fija">
+                <label><mat-icon>badge</mat-icon> Sueldo base</label>
+                <div class="msim-fixed">{{ soles(sueldoBase) }} <span>fijo</span></div>
+              </div>
+              <div class="msim-f">
+                <label><mat-icon>trending_up</mat-icon> Monto de ventas</label>
+                <dx-number-box [(value)]="simVentas" [min]="0" [step]="1000" format="#,##0"
+                  stylingMode="outlined" [showSpinButtons]="false" (onValueChanged)="calcularSimulacion()"></dx-number-box>
+              </div>
+              <div class="msim-f">
+                <label><mat-icon>two_wheeler</mat-icon> Motos GLOBAL GO</label>
+                <dx-number-box [(value)]="simMotos" [min]="0" [step]="1" format="#,##0"
+                  stylingMode="outlined" [showSpinButtons]="true" (onValueChanged)="calcularSimulacion()"></dx-number-box>
+              </div>
+            </div>
+
+            <div class="mp-sueldo-grid msim-out">
+              <div class="msd base">
+                <div class="msd-h"><mat-icon>badge</mat-icon> Sueldo base</div>
+                <div class="msd-v">{{ soles(sueldoBase) }}</div>
+                <div class="msd-x">Fijo</div>
+              </div>
+              <div class="msd comis">
+                <div class="msd-h"><mat-icon>trending_up</mat-icon> Comisión</div>
+                <div class="msd-v">{{ soles(simComision) }}</div>
+                <div class="msd-x">Sobre {{ soles(simVentas) }}</div>
+              </div>
+              <div class="msd motos">
+                <div class="msd-h"><mat-icon>two_wheeler</mat-icon> Motos</div>
+                <div class="msd-v">{{ soles(simPagoMotos) }}</div>
+                <div class="msd-x">{{ simMotos }} motos × {{ soles(simTarifaMoto) }}
+                  <span *ngIf="esRealzza">({{ simMotos >= 5 ? '≥5' : '<5' }})</span>
+                </div>
+              </div>
+              <div class="msd total">
+                <div class="msd-h"><mat-icon>savings</mat-icon> Total simulado</div>
+                <div class="msd-v">{{ soles(simTotal) }}</div>
+                <div class="msd-x">Base + comisión + motos</div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>

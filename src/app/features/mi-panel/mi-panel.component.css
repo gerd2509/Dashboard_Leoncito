@@ -207,6 +207,30 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .msd.total .msd-v { color: #6A1B9A; font-size: 27px; }
 @media (max-width: 860px) { .mp-sueldo-grid { grid-template-columns: repeat(2, 1fr); } }
 
+/* ── Simulador editable ── */
+.msim {
+  margin-top: 18px; padding: 16px 18px; border-radius: 14px;
+  background: rgba(255,255,255,.6); border: 1px dashed #a9dcb3;
+}
+.msim-h { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: #1b5e20; }
+.msim-h mat-icon { color: #2E7D32; }
+.msim-hint { font-size: 12.5px; color: #6b8299; margin: 4px 0 14px 28px; }
+.msim-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.msim-f { display: flex; flex-direction: column; gap: 6px; }
+.msim-f label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #6b8299; }
+.msim-f label mat-icon { font-size: 18px; width: 18px; height: 18px; color: #2E7D32; }
+.msim-f dx-number-box { font-weight: 700; }
+.msim-fixed {
+  height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  background: #eef4fb; border: 1px solid #dbe7f5; border-radius: 8px;
+  font-size: 17px; font-weight: 800; color: #1E3A5F;
+}
+.msim-fixed span { font-size: 11px; font-weight: 700; color: #90a4ae; text-transform: uppercase; }
+.msim-out { margin-top: 16px; }
+.msim-out .msd.total { background: linear-gradient(135deg,#eafaef,#fff); border-top-color: #2E7D32; }
+.msim-out .msd.total .msd-h mat-icon, .msim-out .msd.total .msd-v { color: #2E7D32; }
+@media (max-width: 640px) { .msim-inputs { grid-template-columns: 1fr; } }
+
 /* ── Móvil ── */
 @media (max-width: 640px) {
   .mp-sueldo-grid { grid-template-columns: 1fr; }

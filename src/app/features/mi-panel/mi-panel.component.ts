@@ -111,6 +111,14 @@ export class MiPanelComponent implements OnInit {
   totalGanar = 0;                        // sueldoBase + comisionVentas + pagoMotos
   get aplicaSueldo(): boolean { return this.esCall || this.esRealzza; }
 
+  // Simulador "¿cuánto ganaría?": el asesor edita ventas y motos (base fijo).
+  simVentas = 0;                         // monto de ventas a simular
+  simMotos = 0;                          // motos GLOBAL GO a simular
+  simComision = 0;                       // comisión resultante
+  simTarifaMoto = 0;                     // S/ por moto según la cantidad simulada
+  simPagoMotos = 0;                      // simMotos * simTarifaMoto
+  simTotal = 0;                          // base + comisión + motos simulados
+
   // Escala de bonos por MONTO VENDIDO del mes. Son las mismas tablas que muestran
   // Ventas Call y Ventas Realzza; se toma el mayor tramo cuyo umbral ≤ monto vendido.
   private readonly bonosCall = [
@@ -593,9 +601,7 @@ export class MiPanelComponent implements OnInit {
     this.montoVendidoMes = monto;
 
     // Comisión por bono según el monto vendido (mismo escalonado que Ventas Call/Realzza).
-    const tabla = this.esCall ? this.bonosCall : this.bonosRealzza;
-    const min = this.esCall ? 15000 : 10000;
-    this.comisionVentas = monto >= min ? (tabla.find(t => monto >= t.monto)?.bono || 0) : 0;
+    this.comisionVentas = this.bonoPorMonto(monto);
 
     // Motos GLOBAL GO vendidas en el mes (por su fecha de venta, sin NC/incaut.).
     this.motosGlobal = this.todas.filter(r =>
@@ -604,10 +610,36 @@ export class MiPanelComponent implements OnInit {
       (r.tipo_producto ?? '').toString().toUpperCase().includes('MOTO') &&
       (r.entidad ?? '').toString().toUpperCase().includes('GLOBAL GO'),
     ).length;
-    this.tarifaMoto = this.esCall ? 125 : (this.motosGlobal >= 5 ? 125 : 100);
+    this.tarifaMoto = this.tarifaPorMotos(this.motosGlobal);
     this.pagoMotos = this.motosGlobal * this.tarifaMoto;
 
     this.totalGanar = this.sueldoBase + this.comisionVentas + this.pagoMotos;
+
+    // El simulador parte de los valores reales del mes; el asesor puede editarlos.
+    this.simVentas = Math.round(monto);
+    this.simMotos = this.motosGlobal;
+    this.calcularSimulacion();
+  }
+
+  /** Bono (comisión) según el monto vendido, con la tabla del canal del asesor. */
+  private bonoPorMonto(monto: number): number {
+    const tabla = this.esCall ? this.bonosCall : this.bonosRealzza;
+    const min = this.esCall ? 15000 : 10000;
+    return monto >= min ? (tabla.find(t => monto >= t.monto)?.bono || 0) : 0;
+  }
+  /** Tarifa por moto: Call siempre 125; Realzza 125 si son ≥5, si no 100. */
+  private tarifaPorMotos(motos: number): number {
+    return this.esCall ? 125 : (motos >= 5 ? 125 : 100);
+  }
+
+  /** Simulación editable: recalcula comisión + motos + total con los valores que ingresa el asesor. */
+  calcularSimulacion(): void {
+    const v = Math.max(0, Number(this.simVentas) || 0);
+    const n = Math.max(0, Math.floor(Number(this.simMotos) || 0));
+    this.simComision = this.bonoPorMonto(v);
+    this.simTarifaMoto = this.tarifaPorMotos(n);
+    this.simPagoMotos = n * this.simTarifaMoto;
+    this.simTotal = this.sueldoBase + this.simComision + this.simPagoMotos;
   }
 
   /** El asesor cambia el mes del cálculo de sueldo. */
