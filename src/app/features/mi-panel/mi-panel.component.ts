@@ -310,11 +310,8 @@ export class MiPanelComponent implements OnInit {
       next: ({ general, kommo }) => {
         this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, dia);
         this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, dia);
-        // Derivaciones / agendamientos = de TODAS las gestiones del día (generales + KOMMO).
-        this.calcularDerivAgenda([
-          ...this.mios(general || [], colAsesor, dia),
-          ...this.mios(kommo || [], colAsesor, dia),
-        ]);
+        // Derivaciones / agendamientos = SOLO de la gestión general (llamadas), sin KOMMO ni Market Place.
+        this.calcularDerivAgenda(this.mios(general || [], colAsesor, dia));
         this.gestCargando = false;
       },
       error: () => { this.gestCargando = false; },
