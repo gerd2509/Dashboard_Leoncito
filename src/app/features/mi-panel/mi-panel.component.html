@@ -27,6 +27,55 @@
       </div>
     </div>
 
+    <!-- ══════════ MI SUELDO (Call / Realzza) — primero, debajo del saludo ══════════ -->
+    <section class="mp-panel sueldo" *ngIf="aplicaSueldo && !cargando && !error" [class.open]="abiertos['sueldo']">
+      <button class="mp-panel-head" type="button" (click)="togglePanel('sueldo')">
+        <span class="ph-ico" style="background:linear-gradient(135deg,#2E7D32,#43A047);"><mat-icon>savings</mat-icon></span>
+        <span class="ph-title">Mi sueldo estimado</span>
+        <span class="ph-sum"><b>{{ soles(totalGanar) }}</b> total</span>
+        <mat-icon class="ph-chev">expand_more</mat-icon>
+      </button>
+      <div class="mp-panel-bodywrap">
+        <div class="mp-panel-body">
+
+          <!-- Selector de mes del cálculo -->
+          <div class="mp-gest-fecha">
+            <span class="mp-filtros-lbl"><mat-icon>event</mat-icon> Calcular sueldo del mes:</span>
+            <dx-select-box [items]="mesesSueldo" [value]="sueldoMesSel" displayExpr="label" valueExpr="value"
+              stylingMode="underlined" width="170" (onValueChanged)="onSueldoMes($event.value)"></dx-select-box>
+            <span class="mp-hint">Comisión y motos según lo vendido en el mes elegido.</span>
+          </div>
+
+          <!-- Desglose -->
+          <div class="mp-sueldo-grid">
+            <div class="msd base">
+              <div class="msd-h"><mat-icon>badge</mat-icon> Sueldo base</div>
+              <div class="msd-v">{{ soles(sueldoBase) }}</div>
+              <div class="msd-x">Fijo para todos</div>
+            </div>
+            <div class="msd comis">
+              <div class="msd-h"><mat-icon>trending_up</mat-icon> Comisión por ventas</div>
+              <div class="msd-v">{{ soles(comisionVentas) }}</div>
+              <div class="msd-x">Vendido: {{ soles(montoVendidoMes) }}</div>
+            </div>
+            <div class="msd motos">
+              <div class="msd-h"><mat-icon>two_wheeler</mat-icon> Motos GLOBAL GO</div>
+              <div class="msd-v">{{ soles(pagoMotos) }}</div>
+              <div class="msd-x">{{ motosGlobal }} motos × {{ soles(tarifaMoto) }}
+                <span *ngIf="esRealzza">({{ motosGlobal >= 5 ? '≥5' : '<5' }})</span>
+              </div>
+            </div>
+            <div class="msd total">
+              <div class="msd-h"><mat-icon>payments</mat-icon> Total a cobrar</div>
+              <div class="msd-v">{{ soles(totalGanar) }}</div>
+              <div class="msd-x">Base + comisión + motos</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
     <!-- ══════════ PANEL 1: MIS GESTIONES (primero) ══════════ -->
     <section class="mp-panel gestiones" *ngIf="gestAplica" [class.open]="abiertos['gestiones']">
       <button class="mp-panel-head" type="button" (click)="togglePanel('gestiones')">

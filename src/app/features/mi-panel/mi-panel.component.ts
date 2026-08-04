@@ -51,7 +51,7 @@ export class MiPanelComponent implements OnInit {
   form!: UntypedFormGroup;      // rango opcional { desde, hasta }
 
   // Paneles colapsables (acordeón). Abiertos por defecto: gestiones + resumen.
-  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, graficos: false, analisis: false, evolucion: false, detalle: false };
+  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, sueldo: true, graficos: false, analisis: false, evolucion: false, detalle: false };
   /** ¿Es vendedor de sede? (canal distinto de call/realzza). */
   get esSedeVendedor(): boolean {
     const c = (this.canal || '').toLowerCase();
@@ -98,6 +98,42 @@ export class MiPanelComponent implements OnInit {
   porEntidadTab: AgrupadoTabla[] = [];   // Realzza: por entidad
   motosEntidad: AgrupadoTabla[] = [];    // Realzza: motos por entidad
   motosTipoProd: AgrupadoTabla[] = [];   // Realzza: motos por tipo de producto
+
+  // ── Mi sueldo estimado (Call / Realzza): base + comisión por monto vendido + motos ──
+  readonly sueldoBase = 1130;            // fijo para todos
+  mesesSueldo: { value: string; label: string }[] = [];  // meses con ventas (YYYY-MM)
+  sueldoMesSel = '';                     // mes elegido para el cálculo (YYYY-MM)
+  montoVendidoMes = 0;                   // monto real vendido en el mes elegido
+  comisionVentas = 0;                    // bono por monto vendido (tabla del canal)
+  motosGlobal = 0;                       // motos GLOBAL GO vendidas en el mes
+  tarifaMoto = 0;                        // S/ por moto (Realzza: 125 si ≥5, si no 100; Call: 125)
+  pagoMotos = 0;                         // motosGlobal * tarifaMoto
+  totalGanar = 0;                        // sueldoBase + comisionVentas + pagoMotos
+  get aplicaSueldo(): boolean { return this.esCall || this.esRealzza; }
+
+  // Escala de bonos por MONTO VENDIDO del mes. Son las mismas tablas que muestran
+  // Ventas Call y Ventas Realzza; se toma el mayor tramo cuyo umbral ≤ monto vendido.
+  private readonly bonosCall = [
+    { monto: 115000, bono: 1800 }, { monto: 110000, bono: 1700 }, { monto: 105000, bono: 1600 },
+    { monto: 100000, bono: 1500 }, { monto:  95000, bono: 1400 }, { monto:  90000, bono: 1300 },
+    { monto:  85000, bono: 1200 }, { monto:  80000, bono: 1100 }, { monto:  75000, bono: 1000 },
+    { monto:  70000, bono:  900 }, { monto:  65000, bono:  800 }, { monto:  60000, bono:  700 },
+    { monto:  55000, bono:  600 }, { monto:  50000, bono:  500 }, { monto:  45000, bono:  400 },
+    { monto:  40000, bono:  300 }, { monto:  35000, bono:  200 }, { monto:  30000, bono:  150 },
+    { monto:  25000, bono:  100 }, { monto:  20000, bono:   75 }, { monto:  15000, bono:   50 },
+  ];
+  private readonly bonosRealzza = [
+    { monto: 150000, bono: 2500 }, { monto: 145000, bono: 2400 }, { monto: 140000, bono: 2300 },
+    { monto: 135000, bono: 2200 }, { monto: 130000, bono: 2100 }, { monto: 125000, bono: 2000 },
+    { monto: 120000, bono: 1900 }, { monto: 115000, bono: 1800 }, { monto: 110000, bono: 1700 },
+    { monto: 105000, bono: 1600 }, { monto: 100000, bono: 1500 }, { monto:  95000, bono: 1400 },
+    { monto:  90000, bono: 1300 }, { monto:  85000, bono: 1200 }, { monto:  80000, bono: 1000 },
+    { monto:  75000, bono:  800 }, { monto:  70000, bono:  650 }, { monto:  65000, bono:  600 },
+    { monto:  60000, bono:  550 }, { monto:  55000, bono:  500 }, { monto:  50000, bono:  450 },
+    { monto:  45000, bono:  400 }, { monto:  40000, bono:  350 }, { monto:  35000, bono:  300 },
+    { monto:  30000, bono:  250 }, { monto:  25000, bono:  200 }, { monto:  20000, bono:  150 },
+    { monto:  15000, bono:  100 }, { monto:  10000, bono:   50 },
+  ];
 
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
   gestAplica = false;    // solo canal call/realzza
@@ -403,6 +439,8 @@ export class MiPanelComponent implements OnInit {
         // detalle de Ventas Realzza. La fecha de display se arma desde dia/mes/anio.
         this.todas = (rows || []).map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
         this.aplicar();
+        this.construirMesesSueldo();
+        this.calcularSueldo();
         this.cargando = false;
       },
       error: () => { this.error = 'No se pudieron cargar tus ventas.'; this.cargando = false; },
@@ -515,6 +553,65 @@ export class MiPanelComponent implements OnInit {
       return { mes: b.mes, mesLabel: this.formatMes(b.mes), monto: b.monto, n: b.n, crecimiento, proyeccion };
     });
   }
+
+  /** Meses (YYYY-MM) con ventas/afectaciones del asesor, para el selector del sueldo. */
+  private construirMesesSueldo(): void {
+    if (!this.aplicaSueldo) return;
+    const set = new Set<string>();
+    for (const r of this.todas) {
+      if (Number(r.anio_cv) && Number(r.mes_cv)) set.add(`${r.anio_cv}-${String(r.mes_cv).padStart(2, '0')}`);
+      if (this.esReductor(r) && Number(r.anio_af) && Number(r.mes_af)) set.add(`${r.anio_af}-${String(r.mes_af).padStart(2, '0')}`);
+    }
+    const hoy = new Date();
+    const actual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+    set.add(actual);   // siempre se puede consultar el mes en curso, aunque aún no venda
+    this.mesesSueldo = [...set].sort((a, b) => b.localeCompare(a)).map(v => ({ value: v, label: this.formatMes(v) }));
+    if (!this.sueldoMesSel || !set.has(this.sueldoMesSel)) {
+      this.sueldoMesSel = set.has(actual) ? actual : (this.mesesSueldo[0]?.value || actual);
+    }
+  }
+
+  /**
+   * Sueldo estimado del mes elegido (solo Call / Realzza):
+   *  · Sueldo base fijo (1130).
+   *  · Comisión = bono según el MONTO REAL VENDIDO del mes (tabla del canal).
+   *  · Motos = motos vendidas por GLOBAL GO en el mes × tarifa. Realzza: 125 si son
+   *    5 o más, 100 si son menos. Call: siempre 125.
+   * El monto real del mes = + venta (mes de CV) − afectación NC/incaut. (mes de AF).
+   */
+  calcularSueldo(): void {
+    if (!this.aplicaSueldo) return;
+    const [ay, am] = (this.sueldoMesSel || '').split('-').map(Number);
+    if (!ay || !am) { this.montoVendidoMes = this.comisionVentas = this.motosGlobal = this.pagoMotos = 0; this.totalGanar = this.sueldoBase; return; }
+
+    let monto = 0;
+    for (const r of this.todas) {
+      const m = Number(r.monto_consolidado || 0);
+      if (Number(r.anio_cv) === ay && Number(r.mes_cv) === am) monto += m;
+      if (this.esReductor(r) && Number(r.anio_af) === ay && Number(r.mes_af) === am) monto -= m;
+    }
+    this.montoVendidoMes = monto;
+
+    // Comisión por bono según el monto vendido (mismo escalonado que Ventas Call/Realzza).
+    const tabla = this.esCall ? this.bonosCall : this.bonosRealzza;
+    const min = this.esCall ? 15000 : 10000;
+    this.comisionVentas = monto >= min ? (tabla.find(t => monto >= t.monto)?.bono || 0) : 0;
+
+    // Motos GLOBAL GO vendidas en el mes (por su fecha de venta, sin NC/incaut.).
+    this.motosGlobal = this.todas.filter(r =>
+      !this.esReductor(r) &&
+      Number(r.anio_cv) === ay && Number(r.mes_cv) === am &&
+      (r.tipo_producto ?? '').toString().toUpperCase().includes('MOTO') &&
+      (r.entidad ?? '').toString().toUpperCase().includes('GLOBAL GO'),
+    ).length;
+    this.tarifaMoto = this.esCall ? 125 : (this.motosGlobal >= 5 ? 125 : 100);
+    this.pagoMotos = this.motosGlobal * this.tarifaMoto;
+
+    this.totalGanar = this.sueldoBase + this.comisionVentas + this.pagoMotos;
+  }
+
+  /** El asesor cambia el mes del cálculo de sueldo. */
+  onSueldoMes(v: string): void { this.sueldoMesSel = v; this.calcularSueldo(); }
 
   /**
    * Agrupa por un campo con el monto real del periodo: + venta (cv en periodo),
