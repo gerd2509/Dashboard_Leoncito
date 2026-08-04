@@ -27,6 +27,8 @@ export class VentasComponent implements OnInit {
 
   dataVentas: any[] = [];
   filtroVentas: any[] = [];
+  filtroVentasAsesor: any[] = [];   // filtroVentas SIN las ventas sin derivación (para tablas por asesor)
+  ventasSinDerivacion: any[] = [];  // control: ventas sin derivación (ago-2026+), suman al global no al asesor
 
   protected showFilterRow = true;
   protected currentFilter = 'auto';
@@ -265,6 +267,8 @@ export class VentasComponent implements OnInit {
       EstadoVenta:      r.estado_venta,
       Entidad:          r.entidad,
       CONTACTO:         r.contacto,
+      // Venta sin derivación (ago-2026+): suma al global, NO al avance del asesor.
+      SinDerivacion:    !!r.sin_derivacion,
     };
   }
 
@@ -404,6 +408,11 @@ export class VentasComponent implements OnInit {
       return true;
     });
 
+    // Ventas SIN derivación (ago-2026+): cuentan en el total/global pero se excluyen del
+    // desglose por asesor. `filtroVentasAsesor` es la base para las tablas por asesor.
+    this.filtroVentasAsesor = this.filtroVentas.filter(v => !v.SinDerivacion);
+    this.generarVentasSinDerivacion();
+
     this.calcularKPIs();
     this.generarChartData();
     this.generarChartMontoPorDia();
@@ -454,7 +463,7 @@ export class VentasComponent implements OnInit {
 
   generarChartData(): void {
     const map = new Map<string, number>();
-    for (const v of this.filtroVentas) {
+    for (const v of this.filtroVentasAsesor) {
       if (this.esCapRealzza(v.AsesorVenta)) continue;
       const id = (v.AsesorVenta || '').toString().trim();
       map.set(id, (map.get(id) || 0) + (v.MontoConsolidado || 0));
@@ -464,6 +473,23 @@ export class VentasComponent implements OnInit {
       MontoTotal:  Math.round(total)
     })).sort((a, b) => b.MontoTotal - a.MontoTotal);
     this.maxMontoAsesorChart = this.chartData.length > 0 ? this.chartData[0].MontoTotal : 1;
+  }
+
+  /** Tabla de control: ventas SIN derivación (ago-2026+). Suman al global, no al asesor. */
+  generarVentasSinDerivacion(): void {
+    this.ventasSinDerivacion = this.filtroVentas
+      .filter(v => v.SinDerivacion)
+      .map(v => ({
+        IDVENTA:          v.IDVENTA,
+        FECHAVENTA:       v.FECHAVENTA,
+        MontoConsolidado: Math.round(v.MontoConsolidado || 0),
+        DocIdentidad:     v.DocIdentidad,
+        Productos:        v.Productos,
+        AsesorVenta:      this.nombresCortos[(v.AsesorVenta || '').toString().trim()] || v.AsesorVenta,
+        TipoBase:         v.CONTACTO,
+        EstadoVenta:      v.EstadoVenta,
+      }))
+      .sort((a, b) => (b.MontoConsolidado || 0) - (a.MontoConsolidado || 0));
   }
 
   generarChartMontoPorDia(): void {
@@ -656,7 +682,7 @@ export class VentasComponent implements OnInit {
   generarVentasPorAsesorTipoBase(): void {
     // Recolectar todos los tipos de base únicos ordenados
     const tiposSet = new Set<string>();
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAsesor.forEach(v => {
       if (this.esCapRealzza(v.AsesorVenta)) return;
       const c = (v.CONTACTO || 'SIN CONTACTO').toString().trim().toUpperCase();
       if (c) tiposSet.add(c);
@@ -665,7 +691,7 @@ export class VentasComponent implements OnInit {
 
     // Mapa: nombre asesor → { tipoBase → monto }
     const map = new Map<string, Map<string, number>>();
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAsesor.forEach(v => {
       if (this.esCapRealzza(v.AsesorVenta)) return;
       const id      = (v.AsesorVenta || '').toString().trim();
       const nombre  = this.nombresCortos[id] || (this.asesores.find(a => a.value === id)?.viewValue ?? id);
@@ -700,7 +726,7 @@ export class VentasComponent implements OnInit {
   // desglosado entre ventas de la sede RealZZA y ventas de otras sedes.
   generarVentasCapRealzza(): void {
     const map = new Map<string, { realzza: number; otras: number; ops: number }>();
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAsesor.forEach(v => {
       const id = (v.AsesorVenta || '').toString().trim().toUpperCase();
       if (!this.esCapRealzza(id)) return;
       const nombre = this.nombresCortos[id] || (this.asesores.find(a => a.value === id)?.viewValue ?? id);
@@ -891,7 +917,7 @@ export class VentasComponent implements OnInit {
       fechaInicio.getFullYear() === fechaFin.getFullYear();
 
     const map = new Map<string, { ventas: number; ops: number }>();
-    for (const v of this.filtroVentas) {
+    for (const v of this.filtroVentasAsesor) {
       const id = (v.AsesorVenta || '').toString().trim();
       if (!id) continue;
       if (this.esCapRealzza(id)) continue;

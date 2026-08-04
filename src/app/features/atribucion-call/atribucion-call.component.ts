@@ -119,6 +119,7 @@ export class AtribucionCallComponent implements OnInit {
   /** Resalta las filas editadas a mano en el grid. */
   onRowPrepared = (e: any): void => {
     if (e.rowType === 'data' && e.data?._estado === 'MANUAL') e.rowElement.classList.add('row-manual');
+    if (e.rowType === 'data' && e.data?.sin_derivacion) e.rowElement.classList.add('row-sinderiv');
   };
 
   cargar(): void {
@@ -174,7 +175,10 @@ export class AtribucionCallComponent implements OnInit {
   }
   estadoTxt(v: any): string {
     const e = this.estado(v);
-    return e === 'DERIVACION' ? 'Derivación' : e === 'MANUAL' ? 'Manual' : (this.esRealzza ? 'Sin derivación' : 'Pendiente');
+    const base = e === 'DERIVACION' ? 'Derivación' : e === 'MANUAL' ? 'Manual' : (this.esRealzza ? 'Sin derivación' : 'Pendiente');
+    // Origen "sin derivación" (ago-2026+): se conserva la marca aunque ya se haya
+    // editado a Manual, porque esa venta suma al global pero no al avance del asesor.
+    return (v.sin_derivacion && e === 'MANUAL') ? `${base} · sin deriv.` : base;
   }
   estadoIcon(v: any): string {
     const e = this.estado(v);

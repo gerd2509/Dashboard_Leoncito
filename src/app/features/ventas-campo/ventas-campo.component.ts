@@ -26,6 +26,8 @@ export class VentasCampoComponent implements OnInit {
 
   dataVentas: any[] = [];
   filtroVentas: any[] = [];
+  filtroVentasAvance: any[] = [];   // filtroVentas SIN orfandad no-CALL (para avance por vendedor)
+  ventasSinDerivacion: any[] = [];  // control: ventas sin derivación no-CALL (ago-2026+)
 
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
@@ -292,6 +294,7 @@ export class VentasCampoComponent implements OnInit {
           EstadoVenta: r.estado_venta, Entidad: r.entidad, AsesorVenta: r.asesor_venta,
           TipoCredito: r.tipo_credito, TipoProducto: r.tipo_producto,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
+          SinDerivacion: !!r.sin_derivacion,
           Margen: tot ? tot.mt : 0, ValorVenta: tot ? tot.vv : 0, LineaReal: primaryLinea,
         });
       } else if (esNC) {
@@ -306,6 +309,7 @@ export class VentasCampoComponent implements OnInit {
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(), EstadoVenta: r.estado_venta,
           AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems,
+          SinDerivacion: !!r.sin_derivacion,
           DiaAF: this.parseNumber(r.dia_af), MesAF: this.parseNumber(r.mes_af), AñoAF: this.parseNumber(r.anio_af),
         });
       }
@@ -317,6 +321,8 @@ export class VentasCampoComponent implements OnInit {
           TipoProducto: (r.tipo_producto || 'SIN TIPO').toString().trim().toUpperCase(),
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
           AsesorVenta: (r.asesor_venta || '').toString().trim(),
+          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
+          SinDerivacion: !!r.sin_derivacion,
         });
       }
     }
@@ -567,6 +573,11 @@ export class VentasCampoComponent implements OnInit {
 
     this.filtrarNotasCredito();
 
+    // Ventas SIN derivación (ago-2026+) que NO son CALL: cuentan en el global pero se
+    // excluyen del avance por vendedor. Las CALL (TipoBase='CALL') SÍ suman al avance CALL.
+    this.filtroVentasAvance = this.filtroVentas.filter(v => !this.esVentaOrfana(v));
+    this.generarVentasSinDerivacion();
+
     this.calcularKPIs();
     this.aplicarAjustesEvolutivo();
     this.generarChartData();
@@ -648,10 +659,11 @@ export class VentasCampoComponent implements OnInit {
    * sería un doble descuento. Centralizar este criterio evita que una tabla
    * nueva olvide aplicar el filtro de refacturación.
    */
-  private agruparNCSinRefacturacion(keyFn: (nc: any) => string): Map<string, number> {
+  private agruparNCSinRefacturacion(keyFn: (nc: any) => string, soloAvance = false): Map<string, number> {
     const map = new Map<string, number>();
     this.filtroNotasCredito.forEach(nc => {
       if (nc.esRefacturacion) return;
+      if (soloAvance && this.esVentaOrfana(nc)) return;   // orfandad no-CALL no toca el avance
       const key = keyFn(nc);
       map.set(key, (map.get(key) || 0) + (nc.MontoConsolidado || 0));
     });
@@ -714,6 +726,32 @@ export class VentasCampoComponent implements OnInit {
     });
   }
 
+  /**
+   * ¿Es una venta "sin derivación" que NO debe sumar al avance del vendedor?
+   * Las que traen CC (TipoBase='CALL') SÍ cuentan (avance CALL), así que se excluyen
+   * de esta condición. Solo la orfandad real (Realzza sin derivación) no cuenta.
+   */
+  private esVentaOrfana(v: any): boolean {
+    return !!v.SinDerivacion && (v.TipoBase || '').toString().trim().toUpperCase() !== 'CALL';
+  }
+
+  /** Tabla de control: ventas sin derivación (no-CALL). Suman al global, no al avance. */
+  private generarVentasSinDerivacion(): void {
+    this.ventasSinDerivacion = this.filtroVentas
+      .filter(v => this.esVentaOrfana(v))
+      .map(v => ({
+        IDVENTA:          v.IDVENTA,
+        FECHAVENTA:       v.FECHAVENTA,
+        MontoConsolidado: Math.round(v.MontoConsolidado || 0),
+        DocIdentidad:     v.DocIdentidad,
+        Productos:        v.Productos,
+        Vendedor:         this.resolverNombreVendedor(v.Vendedor, v.TipoBase),
+        TipoBase:         v.TipoBase,
+        EstadoVenta:      v.EstadoVenta,
+      }))
+      .sort((a, b) => (b.MontoConsolidado || 0) - (a.MontoConsolidado || 0));
+  }
+
   private resolverNombreVendedor(vendedorOriginal: string, tipoBase: string = ''): string {
     // La fila "CALL" agrupa SOLO las ventas cuyo TipoBase es CALL. Una venta de un
     // vendedor Realzza que traiga un código CC en AsesorVenta pero sin TipoBase CALL
@@ -726,14 +764,14 @@ export class VentasCampoComponent implements OnInit {
   generarChartData(): void {
     const map = new Map<string, number>();
 
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAvance.forEach(v => {
       const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       map.set(nombre, (map.get(nombre) || 0) + (v.MontoConsolidado || 0));
     });
 
     // Restar solo las NCs puras (sin refacturación) por vendedor.
     // Las refacturadas no restan porque la nueva venta ya está sumada en filtroVentas.
-    this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase))
+    this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true)
       .forEach((monto, nombre) => map.set(nombre, (map.get(nombre) || 0) - monto));
 
     this.chartData = Array.from(map, ([name, total]) => ({
@@ -904,13 +942,13 @@ export class VentasCampoComponent implements OnInit {
 
   generarResumenPorVendedor(): void {
     const mapVentas = new Map<string, { monto: number; ops: number }>();
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAvance.forEach(v => {
       const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       const cur = mapVentas.get(nombre) || { monto: 0, ops: 0 };
       mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(nombre => {
@@ -1079,8 +1117,8 @@ export class VentasCampoComponent implements OnInit {
   /** Pivot: vendedor (asesor) × TipoBase, con el monto NETO (ventas − NC sin refacturación). */
   generarVentasPorAsesorTipoBase(): void {
     const tiposSet = new Set<string>();
-    this.filtroVentas.forEach(v => tiposSet.add((v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()));
-    this.filtroNotasCredito.forEach(nc => { if (!nc.esRefacturacion) tiposSet.add((nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()); });
+    this.filtroVentasAvance.forEach(v => tiposSet.add((v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()));
+    this.filtroNotasCredito.forEach(nc => { if (!nc.esRefacturacion && !this.esVentaOrfana(nc)) tiposSet.add((nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()); });
     this.tiposBaseUnicos = Array.from(tiposSet).sort();
 
     const map = new Map<string, Map<string, number>>();   // asesor → tipoBase → monto
@@ -1089,11 +1127,11 @@ export class VentasCampoComponent implements OnInit {
       const inner = map.get(nombre)!;
       inner.set(tipo, (inner.get(tipo) || 0) + monto);
     };
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAvance.forEach(v => {
       acum(this.resolverNombreVendedor(v.Vendedor, v.TipoBase), (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), v.MontoConsolidado || 0);
     });
     this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
+      if (nc.esRefacturacion || this.esVentaOrfana(nc)) return;
       acum(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), -(nc.MontoConsolidado || 0));
     });
 
@@ -1268,6 +1306,7 @@ export class VentasCampoComponent implements OnInit {
 
     this.dataGlobalGo
       .filter(v => { const f = v.FECHAVENTA as Date; return f >= fechaInicio && f <= fechaFin; })
+      .filter(v => !this.esVentaOrfana(v))   // motos orfandad no-CALL no suman al vendedor
       .forEach(v => {
         const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
         const tipo   = (v.TipoProducto || 'SIN TIPO').toString().trim().toUpperCase();
@@ -1482,13 +1521,13 @@ export class VentasCampoComponent implements OnInit {
       fechaInicio.getFullYear() === fechaFin.getFullYear();
 
     const mapVentas = new Map<string, { ventas: number; ops: number }>();
-    this.filtroVentas.forEach(v => {
+    this.filtroVentasAvance.forEach(v => {
       const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       const cur = mapVentas.get(nombre) || { ventas: 0, ops: 0 };
       mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
+    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
 
     this.tablaBonosAsesor = Array.from(mapVentas.entries()).map(([nombre, data]) => {
       const ventas = Math.round(data.ventas);

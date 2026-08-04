@@ -357,6 +357,33 @@
     </dxo-summary>
 </dx-data-grid>
 
+<!-- ===== VENTAS SIN DERIVACIÓN (control) — suman al global, NO al avance del asesor ===== -->
+<div *ngIf="ventasSinDerivacion.length > 0" style="margin-top:24px;">
+    <div class="section-header" style="color:#B26A00;">
+        <mat-icon style="color:#E69100;">report_problem</mat-icon>
+        Ventas sin derivación ({{ ventasSinDerivacion.length }}) — suman al total, no al avance del asesor
+    </div>
+    <dx-data-grid [dataSource]="ventasSinDerivacion" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true"
+        [wordWrapEnabled]="true">
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50]" [showInfo]="true"></dxo-pager>
+        <dxi-column dataField="IDVENTA" caption="ID VENTA" alignment="left" [minWidth]="90" />
+        <dxi-column dataField="FECHAVENTA" caption="FECHA" dataType="date" format="dd/MM/yyyy" [minWidth]="100" />
+        <dxi-column dataField="MontoConsolidado" caption="MONTO" dataType="number" format="S/ #,##0" alignment="right" [minWidth]="110" />
+        <dxi-column dataField="DocIdentidad" caption="DNI" alignment="left" [minWidth]="100" />
+        <dxi-column dataField="Productos" caption="PRODUCTOS" alignment="left" [minWidth]="200" />
+        <dxi-column dataField="AsesorVenta" caption="ASESOR ASIGNADO" alignment="left" [minWidth]="120" />
+        <dxi-column dataField="TipoBase" caption="TIPO BASE" alignment="left" [minWidth]="110" />
+        <dxi-column dataField="EstadoVenta" caption="ESTADO" alignment="left" [minWidth]="110" />
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="IDVENTA" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="MontoConsolidado" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+</div>
+
 <!-- ===== GRÁFICOS ===== -->
 <div class="section-header" style="margin-top:24px;">
     <mat-icon>bar_chart</mat-icon>

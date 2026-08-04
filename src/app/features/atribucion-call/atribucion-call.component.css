@@ -66,6 +66,8 @@
 .ac-list ::ng-deep .dx-datagrid-filter-row td { background: #f2f6fb; }
 .ac-list ::ng-deep .dx-data-row td { font-size: 12.5px; vertical-align: middle; }
 .ac-list ::ng-deep .dx-data-row.row-manual td { background: #fff8ef !important; }
+/* Origen "sin derivación": borde ámbar a la izquierda (suma al global, no al asesor). */
+.ac-list ::ng-deep .dx-data-row.row-sinderiv td:first-child { box-shadow: inset 3px 0 0 0 #E69100; }
 .ac-prod { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* (estilos de la tabla HTML anterior, aún usados por los badges) */

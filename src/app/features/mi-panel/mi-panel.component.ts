@@ -445,7 +445,12 @@ export class MiPanelComponent implements OnInit {
         // -1 día por zona horaria al parsear la columna DATE `fecha_cv`).
         // Todas las ventas del vendedor (incluidas las asistidas por Call), como el
         // detalle de Ventas Realzza. La fecha de display se arma desde dia/mes/anio.
-        this.todas = (rows || []).map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
+        // Las ventas SIN derivación (ago-2026+) NO se reflejan en el panel del vendedor:
+        // suman al global del canal pero no impactan su monto/tablas/sueldo. Las CALL
+        // (tipo_base='CALL') sí cuentan, así que solo se excluye la orfandad no-CALL.
+        this.todas = (rows || [])
+          .filter(r => !(r.sin_derivacion && (r.tipo_base || '').toString().trim().toUpperCase() !== 'CALL'))
+          .map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
         this.aplicar();
         this.construirMesesSueldo();
         this.calcularSueldo();
