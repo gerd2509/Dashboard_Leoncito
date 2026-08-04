@@ -91,9 +91,20 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 
 /* Mini-cards KOMMO / Market Place */
 .mp-mini-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 14px; }
+/* KOMMO · Market Place · Derivaciones · Agendamientos: los 4 en una sola fila (2×2 en móvil). */
+.mp-mini-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+@media (max-width: 900px) { .mp-mini-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .mp-mini-4 { grid-template-columns: 1fr; } }
 .mp-mini { border-radius: 14px; padding: 14px 16px; color: #fff; box-shadow: 0 6px 16px rgba(20,49,79,.12); }
 .mp-mini.kommo  { background: linear-gradient(135deg, #5E35B1, #7e57c2); }
 .mp-mini.market { background: linear-gradient(135deg, #00838F, #26c6da); }
+.mp-mini.deriv  { background: linear-gradient(135deg, #1565C0, #1e88e5); }
+.mp-mini.agenda { background: linear-gradient(135deg, #E65100, #fb8c00); }
+.mp-mini.clickable { cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.mp-mini.clickable:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(20,49,79,.2); }
+.mm-sub .ver { display: inline-flex; align-items: center; gap: 4px; font-weight: 700;
+  background: rgba(255,255,255,.22); border-radius: 999px; padding: 2px 9px; }
+.mm-sub .ver mat-icon { font-size: 15px; width: 15px; height: 15px; }
 .mm-h { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; opacity: .95; }
 .mm-h mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .mm-big { font-size: 30px; font-weight: 800; line-height: 1.1; margin-top: 2px; }
@@ -140,6 +151,9 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 /* Cuerpo del popup: el gráfico ocupa todo el alto disponible */
 .mp-popup-body { height: 100%; width: 100%; display: flex; }
 .mp-popup-body > * { flex: 1; min-width: 0; }
+.mp-detalle-vacio { display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: #6b8299; font-size: 15px; font-weight: 600; width: 100%; }
+.mp-detalle-vacio mat-icon { color: #9db3c8; }
 
 /* Tablas de análisis por canal */
 .mp-grupos { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 22px; }

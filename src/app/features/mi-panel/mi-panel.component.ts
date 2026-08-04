@@ -160,6 +160,13 @@ export class MiPanelComponent implements OnInit {
   gestNoContacto = 0;
   gestPct = 0;           // % de contactabilidad
   gestChart: { clave: string; valor: number; color: string }[] = [];
+  // Derivaciones / agendamientos del día (con su detalle para el popup)
+  gestDerivaciones = 0;
+  gestAgendamientos = 0;
+  derivacionesDetalle: any[] = [];
+  agendamientosDetalle: any[] = [];
+  popupDetalle: '' | 'deriv' | 'agenda' = '';
+  private readonly MOTIVO_AGENDA = 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)';
   // KOMMO del día
   kommoTotal = 0; kommoContacto = 0; kommoNoContacto = 0;
   // Market Place del día
@@ -303,6 +310,11 @@ export class MiPanelComponent implements OnInit {
       next: ({ general, kommo }) => {
         this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, dia);
         this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, dia);
+        // Derivaciones / agendamientos = de TODAS las gestiones del día (generales + KOMMO).
+        this.calcularDerivAgenda([
+          ...this.mios(general || [], colAsesor, dia),
+          ...this.mios(kommo || [], colAsesor, dia),
+        ]);
         this.gestCargando = false;
       },
       error: () => { this.gestCargando = false; },
@@ -401,6 +413,53 @@ export class MiPanelComponent implements OnInit {
       { clave: 'Corta llamada', valor: corta, color: '#F9A825' },
       { clave: 'No contacto', valor: nocont, color: '#C62828' },
     ];
+  }
+
+  /** Motivos que cuentan como DERIVACIÓN según el canal (Call incluye visita/tienda). */
+  private motivosDeriv(): string[] {
+    return this.esCall
+      ? ['VENTA DERIVADA PARA CIERRE A SEDE', 'VISITARÁ TIENDA', 'SE ENVIÓ A ASESOR VISITA A DOMICILIO']
+      : ['VENTA DERIVADA PARA CIERRE A SEDE'];
+  }
+
+  /** Cuenta derivaciones y agendamientos del día y arma su detalle (para el popup). */
+  private calcularDerivAgenda(mias: any[]): void {
+    const deriv = this.motivosDeriv();
+    const motivoDe = (r: any) => (r['MOTIVO INTERÉS'] ?? r['MOTIVO DE INTERÉS'] ?? '').toString().toUpperCase().trim();
+    const der: any[] = [], age: any[] = [];
+    for (const r of mias) {
+      const m = motivoDe(r);
+      if (deriv.includes(m)) der.push(this.detalleGestion(r, 'deriv'));
+      else if (m === this.MOTIVO_AGENDA) age.push(this.detalleGestion(r, 'agenda'));
+    }
+    this.derivacionesDetalle = der;
+    this.agendamientosDetalle = age;
+    this.gestDerivaciones = der.length;
+    this.gestAgendamientos = age.length;
+  }
+
+  /** Fila de detalle (derivación / agendamiento) para el popup. */
+  private detalleGestion(r: any, tipo: 'deriv' | 'agenda'): any {
+    const g = (k: string) => (r[k] ?? '').toString().trim();
+    const esDeriv = tipo === 'deriv';
+    return {
+      fecha: g('Marca temporal'),
+      dni: g('DNI CLIENTE'),
+      producto: g('PRODUCTO INTERÉS') || g('PRODUCTO DE INTERÉS'),
+      motivo: g('MOTIVO INTERÉS') || g('MOTIVO DE INTERÉS'),
+      fechaInteres: esDeriv ? g('FECHA DE INTERÉS DERIVACIÓN') : g('FECHA DE INTERÉS AGENDAMIENTO'),
+      horaInteres: esDeriv ? g('HORA APROXIMADA INTERÉS DERIVACIÓN') : g('HORA APROXIMADA INTERÉS AGENDAMIENTO'),
+      comentario: esDeriv ? g('COMENTARIO ADICIONAL DERIVACIÓN') : g('COMENTARIO ADICIONAL AGENDAMIENTO'),
+    };
+  }
+
+  /** Abre el popup con el detalle de derivaciones o agendamientos. */
+  abrirDetalle(tipo: 'deriv' | 'agenda'): void { this.popupDetalle = tipo; }
+  get popupDetalleTitulo(): string {
+    return this.popupDetalle === 'deriv' ? 'Derivaciones del día' : 'Agendamientos del día';
+  }
+  get popupDetalleData(): any[] {
+    return this.popupDetalle === 'deriv' ? this.derivacionesDetalle : this.agendamientosDetalle;
   }
 
   /** KOMMO y Market Place del día (hoja KOMMO). SI en la col. Market Place = market. */

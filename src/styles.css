@@ -223,6 +223,16 @@ body {
   color: #FFFFFF !important;
   border-bottom: none !important;
 }
+/* El título del popup a veces se recorta ("Derivacio…") en el primer render porque
+   DevExtreme calcula mal el ancho del label. Forzar que SIEMPRE se muestre completo. */
+.dx-popup-title .dx-toolbar-label,
+.dx-popup-title .dx-toolbar-label > div,
+.dx-popup-title .dx-toolbar-label .dx-item-content {
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
 .dx-toolbar-button .dx-button-content {
   color: rgba(255,255,255,0.8) !important;
 }

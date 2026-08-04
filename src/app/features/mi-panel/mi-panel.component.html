@@ -170,7 +170,8 @@
                 <div class="mp-kpi g4"><mat-icon>percent</mat-icon><div><span class="v">{{ gestPct }}%</span><span class="l">Contactabilidad</span></div></div>
               </div>
 
-              <div class="mp-mini-2">
+              <!-- KOMMO · Market Place · Derivaciones · Agendamientos (una sola fila) -->
+              <div class="mp-mini-4">
                 <div class="mp-mini kommo">
                   <div class="mm-h"><mat-icon>public</mat-icon> KOMMO</div>
                   <div class="mm-big">{{ kommoTotal }}</div>
@@ -180,6 +181,16 @@
                   <div class="mm-h"><mat-icon>storefront</mat-icon> Market Place</div>
                   <div class="mm-big">{{ mpTotal }}</div>
                   <div class="mm-sub"><span class="ok">{{ mpContacto }} contacto</span> · <span class="no">{{ mpNoContacto }} no contacto</span></div>
+                </div>
+                <div class="mp-mini deriv clickable" (click)="abrirDetalle('deriv')" title="Ver detalle">
+                  <div class="mm-h"><mat-icon>call_split</mat-icon> Derivaciones</div>
+                  <div class="mm-big">{{ gestDerivaciones }}</div>
+                  <div class="mm-sub"><span class="ver"><mat-icon>visibility</mat-icon> Ver detalle</span></div>
+                </div>
+                <div class="mp-mini agenda clickable" (click)="abrirDetalle('agenda')" title="Ver detalle">
+                  <div class="mm-h"><mat-icon>event_available</mat-icon> Agendamientos</div>
+                  <div class="mm-big">{{ gestAgendamientos }}</div>
+                  <div class="mm-sub"><span class="ver"><mat-icon>visibility</mat-icon> Ver detalle</span></div>
                 </div>
               </div>
             </ng-container>
@@ -466,6 +477,30 @@
           <ng-container *ngSwitchCase="'gestiones'"><ng-container *ngTemplateOutlet="tGest; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
           <ng-container *ngSwitchCase="'evolucion'"><ng-container *ngTemplateOutlet="tEvol; context: { cls: 'mp-chart big' }"></ng-container></ng-container>
         </ng-container>
+      </div>
+    </dx-popup>
+
+    <!-- Popup: detalle de Derivaciones / Agendamientos del día -->
+    <dx-popup [visible]="!!popupDetalle" (onHiding)="popupDetalle = ''" [showTitle]="true" [title]="popupDetalleTitulo"
+      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="94%" height="72%" [maxWidth]="1120">
+      <div *dxTemplate="let d of 'content'" class="mp-popup-body">
+        <dx-data-grid *ngIf="popupDetalleData.length" [dataSource]="popupDetalleData" [showBorders]="true"
+          [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
+          height="100%">
+          <dxo-scrolling mode="virtual"></dxo-scrolling>
+          <dxo-filter-row [visible]="true"></dxo-filter-row>
+          <dxo-header-filter [visible]="true"></dxo-header-filter>
+          <dxi-column dataField="fecha" caption="Fecha gestión" [minWidth]="140"></dxi-column>
+          <dxi-column dataField="dni" caption="DNI cliente" [width]="110"></dxi-column>
+          <dxi-column dataField="producto" caption="Producto interés" [minWidth]="150"></dxi-column>
+          <dxi-column dataField="motivo" caption="Motivo" [minWidth]="200"></dxi-column>
+          <dxi-column dataField="fechaInteres" caption="Fecha interés" [width]="120"></dxi-column>
+          <dxi-column dataField="horaInteres" caption="Hora" [width]="90"></dxi-column>
+          <dxi-column dataField="comentario" caption="Comentario" [minWidth]="180"></dxi-column>
+        </dx-data-grid>
+        <div *ngIf="!popupDetalleData.length" class="mp-detalle-vacio">
+          <mat-icon>inbox</mat-icon> Sin {{ popupDetalle === 'deriv' ? 'derivaciones' : 'agendamientos' }} en el día seleccionado.
+        </div>
       </div>
     </dx-popup>
 
