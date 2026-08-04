@@ -249,6 +249,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.sedesBloques = this.sedesObjetivo.map(sede => {
       const cfg = this.sedeConfig.getConfig(sede.key);
       // Roster desde el CAP (solo ACTIVOS); si no hay CAP, cae al listado estático.
+      // Se listan ÚNICAMENTE los asesores del CAP (no se agregan los que no estén en él).
       const asesores = this.capPorSede.get(sede.key)?.length
         ? this.capPorSede.get(sede.key)!
         : (cfg?.asesores ?? []);
