@@ -6,6 +6,7 @@ import { GestionKommoService, GestionKommo } from '../../../services/gestion-kom
 import { ExcelExportService } from '../../../services/excel/excel.service';
 import { canalDeUsuario, Canal } from '../../../shared/canal-usuario';
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
+import { custom } from 'devextreme/ui/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
 
@@ -38,6 +39,10 @@ export class GestionKommoComponent implements OnInit {
   isLoading = false;
   registros: GestionKommo[] = [];
 
+  // Filtro por rango de fechas (por marca_temporal), como en las demás gestiones.
+  desde: Date | null = null;
+  hasta: Date | null = null;
+
   ngOnInit(): void {
     this.filtroCanal = this.scope || '';   // no-admin arranca fijo en su canal
     this.cargar();
@@ -56,10 +61,22 @@ export class GestionKommoComponent implements OnInit {
   cargar(): void {
     this.isLoading = true;
     const canal = this.canalEfectivo;
-    this.srv.listar(canal ? { canal } : undefined).subscribe({
+    const opts: { canal?: string; desde?: string; hasta?: string } = {};
+    if (canal) opts.canal = canal;
+    if (this.desde) opts.desde = this.ymd(this.desde);
+    if (this.hasta) opts.hasta = this.ymd(this.hasta);
+    this.srv.listar(Object.keys(opts).length ? opts : undefined).subscribe({
       next: (rows) => { this.registros = rows || []; this.isLoading = false; },
       error: () => { this.registros = []; this.isLoading = false; },
     });
+  }
+
+  /** Limpia el rango de fechas y recarga. */
+  limpiarFechas(): void { this.desde = null; this.hasta = null; this.cargar(); }
+
+  /** Date → 'YYYY-MM-DD' para el backend (filtra por marca_temporal). */
+  private ymd(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   /** Al editar: en el popup solo se muestran los campos que tienen valor en ese registro. */
@@ -87,10 +104,22 @@ export class GestionKommoComponent implements OnInit {
   onRowRemoving(e: any): void {
     const id = e.data?.id;
     if (!id) return;
-    e.cancel = new Promise<boolean>((resolve) => {
-      this.srv.eliminar(id).subscribe({
-        next: () => { this.toast('✔ Registro eliminado.'); resolve(false); },
-        error: () => { this.toast('❌ No se pudo eliminar.', true); resolve(true); },
+    // Confirmación propia (título + botones de color), igual que Gestión Realzza/Call.
+    const dialog = custom({
+      title: 'Eliminar gestión — KOMMO',
+      messageHtml: '<div style="padding:10px 6px;font-size:15px;color:#1E3A5F;">¿Eliminar esta gestión de forma permanente?</div>',
+      buttons: [
+        { text: 'Cancelar', type: 'danger', stylingMode: 'contained', onClick: () => false },
+        { text: 'Eliminar', type: 'success', stylingMode: 'contained', onClick: () => true },
+      ],
+    });
+    e.cancel = dialog.show().then((confirmado: boolean) => {
+      if (!confirmado) return true;   // cancelado → no elimina
+      return new Promise<boolean>((resolve) => {
+        this.srv.eliminar(id).subscribe({
+          next: () => { this.toast('✔ Registro eliminado.'); resolve(false); },
+          error: () => { this.toast('❌ No se pudo eliminar.', true); resolve(true); },
+        });
       });
     });
   }

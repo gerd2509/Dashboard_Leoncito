@@ -74,7 +74,7 @@ export class AtribucionCallComponent implements OnInit {
   // ── Popup de edición ──
   editVisible = false;
   editando: any = null;
-  modelo = { vendedor: '', contacto: '', tipo_cliente: '', tipo_base: '', asesor_venta: '' };
+  modelo = { vendedor: '', contacto: '', tipo_cliente: '', tipo_base: '', asesor_venta: '', extranjero: false };
   guardandoEdicion = false;
 
   ngOnInit(): void { this.cargar(); }
@@ -209,6 +209,7 @@ export class AtribucionCallComponent implements OnInit {
         vendedor: '', contacto: '', tipo_cliente: '',
         tipo_base: v.tipo_base || v.tb_sugerido || '',
         asesor_venta: v.asesor_venta || '',
+        extranjero: !!v.extranjero,
       };
     } else {
       this.modelo = {
@@ -217,6 +218,7 @@ export class AtribucionCallComponent implements OnInit {
         tipo_cliente: v.tipo_cliente || v.tc_sugerido || '',
         tipo_base: v.tipo_base || v.tipo_cliente || v.tc_sugerido || '',
         asesor_venta: '',
+        extranjero: !!v.extranjero,
       };
     }
     this.editVisible = true;
@@ -228,29 +230,30 @@ export class AtribucionCallComponent implements OnInit {
     const v = this.editando; if (!v) return;
     let payload: any;
     if (this.esRealzza) {
-      payload = { tipo_base: this.modelo.tipo_base || '', asesor_venta: this.modelo.asesor_venta || '' };
+      payload = { tipo_base: this.modelo.tipo_base || '', asesor_venta: this.modelo.asesor_venta || '', extranjero: !!this.modelo.extranjero };
     } else {
       const cc = (this.modelo.vendedor || '').trim();
       if (!cc) { this.toast('Selecciona el AsesorVenta (CC).', true); return; }
       payload = {
         vendedor: cc, contacto: this.modelo.contacto || '',
         tipo_cliente: this.modelo.tipo_cliente || '', tipo_base: this.modelo.tipo_base || '',
+        extranjero: !!this.modelo.extranjero,
       };
     }
     this.guardandoEdicion = true;
     this.svc.guardarAtribucion(this.canal, v.codigo_cv, payload).subscribe({
       next: () => {
         if (this.esRealzza) {
-          Object.assign(v, { tipo_base: this.modelo.tipo_base || null, asesor_venta: this.modelo.asesor_venta || null, asesor_manual: true });
+          Object.assign(v, { tipo_base: this.modelo.tipo_base || null, asesor_venta: this.modelo.asesor_venta || null, extranjero: this.modelo.extranjero, asesor_manual: true });
         } else {
           Object.assign(v, {
             vendedor: this.modelo.vendedor, contacto: this.modelo.contacto || null,
-            tipo_cliente: this.modelo.tipo_cliente || null, tipo_base: this.modelo.tipo_base || null, asesor_manual: true,
+            tipo_cliente: this.modelo.tipo_cliente || null, tipo_base: this.modelo.tipo_base || null, extranjero: this.modelo.extranjero, asesor_manual: true,
           });
         }
         // refleja el cambio en la otra tabla (lista ↔ resultados) si está en ambas
         const gemelo = [...this.ventas, ...this.resultados].find(x => x !== v && x.codigo_cv === v.codigo_cv);
-        if (gemelo) Object.assign(gemelo, { tipo_base: v.tipo_base, asesor_venta: v.asesor_venta, vendedor: v.vendedor, contacto: v.contacto, tipo_cliente: v.tipo_cliente, asesor_manual: true });
+        if (gemelo) Object.assign(gemelo, { tipo_base: v.tipo_base, asesor_venta: v.asesor_venta, vendedor: v.vendedor, contacto: v.contacto, tipo_cliente: v.tipo_cliente, extranjero: v.extranjero, asesor_manual: true });
         this.guardandoEdicion = false; this.editVisible = false;
         this.toast('✔ Atribución actualizada.');
       },

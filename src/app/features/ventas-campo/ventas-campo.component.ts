@@ -102,9 +102,14 @@ export class VentasCampoComponent implements OnInit {
   totalCuotaMes = 0;          // cuota del mes total = suma de metas de los tipos
   totalAvanceTipoBase = 0;    // % avance total (ventas / cuota del mes)
   totalPartTipoBase = 0;      // % participación total (100% si hay ventas)
+  // Totales reales de la tabla Tipo de Base (incluyen las NC "SIN TIPO" aunque esa fila se oculte).
+  totalMontoVentasTipoBase = 0;
+  totalNetoTipoBase = 0;
   customizeAvanceTipoBaseTotal = (_: any) => `${this.totalAvanceTipoBase.toFixed(1)}%`;
   customizeCuotaTipoBaseTotal = (_: any) => `S/ ${this.totalCuotaMes.toLocaleString('es-PE')}`;
   customizePartTipoBaseTotal = (_: any) => `${this.totalPartTipoBase.toFixed(1)}%`;
+  customizeVentasTipoBaseTotal = (_: any) => `S/ ${Math.round(this.totalMontoVentasTipoBase).toLocaleString('es-PE')}`;
+  customizeNetoTipoBaseTotal = (_: any) => `S/ ${Math.round(this.totalNetoTipoBase).toLocaleString('es-PE')}`;
   showDetailGrid = false;
   showNCGrid = false;
   totalPctMargenCredito = 0;
@@ -294,7 +299,7 @@ export class VentasCampoComponent implements OnInit {
           EstadoVenta: r.estado_venta, Entidad: r.entidad, AsesorVenta: r.asesor_venta,
           TipoCredito: r.tipo_credito, TipoProducto: r.tipo_producto,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
-          SinDerivacion: !!r.sin_derivacion,
+          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero,
           Margen: tot ? tot.mt : 0, ValorVenta: tot ? tot.vv : 0, LineaReal: primaryLinea,
         });
       } else if (esNC) {
@@ -309,7 +314,7 @@ export class VentasCampoComponent implements OnInit {
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(), EstadoVenta: r.estado_venta,
           AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems,
-          SinDerivacion: !!r.sin_derivacion,
+          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero,
           DiaAF: this.parseNumber(r.dia_af), MesAF: this.parseNumber(r.mes_af), AñoAF: this.parseNumber(r.anio_af),
         });
       }
@@ -322,7 +327,7 @@ export class VentasCampoComponent implements OnInit {
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
           AsesorVenta: (r.asesor_venta || '').toString().trim(),
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
-          SinDerivacion: !!r.sin_derivacion,
+          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero,
         });
       }
     }
@@ -732,6 +737,7 @@ export class VentasCampoComponent implements OnInit {
    * de esta condición. Solo la orfandad real (Realzza sin derivación) no cuenta.
    */
   private esVentaOrfana(v: any): boolean {
+    if (v.Extranjero) return false;   // marcada extranjero (no cruza por DNI) → sí cuenta al vendedor
     return !!v.SinDerivacion && (v.TipoBase || '').toString().trim().toUpperCase() !== 'CALL';
   }
 
@@ -1193,7 +1199,11 @@ export class VentasCampoComponent implements OnInit {
 
     rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
     this.maxMontoTipoBase = Math.max(rows[0]?.MontoVentas || 0, 1);
-    this.ventasPorTipoBase = rows;
+    // Totales reales calculados sobre TODOS los tipos (incl. SIN TIPO) para el pie de tabla.
+    this.totalMontoVentasTipoBase = totalMonto;
+    this.totalNetoTipoBase = rows.reduce((s, r) => s + r.MontoNeto, 0);
+    // La fila "SIN TIPO" (normalmente solo NC) NO se muestra, pero su neto sigue en el total.
+    this.ventasPorTipoBase = rows.filter(r => (r.TipoBase || '').toString().trim().toUpperCase() !== 'SIN TIPO');
 
     // Cuota del mes general = suma de las metas de todos los tipos de base.
     this.totalCuotaMes = rows.reduce((s, r) => s + (r.Meta || 0), 0);

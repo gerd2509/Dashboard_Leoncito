@@ -136,6 +136,12 @@ export class MaduracionLeadsComponent implements OnInit {
 
     // Ventas del origen elegido (KOMMO o Market Place) dentro del rango.
     const filtroVenta = (v: any): boolean => {
+      // Cuenta las ventas por su tipo base / contacto, EXCEPTO las notas de crédito
+      // (no son ventas). Se excluye también monto ≤ 0: esas filas no son ventas sino
+      // ítems de regalo/accesorio (mochila, licuadora…) que van como código aparte con
+      // 0 soles; la venta real del cliente (la moto/mueble) es OTRO código con su monto.
+      if ((v.estado_venta || '').toString().toUpperCase().includes('NOTA DE CR')) return false;
+      if (Number(v.monto_consolidado || 0) <= 0) return false;
       const clave = this.canal === 'call'
         ? (v.contacto || '').toString().toUpperCase().trim()
         : (v.tipo_base || '').toString().toUpperCase().trim();

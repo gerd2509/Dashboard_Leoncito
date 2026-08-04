@@ -273,9 +273,8 @@
             </div>
             <dxo-summary>
                 <dxi-total-item alignment="left" column="TipoBase" displayFormat="TOTAL"></dxi-total-item>
-                <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}"
-                    [valueFormat]="'#,##0'" showInColumn="MontoVentas"></dxi-total-item>
-                <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+                <dxi-total-item column="MontoVentas" [customizeText]="customizeVentasTipoBaseTotal" showInColumn="MontoVentas"></dxi-total-item>
+                <dxi-total-item column="MontoNeto" [customizeText]="customizeNetoTipoBaseTotal"></dxi-total-item>
                 <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
                 <!-- Total META = cuota del mes general (suma de metas de los tipos) -->
                 <dxi-total-item column="Meta" [customizeText]="customizeCuotaTipoBaseTotal"></dxi-total-item>

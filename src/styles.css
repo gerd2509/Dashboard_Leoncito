@@ -284,6 +284,23 @@ body {
   color: #fff !important; font-weight: 700; text-transform: none;
 }
 
+/* ── Diálogo de confirmación (eliminar, etc.) de DevExtreme: que SIEMPRE se vea bien.
+      La regla global de texto blanco en .dx-toolbar-button dejaba los botones del
+      confirm por defecto ("¿Está seguro…? Sí / No") invisibles (blanco sobre claro). ── */
+.dx-dialog-wrapper .dx-popup-normal { border-radius: 12px !important; }
+.dx-dialog-wrapper .dx-dialog-message,
+.dx-dialog-wrapper .dx-popup-content {
+  color: #1E3A5F !important; font-size: 15px; line-height: 1.4; padding: 20px 22px !important;
+}
+.dx-dialog-wrapper .dx-dialog-button { min-width: 104px !important; margin: 0 6px !important; }
+.dx-dialog-wrapper .dx-dialog-button .dx-button { border-radius: 8px !important; }
+/* Botón "normal" (No / Cancelar): fondo claro + texto oscuro → visible. */
+.dx-dialog-wrapper .dx-button.dx-button-normal { background: #eef2f7 !important; border: 1px solid #cfdcec !important; }
+.dx-dialog-wrapper .dx-button.dx-button-normal .dx-button-content { color: #1E3A5F !important; font-weight: 700; }
+/* Botón acento (Sí / Aceptar): azul + texto blanco. */
+.dx-dialog-wrapper .dx-button.dx-button-default { background: #1A5FAD !important; border-color: #1A5FAD !important; }
+.dx-dialog-wrapper .dx-button.dx-button-default .dx-button-content { color: #fff !important; font-weight: 700; }
+
 /* ============================================================
    CONTROL SUPERVISOR — barra del calendario (dx-scheduler)
    DevExtreme renderiza fuera del scope del componente → global.

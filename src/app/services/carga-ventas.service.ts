@@ -200,7 +200,7 @@ export class CargaVentasService {
    * Realzza: tipo_base/asesor_venta.
    */
   guardarAtribucion(canal: 'call' | 'realzza', codigo: number, datos: {
-    vendedor?: string; contacto?: string; tipo_cliente?: string; tipo_base?: string; asesor_venta?: string;
+    vendedor?: string; contacto?: string; tipo_cliente?: string; tipo_base?: string; asesor_venta?: string; extranjero?: boolean;
   }): Observable<any> {
     return this.http.put(`${this.root}/${this.atribBase(canal)}/${codigo}`, datos);
   }

@@ -163,6 +163,11 @@
         [searchEnabled]="true" [acceptCustomValue]="true" placeholder="Elegir asesor…" stylingMode="outlined"></dx-select-box>
     </ng-container>
 
+    <div class="ac-edit-extranjero">
+      <dx-check-box [(value)]="modelo.extranjero" text="Extranjero (carnet de extranjería)"></dx-check-box>
+      <small>Márcalo si la venta no cruza por DNI: así SÍ cuenta al vendedor aunque figure “sin derivación”.</small>
+    </div>
+
     <div class="ac-edit-acc">
       <button class="ac-btn ghost" (click)="editVisible = false">Cancelar</button>
       <button class="ac-btn primary" [disabled]="guardandoEdicion" (click)="guardarEdicion()">

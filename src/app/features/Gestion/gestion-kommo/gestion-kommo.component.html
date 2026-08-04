@@ -13,6 +13,11 @@
       <span class="gk-canal-fijo" *ngIf="!esAdmin" [class.rz]="scope === 'REALZZA'">
         {{ scope === 'REALZZA' ? 'Realzza' : 'Leoncito' }}
       </span>
+      <dx-date-box [(value)]="desde" type="date" [openOnFieldClick]="true" label="Desde" labelMode="floating"
+          stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [max]="hasta"></dx-date-box>
+      <dx-date-box [(value)]="hasta" type="date" [openOnFieldClick]="true" label="Hasta" labelMode="floating"
+          stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [min]="desde"></dx-date-box>
+      <button class="gk-btn" *ngIf="desde || hasta" (click)="limpiarFechas()"><mat-icon>filter_alt_off</mat-icon> Limpiar</button>
       <button class="gk-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Actualizar</button>
       <button class="gk-btn excel" (click)="exportar()"><mat-icon>table_view</mat-icon> Excel</button>
     </div>
@@ -22,16 +27,18 @@
     <div class="grid-overlay" *ngIf="isLoading">
       <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestiones…" icon="public"></app-loading-overlay>
     </div>
-    <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
-      [columnAutoWidth]="true" [hoverStateEnabled]="true" [height]="640"
+    <dx-data-grid [dataSource]="registros" keyExpr="id" [showBorders]="true" [showColumnLines]="true"
+      [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true"
+      [wordWrapEnabled]="true" [allowColumnReordering]="true"
       (onRowUpdating)="onRowUpdating($event)" (onRowRemoving)="onRowRemoving($event)"
       (onEditingStart)="onEditingStart($event)" (onCellPrepared)="onCellPrepared($event)">
-      <dxo-scrolling mode="virtual"></dxo-scrolling>
+      <dxo-paging [pageSize]="10"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" [showInfo]="true"></dxo-pager>
       <dxo-filter-row [visible]="true"></dxo-filter-row>
       <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar…"></dxo-search-panel>
       <dxo-header-filter [visible]="true"></dxo-header-filter>
       <dxo-column-chooser [enabled]="true"></dxo-column-chooser>
-      <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true">
+      <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true" [confirmDelete]="false">
         <dxo-popup title="Editar gestión KOMMO" [showTitle]="true" [width]="720" [height]="'auto'"></dxo-popup>
         <dxo-form [colCount]="2"></dxo-form>
       </dxo-editing>

@@ -269,6 +269,8 @@ export class VentasComponent implements OnInit {
       CONTACTO:         r.contacto,
       // Venta sin derivación (ago-2026+): suma al global, NO al avance del asesor.
       SinDerivacion:    !!r.sin_derivacion,
+      // Marca manual "extranjero": si está, la venta sin derivación SÍ cuenta al asesor.
+      Extranjero:       !!r.extranjero,
     };
   }
 
@@ -409,8 +411,10 @@ export class VentasComponent implements OnInit {
     });
 
     // Ventas SIN derivación (ago-2026+): cuentan en el total/global pero se excluyen del
-    // desglose por asesor. `filtroVentasAsesor` es la base para las tablas por asesor.
-    this.filtroVentasAsesor = this.filtroVentas.filter(v => !v.SinDerivacion);
+    // desglose por asesor. Excepción: si están marcadas "extranjero" (carnet de
+    // extranjería, no cruzan por DNI) SÍ cuentan al asesor. `filtroVentasAsesor` es la
+    // base para las tablas por asesor.
+    this.filtroVentasAsesor = this.filtroVentas.filter(v => !v.SinDerivacion || v.Extranjero);
     this.generarVentasSinDerivacion();
 
     this.calcularKPIs();
@@ -478,7 +482,7 @@ export class VentasComponent implements OnInit {
   /** Tabla de control: ventas SIN derivación (ago-2026+). Suman al global, no al asesor. */
   generarVentasSinDerivacion(): void {
     this.ventasSinDerivacion = this.filtroVentas
-      .filter(v => v.SinDerivacion)
+      .filter(v => v.SinDerivacion && !v.Extranjero)
       .map(v => ({
         IDVENTA:          v.IDVENTA,
         FECHAVENTA:       v.FECHAVENTA,

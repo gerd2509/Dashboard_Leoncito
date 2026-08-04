@@ -40,7 +40,7 @@
         <dxo-paging [pageSize]="10"></dxo-paging>
         <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
         <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
-        <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true">
+        <dxo-editing mode="popup" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true" [confirmDelete]="false">
           <dxo-popup title="Editar gestión Call" [showTitle]="true" [width]="720" [height]="'auto'"></dxo-popup>
           <dxo-form [colCount]="2"></dxo-form>
         </dxo-editing>
