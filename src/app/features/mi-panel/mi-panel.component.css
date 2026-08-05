@@ -108,6 +108,7 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mm-h { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 14px; opacity: .95; }
 .mm-h mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .mm-big { font-size: 30px; font-weight: 800; line-height: 1.1; margin-top: 2px; }
+.mm-origen { font-size: 11.5px; font-weight: 700; opacity: .92; margin-top: 2px; }
 .mm-sub { font-size: 12px; opacity: .95; }
 .mm-sub .ok { font-weight: 700; }
 .mm-sub .no { font-weight: 700; }

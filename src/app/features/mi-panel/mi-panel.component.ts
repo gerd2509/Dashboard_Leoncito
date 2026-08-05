@@ -165,6 +165,9 @@ export class MiPanelComponent implements OnInit {
   gestAgendamientos = 0;
   derivacionesDetalle: any[] = [];
   agendamientosDetalle: any[] = [];
+  // Desglose por origen (Gestión / KOMMO / Market Place) para mostrar bajo el total del KPI.
+  derivPorOrigen: Record<string, number> = {};
+  agendaPorOrigen: Record<string, number> = {};
   popupDetalle: '' | 'deriv' | 'agenda' = '';
   private readonly MOTIVO_AGENDA = 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)';
   // KOMMO del día
@@ -310,8 +313,15 @@ export class MiPanelComponent implements OnInit {
       next: ({ general, kommo }) => {
         this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, dia);
         this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, dia);
-        // Derivaciones / agendamientos = SOLO de la gestión general (llamadas), sin KOMMO ni Market Place.
-        this.calcularDerivAgenda(this.mios(general || [], colAsesor, dia));
+        // Derivaciones / agendamientos = de las 3 fuentes, etiquetadas por origen para el
+        // desglose y el detalle agrupado. La hoja KOMMO se separa en KOMMO vs Market Place.
+        const kommoMios = this.mios(kommo || [], colAsesor, dia);
+        const esMp = (r: any) => { const v = (r[colMarket] ?? '').toString().toUpperCase().trim(); return v === 'SI' || v === 'SÍ'; };
+        this.calcularDerivAgenda([
+          { origen: 'Gestión', rows: this.mios(general || [], colAsesor, dia) },
+          { origen: 'KOMMO', rows: kommoMios.filter(r => !esMp(r)) },
+          { origen: 'Market Place', rows: kommoMios.filter(r => esMp(r)) },
+        ]);
         this.gestCargando = false;
       },
       error: () => { this.gestCargando = false; },
@@ -419,20 +429,37 @@ export class MiPanelComponent implements OnInit {
       : ['VENTA DERIVADA PARA CIERRE A SEDE'];
   }
 
-  /** Cuenta derivaciones y agendamientos del día y arma su detalle (para el popup). */
-  private calcularDerivAgenda(mias: any[]): void {
+  /**
+   * Cuenta derivaciones y agendamientos del día por FUENTE (Gestión / KOMMO / Market
+   * Place) y arma el detalle (con columna Origen para agrupar en el popup).
+   */
+  private calcularDerivAgenda(grupos: { origen: string; rows: any[] }[]): void {
     const deriv = this.motivosDeriv();
     const motivoDe = (r: any) => (r['MOTIVO INTERÉS'] ?? r['MOTIVO DE INTERÉS'] ?? '').toString().toUpperCase().trim();
     const der: any[] = [], age: any[] = [];
-    for (const r of mias) {
-      const m = motivoDe(r);
-      if (deriv.includes(m)) der.push(this.detalleGestion(r, 'deriv'));
-      else if (m === this.MOTIVO_AGENDA) age.push(this.detalleGestion(r, 'agenda'));
+    const derOrg: Record<string, number> = {}, ageOrg: Record<string, number> = {};
+    for (const g of grupos) {
+      for (const r of g.rows) {
+        const m = motivoDe(r);
+        if (deriv.includes(m)) { der.push({ ...this.detalleGestion(r, 'deriv'), origen: g.origen }); derOrg[g.origen] = (derOrg[g.origen] || 0) + 1; }
+        else if (m === this.MOTIVO_AGENDA) { age.push({ ...this.detalleGestion(r, 'agenda'), origen: g.origen }); ageOrg[g.origen] = (ageOrg[g.origen] || 0) + 1; }
+      }
     }
     this.derivacionesDetalle = der;
     this.agendamientosDetalle = age;
     this.gestDerivaciones = der.length;
     this.gestAgendamientos = age.length;
+    this.derivPorOrigen = derOrg;
+    this.agendaPorOrigen = ageOrg;
+  }
+
+  /** Texto corto del desglose por origen para mostrar bajo el total (p.ej. "5 gestión · 3 kommo · 2 MP"). */
+  resumenOrigen(m: Record<string, number>): string {
+    const parts: string[] = [];
+    if (m['Gestión'])      parts.push(`${m['Gestión']} gestión`);
+    if (m['KOMMO'])        parts.push(`${m['KOMMO']} kommo`);
+    if (m['Market Place']) parts.push(`${m['Market Place']} MP`);
+    return parts.join(' · ') || 'sin registros';
   }
 
   /** Fila de detalle (derivación / agendamiento) para el popup. */
@@ -441,7 +468,8 @@ export class MiPanelComponent implements OnInit {
     const esDeriv = tipo === 'deriv';
     return {
       fecha: g('Marca temporal'),
-      dni: g('DNI CLIENTE'),
+      // La hoja KOMMO usa 'DNI CLIENTE REALZZA' (Realzza) / 'DNI CLIENTE' (Call/general).
+      dni: g('DNI CLIENTE') || g('DNI CLIENTE REALZZA') || g('DNI CLIENTE LEONCITO'),
       producto: g('PRODUCTO INTERÉS') || g('PRODUCTO DE INTERÉS'),
       motivo: g('MOTIVO INTERÉS') || g('MOTIVO DE INTERÉS'),
       fechaInteres: esDeriv ? g('FECHA DE INTERÉS DERIVACIÓN') : g('FECHA DE INTERÉS AGENDAMIENTO'),

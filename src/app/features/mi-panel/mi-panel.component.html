@@ -185,11 +185,13 @@
                 <div class="mp-mini deriv clickable" (click)="abrirDetalle('deriv')" title="Ver detalle">
                   <div class="mm-h"><mat-icon>call_split</mat-icon> Derivaciones</div>
                   <div class="mm-big">{{ gestDerivaciones }}</div>
+                  <div class="mm-origen">{{ resumenOrigen(derivPorOrigen) }}</div>
                   <div class="mm-sub"><span class="ver"><mat-icon>visibility</mat-icon> Ver detalle</span></div>
                 </div>
                 <div class="mp-mini agenda clickable" (click)="abrirDetalle('agenda')" title="Ver detalle">
                   <div class="mm-h"><mat-icon>event_available</mat-icon> Agendamientos</div>
                   <div class="mm-big">{{ gestAgendamientos }}</div>
+                  <div class="mm-origen">{{ resumenOrigen(agendaPorOrigen) }}</div>
                   <div class="mm-sub"><span class="ver"><mat-icon>visibility</mat-icon> Ver detalle</span></div>
                 </div>
               </div>
@@ -488,8 +490,11 @@
           [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true" [wordWrapEnabled]="true"
           height="100%">
           <dxo-scrolling mode="virtual"></dxo-scrolling>
+          <dxo-grouping [autoExpandAll]="false"></dxo-grouping>
+          <dxo-group-panel [visible]="false"></dxo-group-panel>
           <dxo-filter-row [visible]="true"></dxo-filter-row>
           <dxo-header-filter [visible]="true"></dxo-header-filter>
+          <dxi-column dataField="origen" caption="Origen" [groupIndex]="0"></dxi-column>
           <dxi-column dataField="fecha" caption="Fecha gestión" [minWidth]="140"></dxi-column>
           <dxi-column dataField="dni" caption="DNI cliente" [width]="110"></dxi-column>
           <dxi-column dataField="producto" caption="Producto interés" [minWidth]="150"></dxi-column>
@@ -497,6 +502,9 @@
           <dxi-column dataField="fechaInteres" caption="Fecha interés" [width]="120"></dxi-column>
           <dxi-column dataField="horaInteres" caption="Hora" [width]="90"></dxi-column>
           <dxi-column dataField="comentario" caption="Comentario" [minWidth]="180"></dxi-column>
+          <dxo-summary>
+            <dxi-group-item column="dni" summaryType="count" displayFormat="{0} registro(s)"></dxi-group-item>
+          </dxo-summary>
         </dx-data-grid>
         <div *ngIf="!popupDetalleData.length" class="mp-detalle-vacio">
           <mat-icon>inbox</mat-icon> Sin {{ popupDetalle === 'deriv' ? 'derivaciones' : 'agendamientos' }} en el día seleccionado.
