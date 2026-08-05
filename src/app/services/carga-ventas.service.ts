@@ -217,10 +217,14 @@ export class CargaVentasService {
   // ── Atribución de SEDES (Lambayeque / Ferreñafe) → `ventas` × gestion_sedes_deriv ──
   //   La "fuente generadora" = TIPO DE BASE de la derivación; cruce SOLO por DNI + sede.
   listarAtribucionSede(sede: string, anio?: number, mes?: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.root}/ventas-sedes/atribucion`, { params: this.anioMes(anio, mes).set('sede', sede) });
+    // El cruce se hace EN VIVO con el formulario → cache-bust (_) para que el navegador
+    // nunca reuse una respuesta cacheada y siempre traiga el estado real de la derivación.
+    return this.http.get<any[]>(`${this.root}/ventas-sedes/atribucion`,
+      { params: this.anioMes(anio, mes).set('sede', sede).set('_', Date.now().toString()) });
   }
   buscarVentaSede(sede: string, dni: string, anio?: number, mes?: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.root}/ventas-sedes/buscar`, { params: this.anioMes(anio, mes).set('sede', sede).set('dni', dni) });
+    return this.http.get<any[]>(`${this.root}/ventas-sedes/buscar`,
+      { params: this.anioMes(anio, mes).set('sede', sede).set('dni', dni).set('_', Date.now().toString()) });
   }
   /** Persiste la fuente generadora (atrib_fuente_sede) desde la derivación, por sede. */
   cruzarSede(sede: string, anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number }> {
