@@ -28,6 +28,11 @@
       <button class="ac-btn" [disabled]="cargando" (click)="cargar()">
         <mat-icon>{{ cargando ? 'hourglass_top' : 'refresh' }}</mat-icon> {{ cargando ? 'Cargando…' : 'Cargar lista' }}
       </button>
+      <button class="ac-btn" *ngIf="esSedes" [disabled]="sincronizando" (click)="sincronizar()"
+              title="Trae las respuestas actuales del formulario a la base y vuelve a cruzar por DNI">
+        <mat-icon>{{ sincronizando ? 'hourglass_top' : 'sync' }}</mat-icon>
+        {{ sincronizando ? 'Sincronizando…' : 'Sincronizar formulario' }}
+      </button>
       <button class="ac-btn ok" [disabled]="consolidando" (click)="consolidar()"
               [title]="esSedes ? 'Guarda la fuente generadora (de la derivación) en las ventas de la sede' : (esRealzza ? 'Agrega a Ventas Realzza las ventas nuevas (no cambia las existentes)' : 'Copia las ventas atribuidas del mes a Ventas Call')">
         <mat-icon>{{ consolidando ? 'hourglass_top' : 'move_to_inbox' }}</mat-icon>

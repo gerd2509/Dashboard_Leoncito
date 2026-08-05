@@ -49,6 +49,7 @@ export class AtribucionCallComponent implements OnInit {
 
   cargando = false;
   consolidando = false;
+  sincronizando = false;
   ventas: any[] = [];
 
   filtro: 'todos' | 'DERIVACION' | 'MANUAL' | 'PENDIENTE' = 'todos';
@@ -168,6 +169,18 @@ export class AtribucionCallComponent implements OnInit {
   onEditClick = (e: any): void => this.abrirEdicion(e.row.data);
 
   /** Consolida el mes a la tabla histórica del canal (Call: ventas_call; Realzza: ventas_realzza). */
+  /**
+   * Sedes: sincroniza el espejo del formulario (POST) con las respuestas actuales y
+   * recarga la lista para re-cruzar. Es el paso que asegura que la derivación esté al día.
+   */
+  sincronizar(): void {
+    this.sincronizando = true;
+    this.svc.sincronizarSedesDeriv().subscribe({
+      next: r => { this.sincronizando = false; this.toast(`✔ Formulario sincronizado: ${r.insertados} derivaciones. Cruzando…`); this.cargar(); },
+      error: () => { this.sincronizando = false; this.toast('❌ No se pudo sincronizar el formulario.', true); },
+    });
+  }
+
   consolidar(): void {
     this.consolidando = true;
     // Sedes: no hay tabla consolidada; el botón PERSISTE la fuente generadora (cruzar).

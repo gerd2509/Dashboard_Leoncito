@@ -235,4 +235,12 @@ export class CargaVentasService {
   guardarFuenteSede(codigo: number, fuente: string): Observable<any> {
     return this.http.put(`${this.root}/ventas-sedes/${codigo}`, { fuente });
   }
+  /**
+   * Sincroniza la tabla gestion_sedes_deriv con las respuestas ACTUALES del formulario
+   * (POST a sheets-api). Tras esto, "Cargar lista" cruza contra la derivación al día.
+   */
+  sincronizarSedesDeriv(): Observable<{ success: boolean; leidas: number; insertados: number }> {
+    return this.http.post<{ success: boolean; leidas: number; insertados: number }>(
+      `${environment.apiBase}/gestion-sedes-deriv/sync`, {});
+  }
 }
