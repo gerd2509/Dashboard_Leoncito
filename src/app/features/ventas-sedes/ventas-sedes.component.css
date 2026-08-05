@@ -439,3 +439,15 @@
   color: #1A5FAD;
 }
 .cargando-inline ::ng-deep circle { stroke: #1A5FAD; }
+
+/* =========================================================
+   TIPO CRÉDITO + FUENTE GENERADORA lado a lado (solo sedes)
+   ========================================================= */
+.vs-tablas-par { display: flex; flex-direction: column; gap: 16px; }
+.vs-tablas-par.par { flex-direction: row; align-items: flex-start; }
+.vs-tablas-par .vs-col { min-width: 0; }
+.vs-tablas-par.par .vs-col { flex: 1 1 0; }
+@media (max-width: 1100px) {
+    .vs-tablas-par.par { flex-direction: column; }
+    .vs-tablas-par.par .vs-col { flex: 1 1 auto; width: 100%; }
+}
