@@ -59,7 +59,7 @@
 .ac-busq-tag mat-icon { font-size: 17px; width: 17px; height: 17px; }
 
 /* Grid (dx-data-grid): celdas compactas + Productos con ellipsis */
-.ac-list { padding: 6px; overflow: hidden; }
+.ac-list { padding: 6px; overflow: hidden; position: relative; min-height: 220px; }
 .ac-list ::ng-deep .dx-datagrid { border-radius: 10px; }
 .ac-list ::ng-deep .dx-datagrid-headers { background: #293964; }
 .ac-list ::ng-deep .dx-datagrid-headers .dx-header-row td { color: #fff; font-weight: 700; font-size: 11.5px; }

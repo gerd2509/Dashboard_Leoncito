@@ -4,6 +4,7 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ASESORES_CALL, nombreCorto } from '../../shared/asesores';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 type Estado = 'DERIVACION' | 'MANUAL' | 'PENDIENTE';
 type Canal = 'call' | 'realzza' | 'sedes';
@@ -20,7 +21,7 @@ type Canal = 'call' | 'realzza' | 'sedes';
 @Component({
   selector: 'app-atribucion-call',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './atribucion-call.component.html',
   styleUrl: './atribucion-call.component.css',
 })

@@ -64,6 +64,7 @@
 
   <!-- ══ GRID CALL ══ -->
   <div class="ac-card ac-list" *ngIf="canal === 'call'">
+    <app-loading-overlay [visible]="cargando" icon="receipt_long" mensaje="Cargando ventas…" submensaje="Cruzando con la gestión Call…"></app-loading-overlay>
     <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="true"
       [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true" [rowAlternationEnabled]="true"
       [height]="gridHeight" (onRowPrepared)="onRowPrepared($event)">
@@ -101,6 +102,7 @@
 
   <!-- ══ GRID REALZZA ══ -->
   <div class="ac-card ac-list" *ngIf="esRealzza">
+    <app-loading-overlay [visible]="cargando" icon="receipt_long" mensaje="Cargando ventas…" submensaje="Cruzando con la gestión Realzza…"></app-loading-overlay>
     <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="true"
       [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true" [rowAlternationEnabled]="true"
       [height]="gridHeight" (onRowPrepared)="onRowPrepared($event)">
@@ -142,6 +144,7 @@
 
   <!-- ══ GRID SEDES ══ -->
   <div class="ac-card ac-list" *ngIf="esSedes">
+    <app-loading-overlay [visible]="cargando" icon="receipt_long" mensaje="Cargando ventas…" submensaje="Cruzando por DNI con el formulario de derivación…"></app-loading-overlay>
     <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="false"
       [width]="'100%'" [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true"
       [rowAlternationEnabled]="true" [allowColumnResizing]="true" columnResizingMode="widget"
