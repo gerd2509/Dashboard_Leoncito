@@ -54,6 +54,7 @@ export class VentasSedesComponent implements OnInit {
 
   dataVentas: any[] = [];
   dataNotasCredito: any[] = [];
+  ventasPorFuente: any[] = [];   // "VENTAS POR FUENTE GENERADORA" (atribución sedes, ago-2026+)
   dataIncautaciones: any[] = [];
   dataGlobalGo: any[] = [];
   dataMargen: any[] = [];   // filas de margen_ventas (una por línea de producto)
@@ -387,6 +388,7 @@ export class VentasSedesComponent implements OnInit {
           AsesorVenta: '',                       // no existe en la fuente Postgres
           TipoCredito: row.tipo_credito,
           TipoProducto: row.estado_tipo_producto, // aproximación (la fuente no trae TipoProducto)
+          Fuente: (row.atrib_fuente_sede || '').toString().trim().toUpperCase(),  // fuente generadora (atribución sedes)
         });
       }
 
@@ -405,6 +407,7 @@ export class VentasSedesComponent implements OnInit {
           AsesorVenta: '',
           Entidad: row.entidad,
           TipoCredito: row.tipo_credito,
+          Fuente: (row.atrib_fuente_sede || '').toString().trim().toUpperCase(),
           DiaAF: this.parseNumber(row.dia_af),
           MesAF: this.parseNumber(row.mes_af),
           AñoAF: this.parseNumber(row.anio_af),
@@ -705,6 +708,7 @@ export class VentasSedesComponent implements OnInit {
     this.construirVendedores();
     this.calcularKPIs();
     this.generarEvolutivo();
+    this.generarVentasPorFuente();
     this.generarChartData();
     this.generarResumenPorVendedor();
     this.generarVentasPorSemana();
@@ -722,6 +726,53 @@ export class VentasSedesComponent implements OnInit {
     this.generarTablaOperacionesPorDiaMesActual();
     this.generarResumenBonosAsesor();
     this.generarMesesGlobalGo();
+  }
+
+  /**
+   * "VENTAS POR FUENTE GENERADORA" (solo ago-2026+): agrupa por la fuente generadora
+   * (atrib_fuente_sede, viene de la derivación de sede) las ventas de la sede seleccionada,
+   * con monto total y neto (− NC por fuente, por su mes de afectación). Igual que la tabla
+   * de Realzza por tipo de base, pero por fuente. Solo aparece si hay ventas atribuidas.
+   */
+  private generarVentasPorFuente(): void {
+    const esDesde = (a: number, m: number) => a > 2026 || (a === 2026 && m >= 8);
+    const mapV = new Map<string, { monto: number; ops: number }>();
+    for (const v of this.filtroVentas) {
+      const fu = (v.Fuente || '').toString().trim().toUpperCase();
+      if (!fu) continue;
+      const f = v.FECHAVENTA as Date;
+      if (!f || !esDesde(f.getFullYear(), f.getMonth() + 1)) continue;
+      const cur = mapV.get(fu) || { monto: 0, ops: 0 };
+      mapV.set(fu, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    }
+    // NC por fuente (por su mes de AF; solo ago-2026+) → restan del neto.
+    const mapNC = new Map<string, number>();
+    for (const nc of this.filtroNotasCredito) {
+      const fu = (nc.Fuente || '').toString().trim().toUpperCase();
+      if (!fu) continue;
+      const a = nc.AñoAF > 0 ? nc.AñoAF : (nc.FECHAVENTA as Date)?.getFullYear();
+      const m = nc.MesAF > 0 ? nc.MesAF : ((nc.FECHAVENTA as Date)?.getMonth() + 1);
+      if (!esDesde(a, m)) continue;
+      mapNC.set(fu, (mapNC.get(fu) || 0) + (nc.MontoConsolidado || 0));
+    }
+    const fuentes = new Set<string>([...mapV.keys(), ...mapNC.keys()]);
+    const rows: any[] = [];
+    fuentes.forEach(fu => {
+      const d = mapV.get(fu) || { monto: 0, ops: 0 };
+      const ncM = mapNC.get(fu) || 0;
+      rows.push({
+        Fuente: fu,
+        MontoVentas: Math.round(d.monto),
+        MontoNeto: Math.round(d.monto - ncM),
+        NroOps: d.ops,
+        TicketPromedio: d.ops > 0 ? Math.round(d.monto / d.ops) : 0,
+        Participacion: 0,
+      });
+    });
+    const totalV = rows.reduce((s, r) => s + r.MontoVentas, 0);
+    rows.forEach(r => r.Participacion = totalV > 0 ? Math.round((r.MontoVentas / totalV) * 1000) / 10 : 0);
+    rows.sort((a, b) => b.MontoVentas - a.MontoVentas);
+    this.ventasPorFuente = rows;
   }
 
   private limpiarDetalle(): void {

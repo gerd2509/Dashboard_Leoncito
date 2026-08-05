@@ -6,7 +6,7 @@ import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ASESORES_CALL, nombreCorto } from '../../shared/asesores';
 
 type Estado = 'DERIVACION' | 'MANUAL' | 'PENDIENTE';
-type Canal = 'call' | 'realzza';
+type Canal = 'call' | 'realzza' | 'sedes';
 
 /**
  * Atribución de Ventas (un solo módulo, con selector Call / Realzza).
@@ -38,6 +38,14 @@ export class AtribucionCallComponent implements OnInit {
 
   canal: Canal = 'call';
   get esRealzza(): boolean { return this.canal === 'realzza'; }
+  get esSedes(): boolean { return this.canal === 'sedes'; }
+  // Sub-selector de sede (solo en modo Sedes): Lambayeque / Ferreñafe.
+  sede: 'LAMBAYEQUE' | 'FERREÑAFE' = 'LAMBAYEQUE';
+  // Fuente generadora (Sedes) = TIPO DE BASE de la derivación.
+  readonly fuenteOpciones = [
+    'BBDD', 'REFERIDOS', 'TIENDA', 'CASERIOS', 'RECURRENTES NO ASIGNADOS', 'KOMMO', 'BBDD KOMMO',
+    'MARKET PLACE', 'BRILLA', 'EFECTIVA', 'REDES SSENDA',
+  ];
 
   cargando = false;
   consolidando = false;
@@ -74,7 +82,7 @@ export class AtribucionCallComponent implements OnInit {
   // ── Popup de edición ──
   editVisible = false;
   editando: any = null;
-  modelo = { vendedor: '', contacto: '', tipo_cliente: '', tipo_base: '', asesor_venta: '', extranjero: false };
+  modelo = { vendedor: '', contacto: '', tipo_cliente: '', tipo_base: '', asesor_venta: '', extranjero: false, fuente: '' };
   guardandoEdicion = false;
 
   ngOnInit(): void { this.cargar(); }
@@ -87,6 +95,14 @@ export class AtribucionCallComponent implements OnInit {
     this.dni = ''; this.resultados = []; this.yaBusco = false;
     this.ventas = [];            // limpia de inmediato (cambié de sección)
     this.refrescarFilas();       // filas = [] hasta que llegue la data del nuevo canal
+    this.cargar();
+  }
+  /** Cambia la sede (modo Sedes) y recarga. */
+  setSede(s: 'LAMBAYEQUE' | 'FERREÑAFE'): void {
+    if (this.sede === s) return;
+    this.sede = s;
+    this.filtro = 'todos'; this.dni = ''; this.resultados = []; this.yaBusco = false;
+    this.ventas = []; this.refrescarFilas();
     this.cargar();
   }
 
@@ -124,7 +140,10 @@ export class AtribucionCallComponent implements OnInit {
 
   cargar(): void {
     this.cargando = true;
-    this.svc.listarAtribucion(this.canal, this.anio || undefined, this.mes || undefined).subscribe({
+    const obs = this.esSedes
+      ? this.svc.listarAtribucionSede(this.sede, this.anio || undefined, this.mes || undefined)
+      : this.svc.listarAtribucion(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined);
+    obs.subscribe({
       // Solo ventas con MontoConsolidado > 0 (misma regla que el módulo de ventas).
       next: rows => { this.ventas = (rows || []).filter(r => (+r.monto_consolidado || 0) > 0).map(this.mapRow); this.refrescarFilas(); this.cargando = false; },
       error: () => { this.cargando = false; this.ventas = []; this.refrescarFilas(); this.toast('❌ No se pudo cargar la lista.', true); },
@@ -151,7 +170,15 @@ export class AtribucionCallComponent implements OnInit {
   /** Consolida el mes a la tabla histórica del canal (Call: ventas_call; Realzza: ventas_realzza). */
   consolidar(): void {
     this.consolidando = true;
-    this.svc.consolidarVentas(this.canal, this.anio || undefined, this.mes || undefined).subscribe({
+    // Sedes: no hay tabla consolidada; el botón PERSISTE la fuente generadora (cruzar).
+    if (this.esSedes) {
+      this.svc.cruzarSede(this.sede, this.anio || undefined, this.mes || undefined).subscribe({
+        next: r => { this.consolidando = false; this.toast(`✔ Atribuidas ${r.actualizados} ventas de ${this.sede} (fuente generadora).`); this.cargar(); },
+        error: () => { this.consolidando = false; this.toast('❌ No se pudo atribuir.', true); },
+      });
+      return;
+    }
+    this.svc.consolidarVentas(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined).subscribe({
       next: r => {
         this.consolidando = false;
         const destino = this.esRealzza ? 'Ventas Realzza' : 'Ventas Call';
@@ -167,9 +194,10 @@ export class AtribucionCallComponent implements OnInit {
 
   // ── Estado / conteos ──
   /** ¿La venta tiene derivación? Call: hay CC sugerido. Realzza: flag `derivado`. */
-  esDerivado(v: any): boolean { return this.esRealzza ? !!v.derivado : !!v.cc_sugerido; }
+  esDerivado(v: any): boolean { return (this.esRealzza || this.esSedes) ? !!v.derivado : !!v.cc_sugerido; }
   estado(v: any): Estado {
-    if (v.asesor_manual) return 'MANUAL';
+    const manual = this.esSedes ? v.manual : v.asesor_manual;
+    if (manual) return 'MANUAL';
     if (this.esDerivado(v)) return 'DERIVACION';
     return 'PENDIENTE';
   }
@@ -194,7 +222,10 @@ export class AtribucionCallComponent implements OnInit {
     const d = (this.dni || '').replace(/\D/g, '');
     if (!d) { this.toast('Escribe un DNI para buscar.', true); return; }
     this.buscando = true; this.yaBusco = true;
-    this.svc.buscarVenta(this.canal, d, this.anio || undefined, this.mes || undefined).subscribe({
+    const obs = this.esSedes
+      ? this.svc.buscarVentaSede(this.sede, d, this.anio || undefined, this.mes || undefined)
+      : this.svc.buscarVenta(this.canal as 'call' | 'realzza', d, this.anio || undefined, this.mes || undefined);
+    obs.subscribe({
       next: rows => { this.resultados = (rows || []).map(this.mapRow); this.refrescarFilas(); this.buscando = false; },
       error: () => { this.buscando = false; this.resultados = []; this.toast('❌ No se pudo buscar.', true); },
     });
@@ -204,20 +235,21 @@ export class AtribucionCallComponent implements OnInit {
   // ── Edición (popup) ──
   abrirEdicion(v: any): void {
     this.editando = v;
-    if (this.esRealzza) {
-      this.modelo = {
-        vendedor: '', contacto: '', tipo_cliente: '',
+    const vacio = { vendedor: '', contacto: '', tipo_cliente: '', tipo_base: '', asesor_venta: '', extranjero: false, fuente: '' };
+    if (this.esSedes) {
+      this.modelo = { ...vacio, fuente: v.fuente || v.fuente_sugerida || '' };
+    } else if (this.esRealzza) {
+      this.modelo = { ...vacio,
         tipo_base: v.tipo_base || v.tb_sugerido || '',
         asesor_venta: v.asesor_venta || '',
         extranjero: !!v.extranjero,
       };
     } else {
-      this.modelo = {
+      this.modelo = { ...vacio,
         vendedor: v.vendedor || v.cc_sugerido || '',
         contacto: v.contacto || '',
         tipo_cliente: v.tipo_cliente || v.tc_sugerido || '',
         tipo_base: v.tipo_base || v.tipo_cliente || v.tc_sugerido || '',
-        asesor_venta: '',
         extranjero: !!v.extranjero,
       };
     }
@@ -228,6 +260,22 @@ export class AtribucionCallComponent implements OnInit {
 
   guardarEdicion(): void {
     const v = this.editando; if (!v) return;
+    // ── Sedes: solo se edita la fuente generadora ──
+    if (this.esSedes) {
+      const fuente = (this.modelo.fuente || '').trim();
+      this.guardandoEdicion = true;
+      this.svc.guardarFuenteSede(v.codigo_cv, fuente).subscribe({
+        next: () => {
+          Object.assign(v, { fuente: fuente || null, manual: true });
+          const gemelo = [...this.ventas, ...this.resultados].find(x => x !== v && x.codigo_cv === v.codigo_cv);
+          if (gemelo) Object.assign(gemelo, { fuente: v.fuente, manual: true });
+          this.guardandoEdicion = false; this.editVisible = false;
+          this.toast('✔ Fuente generadora actualizada.');
+        },
+        error: () => { this.guardandoEdicion = false; this.toast('❌ No se pudo guardar.', true); },
+      });
+      return;
+    }
     let payload: any;
     if (this.esRealzza) {
       payload = { tipo_base: this.modelo.tipo_base || '', asesor_venta: this.modelo.asesor_venta || '', extranjero: !!this.modelo.extranjero };
@@ -241,7 +289,7 @@ export class AtribucionCallComponent implements OnInit {
       };
     }
     this.guardandoEdicion = true;
-    this.svc.guardarAtribucion(this.canal, v.codigo_cv, payload).subscribe({
+    this.svc.guardarAtribucion(this.canal as 'call' | 'realzza', v.codigo_cv, payload).subscribe({
       next: () => {
         if (this.esRealzza) {
           Object.assign(v, { tipo_base: this.modelo.tipo_base || null, asesor_venta: this.modelo.asesor_venta || null, extranjero: this.modelo.extranjero, asesor_manual: true });

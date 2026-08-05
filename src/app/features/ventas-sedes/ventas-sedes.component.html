@@ -428,6 +428,29 @@
         </dxo-summary>
     </dx-data-grid>
 
+    <!-- ===== VENTAS POR FUENTE GENERADORA (atribución sedes, ago-2026+) ===== -->
+    <div class="section-header" *ngIf="ventasPorFuente.length > 0">
+        <mat-icon>hub</mat-icon>
+        Ventas por Fuente Generadora
+    </div>
+    <dx-data-grid *ngIf="ventasPorFuente.length > 0" [dataSource]="ventasPorFuente" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+        (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+        <dxi-column dataField="Fuente" caption="FUENTE GENERADORA" alignment="left" />
+        <dxi-column dataField="MontoVentas" caption="MONTO VENTAS" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="MontoNeto" caption="MONTO NETO" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="70" />
+        <dxi-column dataField="TicketPromedio" caption="TICKET" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="Participacion" caption="% PART." alignment="center" dataType="number" [width]="85" cellTemplate="partFuenteTemplate" />
+        <div *dxTemplate="let cell of 'partFuenteTemplate'" style="text-align:center; font-weight:700;">{{ cell.data.Participacion | number:'1.1-1' }}%</div>
+        <dxo-summary>
+            <dxi-total-item alignment="left" column="Fuente" displayFormat="TOTAL"></dxi-total-item>
+            <dxi-total-item column="MontoVentas" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="MontoNeto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        </dxo-summary>
+    </dx-data-grid>
+
     <!-- ===== VENTAS POR TIPO CRÉDITO (ancho completo) ===== -->
     <div class="section-header">
         <mat-icon>credit_score</mat-icon>

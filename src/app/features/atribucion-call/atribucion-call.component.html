@@ -2,15 +2,22 @@
   <div class="ac-head">
     <mat-icon>how_to_reg</mat-icon>
     <div><b>Atribución de Ventas</b>
-      <small *ngIf="!esRealzza">Call: lista las afectaciones del mes ya con el AsesorVenta y TipoCliente de la última derivación en gestion_call (≤31 días). AsesorVenta / CONTACTO / TipoCliente / TipoBase editables.</small>
+      <small *ngIf="canal === 'call'">Call: lista las afectaciones del mes ya con el AsesorVenta y TipoCliente de la última derivación en gestion_call (≤31 días). AsesorVenta / CONTACTO / TipoCliente / TipoBase editables.</small>
       <small *ngIf="esRealzza">Realzza: lista TODAS las ventas SEDE REALZZA STORE del mes, ya con el TipoBase de la derivación en gestion_realzza + margen/valor. TipoBase / AsesorVenta editables.</small>
+      <small *ngIf="esSedes">Sedes: ventas de la sede cruzadas por DNI con el formulario de derivación → su <b>fuente generadora</b> (TIPO DE BASE). "Atribuir fuente" la guarda; editable a mano.</small>
     </div>
   </div>
 
   <!-- Selector de canal -->
   <div class="ac-canal">
-    <button [class.on]="!esRealzza" (click)="setCanal('call')"><mat-icon>headset_mic</mat-icon> Call</button>
+    <button [class.on]="canal === 'call'" (click)="setCanal('call')"><mat-icon>headset_mic</mat-icon> Call</button>
     <button class="rz" [class.on]="esRealzza" (click)="setCanal('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
+    <button [class.on]="esSedes" (click)="setCanal('sedes')"><mat-icon>store</mat-icon> Sedes</button>
+  </div>
+  <!-- Sub-selector de sede (solo en modo Sedes) -->
+  <div class="ac-canal ac-subsede" *ngIf="esSedes">
+    <button [class.on]="sede === 'LAMBAYEQUE'" (click)="setSede('LAMBAYEQUE')"><mat-icon>place</mat-icon> Lambayeque</button>
+    <button [class.on]="sede === 'FERREÑAFE'" (click)="setSede('FERREÑAFE')"><mat-icon>place</mat-icon> Ferreñafe</button>
   </div>
 
   <!-- Toolbar: izquierda (periodo + acciones) · derecha (buscar por DNI) -->
@@ -22,9 +29,9 @@
         <mat-icon>{{ cargando ? 'hourglass_top' : 'refresh' }}</mat-icon> {{ cargando ? 'Cargando…' : 'Cargar lista' }}
       </button>
       <button class="ac-btn ok" [disabled]="consolidando" (click)="consolidar()"
-              [title]="esRealzza ? 'Agrega a Ventas Realzza las ventas nuevas (no cambia las existentes)' : 'Copia las ventas atribuidas del mes a Ventas Call'">
+              [title]="esSedes ? 'Guarda la fuente generadora (de la derivación) en las ventas de la sede' : (esRealzza ? 'Agrega a Ventas Realzza las ventas nuevas (no cambia las existentes)' : 'Copia las ventas atribuidas del mes a Ventas Call')">
         <mat-icon>{{ consolidando ? 'hourglass_top' : 'move_to_inbox' }}</mat-icon>
-        {{ consolidando ? 'Consolidando…' : (esRealzza ? 'Consolidar → Ventas Realzza' : 'Consolidar → Ventas Call') }}
+        {{ consolidando ? 'Procesando…' : (esSedes ? 'Atribuir fuente generadora' : (esRealzza ? 'Consolidar → Ventas Realzza' : 'Consolidar → Ventas Call')) }}
       </button>
 
       <div class="ac-spacer"></div>
@@ -51,7 +58,7 @@
   </div>
 
   <!-- ══ GRID CALL ══ -->
-  <div class="ac-card ac-list" *ngIf="!esRealzza">
+  <div class="ac-card ac-list" *ngIf="canal === 'call'">
     <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="true"
       [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true" [rowAlternationEnabled]="true"
       [height]="gridHeight" (onRowPrepared)="onRowPrepared($event)">
@@ -127,6 +134,44 @@
       <div *dxTemplate="let c of 'prodTpl'"><span class="ac-prod" [title]="c.value">{{ c.value }}</span></div>
     </dx-data-grid>
   </div>
+
+  <!-- ══ GRID SEDES ══ -->
+  <div class="ac-card ac-list" *ngIf="esSedes">
+    <dx-data-grid [dataSource]="filas" keyExpr="codigo_cv" [showBorders]="true" [columnAutoWidth]="false"
+      [width]="'100%'" [wordWrapEnabled]="false" [hoverStateEnabled]="true" [showColumnLines]="true"
+      [rowAlternationEnabled]="true" [allowColumnResizing]="true" columnResizingMode="widget"
+      [height]="gridHeight" (onRowPrepared)="onRowPrepared($event)">
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-header-filter [visible]="true"></dxo-header-filter>
+      <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar…"></dxo-search-panel>
+      <dxo-scrolling mode="virtual" [useNative]="true" columnRenderingMode="standard"></dxo-scrolling>
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxo-sorting mode="multiple"></dxo-sorting>
+
+      <dxi-column dataField="_estadoTxt" caption="Estado" [width]="115" [minWidth]="110" cellTemplate="estadoTpl" [allowSorting]="false"></dxi-column>
+      <dxi-column dataField="fuente" caption="Fuente generadora" [width]="165" [minWidth]="150" cellTemplate="tagTpl"></dxi-column>
+      <dxi-column dataField="codigo_cv" caption="IDVenta" [width]="85" [minWidth]="80"></dxi-column>
+      <dxi-column dataField="_fecha" caption="Fecha" [width]="95" [minWidth]="90" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="doc_identidad" caption="DocIdentidad" [width]="110" [minWidth]="100" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="cliente" caption="Cliente" [minWidth]="180" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [width]="160" [minWidth]="130"></dxi-column>
+      <dxi-column dataField="monto_consolidado" caption="Monto" [width]="110" [minWidth]="100" [customizeText]="montoTexto" alignment="center" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="cuota_inicial" caption="C. Inicial" [width]="95" [minWidth]="90" [customizeText]="montoEnteroTexto" alignment="center" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="productos" caption="Productos" [minWidth]="150" cellTemplate="prodTpl" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="estado_venta" caption="EstadoVenta" [width]="110" [minWidth]="100"></dxi-column>
+      <dxi-column dataField="vendedor" caption="Vendedor (venta)" [width]="185" [minWidth]="160" cellTemplate="vendTpl"></dxi-column>
+      <dxi-column dataField="asesor_derivacion" caption="Asesor derivación" [width]="190" [minWidth]="160" cellTemplate="ccTpl"></dxi-column>
+      <dxi-column type="buttons" [width]="50" caption="" [allowFiltering]="false" [fixed]="true" fixedPosition="right">
+        <dxi-button icon="edit" hint="Editar fuente generadora" [onClick]="onEditClick"></dxi-button>
+      </dxi-column>
+
+      <div *dxTemplate="let c of 'estadoTpl'"><span class="ac-est" [ngClass]="c.data._estado.toLowerCase()"><mat-icon>{{ estadoIcon(c.data) }}</mat-icon> {{ c.data._estadoTxt }}</span></div>
+      <div *dxTemplate="let c of 'ccTpl'"><span class="ac-cc" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'vendTpl'"><span class="ac-cc" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'tagTpl'"><span class="ac-tag" [class.vacio]="!c.value">{{ c.value || '—' }}</span></div>
+      <div *dxTemplate="let c of 'prodTpl'"><span class="ac-prod" [title]="c.value">{{ c.value }}</span></div>
+    </dx-data-grid>
+  </div>
 </div>
 
 <!-- Popup de edición -->
@@ -135,11 +180,18 @@
   <div *dxTemplate="let d of 'content'" class="ac-edit">
     <div class="ac-edit-info" *ngIf="editando">
       <b>IDVenta {{ editando.codigo_cv }}</b> · {{ editando.cliente || editando.doc_identidad }}
-      <span *ngIf="!esRealzza && editando.cc_sugerido" class="ac-edit-sug">Derivación sugerida: <b>{{ editando.cc_sugerido }}</b><span *ngIf="editando.tc_sugerido"> · {{ editando.tc_sugerido }}</span></span>
+      <span *ngIf="canal === 'call' && editando.cc_sugerido" class="ac-edit-sug">Derivación sugerida: <b>{{ editando.cc_sugerido }}</b><span *ngIf="editando.tc_sugerido"> · {{ editando.tc_sugerido }}</span></span>
       <span *ngIf="esRealzza && editando.derivado" class="ac-edit-sug">Derivada · TipoBase sugerido: <b>{{ editando.tb_sugerido || '—' }}</b></span>
+      <span *ngIf="esSedes && editando.derivado" class="ac-edit-sug">Derivada · Fuente sugerida: <b>{{ editando.fuente_sugerida || '—' }}</b></span>
     </div>
 
-    <ng-container *ngIf="!esRealzza">
+    <ng-container *ngIf="esSedes">
+      <label class="ac-edit-lbl">Fuente generadora <small>(TIPO DE BASE)</small></label>
+      <dx-select-box [dataSource]="fuenteOpciones" [(value)]="modelo.fuente"
+        [acceptCustomValue]="true" [searchEnabled]="true" placeholder="Elegir fuente…" stylingMode="outlined"></dx-select-box>
+    </ng-container>
+
+    <ng-container *ngIf="canal === 'call'">
       <label class="ac-edit-lbl">AsesorVenta (CC)</label>
       <dx-select-box [dataSource]="ccOpciones" displayExpr="label" valueExpr="cc" [(value)]="modelo.vendedor"
         [searchEnabled]="true" placeholder="Elegir asesor…" stylingMode="outlined"></dx-select-box>
@@ -163,7 +215,7 @@
         [searchEnabled]="true" [acceptCustomValue]="true" placeholder="Elegir asesor…" stylingMode="outlined"></dx-select-box>
     </ng-container>
 
-    <div class="ac-edit-extranjero">
+    <div class="ac-edit-extranjero" *ngIf="!esSedes">
       <dx-check-box [(value)]="modelo.extranjero" text="Extranjero (carnet de extranjería)"></dx-check-box>
       <small>Márcalo si la venta no cruza por DNI: así SÍ cuenta al vendedor aunque figure “sin derivación”.</small>
     </div>

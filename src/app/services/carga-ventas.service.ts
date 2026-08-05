@@ -213,4 +213,22 @@ export class CargaVentasService {
     return this.http.post<{ success: boolean; insertados: number; actualizados?: number; total?: number }>(
       `${this.root}/${this.atribBase(canal)}/consolidar`, {}, { params: this.anioMes(anio, mes) });
   }
+
+  // ── Atribución de SEDES (Lambayeque / Ferreñafe) → `ventas` × gestion_sedes_deriv ──
+  //   La "fuente generadora" = TIPO DE BASE de la derivación; cruce SOLO por DNI + sede.
+  listarAtribucionSede(sede: string, anio?: number, mes?: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.root}/ventas-sedes/atribucion`, { params: this.anioMes(anio, mes).set('sede', sede) });
+  }
+  buscarVentaSede(sede: string, dni: string, anio?: number, mes?: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.root}/ventas-sedes/buscar`, { params: this.anioMes(anio, mes).set('sede', sede).set('dni', dni) });
+  }
+  /** Persiste la fuente generadora (atrib_fuente_sede) desde la derivación, por sede. */
+  cruzarSede(sede: string, anio?: number, mes?: number): Observable<{ success: boolean; actualizados: number }> {
+    return this.http.post<{ success: boolean; actualizados: number }>(
+      `${this.root}/ventas-sedes/cruzar`, {}, { params: this.anioMes(anio, mes).set('sede', sede) });
+  }
+  /** Edita a mano la fuente generadora de una venta de sede. */
+  guardarFuenteSede(codigo: number, fuente: string): Observable<any> {
+    return this.http.put(`${this.root}/ventas-sedes/${codigo}`, { fuente });
+  }
 }
