@@ -11,6 +11,22 @@
   <div class="lt-bar"><span></span></div>
 </div>
 
+<!-- ═══ CAMBIO DE CONTRASEÑA OBLIGATORIO (primer ingreso) ═══ -->
+<div *ngIf="forzarCambio" class="fc-overlay">
+  <div class="fc-card">
+    <div class="fc-icon"><mat-icon>lock_reset</mat-icon></div>
+    <h3>Cambia tu contraseña</h3>
+    <p>Es tu primer ingreso. Por seguridad, define una contraseña nueva (distinta a tu DNI).</p>
+    <input type="password" [(ngModel)]="nuevaPass" placeholder="Nueva contraseña" autocomplete="new-password" />
+    <input type="password" [(ngModel)]="nuevaPass2" placeholder="Repite la contraseña" autocomplete="new-password"
+           (keyup.enter)="confirmarCambio()" />
+    <div class="fc-error" *ngIf="errorCambio"><mat-icon>error_outline</mat-icon> {{ errorCambio }}</div>
+    <button class="fc-btn" (click)="confirmarCambio()" [disabled]="cambiandoPass">
+      {{ cambiandoPass ? 'Guardando…' : 'Guardar y entrar' }}
+    </button>
+  </div>
+</div>
+
 <div class="login-page">
 
   <!-- Partículas flotantes -->

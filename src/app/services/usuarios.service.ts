@@ -14,6 +14,8 @@ export interface UsuarioDB {
   canal?: string;      // 'sede' | 'call' | 'realzza' (rol vendedor)
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
   activo: boolean;
+  dni?: string;                // vínculo con el CAP (usuario/clave por defecto)
+  debe_cambiar_password?: boolean;
   creado_en?: string;
   actualizado_en?: string;
 }
@@ -29,6 +31,8 @@ export interface UsuarioPayload {
   canal?: string;
   activo: boolean;
   password?: string;
+  dni?: string;
+  debe_cambiar_password?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -55,5 +59,10 @@ export class UsuariosService {
   /** Guarda los permisos (módulos) de un usuario. `null` = usa el default por rol-perfil. */
   guardarModulos(id: number, modulos: string[] | null): Observable<any> {
     return this.http.patch(`${this.base}/${id}/modulos`, { modulos });
+  }
+
+  /** El propio usuario cambia su contraseña (valida la actual). Forzado en 1er login o autoservicio. */
+  cambiarPassword(usuario: string, actual: string, nueva: string): Observable<{ success: boolean; message?: string }> {
+    return this.http.post<any>(`${environment.apiBase}/auth/cambiar-password`, { usuario, actual, nueva });
   }
 }

@@ -119,15 +119,24 @@
           </select>
         </label>
         <label *ngIf="form.rol === 'vendedor'">Vendedor *
-          <select [(ngModel)]="form.vendedor" [disabled]="!form.canal">
+          <select [(ngModel)]="form.vendedor" [disabled]="!form.canal" (ngModelChange)="onVendedorChange()">
             <option value="">{{ form.canal ? '— Selecciona —' : 'Elige canal primero' }}</option>
             <option *ngFor="let v of vendedorOptions" [value]="v">{{ v }}</option>
           </select>
         </label>
 
+        <!-- DNI del asesor (del CAP): se usa como usuario y contraseña por defecto -->
+        <label *ngIf="form.rol === 'vendedor' && form.canal === 'sede'">DNI (del CAP)
+          <input type="text" [(ngModel)]="form.dni" placeholder="Se autocompleta del CAP" />
+        </label>
+
         <label>Contraseña {{ editId === null ? '*' : '' }}
           <input type="text" [(ngModel)]="form.password"
                  [placeholder]="editId === null ? 'Obligatoria' : 'Dejar vacío para no cambiar'" />
+        </label>
+        <label class="uf-check">
+          <input type="checkbox" [(ngModel)]="form.debeCambiar" />
+          Debe cambiar la contraseña en el primer ingreso
         </label>
         <label class="uf-check">
           <input type="checkbox" [(ngModel)]="form.activo" /> Activo

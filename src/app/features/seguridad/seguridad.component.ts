@@ -65,7 +65,7 @@ export class SeguridadComponent implements OnInit {
   editId: number | null = null;
   guardandoU = false;
   errorForm = '';
-  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true };
+  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false };
 
   // Identidad del vendedor (solo cuando rol = vendedor).
   readonly canalOptions = [
@@ -174,7 +174,7 @@ export class SeguridadComponent implements OnInit {
 
   nuevoUsuario(): void {
     this.editId = null;
-    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'], canal: '', vendedor: '', password: '', activo: true };
+    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false };
     this.vendedorOptions = [];
     this.errorForm = '';
     this.sedeDropdownOpen = false;
@@ -195,6 +195,8 @@ export class SeguridadComponent implements OnInit {
       vendedor: u.vendedor ?? '',
       password: '',
       activo: u.activo,
+      dni: u.dni ?? '',
+      debeCambiar: !!u.debe_cambiar_password,
     };
     this.recomputarVendedores();
     this.errorForm = '';
@@ -216,6 +218,21 @@ export class SeguridadComponent implements OnInit {
     if (this.form.vendedor && !this.vendedorOptions.includes(this.form.vendedor)) {
       this.vendedorOptions = [this.form.vendedor, ...this.vendedorOptions];
     }
+  }
+
+  /** Al elegir un vendedor de SEDE: trae su DNI del CAP y, si es usuario nuevo, propone
+   *  usuario = DNI, contraseña = DNI y marca "forzar cambio en el primer login". */
+  async onVendedorChange(): Promise<void> {
+    if (this.form.canal !== 'sede' || !this.form.vendedor) { return; }
+    const key = this.sedeCfg.normalizar(this.form.sede);
+    const dni = key ? await this.cap.dniDe(key, this.form.vendedor) : '';
+    this.form.dni = dni;
+    if (this.editId === null && dni) {
+      if (!this.form.usuario.trim())  this.form.usuario = dni;
+      if (!this.form.password.trim()) this.form.password = dni;
+      this.form.debeCambiar = true;
+    }
+    if (!this.form.nombre.trim()) this.form.nombre = this.form.vendedor;
   }
 
   /** Al cambiar el rol: si deja de ser gerente/supervisor y la sede era una zona, la resetea;
@@ -301,6 +318,7 @@ export class SeguridadComponent implements OnInit {
       sede: f.sedes[0] || f.sede, sedes: f.sedes,
       canal: esVendedor ? f.canal : '', vendedor: esVendedor ? f.vendedor.trim() : '',
       activo: f.activo, password: f.password.trim() || undefined,
+      dni: f.dni.trim() || undefined, debe_cambiar_password: f.debeCambiar,
     };
     const obs = esNuevo
       ? this.usuariosSvc.crear(payload)

@@ -635,3 +635,31 @@
   0%   { transform: translateX(-120%); }
   100% { transform: translateX(320%); }
 }
+
+/* ═══ Cambio de contraseña obligatorio (primer ingreso) ═══ */
+.fc-overlay {
+  position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 14, 32, .72); backdrop-filter: blur(4px);
+}
+.fc-card {
+  width: min(92vw, 380px); background: #fff; border-radius: 18px; padding: 26px 24px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.45); text-align: center; animation: fc-pop .25s cubic-bezier(.22,1.2,.36,1) both;
+}
+@keyframes fc-pop { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.fc-icon { width: 54px; height: 54px; margin: 0 auto 8px; border-radius: 50%; display: grid; place-items: center; background: #eaf1fc; }
+.fc-icon mat-icon { color: #1A5FAD; font-size: 30px; width: 30px; height: 30px; }
+.fc-card h3 { margin: 4px 0 6px; color: #1E3A5F; font-size: 18px; font-weight: 800; }
+.fc-card p { margin: 0 0 16px; color: #64778f; font-size: 13px; line-height: 1.4; }
+.fc-card input {
+  width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 11px 13px;
+  border: 1px solid #cdd9ea; border-radius: 10px; font-size: 14px; outline: none;
+}
+.fc-card input:focus { border-color: #1A5FAD; }
+.fc-error { display: flex; align-items: center; gap: 6px; justify-content: center; color: #c0392b; font-size: 12.5px; margin: 2px 0 10px; }
+.fc-error mat-icon { font-size: 17px; width: 17px; height: 17px; }
+.fc-btn {
+  width: 100%; padding: 12px; border: none; border-radius: 10px; background: #1A5FAD; color: #fff;
+  font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s;
+}
+.fc-btn:hover:not(:disabled) { background: #17539a; }
+.fc-btn:disabled { opacity: .6; cursor: not-allowed; }

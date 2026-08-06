@@ -177,6 +177,14 @@ export class CapSedesService {
     return Array.from(new Set(filas.map(r => r.vendedor.toUpperCase()))).sort();
   }
 
+  /** DNI de un vendedor activo de una sede (para el usuario/clave por defecto). '' si no hay. */
+  async dniDe(sedeKey: string, vendedor: string): Promise<string> {
+    const filas = await this.filasSede(sedeKey, true);
+    const nom = (vendedor ?? '').toString().trim().toUpperCase();
+    const hit = filas.find(r => r.vendedor.toUpperCase() === nom);
+    return (hit?.dni || '').toString().trim();
+  }
+
   /** Mapa vendedor(UPPER) → supervisor, para una sede (solo activos). */
   async supervisoresPorVendedor(sedeKey: string): Promise<Map<string, string>> {
     const filas = await this.filasSede(sedeKey, true);

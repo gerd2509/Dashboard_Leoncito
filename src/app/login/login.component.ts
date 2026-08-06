@@ -25,6 +25,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   transicion = false;         // splash de bienvenida tras el login
   nombreBienvenida = '';
 
+  // Forzar cambio de contraseña en el primer ingreso.
+  forzarCambio = false;
+  nuevaPass = '';
+  nuevaPass2 = '';
+  cambiandoPass = false;
+  errorCambio = '';
+  private datosSesion: any = null;   // datos del login, se guardan tras cambiar la clave
+
   // Marca mostrada en el panel izquierdo (cambia según el usuario que se escribe)
   brand: Brand;
   private usuario$ = new Subject<string>();
@@ -83,11 +91,14 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.auth.login(this.usuario.trim(), this.password.trim()).subscribe({
       next: (res: any) => {
         this.cargando = false;
-        // Splash de bienvenida entre el login y el dashboard.
-        this.nombreBienvenida = nombreCorto(res.nombre || '') || res.nombre || '';
-        this.transicion = true;
         const datos = { nombre: res.nombre, rol: res.rol, sede: res.sede, sedes: res.sedes, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos };
-        setTimeout(() => this.auth.guardarSesion(datos), 2000);
+        // Primer ingreso con clave por defecto (DNI) → obliga a cambiarla antes de entrar.
+        if (res.debeCambiarPassword) {
+          this.datosSesion = datos;
+          this.forzarCambio = true;
+          return;
+        }
+        this.entrar(res.nombre, datos);
       },
       error: (err) => {
         this.cargando = false;
@@ -95,6 +106,33 @@ export class LoginComponent implements OnInit, OnDestroy {
           ? 'Usuario o contraseña incorrectos.'
           : 'Error de conexión. Intenta de nuevo.';
       }
+    });
+  }
+
+  /** Muestra el splash de bienvenida y guarda la sesión. */
+  private entrar(nombre: string, datos: any): void {
+    this.nombreBienvenida = nombreCorto(nombre || '') || nombre || '';
+    this.transicion = true;
+    setTimeout(() => this.auth.guardarSesion(datos), 2000);
+  }
+
+  /** Confirma la nueva contraseña (primer ingreso) y recién ahí entra. */
+  confirmarCambio(): void {
+    this.errorCambio = '';
+    if ((this.nuevaPass || '').length < 4) { this.errorCambio = 'La contraseña debe tener al menos 4 caracteres.'; return; }
+    if (this.nuevaPass !== this.nuevaPass2) { this.errorCambio = 'Las contraseñas no coinciden.'; return; }
+    if (this.nuevaPass === this.password) { this.errorCambio = 'Elige una contraseña distinta a la actual.'; return; }
+    this.cambiandoPass = true;
+    this.auth.cambiarPassword(this.usuario.trim(), this.password.trim(), this.nuevaPass).subscribe({
+      next: () => {
+        this.cambiandoPass = false;
+        this.forzarCambio = false;
+        this.entrar(this.datosSesion?.nombre || '', this.datosSesion);
+      },
+      error: (err) => {
+        this.cambiandoPass = false;
+        this.errorCambio = err?.error?.message || 'No se pudo cambiar la contraseña.';
+      },
     });
   }
 }

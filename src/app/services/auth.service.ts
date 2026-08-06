@@ -24,6 +24,11 @@ export class AuthService {
     return this.http.post(`${this.baseUrl}/auth/login`, { usuario, password });
   }
 
+  /** Cambia la contraseña del propio usuario (valida la actual). Forzado en el 1er login. */
+  cambiarPassword(usuario: string, actual: string, nueva: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/auth/cambiar-password`, { usuario, actual, nueva });
+  }
+
   /**
    * Consulta la marca/sede de un usuario por su nombre de usuario (sin contraseña),
    * para personalizar el branding del login mientras se escribe.
