@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { CacheService } from './cache.service';
 
@@ -174,6 +175,38 @@ export class SheetsService {
 
   private fechaISO(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  // 🏬 Gestión de sedes desde la BD (tabla gestion, gestion-service). Fuente única:
+  // formulario sincronizado + registro por plataforma (Ferreñafe). Se mapea a la MISMA
+  // forma que la hoja para que Control Gestión Sede no cambie su lógica.
+  private mapGestionDbToSheet = (r: any) => ({
+    'Marca temporal': r.marca,
+    'TIENDA SEDE': r.sede,
+    'ASESOR': r.asesor,
+    'TIPO DE GESTION': r.tipo_gestion,
+    'RESULTADO DE GESTION': r.resultado,
+    'DNI CLIENTE': r.dni_cliente,
+    'MOTIVOS "CONTACTO EN LA GESTION"': r.motivo_contacto,
+    'MOTIVOS "NO CONTACTO EN LA GESTION"': r.motivo_no_contacto,
+    'FECHA DE COMPROMISO O VISITA': r.fecha_compromiso,
+    'VALOR DE LA VENTA': r.valor_venta,
+    'PRODUCTO DE INTERES': r.producto_interes,
+    'DETALLE(COMENTARIO) CONTACTO': r.detalle_contacto,
+    'N° CELULAR ACTUALIZADO': r.celular_actualizado,
+    _origen: r.origen,
+  });
+  getGestionSedesDB(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    const base = environment.gestionBase || environment.apiBase;
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any[]>(`${base}/gestion`, { params }).pipe(map(rows => (rows || []).map(this.mapGestionDbToSheet)));
+  }
+  /** Copia al BD lo NUEVO del formulario de sedes (botón "Sincronizar"). */
+  sincronizarGestionSedes(): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
+    const base = environment.gestionBase || environment.apiBase;
+    return this.http.post<any>(`${base}/gestion/sync-sedes`, {});
   }
 
   // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)

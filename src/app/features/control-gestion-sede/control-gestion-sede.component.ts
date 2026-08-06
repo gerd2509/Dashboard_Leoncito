@@ -3,6 +3,7 @@ import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
@@ -124,12 +125,15 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   private intervaloCincoMin: any = null;
 
+  sincronizando = false;
+
   constructor(
     private fb: UntypedFormBuilder,
     private sheetsService: SheetsService,
     private auth: AuthService,
     private sedeConfig: SedeConfigService,
     private cap: CapSedesService,
+    private snack: MatSnackBar,
   ) {
     this.formCtrl = this.fb.group({ fechaGestion: [new Date()] });
     const hoy = new Date();
@@ -220,8 +224,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       // Solo el día seleccionado (el sheet de sedes es enorme; filtrar en el backend
       // evita descargar todo el histórico y que la app se cuelgue al refrescar).
       const fecha = this.formCtrl.value.fechaGestion as Date;
+      // Fuente única = BD (gestion). Incluye lo sincronizado del formulario + lo
+      // registrado por plataforma (Ferreñafe). Mapeado a la forma del sheet.
       this.listData = await lastValueFrom(
-        this.sheetsService.getSheetDataSedes({ desde: fecha, hasta: fecha })
+        this.sheetsService.getGestionSedesDB({ desde: fecha, hasta: fecha })
       );
       this.calcular();
     } catch (e) {
@@ -235,6 +241,26 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   async actualizar() {
     await this.cargarDatos();
+  }
+
+  /** Trae del formulario (sheet) lo NUEVO a la BD y recarga. Para las sedes que aún
+   *  registran por formulario (Ferreñafe ya registra por plataforma → directo a BD). */
+  sincronizar(): void {
+    if (this.sincronizando) return;
+    this.sincronizando = true;
+    this.sheetsService.sincronizarGestionSedes().subscribe({
+      next: async r => {
+        this.sincronizando = false;
+        this.snack.open(`✔ Sincronizado: ${r.insertados} nuevas gestiones del formulario.`, 'OK',
+          { duration: 3500, horizontalPosition: 'end', verticalPosition: 'top', panelClass: 'toast-ok' });
+        await this.cargarDatos();
+      },
+      error: () => {
+        this.sincronizando = false;
+        this.snack.open('❌ No se pudo sincronizar con el formulario.', 'OK',
+          { duration: 5000, horizontalPosition: 'end', verticalPosition: 'top', panelClass: 'toast-error' });
+      },
+    });
   }
 
   private calcular() {

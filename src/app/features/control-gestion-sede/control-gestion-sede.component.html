@@ -9,6 +9,12 @@
         {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
     </button>
 
+    <button mat-stroked-button type="button" (click)="sincronizar()" [disabled]="sincronizando || isLoading"
+            title="Copia a la base de datos lo nuevo del formulario de sedes">
+        <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
+        {{ sincronizando ? 'Sincronizando...' : 'Sincronizar formulario' }}
+    </button>
+
     <!-- Afiliaciones: se importan de un Excel y se guardan en el navegador -->
     <input #afiInput type="file" accept=".xlsx,.xls,.csv" hidden (change)="onImportarAfiliaciones($event)">
     <button mat-stroked-button type="button" (click)="afiInput.click()">
