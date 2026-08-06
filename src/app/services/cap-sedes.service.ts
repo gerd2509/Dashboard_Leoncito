@@ -4,6 +4,7 @@ import { SheetsService } from './service-google.service';
 import { SedeConfigService } from './sede-config.service';
 
 export interface CapRow {
+  id?: number;        // PK en la tabla cap_asesores (para editar/eliminar)
   vendedor: string;   // nombre tal cual la hoja CAP (correcto)
   sede: string;       // texto original de la columna SEDE
   sedeKey: string;    // sede normalizada (ascii)
@@ -30,29 +31,57 @@ export class CapSedesService {
   private cargando: Promise<CapRow[]> | null = null;
   error = false;  // true si la última carga falló (para mostrar "Reintentar")
 
-  /** Carga (una sola vez) y cachea el CAP. Nunca se cuelga: timeout de 20s. */
+  /**
+   * Carga (una sola vez) y cachea el CAP. Fuente principal = tabla cap_asesores (GET /cap);
+   * si aún no está migrada (vacía) o falla, cae a la hoja "CAP" (legado). Timeout 20s.
+   */
   async cargar(): Promise<CapRow[]> {
     if (this.cache) return this.cache;
     if (!this.cargando) {
       this.error = false;
-      this.cargando = lastValueFrom(
-        this.sheets.getSheetDataCapSedes().pipe(timeout(20000)),
-      )
-        .then(data => (this.cache = this.parse(data)))
-        .catch(err => {
-          console.error('❌ CAP: no se pudo cargar cap-sedes:', err);
-          this.error = true;
-          this.cargando = null; // permite reintentar
-          return [];
+      this.cargando = lastValueFrom(this.sheets.getCap().pipe(timeout(20000)))
+        .then(async data => {
+          const db = this.parseDB(data);
+          if (db.length) return (this.cache = db);
+          return (this.cache = await this.desdeHoja());   // tabla vacía → fallback hoja
+        })
+        .catch(async err => {
+          console.error('❌ CAP /cap falló, uso la hoja (legado):', err);
+          try { return (this.cache = await this.desdeHoja()); }
+          catch (e2) { this.error = true; this.cargando = null; return []; }
         });
     }
     return this.cargando;
   }
 
-  /** Fuerza recarga en la próxima llamada. */
+  /** Fuerza recarga en la próxima llamada (usar tras editar el CAP en el Maestro). */
   invalidar(): void { this.cache = null; this.cargando = null; }
 
-  private parse(data: any[]): CapRow[] {
+  private async desdeHoja(): Promise<CapRow[]> {
+    const hoja = await lastValueFrom(this.sheets.getSheetDataCapSedes().pipe(timeout(20000)));
+    return this.parseHoja(hoja);
+  }
+
+  /** Filas de la tabla cap_asesores (columnas en minúscula + id). */
+  private parseDB(data: any[]): CapRow[] {
+    return (data || [])
+      .map(r => ({
+        id: r.id,
+        vendedor: (r.vendedor ?? '').toString().trim(),
+        sede: (r.sede ?? '').toString().trim(),
+        sedeKey: this.sedeCfg.normalizar(r.sede ?? ''),
+        supervisor: (r.supervisor ?? '').toString().trim(),
+        gerente: (r.gerente ?? '').toString().trim(),
+        zona: (r.zona ?? '').toString().trim().toUpperCase(),
+        canal: (r.canal ?? '').toString().trim().toUpperCase(),
+        estado: (r.estado ?? '').toString().trim().toUpperCase(),
+        dni: (r.dni ?? '').toString().trim(),
+      }))
+      .filter(r => r.vendedor);
+  }
+
+  /** Filas de la hoja "CAP" (cabeceras en MAYÚSCULA) — fallback legado. */
+  private parseHoja(data: any[]): CapRow[] {
     return (data || [])
       .map(r => ({
         vendedor: (r['VENDEDOR'] ?? '').toString().trim(),

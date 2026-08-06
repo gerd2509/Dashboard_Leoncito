@@ -181,10 +181,15 @@ export class SheetsService {
     return this.http.get<any[]>(this.apiUrlFerre);
   }
 
-  // 👥 CAP de asesores por sede (hoja "CAP"): VENDEDOR, SEDE, CANAL, ESTADO, DNI, ...
-  // Datos de referencia (cambian poco) → caché de 5 min.
+  // 👥 CAP de asesores por sede (hoja "CAP") — LEGADO. Se conserva como fallback
+  // mientras la tabla cap_asesores no esté migrada.
   getSheetDataCapSedes(): Observable<any[]> {
     return this.cache.getOrFetch('capSedes',
       () => this.http.get<any[]>(this.apiUrlCapSedes), 5 * 60 * 1000);
+  }
+
+  // 👥 CAP desde la BD (tabla cap_asesores, editable). Fuente principal del CapSedesService.
+  getCap(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiBase}/cap`);
   }
 }
