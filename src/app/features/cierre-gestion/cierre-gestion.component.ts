@@ -190,7 +190,9 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
     { value: 'RZ8', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
     { value: 'RZ9', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
-    { value: 'RZ10', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' }
+    { value: 'RZ10', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' },
+    { value: 'RZ11', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
+    { value: 'RZ12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' }
   ];
 
   asesores1 = this.asesoresCall;
