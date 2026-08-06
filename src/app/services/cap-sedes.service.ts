@@ -76,6 +76,10 @@ export class CapSedesService {
   eliminar(id: number): Observable<{ success: boolean }> {
     return this.http.delete<{ success: boolean }>(`${this.capUrl}/${id}`);
   }
+  /** Catálogos para el formulario: sedes(→gerente/zona), supervisores por sede, canales. */
+  meta(): Observable<{ sedes: { sede: string; gerente: string; zona: string }[]; supervisores: { sede: string; nombre: string }[]; canales: string[] }> {
+    return this.http.get<any>(`${this.capUrl}/meta`);
+  }
 
   private async desdeHoja(): Promise<CapRow[]> {
     const hoja = await lastValueFrom(this.sheets.getSheetDataCapSedes().pipe(timeout(20000)));

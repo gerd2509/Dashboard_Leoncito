@@ -5,10 +5,15 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { CapSedesService, CapRow } from '../../services/cap-sedes.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
+interface SedeMeta { sede: string; gerente: string; zona: string; }
+interface SupMeta { sede: string; nombre: string; }
+
 /**
- * Maestro CAP (admin): CRUD del roster de asesores por sede sobre la tabla
- * cap_asesores (BD). Los cambios se reflejan en Control Gestión/Call Sedes,
- * Pizarra de Metas y el registro de gestión de sedes (fuente = CapSedesService).
+ * Maestro CAP (admin): CRUD del roster de asesores por sede (tabla cap_asesores).
+ * Alta/edición vía popup: al elegir la SEDE se autocompletan GERENTE y ZONA, y el
+ * SUPERVISOR se elige de los de esa sede. CANAL de la lista existente (como el sheet).
+ * Los cambios se reflejan en Control Gestión/Call Sedes, Pizarra de Metas y el
+ * registro de gestión de sedes (fuente = CapSedesService).
  */
 @Component({
   selector: 'app-maestro-cap',
@@ -26,7 +31,26 @@ export class MaestroCapComponent implements OnInit {
   guardando = false;
   readonly estados = ['ACTIVO', 'RENUNCIA'];
 
-  ngOnInit(): void { this.cargar(); }
+  // Catálogos (derivados del CAP) para el formulario.
+  sedesMeta: SedeMeta[] = [];
+  supervisoresMeta: SupMeta[] = [];
+  canales: string[] = [];
+  sedesNombres: string[] = [];
+
+  // Selección de la grilla.
+  selected: CapRow | null = null;
+  selectedKeys: number[] = [];
+
+  // Popup de alta/edición.
+  popupVisible = false;
+  modo: 'nuevo' | 'editar' = 'nuevo';
+  modelo: any = this.vacio();
+
+  ngOnInit(): void { this.cargar(); this.cargarMeta(); }
+
+  private vacio() {
+    return { id: null, vendedor: '', dni: '', sede: '', gerente: '', zona: '', supervisor: '', canal: '', estado: 'ACTIVO' };
+  }
 
   cargar(): void {
     this.cargando = true;
@@ -35,27 +59,66 @@ export class MaestroCapComponent implements OnInit {
       .catch(() => { this.filas = []; this.cargando = false; this.toast('❌ No se pudo cargar el CAP.', true); });
   }
 
-  onInsertado(e: any): void {
-    this.guardando = true;
-    this.cap.crear(this.payload(e.data)).subscribe({
-      next: () => { this.guardando = false; this.cap.invalidar(); this.toast('✔ Asesor agregado al CAP.'); this.cargar(); },
-      error: err => { this.guardando = false; this.toast('❌ ' + this.msg(err), true); this.cargar(); },
+  cargarMeta(): void {
+    this.cap.meta().subscribe({
+      next: m => {
+        this.sedesMeta = m.sedes || [];
+        this.supervisoresMeta = m.supervisores || [];
+        this.canales = m.canales || [];
+        this.sedesNombres = this.sedesMeta.map(s => s.sede);
+      },
+      error: () => { /* si falla, los selects quedan con acceptCustomValue */ },
     });
   }
-  onActualizado(e: any): void {
-    if (!e.data?.id) { this.cargar(); return; }
+
+  /** Supervisores de la sede elegida (si no hay, muestra todos). Únicos y ordenados. */
+  get supervisoresDeSede(): string[] {
+    const s = (this.modelo.sede || '').trim();
+    const dela = this.supervisoresMeta.filter(x => x.sede === s).map(x => x.nombre);
+    const base = dela.length ? dela : this.supervisoresMeta.map(x => x.nombre);
+    return Array.from(new Set(base)).sort();
+  }
+
+  /** Al cambiar la sede: autocompleta gerente y zona (editable si es sede nueva). */
+  onSedeChange(sede: string): void {
+    const meta = this.sedesMeta.find(s => s.sede === sede);
+    if (meta) { this.modelo.gerente = meta.gerente || ''; this.modelo.zona = meta.zona || ''; }
+  }
+
+  onSelectionChanged(e: any): void { this.selected = e.selectedRowsData?.[0] || null; }
+
+  nuevo(): void { this.modo = 'nuevo'; this.modelo = this.vacio(); this.popupVisible = true; }
+  editar(): void {
+    if (!this.selected) { this.toast('Selecciona un asesor para editar.', true); return; }
+    this.modo = 'editar'; this.modelo = { ...this.selected }; this.popupVisible = true;
+  }
+
+  guardar(): void {
+    const v = (this.modelo.vendedor || '').trim();
+    if (!v) { this.toast('El nombre del asesor es obligatorio.', true); return; }
     this.guardando = true;
-    this.cap.actualizar(e.data.id, this.payload(e.data)).subscribe({
-      next: () => { this.guardando = false; this.cap.invalidar(); this.toast('✔ Asesor actualizado.'); },
-      error: err => { this.guardando = false; this.toast('❌ ' + this.msg(err), true); this.cargar(); },
+    const payload = this.payload(this.modelo);
+    const obs = this.modo === 'nuevo' ? this.cap.crear(payload) : this.cap.actualizar(this.modelo.id, payload);
+    obs.subscribe({
+      next: () => {
+        this.guardando = false; this.popupVisible = false; this.cap.invalidar();
+        this.toast(this.modo === 'nuevo' ? '✔ Asesor agregado al CAP.' : '✔ Asesor actualizado.');
+        this.cargar(); this.cargarMeta();
+      },
+      error: err => { this.guardando = false; this.toast('❌ ' + this.msg(err), true); },
     });
   }
-  onEliminado(e: any): void {
-    if (!e.data?.id) return;
+
+  eliminar(): void {
+    if (!this.selected?.id) { this.toast('Selecciona un asesor para eliminar.', true); return; }
+    if (!confirm(`¿Eliminar a ${this.selected.vendedor} del CAP? Esta acción no se puede deshacer.`)) return;
     this.guardando = true;
-    this.cap.eliminar(e.data.id).subscribe({
-      next: () => { this.guardando = false; this.cap.invalidar(); this.toast('✔ Asesor eliminado del CAP.'); },
-      error: err => { this.guardando = false; this.toast('❌ ' + this.msg(err), true); this.cargar(); },
+    this.cap.eliminar(this.selected.id).subscribe({
+      next: () => {
+        this.guardando = false; this.cap.invalidar(); this.toast('✔ Asesor eliminado del CAP.');
+        this.selected = null; this.selectedKeys = []; this.cargar();
+      },
+      error: err => { this.guardando = false; this.toast('❌ ' + this.msg(err), true); },
     });
   }
 

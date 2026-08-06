@@ -2,41 +2,110 @@
   mensaje="Maestro CAP" submensaje="Cargando / guardando asesores…" icon="badge"></app-loading-overlay>
 
 <div class="mc-shell">
+  <!-- Encabezado + acciones -->
   <div class="mc-head">
     <div>
       <div class="mc-title"><mat-icon>badge</mat-icon> Maestro CAP — Asesores por Sede</div>
       <div class="mc-sub">Agrega, edita o elimina asesores. Se reflejan en Control Gestión/Call Sedes, Pizarra de Metas y el registro de sedes.</div>
     </div>
-    <div class="mc-actions">
-      <span class="mc-total">{{ filas.length }} asesores</span>
-      <button class="mc-btn" [disabled]="cargando" (click)="cargar()"><mat-icon>refresh</mat-icon> Recargar</button>
-    </div>
+    <span class="mc-total">{{ filas.length }} asesores</span>
   </div>
 
-  <dx-data-grid class="mc-grid" [dataSource]="filas" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
-      [rowAlternationEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="false" [hoverStateEnabled]="true"
-      [height]="'calc(100vh - 170px)'"
-      (onRowInserted)="onInsertado($event)" (onRowUpdated)="onActualizado($event)" (onRowRemoved)="onEliminado($event)">
-    <dxo-scrolling mode="virtual" [useNative]="true"></dxo-scrolling>
-    <dxo-paging [enabled]="false"></dxo-paging>
-    <dxo-filter-row [visible]="true"></dxo-filter-row>
-    <dxo-header-filter [visible]="true"></dxo-header-filter>
-    <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar asesor, DNI, sede…"></dxo-search-panel>
-    <dxo-editing mode="row" [allowAdding]="true" [allowUpdating]="true" [allowDeleting]="true"
-      [useIcons]="true" [confirmDelete]="false"></dxo-editing>
-    <dxo-sorting mode="multiple"></dxo-sorting>
+  <!-- Barra de acciones sobre la grilla -->
+  <div class="mc-toolbar">
+    <button class="mc-btn primary" (click)="nuevo()"><mat-icon>person_add</mat-icon> Nuevo</button>
+    <button class="mc-btn" [disabled]="!selected" (click)="editar()"><mat-icon>edit</mat-icon> Editar</button>
+    <button class="mc-btn danger" [disabled]="!selected" (click)="eliminar()"><mat-icon>delete</mat-icon> Eliminar</button>
+    <span class="mc-sep"></span>
+    <button class="mc-btn ghost" [disabled]="cargando" (click)="cargar()"><mat-icon>refresh</mat-icon> Recargar</button>
+    <span class="mc-hint" *ngIf="selected">Seleccionado: <b>{{ selected.vendedor }}</b></span>
+  </div>
 
-    <dxi-column dataField="vendedor" caption="ASESOR (VENDEDOR)" [minWidth]="240" [allowHeaderFiltering]="false">
-      <dxi-validation-rule type="required" message="El nombre del asesor es obligatorio"></dxi-validation-rule>
-    </dxi-column>
-    <dxi-column dataField="sede" caption="SEDE" [width]="160"></dxi-column>
-    <dxi-column dataField="canal" caption="CANAL" [width]="170"></dxi-column>
-    <dxi-column dataField="estado" caption="ESTADO" [width]="130">
-      <dxo-lookup [dataSource]="estados"></dxo-lookup>
-    </dxi-column>
-    <dxi-column dataField="dni" caption="DNI" [width]="115" [allowHeaderFiltering]="false"></dxi-column>
-    <dxi-column dataField="supervisor" caption="SUPERVISOR" [width]="190"></dxi-column>
-    <dxi-column dataField="gerente" caption="GERENTE" [width]="190"></dxi-column>
-    <dxi-column dataField="zona" caption="ZONA" [width]="130"></dxi-column>
-  </dx-data-grid>
+  <!-- Grilla -->
+  <div class="mc-card">
+    <dx-data-grid class="mc-grid" [dataSource]="filas" keyExpr="id" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="false"
+        [hoverStateEnabled]="true" [height]="'calc(100vh - 230px)'"
+        [(selectedRowKeys)]="selectedKeys" (onSelectionChanged)="onSelectionChanged($event)"
+        (onRowDblClick)="editar()">
+      <dxo-selection mode="single"></dxo-selection>
+      <dxo-scrolling mode="virtual" [useNative]="true"></dxo-scrolling>
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-header-filter [visible]="true"></dxo-header-filter>
+      <dxo-search-panel [visible]="true" [width]="280" placeholder="Buscar asesor, DNI, sede…"></dxo-search-panel>
+      <dxo-sorting mode="multiple"></dxo-sorting>
+
+      <dxi-column dataField="vendedor" caption="ASESOR (VENDEDOR)" [minWidth]="240" [allowHeaderFiltering]="false" cellTemplate="vendTpl"></dxi-column>
+      <dxi-column dataField="sede" caption="SEDE" [width]="150"></dxi-column>
+      <dxi-column dataField="canal" caption="CANAL" [width]="170"></dxi-column>
+      <dxi-column dataField="estado" caption="ESTADO" [width]="120" cellTemplate="estadoTpl"></dxi-column>
+      <dxi-column dataField="dni" caption="DNI" [width]="110" [allowHeaderFiltering]="false"></dxi-column>
+      <dxi-column dataField="supervisor" caption="SUPERVISOR" [width]="190"></dxi-column>
+      <dxi-column dataField="gerente" caption="GERENTE" [width]="190"></dxi-column>
+      <dxi-column dataField="zona" caption="ZONA" [width]="120"></dxi-column>
+
+      <div *dxTemplate="let c of 'vendTpl'"><span class="mc-vend">{{ c.value }}</span></div>
+      <div *dxTemplate="let c of 'estadoTpl'">
+        <span class="mc-estado" [class.activo]="c.value === 'ACTIVO'" [class.baja]="c.value !== 'ACTIVO'">{{ c.value }}</span>
+      </div>
+    </dx-data-grid>
+  </div>
 </div>
+
+<!-- Popup de alta / edición -->
+<dx-popup [(visible)]="popupVisible" [width]="560" [height]="'auto'" [showTitle]="true"
+          [title]="modo === 'nuevo' ? 'Nuevo asesor' : 'Editar asesor'"
+          [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true">
+  <div *dxTemplate="let d of 'content'" class="mc-form">
+    <div class="mc-grid2">
+      <div class="mc-field mc-col2">
+        <label>Asesor (Vendedor) *</label>
+        <dx-text-box [(value)]="modelo.vendedor" placeholder="Nombre completo" stylingMode="outlined"></dx-text-box>
+      </div>
+
+      <div class="mc-field">
+        <label>DNI</label>
+        <dx-text-box [(value)]="modelo.dni" mode="tel" [maxLength]="12" placeholder="Documento" stylingMode="outlined"></dx-text-box>
+      </div>
+      <div class="mc-field">
+        <label>Estado</label>
+        <dx-select-box [dataSource]="estados" [(value)]="modelo.estado" stylingMode="outlined"></dx-select-box>
+      </div>
+
+      <div class="mc-field">
+        <label>Sede</label>
+        <dx-select-box [dataSource]="sedesNombres" [(value)]="modelo.sede" [acceptCustomValue]="true"
+          [searchEnabled]="true" placeholder="Elige o escribe" stylingMode="outlined"
+          (onValueChanged)="onSedeChange($event.value)"></dx-select-box>
+      </div>
+      <div class="mc-field">
+        <label>Canal</label>
+        <dx-select-box [dataSource]="canales" [(value)]="modelo.canal" [acceptCustomValue]="true"
+          [searchEnabled]="true" placeholder="Campaña / Receptivo…" stylingMode="outlined"></dx-select-box>
+      </div>
+
+      <div class="mc-field mc-col2">
+        <label>Supervisor <small>(de la sede)</small></label>
+        <dx-select-box [dataSource]="supervisoresDeSede" [(value)]="modelo.supervisor" [acceptCustomValue]="true"
+          [searchEnabled]="true" placeholder="Elige o escribe" stylingMode="outlined"></dx-select-box>
+      </div>
+
+      <div class="mc-field">
+        <label>Gerente <small>(auto por sede)</small></label>
+        <dx-text-box [(value)]="modelo.gerente" placeholder="Se autocompleta" stylingMode="outlined"></dx-text-box>
+      </div>
+      <div class="mc-field">
+        <label>Zona <small>(auto por sede)</small></label>
+        <dx-text-box [(value)]="modelo.zona" placeholder="Se autocompleta" stylingMode="outlined"></dx-text-box>
+      </div>
+    </div>
+
+    <div class="mc-form-actions">
+      <button class="mc-btn ghost" (click)="popupVisible = false"><mat-icon>close</mat-icon> Cancelar</button>
+      <button class="mc-btn primary" [disabled]="guardando" (click)="guardar()">
+        <mat-icon>save</mat-icon> {{ modo === 'nuevo' ? 'Agregar' : 'Guardar' }}
+      </button>
+    </div>
+  </div>
+</dx-popup>
