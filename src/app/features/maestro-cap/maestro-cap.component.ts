@@ -49,10 +49,17 @@ export class MaestroCapComponent implements OnInit {
   // Maestros (gestión en popups propios).
   popupSedes = false;
   popupSup = false;
+  popupGer = false;
   sedesMaestro: { id: number; nombre: string; gerente: string; zona: string }[] = [];
   supMaestro: { id: number; nombre: string; sede: string }[] = [];
+  gerentesMaestro: { id: number; nombre: string }[] = [];
+  gerentesNombres: string[] = [];
 
-  ngOnInit(): void { this.cargar(); this.cargarMeta(); }
+  ngOnInit(): void { this.cargar(); this.cargarMeta(); this.cargarGerentes(); }
+
+  private cargarGerentes(): void {
+    this.cap.listarGerentes().subscribe({ next: r => { this.gerentesMaestro = r; this.gerentesNombres = r.map(g => g.nombre); }, error: () => {} });
+  }
 
   private vacio() {
     return { id: null, vendedor: '', dni: '', sede: '', gerente: '', zona: '', supervisor: '', canal: '', estado: 'ACTIVO' };
@@ -162,17 +169,38 @@ export class MaestroCapComponent implements OnInit {
   }
   private limpiaSup(d: any) { return { nombre: (d.nombre || '').trim(), sede: (d.sede || '').trim() }; }
 
-  private trasMaestro(msg: string, cual: 'sedes' | 'sup'): void {
-    this.cap.invalidar(); this.cargarMeta();
+  // ── Maestro de GERENTES ─────────────────────────────────────────────────────
+  abrirGerentes(): void {
+    this.cap.listarGerentes().subscribe({ next: r => { this.gerentesMaestro = r; this.gerentesNombres = r.map(g => g.nombre); this.popupGer = true; }, error: () => this.toast('❌ No se pudieron cargar los gerentes.', true) });
+  }
+  onGerIns(e: any): void {
+    this.cap.crearGerente((e.data?.nombre || '').trim()).subscribe({ next: () => this.trasMaestro('Gerente agregado.', 'ger'), error: err => this.errMaestro(err, 'ger') });
+  }
+  onGerUpd(e: any): void {
+    if (!e.data?.id) return;
+    this.cap.actualizarGerente(e.data.id, (e.data.nombre || '').trim()).subscribe({ next: () => this.trasMaestro('Gerente actualizado.', 'ger'), error: err => this.errMaestro(err, 'ger') });
+  }
+  onGerDel(e: any): void {
+    if (!e.data?.id) return;
+    this.cap.eliminarGerente(e.data.id).subscribe({ next: () => this.trasMaestro('Gerente eliminado.', 'ger'), error: err => this.errMaestro(err, 'ger') });
+  }
+
+  private recargaMaestro(cual: 'sedes' | 'sup' | 'ger'): void {
     if (cual === 'sedes') this.cap.listarSedes().subscribe(r => this.sedesMaestro = r);
-    else this.cap.listarSupervisores().subscribe(r => this.supMaestro = r);
+    else if (cual === 'sup') this.cap.listarSupervisores().subscribe(r => this.supMaestro = r);
+    else this.cargarGerentes();
+    // Renombrar un gerente reescribe las sedes → refresca también las sedes.
+    if (cual === 'ger') this.cap.listarSedes().subscribe(r => this.sedesMaestro = r);
+  }
+  private trasMaestro(msg: string, cual: 'sedes' | 'sup' | 'ger'): void {
+    this.cap.invalidar(); this.cargarMeta();
+    this.recargaMaestro(cual);
     this.cargar();   // refresca gerente/zona de los asesores (autoritativo)
     this.toast('✔ ' + msg);
   }
-  private errMaestro(err: any, cual: 'sedes' | 'sup'): void {
+  private errMaestro(err: any, cual: 'sedes' | 'sup' | 'ger'): void {
     this.toast('❌ ' + this.msg(err), true);
-    if (cual === 'sedes') this.cap.listarSedes().subscribe(r => this.sedesMaestro = r);
-    else this.cap.listarSupervisores().subscribe(r => this.supMaestro = r);
+    this.recargaMaestro(cual);
   }
 
   private payload(d: any): Partial<CapRow> {

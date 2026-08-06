@@ -110,6 +110,20 @@ export class CapSedesService {
     return this.http.delete<any>(`${this.capUrl}/supervisores/${id}`);
   }
 
+  // ── Maestro de GERENTES (se eligen al editar una sede) ─────────────────────
+  listarGerentes(): Observable<{ id: number; nombre: string }[]> {
+    return this.http.get<any[]>(`${this.capUrl}/gerentes`);
+  }
+  crearGerente(nombre: string): Observable<{ success: boolean; id: number }> {
+    return this.http.post<any>(`${this.capUrl}/gerentes`, { nombre });
+  }
+  actualizarGerente(id: number, nombre: string): Observable<{ success: boolean }> {
+    return this.http.put<any>(`${this.capUrl}/gerentes/${id}`, { nombre });
+  }
+  eliminarGerente(id: number): Observable<{ success: boolean }> {
+    return this.http.delete<any>(`${this.capUrl}/gerentes/${id}`);
+  }
+
   private async desdeHoja(): Promise<CapRow[]> {
     const hoja = await lastValueFrom(this.sheets.getSheetDataCapSedes().pipe(timeout(20000)));
     return this.parseHoja(hoja);

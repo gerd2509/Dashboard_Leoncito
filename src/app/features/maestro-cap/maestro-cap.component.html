@@ -19,6 +19,7 @@
     <span class="mc-sep"></span>
     <button class="mc-btn" (click)="abrirSedes()"><mat-icon>location_city</mat-icon> Sedes</button>
     <button class="mc-btn" (click)="abrirSup()"><mat-icon>supervisor_account</mat-icon> Supervisores</button>
+    <button class="mc-btn" (click)="abrirGerentes()"><mat-icon>manage_accounts</mat-icon> Gerentes</button>
     <span class="mc-sep"></span>
     <button class="mc-btn ghost" [disabled]="cargando" (click)="cargar()"><mat-icon>refresh</mat-icon> Recargar</button>
     <span class="mc-hint" *ngIf="selected">Seleccionado: <b>{{ selected.vendedor }}</b></span>
@@ -117,7 +118,7 @@
 <dx-popup [(visible)]="popupSedes" [width]="640" [height]="'auto'" [showTitle]="true"
           title="Sedes — gerente y zona" [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true">
   <div *dxTemplate="let d of 'content'" class="mc-maestro">
-    <p class="mc-maestro-sub">El gerente y la zona de cada sede se aplican automáticamente a sus asesores.</p>
+    <p class="mc-maestro-sub">El gerente y la zona de cada sede se aplican automáticamente a sus asesores. El gerente se elige de la lista (gestiónala en «Gerentes»).</p>
     <dx-data-grid [dataSource]="sedesMaestro" keyExpr="id" [showBorders]="true" [showColumnLines]="true"
         [rowAlternationEnabled]="true" [columnAutoWidth]="true" [height]="420"
         (onRowInserted)="onSedeIns($event)" (onRowUpdated)="onSedeUpd($event)" (onRowRemoved)="onSedeDel($event)">
@@ -125,7 +126,9 @@
       <dxo-scrolling mode="virtual"></dxo-scrolling>
       <dxo-paging [enabled]="false"></dxo-paging>
       <dxi-column dataField="nombre" caption="SEDE" [minWidth]="180"><dxi-validation-rule type="required"></dxi-validation-rule></dxi-column>
-      <dxi-column dataField="gerente" caption="GERENTE" [minWidth]="200"></dxi-column>
+      <dxi-column dataField="gerente" caption="GERENTE" [minWidth]="200">
+        <dxo-lookup [dataSource]="gerentesNombres"></dxo-lookup>
+      </dxi-column>
       <dxi-column dataField="zona" caption="ZONA" [width]="140"></dxi-column>
     </dx-data-grid>
   </div>
@@ -147,6 +150,23 @@
       <dxi-column dataField="sede" caption="SEDE" [minWidth]="180">
         <dxo-lookup [dataSource]="sedesNombres"></dxo-lookup>
       </dxi-column>
+    </dx-data-grid>
+  </div>
+</dx-popup>
+
+<!-- Maestro de GERENTES -->
+<dx-popup [(visible)]="popupGer" [width]="480" [height]="'auto'" [showTitle]="true"
+          title="Gerentes" [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true">
+  <div *dxTemplate="let d of 'content'" class="mc-maestro">
+    <p class="mc-maestro-sub">Lista de gerentes de tienda. Se asignan a cada sede desde «Sedes»; renombrar aquí actualiza las sedes que lo tenían.</p>
+    <dx-data-grid [dataSource]="gerentesMaestro" keyExpr="id" [showBorders]="true" [showColumnLines]="true"
+        [rowAlternationEnabled]="true" [columnAutoWidth]="true" [height]="420"
+        (onRowInserted)="onGerIns($event)" (onRowUpdated)="onGerUpd($event)" (onRowRemoved)="onGerDel($event)">
+      <dxo-editing mode="row" [allowAdding]="true" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true" [confirmDelete]="false"></dxo-editing>
+      <dxo-scrolling mode="virtual"></dxo-scrolling>
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxi-column dataField="nombre" caption="GERENTE" [minWidth]="260"><dxi-validation-rule type="required"></dxi-validation-rule></dxi-column>
     </dx-data-grid>
   </div>
 </dx-popup>
