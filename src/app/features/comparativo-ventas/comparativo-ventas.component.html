@@ -1,30 +1,29 @@
-<app-loading-overlay [visible]="importando" mensaje="Procesando Excel…"
-  submensaje="Cargando comparativo de ventas…" icon="insert_chart"></app-loading-overlay>
+<app-loading-overlay [visible]="cargando" mensaje="Cargando ventas…"
+  [submensaje]="'Directo de ' + (esRealzza ? 'ventas_realzza' : 'ventas_call') + ' — ' + periodoLabel" icon="insert_chart"></app-loading-overlay>
 
 <div class="vd-shell">
 <div class="vd-fixed">
 <form class="form mt-2" [formGroup]="formComparativo">
-    <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Fecha Inicio"
-        labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
-    <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin" labelMode="floating"
-        stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
-    </dx-date-box>
+    <!-- Selector de canal: Call → ventas_call · Realzza → ventas_realzza -->
+    <div class="cv-canal">
+        <button type="button" [class.on]="!esRealzza" (click)="setCanal('call')"><mat-icon>headset_mic</mat-icon> Call</button>
+        <button type="button" [class.on]="esRealzza" (click)="setCanal('realzza')"><mat-icon>store</mat-icon> Realzza</button>
+    </div>
+
+    <dx-number-box [(value)]="anio" [min]="2024" [max]="2030" [showSpinButtons]="true" label="Año"
+        labelMode="floating" stylingMode="underlined" width="100"></dx-number-box>
+    <dx-select-box [dataSource]="meses" displayExpr="t" valueExpr="v" [(value)]="mes" label="Mes"
+        labelMode="floating" stylingMode="underlined" width="170"></dx-select-box>
+
+    <button mat-flat-button color="primary" [disabled]="cargando" (click)="cargarDatos()">
+        <mat-icon>{{ cargando ? 'hourglass_top' : 'refresh' }}</mat-icon>
+        {{ cargando ? 'Cargando…' : 'Cargar' }}
+    </button>
 
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
-        valueExpr="value" label="Asesor Contact" labelMode="floating" stylingMode="underlined" placeholder=""
-        (onValueChanged)="onAsesorChanged($event)" />
+        valueExpr="value" label="Asesor" labelMode="floating" stylingMode="underlined" placeholder=""
+        [searchEnabled]="true" (onValueChanged)="onAsesorChanged($event)" />
 
-    <button mat-flat-button [disabled]="formComparativo.invalid" (click)="actualizarFiltros()">
-        <mat-icon>search</mat-icon>
-        Actualizar
-    </button>
-
-    <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
-    <button mat-flat-button (click)="fileInput.click()">
-        <mat-icon>upload</mat-icon>
-        Importar
-    </button>
     <button class="button" mat-flat-button (click)="exportar()">
         <mat-icon>file_download</mat-icon>
         Exportar
@@ -221,8 +220,8 @@
             <dxo-legend verticalAlignment="bottom" horizontalAlignment="center" [markerSize]="14">
                 <dxo-font size="13" weight="600"></dxo-font>
             </dxo-legend>
-            <dxo-title text="Ventas por Contacto (KOMMO / BD / …)"
-                [subtitle]="comparandoContacto ? 'Comparación Rango A vs Rango B — se ajusta al asesor seleccionado' : 'Monto por contacto en el rango general — usa los 2 rangos de arriba para comparar'">
+            <dxo-title [text]="contactoTitulo"
+                [subtitle]="comparandoContacto ? 'Comparación Rango A vs Rango B — se ajusta al asesor seleccionado' : (periodoLabel + ' — usa los 2 rangos de arriba para comparar')">
             </dxo-title>
         </dx-chart>
     </div>

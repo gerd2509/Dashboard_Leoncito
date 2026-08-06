@@ -1,11 +1,12 @@
 import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
-import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { CargaVentasService } from '../../services/carga-ventas.service';
+import { ASESORES_CALL } from '../../shared/asesores';
 import { DxDataGridComponent } from 'devextreme-angular';
-import * as XLSX from 'xlsx';
 
 
 @Component({
@@ -16,7 +17,30 @@ import * as XLSX from 'xlsx';
 })
 export class ComparativoVentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
-  importando = false;   // overlay animado mientras se procesa el Excel
+  private ventasSrv = inject(CargaVentasService);
+  cargando = false;   // overlay animado mientras trae de BD
+
+  // ── Fuente directa de BD: Call → ventas_call · Realzza → ventas_realzza ──
+  canal: 'call' | 'realzza' = 'call';
+  anio = new Date().getFullYear();
+  mes: number | '' = '';   // '' = todos los meses del año (para la tendencia mensual)
+  readonly meses = [
+    { v: '', t: 'Todos los meses' },
+    { v: 1, t: 'Enero' }, { v: 2, t: 'Febrero' }, { v: 3, t: 'Marzo' }, { v: 4, t: 'Abril' },
+    { v: 5, t: 'Mayo' }, { v: 6, t: 'Junio' }, { v: 7, t: 'Julio' }, { v: 8, t: 'Agosto' },
+    { v: 9, t: 'Septiembre' }, { v: 10, t: 'Octubre' }, { v: 11, t: 'Noviembre' }, { v: 12, t: 'Diciembre' },
+  ];
+  // Mapa CC → nombre (para mostrar el nombre del asesor Call en vez del código).
+  private ccANombre = new Map<string, string>(ASESORES_CALL.map(a => [a.value, a.nombre]));
+  get esRealzza(): boolean { return this.canal === 'realzza'; }
+  /** Título del gráfico por origen: Call = CONTACTO; Realzza = TIPO DE BASE. */
+  get contactoTitulo(): string { return this.esRealzza ? 'Ventas por Tipo de Base' : 'Ventas por Contacto (KOMMO / BD / …)'; }
+  /** Etiqueta del periodo cargado (canal + mes/año). */
+  get periodoLabel(): string {
+    const c = this.esRealzza ? 'Realzza' : 'Call';
+    const m = this.mes ? (this.meses.find(x => x.v === this.mes)?.t || '') + ' ' : '';
+    return `${c} · ${m}${this.anio}`;
+  }
 
   formComparativo: UntypedFormGroup;
 
@@ -40,30 +64,13 @@ export class ComparativoVentasComponent implements OnInit {
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
 
-  asesores = [
-    { value: '', viewValue: 'Seleccione Asesor' },
-    { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
-    { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
-    { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
-    { value: 'CC7', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC9', viewValue: 'PÉREZ TINEO MARICIELO TATIANA' },
-    { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
-    { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
-    { value: 'CC14', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
-    { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSMERY' },
-  ];
+  // Asesores del canal cargado (se arma dinámicamente de la data: distinct AsesorVenta).
+  asesores: { value: string; viewValue: string }[] = [{ value: '', viewValue: 'Todos los asesores' }];
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
-    this.formComparativo = this.fb.group({
-      fechaInicio: [null, Validators.required],
-      fechaFin: [null, Validators.required],
-      Asesores: ['']
-    });
+    this.formComparativo = this.fb.group({ Asesores: [''] });
 
     // Rangos de fecha exclusivos del gráfico por contacto
     this.formContacto = this.fb.group({
@@ -72,104 +79,93 @@ export class ComparativoVentasComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void { }
+  ngOnInit(): void { this.cargarDatos(); }
 
-  importar(event: any): void {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook: XLSX.WorkBook = XLSX.read(data, { type: 'array' });
-
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-
-      this.dataVentas = jsonData.map((row: any) => ({
-        IDVENTA: row['IDVENTA'],
-        FECHAVENTA: this.getFechaJS(row['FECHAVENTA']),
-        Sede: row['Sede'],
-        MontoConsolidado: this.parseNumber(row['MontoConsolidado']),
-        CuotaInicial: this.parseNumber(row['CuotaInicial']),
-        Productos: row['Productos'],
-        Cuotas: row['Cuotas'],
-        DocIdentidad: row['DocIdentidad'],
-        TipoVenta: row['TipoVenta'],
-        TipoBase: row['TipoBase'],
-        AsesorVenta: row['AsesorVenta'],
-        EstadoVenta: row['EstadoVenta'],
-        Entidad: row['Entidad'],
-        LineaReal: row['LineaReal'],
-        TipoProducto: row['TipoProducto'],
-        Contacto: (row['CONTACTO'] ?? row['Contacto'] ?? row['contacto'] ?? '')
-          .toString().trim().toUpperCase() || 'SIN CONTACTO'
-      }));
-
-      this.filtroVentas = [...this.dataVentas];
-      // this.generarChartData();
-      this.importando = false;
-    };
-    reader.onerror = () => { this.importando = false; };
-    this.importando = true;
-    reader.readAsArrayBuffer(file);
+  /** Cambia de canal (Call / Realzza) y recarga desde BD. */
+  setCanal(c: 'call' | 'realzza'): void {
+    if (this.canal === c) return;
+    this.canal = c;
+    this.formComparativo.patchValue({ Asesores: '' });
+    this.cargarDatos();
   }
 
-  getFechaJS(excelDate: any): Date {
-    if (typeof excelDate === 'number') {
-      const utc_days = Math.floor(excelDate - 25569);
-      const utc_value = utc_days * 86400 * 1000;
-      const date_info = new Date(utc_value);
-      return new Date(date_info.getUTCFullYear(), date_info.getUTCMonth(), date_info.getUTCDate());
+  /** Nombre del asesor a mostrar/agrupar: Call = nombre del CC; Realzza = asesor_venta. */
+  private nombreAsesor(r: any): string {
+    if (this.esRealzza) {
+      // En Realzza el nombre del asesor está en `vendedor`; asesor_venta suele venir vacío.
+      return (r.vendedor || r.asesor_venta || 'SIN ASESOR').toString().trim().toUpperCase() || 'SIN ASESOR';
     }
-
-    const parsed = new Date(excelDate);
-    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+    const cc = (r.vendedor || '').toString().trim().toUpperCase();
+    return (this.ccANombre.get(cc) || cc || 'SIN ASESOR').toUpperCase();
   }
 
-  parseNumber(value: any): number {
-    return typeof value === 'string'
-      ? Number(value.replace(',', '').replace(/[^0-9.]/g, '')) || 0
-      : value || 0;
+  /** Fecha de venta desde los enteros dia/mes/anio_cv (robusto, sin depender del parseo de DATE). */
+  private fechaDe(r: any): Date {
+    return new Date(+r.anio_cv || 0, (+r.mes_cv || 1) - 1, +r.dia_cv || 1);
   }
 
-  onAsesorChanged(event: any) {
-    if (this.formComparativo.valid) {
-      this.aplicarFiltros();
-    }
+  /** Carga directa de BD (tablas ventas_call / ventas_realzza) por año y, opcional, mes. */
+  cargarDatos(): void {
+    this.cargando = true;
+    this.ventasSrv.obtenerVentasCanal(this.canal, { anio: this.anio, mes: this.mes || undefined }).subscribe({
+      next: rows => {
+        this.dataVentas = (rows || []).map(r => ({
+          IDVENTA: r.codigo_cv,
+          FECHAVENTA: this.fechaDe(r),
+          Sede: r.sede,
+          MontoConsolidado: Number(r.monto_consolidado) || 0,
+          CuotaInicial: Number(r.cuota_inicial) || 0,
+          Productos: r.productos,
+          Cuotas: r.cuotas,
+          DocIdentidad: r.doc_identidad,
+          TipoVenta: r.tipo_credito,
+          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
+          AsesorVenta: this.nombreAsesor(r),
+          EstadoVenta: r.estado_venta,
+          Entidad: r.entidad,
+          TipoProducto: r.tipo_producto,
+          // Call trae CONTACTO; Realzza no → se usa el TIPO DE BASE como origen.
+          Contacto: this.esRealzza
+            ? ((r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE')
+            : ((r.contacto || '').toString().trim().toUpperCase() || 'SIN CONTACTO'),
+        }));
+        this.construirAsesores();
+        this.aplicarFiltros();
+        this.cargando = false;
+      },
+      error: () => { this.dataVentas = []; this.filtroVentas = []; this.recalcular(); this.cargando = false; },
+    });
   }
 
-  actualizarFiltros(): void {
-    if (this.formComparativo.valid) {
-      this.aplicarFiltros();
-    }
+  /** Arma el dropdown de asesores con los presentes en la data cargada. */
+  private construirAsesores(): void {
+    const set = new Set<string>();
+    for (const v of this.dataVentas) { const a = (v.AsesorVenta || '').trim(); if (a) set.add(a); }
+    this.asesores = [{ value: '', viewValue: 'Todos los asesores' },
+      ...Array.from(set).sort().map(a => ({ value: a, viewValue: a }))];
   }
 
+  onAsesorChanged(_event?: any): void { this.aplicarFiltros(); }
 
+  actualizarFiltros(): void { this.cargarDatos(); }
+
+
+  /** Filtra la data ya cargada (del canal + periodo) por el asesor elegido y recalcula. */
   aplicarFiltros(): void {
     const selectedAsesor = (this.formComparativo.value.Asesores || '').toString().trim().toUpperCase();
-
-    const fechaInicio = new Date(this.formComparativo.value.fechaInicio);
-    const fechaFin = new Date(this.formComparativo.value.fechaFin);
-    fechaInicio.setHours(0, 0, 0, 0);
-    fechaFin.setHours(23, 59, 59, 999);
-
     this.filtroVentas = this.dataVentas.filter(venta => {
-      const fechaVenta = new Date(venta.FECHAVENTA);
-      const cumpleFecha = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
-
       const asesor = (venta.AsesorVenta || '').toString().trim().toUpperCase();
-      const cumpleAsesor = !selectedAsesor || asesor === selectedAsesor;
-
-      return cumpleFecha && cumpleAsesor;
+      return !selectedAsesor || asesor === selectedAsesor;
     });
+    this.recalcular();
+  }
 
+  /** Regenera todos los gráficos a partir de filtroVentas. */
+  private recalcular(): void {
     this.generarComparativo();
     this.generarChartMontoMensual();
     this.generarRankingAsesores();
-
-    // Al aplicar filtros generales volvemos al modo "rango general" del gráfico por contacto
+    // Volvemos al modo "rango general" del gráfico por contacto/tipo base.
     this.comparandoContacto = false;
     this.generarChartContacto();
   }
@@ -386,9 +382,7 @@ export class ComparativoVentasComponent implements OnInit {
       agrupado.set(c, (agrupado.get(c) || 0) + monto);
     }
 
-    const ini = this.formComparativo.value.fechaInicio;
-    const fin = this.formComparativo.value.fechaFin;
-    this.serieGenLabel = `Rango general (${this.fmtFecha(ini)} – ${this.fmtFecha(fin)})`;
+    this.serieGenLabel = this.periodoLabel;
 
     this.chartContacto = Array.from(agrupado, ([Contacto, MontoGen]) => ({
       Contacto, MontoGen: parseFloat(MontoGen.toFixed(2))

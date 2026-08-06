@@ -1,4 +1,13 @@
 :host { display: block; height: 100%; min-height: 0; position: relative; }
+
+/* Selector de canal Call / Realzza */
+.cv-canal { display: inline-flex; gap: 6px; background: #eef3fb; border: 1px solid #CCDAEE; border-radius: 10px; padding: 4px; }
+.cv-canal button {
+    display: inline-flex; align-items: center; gap: 6px; border: none; background: transparent;
+    color: #45597a; font-weight: 700; font-size: 13px; padding: 7px 14px; border-radius: 8px; cursor: pointer;
+}
+.cv-canal button mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.cv-canal button.on { background: #1A5FAD; color: #fff; box-shadow: 0 2px 6px rgba(26,95,173,.3); }
 .form {
     display: flex;
     flex-direction: row;
