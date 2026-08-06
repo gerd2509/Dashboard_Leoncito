@@ -5,6 +5,7 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 import { ASESORES_CALL } from '../../shared/asesores';
 import { DxDataGridComponent } from 'devextreme-angular';
 
@@ -18,7 +19,26 @@ import { DxDataGridComponent } from 'devextreme-angular';
 export class ComparativoVentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private ventasSrv = inject(CargaVentasService);
+  private capSrv = inject(CapSedesService);
   cargando = false;   // overlay animado mientras trae de BD
+
+  // Roster de asesores ACTUALES (para que la lista/analisis no traiga inactivos):
+  //  · Call    → ASESORES_CALL (canon), SIN Brenda CC12 (ella vende como Realzza).
+  //  · Realzza → CAP activos (incluye Brenda en REALZZA STORE).
+  private rosterRealzza = new Set<string>();      // nombres normalizados (para match)
+  private capNombresRealzza: string[] = [];       // nombres para el dropdown
+  // Estados que NO son venta neta → se excluyen (restan las NC del asesor). Igual criterio
+  // que el comparativo de cartera / el neto del sistema.
+  private readonly ESTADOS_EXCLUIDOS = [
+    'NOTA DE CREDITO', 'INCAUTACION', 'CLASIFICADO A PERDIDA', 'CLASIFICADO A LEGAL',
+    'ERROR DEL SISTEMA', 'MORAS MAL COBRADAS',
+  ];
+  private normNom(s: any): string {
+    return (s ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  private esVentaReal(estado: any): boolean {
+    return !this.ESTADOS_EXCLUIDOS.includes(this.normNom(estado));
+  }
 
   // ── Fuente directa de BD: Call → ventas_call · Realzza → ventas_realzza ──
   canal: 'call' | 'realzza' = 'call';
@@ -30,8 +50,10 @@ export class ComparativoVentasComponent implements OnInit {
     { v: 5, t: 'Mayo' }, { v: 6, t: 'Junio' }, { v: 7, t: 'Julio' }, { v: 8, t: 'Agosto' },
     { v: 9, t: 'Septiembre' }, { v: 10, t: 'Octubre' }, { v: 11, t: 'Noviembre' }, { v: 12, t: 'Diciembre' },
   ];
-  // Mapa CC → nombre (para mostrar el nombre del asesor Call en vez del código).
-  private ccANombre = new Map<string, string>(ASESORES_CALL.map(a => [a.value, a.nombre]));
+  // Mapa CC → nombre de los asesores Call ACTUALES (sin Brenda CC12 → va a Realzza).
+  // Solo estos CC se consideran Call válidos (excluye CC viejos y "NAS").
+  private ccANombre = new Map<string, string>(
+    ASESORES_CALL.filter(a => a.value !== 'CC12').map(a => [a.value, a.nombre]));
   get esRealzza(): boolean { return this.canal === 'realzza'; }
   /** Título del gráfico por origen: Call = CONTACTO; Realzza = TIPO DE BASE. */
   get contactoTitulo(): string { return this.esRealzza ? 'Ventas por Tipo de Base' : 'Ventas por Contacto (KOMMO / BD / …)'; }
@@ -79,7 +101,36 @@ export class ComparativoVentasComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void { this.cargarDatos(); }
+  async ngOnInit(): Promise<void> {
+    await this.cargarCap();
+    this.cargarDatos();
+  }
+
+  /** Carga el CAP (asesores Realzza activos) para el roster de Realzza. */
+  private async cargarCap(): Promise<void> {
+    try {
+      const rows = await this.capSrv.cargar();
+      const map = new Map<string, string>();   // normKey → nombre a mostrar (UPPER)
+      for (const r of rows) {
+        if (r.estado !== 'ACTIVO' || !r.vendedor) continue;
+        const k = this.normNom(r.vendedor);
+        if (!map.has(k)) map.set(k, r.vendedor.toUpperCase());
+      }
+      // Brenda SIEMPRE en Realzza (ya está en el CAP como REALZZA STORE; se garantiza).
+      const brenda = 'BERNAL BAZAN BRENDA NICOLL';
+      if (![...map.keys()].some(k => k.includes('BERNAL BAZAN BRENDA'))) map.set(this.normNom(brenda), brenda);
+      this.rosterRealzza = new Set(map.keys());
+      this.capNombresRealzza = Array.from(map.values()).sort();
+    } catch {
+      this.rosterRealzza = new Set(); this.capNombresRealzza = [];
+    }
+  }
+
+  /** ¿La venta pertenece a un asesor del roster actual del canal? */
+  private esAsesorValido(r: any): boolean {
+    if (this.esRealzza) return this.rosterRealzza.has(this.normNom(this.nombreAsesor(r)));
+    return this.ccANombre.has((r.vendedor || '').toString().trim().toUpperCase());
+  }
 
   /** Cambia de canal (Call / Realzza) y recarga desde BD. */
   setCanal(c: 'call' | 'realzza'): void {
@@ -109,26 +160,34 @@ export class ComparativoVentasComponent implements OnInit {
     this.cargando = true;
     this.ventasSrv.obtenerVentasCanal(this.canal, { anio: this.anio, mes: this.mes || undefined }).subscribe({
       next: rows => {
-        this.dataVentas = (rows || []).map(r => ({
-          IDVENTA: r.codigo_cv,
-          FECHAVENTA: this.fechaDe(r),
-          Sede: r.sede,
-          MontoConsolidado: Number(r.monto_consolidado) || 0,
-          CuotaInicial: Number(r.cuota_inicial) || 0,
-          Productos: r.productos,
-          Cuotas: r.cuotas,
-          DocIdentidad: r.doc_identidad,
-          TipoVenta: r.tipo_credito,
-          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
-          AsesorVenta: this.nombreAsesor(r),
-          EstadoVenta: r.estado_venta,
-          Entidad: r.entidad,
-          TipoProducto: r.tipo_producto,
-          // Call trae CONTACTO; Realzza no → se usa el TIPO DE BASE como origen.
-          Contacto: this.esRealzza
-            ? ((r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE')
-            : ((r.contacto || '').toString().trim().toUpperCase() || 'SIN CONTACTO'),
-        }));
+        const out: any[] = [];
+        for (const r of (rows || [])) {
+          if (!this.esVentaReal(r.estado_venta)) continue;   // resta NC/incautación (neto)
+          if (!this.esAsesorValido(r)) continue;             // solo asesores actuales (CAP / Call)
+          const monto = Number(r.monto_consolidado) || 0;
+          if (monto <= 0) continue;
+          out.push({
+            IDVENTA: r.codigo_cv,
+            FECHAVENTA: this.fechaDe(r),
+            Sede: r.sede,
+            MontoConsolidado: monto,
+            CuotaInicial: Number(r.cuota_inicial) || 0,
+            Productos: r.productos,
+            Cuotas: r.cuotas,
+            DocIdentidad: r.doc_identidad,
+            TipoVenta: r.tipo_credito,
+            TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
+            AsesorVenta: this.nombreAsesor(r),
+            EstadoVenta: r.estado_venta,
+            Entidad: r.entidad,
+            TipoProducto: r.tipo_producto,
+            // Call trae CONTACTO; Realzza no → se usa el TIPO DE BASE como origen.
+            Contacto: this.esRealzza
+              ? ((r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE')
+              : ((r.contacto || '').toString().trim().toUpperCase() || 'SIN CONTACTO'),
+          });
+        }
+        this.dataVentas = out;
         this.construirAsesores();
         this.aplicarFiltros();
         this.cargando = false;
@@ -137,12 +196,14 @@ export class ComparativoVentasComponent implements OnInit {
     });
   }
 
-  /** Arma el dropdown de asesores con los presentes en la data cargada. */
+  /** Dropdown de asesores = roster ACTUAL del canal (no de la data): Call = ASESORES_CALL
+   *  sin Brenda; Realzza = CAP activos (+ Brenda). */
   private construirAsesores(): void {
-    const set = new Set<string>();
-    for (const v of this.dataVentas) { const a = (v.AsesorVenta || '').trim(); if (a) set.add(a); }
+    const nombres = this.esRealzza
+      ? this.capNombresRealzza
+      : ASESORES_CALL.filter(a => a.value !== 'CC12').map(a => a.nombre).sort();
     this.asesores = [{ value: '', viewValue: 'Todos los asesores' },
-      ...Array.from(set).sort().map(a => ({ value: a, viewValue: a }))];
+      ...nombres.map(a => ({ value: a, viewValue: a }))];
   }
 
   onAsesorChanged(_event?: any): void { this.aplicarFiltros(); }
@@ -152,11 +213,8 @@ export class ComparativoVentasComponent implements OnInit {
 
   /** Filtra la data ya cargada (del canal + periodo) por el asesor elegido y recalcula. */
   aplicarFiltros(): void {
-    const selectedAsesor = (this.formComparativo.value.Asesores || '').toString().trim().toUpperCase();
-    this.filtroVentas = this.dataVentas.filter(venta => {
-      const asesor = (venta.AsesorVenta || '').toString().trim().toUpperCase();
-      return !selectedAsesor || asesor === selectedAsesor;
-    });
+    const sel = this.normNom(this.formComparativo.value.Asesores);
+    this.filtroVentas = this.dataVentas.filter(v => !sel || this.normNom(v.AsesorVenta) === sel);
     this.recalcular();
   }
 
@@ -353,7 +411,7 @@ export class ComparativoVentasComponent implements OnInit {
   private montosPorContacto(fechaInicio: any, fechaFin: any): Map<string, number> {
     const di = new Date(fechaInicio); di.setHours(0, 0, 0, 0);
     const df = new Date(fechaFin);    df.setHours(23, 59, 59, 999);
-    const asesor = (this.formComparativo.value.Asesores || '').toString().trim().toUpperCase();
+    const asesor = this.normNom(this.formComparativo.value.Asesores);
 
     const map = new Map<string, number>();
     for (const v of this.dataVentas) {
@@ -363,8 +421,7 @@ export class ComparativoVentasComponent implements OnInit {
       const fv = new Date(v.FECHAVENTA);
       if (fv < di || fv > df) continue;
 
-      const a = (v.AsesorVenta || '').toString().trim().toUpperCase();
-      if (asesor && a !== asesor) continue;
+      if (asesor && this.normNom(v.AsesorVenta) !== asesor) continue;
 
       const c = this.normContacto(v.Contacto);
       map.set(c, (map.get(c) || 0) + monto);
