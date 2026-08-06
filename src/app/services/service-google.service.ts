@@ -203,10 +203,14 @@ export class SheetsService {
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
     return this.http.get<any[]>(`${base}/gestion`, { params }).pipe(map(rows => (rows || []).map(this.mapGestionDbToSheet)));
   }
-  /** Copia al BD lo NUEVO del formulario de sedes (botón "Sincronizar"). */
-  sincronizarGestionSedes(): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
+  /** Copia al BD lo NUEVO del formulario de sedes (botón "Sincronizar"). Opcional: acotar
+   *  por rango (recomendado: el día que se ve) → mucho más rápido que releer todo. */
+  sincronizarGestionSedes(rango?: { desde?: Date; hasta?: Date }): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
     const base = environment.gestionBase || environment.apiBase;
-    return this.http.post<any>(`${base}/gestion/sync-sedes`, {});
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.post<any>(`${base}/gestion/sync-sedes`, {}, { params });
   }
 
   // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)

@@ -248,7 +248,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   sincronizar(): void {
     if (this.sincronizando) return;
     this.sincronizando = true;
-    this.sheetsService.sincronizarGestionSedes().subscribe({
+    // Solo el día que se está viendo → rápido (el histórico ya está migrado).
+    const fecha = this.formCtrl.value.fechaGestion as Date;
+    this.sheetsService.sincronizarGestionSedes({ desde: fecha, hasta: fecha }).subscribe({
       next: async r => {
         this.sincronizando = false;
         this.snack.open(`✔ Sincronizado: ${r.insertados} nuevas gestiones del formulario.`, 'OK',
