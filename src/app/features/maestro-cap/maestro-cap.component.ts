@@ -55,10 +55,23 @@ export class MaestroCapComponent implements OnInit {
   gerentesMaestro: { id: number; nombre: string }[] = [];
   gerentesNombres: string[] = [];
 
-  ngOnInit(): void { this.cargar(); this.cargarMeta(); this.cargarGerentes(); }
+  ngOnInit(): void {
+    this.cargar(); this.cargarMeta(); this.cargarGerentes();
+    // Precarga de maestros → los popups abren al instante (sin esperar la petición).
+    this.cap.listarSedes().subscribe(r => this.sedesMaestro = r);
+    this.cap.listarSupervisores().subscribe(r => this.supMaestro = r);
+  }
 
   private cargarGerentes(): void {
     this.cap.listarGerentes().subscribe({ next: r => { this.gerentesMaestro = r; this.gerentesNombres = r.map(g => g.nombre); }, error: () => {} });
+  }
+
+  /** Zonas disponibles (defaults + las existentes) para el combo de Sedes. */
+  get zonas(): string[] {
+    const s = new Set<string>(['NORTE', 'SUR', 'CENTRO', 'ORIENTE']);
+    for (const x of this.sedesMeta) if (x.zona) s.add((x.zona || '').toUpperCase());
+    for (const x of this.sedesMaestro) if (x.zona) s.add((x.zona || '').toUpperCase());
+    return Array.from(s).sort();
   }
 
   private vacio() {
@@ -137,7 +150,8 @@ export class MaestroCapComponent implements OnInit {
 
   // ── Maestro de SEDES ───────────────────────────────────────────────────────
   abrirSedes(): void {
-    this.cap.listarSedes().subscribe({ next: r => { this.sedesMaestro = r; this.popupSedes = true; }, error: () => this.toast('❌ No se pudieron cargar las sedes.', true) });
+    this.popupSedes = true;   // abre al instante; refresca en segundo plano
+    this.cap.listarSedes().subscribe({ next: r => this.sedesMaestro = r, error: () => {} });
   }
   onSedeIns(e: any): void {
     this.cap.crearSede(this.limpiaSede(e.data)).subscribe({ next: () => this.trasMaestro('Sede agregada.', 'sedes'), error: err => this.errMaestro(err, 'sedes') });
@@ -154,7 +168,8 @@ export class MaestroCapComponent implements OnInit {
 
   // ── Maestro de SUPERVISORES ────────────────────────────────────────────────
   abrirSup(): void {
-    this.cap.listarSupervisores().subscribe({ next: r => { this.supMaestro = r; this.popupSup = true; }, error: () => this.toast('❌ No se pudieron cargar los supervisores.', true) });
+    this.popupSup = true;
+    this.cap.listarSupervisores().subscribe({ next: r => this.supMaestro = r, error: () => {} });
   }
   onSupIns(e: any): void {
     this.cap.crearSupervisor(this.limpiaSup(e.data)).subscribe({ next: () => this.trasMaestro('Supervisor agregado.', 'sup'), error: err => this.errMaestro(err, 'sup') });
@@ -171,7 +186,8 @@ export class MaestroCapComponent implements OnInit {
 
   // ── Maestro de GERENTES ─────────────────────────────────────────────────────
   abrirGerentes(): void {
-    this.cap.listarGerentes().subscribe({ next: r => { this.gerentesMaestro = r; this.gerentesNombres = r.map(g => g.nombre); this.popupGer = true; }, error: () => this.toast('❌ No se pudieron cargar los gerentes.', true) });
+    this.popupGer = true;
+    this.cargarGerentes();
   }
   onGerIns(e: any): void {
     this.cap.crearGerente((e.data?.nombre || '').trim()).subscribe({ next: () => this.trasMaestro('Gerente agregado.', 'ger'), error: err => this.errMaestro(err, 'ger') });
