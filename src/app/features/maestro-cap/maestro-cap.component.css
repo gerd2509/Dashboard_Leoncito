@@ -1,0 +1,23 @@
+:host { display: block; height: 100%; min-height: 0; position: relative; }
+
+.mc-shell { padding: 14px 16px; }
+.mc-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap; margin-bottom: 12px;
+}
+.mc-title { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; color: #1E3A5F; }
+.mc-title mat-icon { color: #1A5FAD; }
+.mc-sub { font-size: 12.5px; color: #7d93a8; margin-top: 3px; max-width: 720px; }
+.mc-actions { display: flex; align-items: center; gap: 12px; }
+.mc-total { font-weight: 700; color: #45597a; font-size: 13px; background: #eef3fb; border: 1px solid #CCDAEE; border-radius: 999px; padding: 5px 12px; }
+.mc-btn {
+  display: inline-flex; align-items: center; gap: 6px; border: 1px solid #CCDAEE; background: #fff;
+  color: #1A5FAD; font-weight: 700; font-size: 13px; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+}
+.mc-btn:hover { background: #eef3fb; }
+.mc-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+.mc-grid ::ng-deep .dx-datagrid-headers { background: #293964; }
+.mc-grid ::ng-deep .dx-datagrid-headers .dx-header-row td { color: #fff; font-weight: 700; font-size: 11.5px; }
+.mc-grid ::ng-deep .dx-datagrid-filter-row td { background: #f2f6fb; }
+.mc-grid ::ng-deep .dx-data-row td { font-size: 12.5px; vertical-align: middle; }

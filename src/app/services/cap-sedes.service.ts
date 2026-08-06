@@ -1,5 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { lastValueFrom, timeout } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { lastValueFrom, timeout, Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { SheetsService } from './service-google.service';
 import { SedeConfigService } from './sede-config.service';
 
@@ -26,6 +28,8 @@ export interface CapRow {
 export class CapSedesService {
   private sheets = inject(SheetsService);
   private sedeCfg = inject(SedeConfigService);
+  private http = inject(HttpClient);
+  private capUrl = `${environment.apiBase}/cap`;
 
   private cache: CapRow[] | null = null;
   private cargando: Promise<CapRow[]> | null = null;
@@ -56,6 +60,22 @@ export class CapSedesService {
 
   /** Fuerza recarga en la próxima llamada (usar tras editar el CAP en el Maestro). */
   invalidar(): void { this.cache = null; this.cargando = null; }
+
+  // ── CRUD para el módulo "Maestro CAP" (admin) ──────────────────────────────
+  /** Lista SIEMPRE fresca desde la BD (para la grilla editable). */
+  async listarFresco(): Promise<CapRow[]> {
+    const data = await lastValueFrom(this.sheets.getCap().pipe(timeout(20000)));
+    return this.parseDB(data);
+  }
+  crear(row: Partial<CapRow>): Observable<{ success: boolean; id: number }> {
+    return this.http.post<{ success: boolean; id: number }>(this.capUrl, row);
+  }
+  actualizar(id: number, row: Partial<CapRow>): Observable<{ success: boolean }> {
+    return this.http.put<{ success: boolean }>(`${this.capUrl}/${id}`, row);
+  }
+  eliminar(id: number): Observable<{ success: boolean }> {
+    return this.http.delete<{ success: boolean }>(`${this.capUrl}/${id}`);
+  }
 
   private async desdeHoja(): Promise<CapRow[]> {
     const hoja = await lastValueFrom(this.sheets.getSheetDataCapSedes().pipe(timeout(20000)));

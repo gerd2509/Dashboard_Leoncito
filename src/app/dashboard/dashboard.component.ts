@@ -36,6 +36,7 @@ import { ControlSupervisorComponent } from "../features/control-supervisor/contr
 import { GestionSupervisorComponent } from "../features/control-supervisor/gestion-supervisor/gestion-supervisor.component";
 import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
+import { MaestroCapComponent } from "../features/maestro-cap/maestro-cap.component";
 import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
 import { RegistroKommoComponent } from "../features/registro-kommo/registro-kommo.component";
 import { AtribucionCallComponent } from "../features/atribucion-call/atribucion-call.component";
@@ -97,6 +98,7 @@ interface MenuItem {
     GestionSupervisorComponent,
     ActividadRealzzaComponent,
     ComparativoCarteraVentasComponent,
+    MaestroCapComponent,
     MaduracionLeadsComponent,
     RegistroKommoComponent,
     AtribucionCallComponent,
@@ -199,6 +201,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Carga de Ventas',      icon: 'cloud_upload',       modulo: 'carga-ventas' }
       ]
     },
+    { icon: 'badge',                label: 'Maestro CAP',         modulo: 'maestro-cap', adminOnly: true },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 

@@ -1,0 +1,42 @@
+<app-loading-overlay [visible]="cargando || guardando"
+  mensaje="Maestro CAP" submensaje="Cargando / guardando asesores…" icon="badge"></app-loading-overlay>
+
+<div class="mc-shell">
+  <div class="mc-head">
+    <div>
+      <div class="mc-title"><mat-icon>badge</mat-icon> Maestro CAP — Asesores por Sede</div>
+      <div class="mc-sub">Agrega, edita o elimina asesores. Se reflejan en Control Gestión/Call Sedes, Pizarra de Metas y el registro de sedes.</div>
+    </div>
+    <div class="mc-actions">
+      <span class="mc-total">{{ filas.length }} asesores</span>
+      <button class="mc-btn" [disabled]="cargando" (click)="cargar()"><mat-icon>refresh</mat-icon> Recargar</button>
+    </div>
+  </div>
+
+  <dx-data-grid class="mc-grid" [dataSource]="filas" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
+      [rowAlternationEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="false" [hoverStateEnabled]="true"
+      [height]="'calc(100vh - 170px)'"
+      (onRowInserted)="onInsertado($event)" (onRowUpdated)="onActualizado($event)" (onRowRemoved)="onEliminado($event)">
+    <dxo-scrolling mode="virtual" [useNative]="true"></dxo-scrolling>
+    <dxo-paging [enabled]="false"></dxo-paging>
+    <dxo-filter-row [visible]="true"></dxo-filter-row>
+    <dxo-header-filter [visible]="true"></dxo-header-filter>
+    <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar asesor, DNI, sede…"></dxo-search-panel>
+    <dxo-editing mode="row" [allowAdding]="true" [allowUpdating]="true" [allowDeleting]="true"
+      [useIcons]="true" [confirmDelete]="false"></dxo-editing>
+    <dxo-sorting mode="multiple"></dxo-sorting>
+
+    <dxi-column dataField="vendedor" caption="ASESOR (VENDEDOR)" [minWidth]="240" [allowHeaderFiltering]="false">
+      <dxi-validation-rule type="required" message="El nombre del asesor es obligatorio"></dxi-validation-rule>
+    </dxi-column>
+    <dxi-column dataField="sede" caption="SEDE" [width]="160"></dxi-column>
+    <dxi-column dataField="canal" caption="CANAL" [width]="170"></dxi-column>
+    <dxi-column dataField="estado" caption="ESTADO" [width]="130">
+      <dxo-lookup [dataSource]="estados"></dxo-lookup>
+    </dxi-column>
+    <dxi-column dataField="dni" caption="DNI" [width]="115" [allowHeaderFiltering]="false"></dxi-column>
+    <dxi-column dataField="supervisor" caption="SUPERVISOR" [width]="190"></dxi-column>
+    <dxi-column dataField="gerente" caption="GERENTE" [width]="190"></dxi-column>
+    <dxi-column dataField="zona" caption="ZONA" [width]="130"></dxi-column>
+  </dx-data-grid>
+</div>
