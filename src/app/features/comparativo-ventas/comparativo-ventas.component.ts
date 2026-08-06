@@ -107,11 +107,10 @@ export class ComparativoVentasComponent implements OnInit {
     this.cargarDatos();
   }
 
-  /** ¿La venta pertenece a un asesor del roster actual del canal? */
-  private esAsesorValido(r: any): boolean {
-    if (this.esRealzza) return this.rosterRealzza.has(this.normNom(this.nombreAsesor(r)));
-    return this.ccANombre.has((r.vendedor || '').toString().trim().toUpperCase());
-  }
+  /** Formato de monto: "S/ 430,986" (sin decimales, redondeado). */
+  soles = (v: any): string => `S/ ${Math.round(Number(v) || 0).toLocaleString('es-PE')}`;
+  /** Tooltip uniforme: "<serie>: S/ 430,986" (sin decimales) para todos los gráficos de monto. */
+  tooltipMonto = (info: any) => ({ text: `${info.seriesName}: ${this.soles(info.value)}` });
 
   /** Cambia de canal (Call / Realzza) y recarga desde BD. */
   setCanal(c: 'call' | 'realzza'): void {
@@ -131,50 +130,96 @@ export class ComparativoVentasComponent implements OnInit {
     return (this.ccANombre.get(cc) || cc || 'SIN ASESOR').toUpperCase();
   }
 
-  /** Fecha de venta desde los enteros dia/mes/anio_cv (robusto, sin depender del parseo de DATE). */
+  /** Fecha de venta (CV) desde los enteros dia/mes/anio_cv. */
   private fechaDe(r: any): Date {
     return new Date(+r.anio_cv || 0, (+r.mes_cv || 1) - 1, +r.dia_cv || 1);
   }
+  /** Fecha de afectación (AF) — para las NC. null si no tiene AF. */
+  private fechaAF(r: any): Date | null {
+    if (!r.anio_af || !r.mes_af) return null;
+    return new Date(+r.anio_af, (+r.mes_af || 1) - 1, +r.dia_af || 1);
+  }
+  private soloDigitos(v: any): string { return (v ?? '').toString().replace(/\D/g, ''); }
+  private esNotaCredito(estado: any): boolean { return this.normNom(estado).includes('NOTA DE'); }
 
-  /** Carga directa de BD (tablas ventas_call / ventas_realzza) por año y, opcional, mes. */
+  /** Carga desde BD según el canal (con overlay). */
   cargarDatos(): void {
     this.cargando = true;
-    this.ventasSrv.obtenerVentasCanal(this.canal, { anio: this.anio, mes: this.mes || undefined }).subscribe({
-      next: rows => {
-        const out: any[] = [];
-        for (const r of (rows || [])) {
-          if (!this.esVentaReal(r.estado_venta)) continue;   // resta NC/incautación (neto)
-          if (!this.esAsesorValido(r)) continue;             // solo asesores actuales (CAP / Call)
-          const monto = Number(r.monto_consolidado) || 0;
-          if (monto <= 0) continue;
-          out.push({
-            IDVENTA: r.codigo_cv,
-            FECHAVENTA: this.fechaDe(r),
-            Sede: r.sede,
-            MontoConsolidado: monto,
-            CuotaInicial: Number(r.cuota_inicial) || 0,
-            Productos: r.productos,
-            Cuotas: r.cuotas,
-            DocIdentidad: r.doc_identidad,
-            TipoVenta: r.tipo_credito,
-            TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
-            AsesorVenta: this.nombreAsesor(r),
-            EstadoVenta: r.estado_venta,
-            Entidad: r.entidad,
-            TipoProducto: r.tipo_producto,
-            // Call trae CONTACTO; Realzza no → se usa el TIPO DE BASE como origen.
-            Contacto: this.esRealzza
-              ? ((r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE')
-              : ((r.contacto || '').toString().trim().toUpperCase() || 'SIN CONTACTO'),
-          });
-        }
-        this.dataVentas = out;
-        this.construirAsesores();
-        this.aplicarFiltros();
-        this.cargando = false;
-      },
-      error: () => { this.dataVentas = []; this.filtroVentas = []; this.recalcular(); this.cargando = false; },
-    });
+    const done = (movs: any[]) => { this.dataVentas = movs; this.construirAsesores(); this.aplicarFiltros(); this.cargando = false; };
+    const fail = () => { this.dataVentas = []; this.filtroVentas = []; this.recalcular(); this.cargando = false; };
+    if (this.esRealzza) {
+      // Realzza: neto REAL (igual que el evolutivo del módulo) desde `ventas` (afectaciones).
+      this.ventasSrv.obtenerVentasRealzzaModulo(this.anio).subscribe({ next: r => done(this.movsRealzza(r || [])), error: fail });
+    } else {
+      // Call: tabla ventas_call por año/mes; neto excluyendo NC/incautación.
+      this.ventasSrv.obtenerVentasCanal('call', { anio: this.anio, mes: this.mes || undefined }).subscribe({ next: r => done(this.movsCall(r || [])), error: fail });
+    }
+  }
+
+  /** Movimientos Call: una venta neta (positiva) por su mes de venta. */
+  private movsCall(rows: any[]): any[] {
+    const out: any[] = [];
+    for (const r of rows) {
+      if (!this.esVentaReal(r.estado_venta)) continue;            // fuera NC/incautación
+      if (!this.ccANombre.has((r.vendedor || '').toString().trim().toUpperCase())) continue;  // solo Call actual
+      const monto = Number(r.monto_consolidado) || 0;
+      if (monto <= 0) continue;
+      out.push(this.mov(r, this.fechaDe(r), monto, this.nombreAsesor(r),
+        (r.contacto || '').toString().trim().toUpperCase() || 'SIN CONTACTO'));
+    }
+    return out;
+  }
+
+  /**
+   * Movimientos Realzza replicando el NETO del evolutivo del módulo:
+   *  · venta (no NC) → +monto en su mes de VENTA (CV).
+   *  · NC no refacturada → −monto en su mes de AFECTACIÓN (AF).
+   *  · NC refacturada (mismo cliente re-compra ese mes, fecha ≥ la NC) → no resta.
+   *  Filtra al roster Realzza y, si hay mes elegido, al mes de atribución.
+   */
+  private movsRealzza(rows: any[]): any[] {
+    // Índice de ventas NO-NC por DNI (para detectar refacturación).
+    const porDni = new Map<string, any[]>();
+    for (const v of rows) {
+      if (this.esNotaCredito(v.estado_venta)) continue;
+      const dni = this.soloDigitos(v.doc_identidad); if (!dni) continue;
+      (porDni.get(dni) ?? porDni.set(dni, []).get(dni)!).push(v);
+    }
+    const out: any[] = [];
+    for (const r of rows) {
+      const asesor = this.nombreAsesor(r);
+      if (!this.rosterRealzza.has(this.normNom(asesor))) continue;   // solo asesores Realzza
+      const monto = Number(r.monto_consolidado) || 0;
+      if (monto <= 0) continue;
+      const contacto = (r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE';
+      if (this.esNotaCredito(r.estado_venta)) {
+        if (this.esRefacturada(r, porDni)) continue;                 // refacturada → no resta
+        const f = this.fechaAF(r); if (!f) continue;
+        if (this.mes && +r.mes_af !== this.mes) continue;            // mes de AF
+        out.push(this.mov(r, f, -monto, asesor, contacto));
+      } else {
+        if (this.mes && +r.mes_cv !== this.mes) continue;            // mes de CV
+        out.push(this.mov(r, this.fechaDe(r), monto, asesor, contacto));
+      }
+    }
+    return out;
+  }
+
+  /** NC refacturada: mismo mes CV=AF y el cliente tiene otra venta (no NC) ese mes con fecha ≥ la NC. */
+  private esRefacturada(r: any, porDni: Map<string, any[]>): boolean {
+    if (!(+r.anio_cv === +r.anio_af && +r.mes_cv === +r.mes_af)) return false;
+    const dni = this.soloDigitos(r.doc_identidad); if (!dni) return false;
+    return (porDni.get(dni) || []).some(v =>
+      v.codigo_cv !== r.codigo_cv && +v.anio_cv === +r.anio_cv && +v.mes_cv === +r.mes_cv && (+v.dia_cv || 0) >= (+r.dia_cv || 0));
+  }
+
+  /** Arma un movimiento con los campos que usan los gráficos. */
+  private mov(r: any, fecha: Date, monto: number, asesor: string, contacto: string): any {
+    return {
+      IDVENTA: r.codigo_cv, FECHAVENTA: fecha, Sede: r.sede, MontoConsolidado: monto,
+      DocIdentidad: r.doc_identidad, TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
+      AsesorVenta: asesor, EstadoVenta: r.estado_venta, Entidad: r.entidad, Contacto: contacto,
+    };
   }
 
   /** Dropdown de asesores = roster ACTUAL del canal (no de la data): Call = ASESORES_CALL
@@ -264,7 +309,7 @@ export class ComparativoVentasComponent implements OnInit {
     ventasFiltradas.forEach(v => {
       const monto = Number(v.MontoConsolidado || v.Monto || 0);
 
-      if (monto <= 0) return;
+      if (!monto) return;   // se permiten negativos (NC restan el neto)
 
       const fechaVenta = new Date(v.FECHAVENTA);
       const year = fechaVenta.getFullYear();
@@ -359,7 +404,7 @@ export class ComparativoVentasComponent implements OnInit {
     const mesesSet = new Set<string>();
 
     for (const venta of this.filtroVentas) {
-      if (!venta.MontoConsolidado || venta.MontoConsolidado <= 0) continue;
+      if (!venta.MontoConsolidado) continue;   // permite negativos (NC)
 
       const fecha = new Date(venta.FECHAVENTA);
       const claveMes = `${fecha.getFullYear()}-${(fecha.getMonth() + 1).toString().padStart(2, '0')}`; // Ej: "2025-07"
@@ -397,7 +442,7 @@ export class ComparativoVentasComponent implements OnInit {
     const map = new Map<string, number>();
     for (const v of this.dataVentas) {
       const monto = Number(v.MontoConsolidado || 0);
-      if (monto <= 0) continue;
+      if (!monto) continue;   // permite negativos (NC)
 
       const fv = new Date(v.FECHAVENTA);
       if (fv < di || fv > df) continue;
@@ -415,7 +460,7 @@ export class ComparativoVentasComponent implements OnInit {
     const agrupado = new Map<string, number>();
     for (const v of this.filtroVentas) {
       const monto = Number(v.MontoConsolidado || 0);
-      if (monto <= 0) continue;
+      if (!monto) continue;   // permite negativos (NC)
       const c = this.normContacto(v.Contacto);
       agrupado.set(c, (agrupado.get(c) || 0) + monto);
     }
@@ -478,7 +523,7 @@ export class ComparativoVentasComponent implements OnInit {
     for (const venta of this.filtroVentas) {
       const asesor = venta.AsesorVenta || 'SIN ASESOR';
       const monto = venta.MontoConsolidado || 0;
-      if (monto <= 0) continue;
+      if (!monto) continue;   // permite negativos (NC restan al asesor)
       agrupado.set(asesor, (agrupado.get(asesor) || 0) + monto);
     }
     this.chartRankingAsesores = Array.from(agrupado, ([Asesor, Monto]) => ({ Asesor, Monto }))

@@ -59,7 +59,7 @@
                     [customizeText]="formatMontoLabel" position="outside">
                     <dxo-font size="10" weight="700" color="#0D47A1"></dxo-font>
                 </dxo-label>
-                <dxo-point [visible]="true" [size]="9" color="#1565C0" symbol="circle"></dxo-point>
+                <dxo-point [visible]="true" [size]="6" color="#1565C0" symbol="circle"></dxo-point>
             </dxi-series>
 
             <!-- Spline suavizado para Crecimiento %: más legible que línea recta -->
@@ -69,7 +69,7 @@
                     [customizeText]="formatCrecimientoLabel" [border]="{ visible: false }">
                     <dxo-font size="12" weight="700" color="#000000"></dxo-font>
                 </dxo-label>
-                <dxo-point [visible]="true" [size]="12" symbol="circle"></dxo-point>
+                <dxo-point [visible]="true" [size]="8" symbol="circle"></dxo-point>
             </dxi-series>
 
             <!-- Serie de proyección: solo aparece en el mes en curso -->
@@ -80,7 +80,7 @@
                     [border]="{ visible: false }" position="top">
                     <dxo-font size="12" weight="700" color="#ffffff"></dxo-font>
                 </dxo-label>
-                <dxo-point [visible]="true" [size]="18" symbol="triangleUp" color="#E65100"></dxo-point>
+                <dxo-point [visible]="true" [size]="12" symbol="triangleUp" color="#E65100"></dxo-point>
             </dxi-series>
 
             <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="customizeTooltip">
@@ -118,10 +118,10 @@
             <!-- Línea de tendencia superpuesta sobre las barras -->
             <dxi-series argumentField="Mes" valueField="MontoTotal" name="Tendencia" type="spline"
                 color="#FF8F00" [width]="3" dashStyle="solid">
-                <dxo-point [visible]="true" [size]="7" color="#FF8F00" symbol="triangleUp"></dxo-point>
+                <dxo-point [visible]="true" [size]="6" color="#FF8F00" symbol="triangleUp"></dxo-point>
             </dxi-series>
 
-            <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
+            <dxo-tooltip [enabled]="true" [shared]="true" [customizeTooltip]="tooltipMonto"></dxo-tooltip>
             <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
             <dxo-title text="Monto Total por Mes con Tendencia"></dxo-title>
         </dx-chart>
@@ -149,7 +149,7 @@
                 </dxo-label>
             </dxi-series>
 
-            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltip"></dxo-tooltip>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="tooltipMonto"></dxo-tooltip>
             <dxo-legend [visible]="false"></dxo-legend>
             <dxo-title text="Ranking de Asesores por Monto"></dxo-title>
         </dx-chart>
