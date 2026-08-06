@@ -77,8 +77,37 @@ export class CapSedesService {
     return this.http.delete<{ success: boolean }>(`${this.capUrl}/${id}`);
   }
   /** Catálogos para el formulario: sedes(→gerente/zona), supervisores por sede, canales. */
-  meta(): Observable<{ sedes: { sede: string; gerente: string; zona: string }[]; supervisores: { sede: string; nombre: string }[]; canales: string[] }> {
+  meta(): Observable<{ sedes: { sede: string; gerente: string; zona: string }[]; supervisores: { id: number; sede: string; nombre: string }[]; canales: string[] }> {
     return this.http.get<any>(`${this.capUrl}/meta`);
+  }
+
+  // ── Maestro de SEDES (gerente/zona por sede) ───────────────────────────────
+  listarSedes(): Observable<{ id: number; nombre: string; gerente: string; zona: string }[]> {
+    return this.http.get<any[]>(`${this.capUrl}/sedes`);
+  }
+  crearSede(s: { nombre: string; gerente?: string; zona?: string }): Observable<{ success: boolean; id: number }> {
+    return this.http.post<any>(`${this.capUrl}/sedes`, s);
+  }
+  actualizarSede(id: number, s: any): Observable<{ success: boolean }> {
+    return this.http.put<any>(`${this.capUrl}/sedes/${id}`, s);
+  }
+  eliminarSede(id: number): Observable<{ success: boolean }> {
+    return this.http.delete<any>(`${this.capUrl}/sedes/${id}`);
+  }
+
+  // ── Maestro de SUPERVISORES (por sede) ─────────────────────────────────────
+  listarSupervisores(sede?: string): Observable<{ id: number; nombre: string; sede: string }[]> {
+    const q = sede ? `?sede=${encodeURIComponent(sede)}` : '';
+    return this.http.get<any[]>(`${this.capUrl}/supervisores${q}`);
+  }
+  crearSupervisor(s: { nombre: string; sede?: string }): Observable<{ success: boolean; id: number }> {
+    return this.http.post<any>(`${this.capUrl}/supervisores`, s);
+  }
+  actualizarSupervisor(id: number, s: any): Observable<{ success: boolean }> {
+    return this.http.put<any>(`${this.capUrl}/supervisores/${id}`, s);
+  }
+  eliminarSupervisor(id: number): Observable<{ success: boolean }> {
+    return this.http.delete<any>(`${this.capUrl}/supervisores/${id}`);
   }
 
   private async desdeHoja(): Promise<CapRow[]> {

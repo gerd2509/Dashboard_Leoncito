@@ -41,10 +41,16 @@ export class MaestroCapComponent implements OnInit {
   selected: CapRow | null = null;
   selectedKeys: number[] = [];
 
-  // Popup de alta/edición.
+  // Popup de alta/edición de asesor.
   popupVisible = false;
   modo: 'nuevo' | 'editar' = 'nuevo';
   modelo: any = this.vacio();
+
+  // Maestros (gestión en popups propios).
+  popupSedes = false;
+  popupSup = false;
+  sedesMaestro: { id: number; nombre: string; gerente: string; zona: string }[] = [];
+  supMaestro: { id: number; nombre: string; sede: string }[] = [];
 
   ngOnInit(): void { this.cargar(); this.cargarMeta(); }
 
@@ -120,6 +126,53 @@ export class MaestroCapComponent implements OnInit {
       },
       error: err => { this.guardando = false; this.toast('❌ ' + this.msg(err), true); },
     });
+  }
+
+  // ── Maestro de SEDES ───────────────────────────────────────────────────────
+  abrirSedes(): void {
+    this.cap.listarSedes().subscribe({ next: r => { this.sedesMaestro = r; this.popupSedes = true; }, error: () => this.toast('❌ No se pudieron cargar las sedes.', true) });
+  }
+  onSedeIns(e: any): void {
+    this.cap.crearSede(this.limpiaSede(e.data)).subscribe({ next: () => this.trasMaestro('Sede agregada.', 'sedes'), error: err => this.errMaestro(err, 'sedes') });
+  }
+  onSedeUpd(e: any): void {
+    if (!e.data?.id) return;
+    this.cap.actualizarSede(e.data.id, this.limpiaSede(e.data)).subscribe({ next: () => this.trasMaestro('Sede actualizada.', 'sedes'), error: err => this.errMaestro(err, 'sedes') });
+  }
+  onSedeDel(e: any): void {
+    if (!e.data?.id) return;
+    this.cap.eliminarSede(e.data.id).subscribe({ next: () => this.trasMaestro('Sede eliminada.', 'sedes'), error: err => this.errMaestro(err, 'sedes') });
+  }
+  private limpiaSede(d: any) { return { nombre: (d.nombre || '').trim(), gerente: (d.gerente || '').trim(), zona: (d.zona || '').trim() }; }
+
+  // ── Maestro de SUPERVISORES ────────────────────────────────────────────────
+  abrirSup(): void {
+    this.cap.listarSupervisores().subscribe({ next: r => { this.supMaestro = r; this.popupSup = true; }, error: () => this.toast('❌ No se pudieron cargar los supervisores.', true) });
+  }
+  onSupIns(e: any): void {
+    this.cap.crearSupervisor(this.limpiaSup(e.data)).subscribe({ next: () => this.trasMaestro('Supervisor agregado.', 'sup'), error: err => this.errMaestro(err, 'sup') });
+  }
+  onSupUpd(e: any): void {
+    if (!e.data?.id) return;
+    this.cap.actualizarSupervisor(e.data.id, this.limpiaSup(e.data)).subscribe({ next: () => this.trasMaestro('Supervisor actualizado.', 'sup'), error: err => this.errMaestro(err, 'sup') });
+  }
+  onSupDel(e: any): void {
+    if (!e.data?.id) return;
+    this.cap.eliminarSupervisor(e.data.id).subscribe({ next: () => this.trasMaestro('Supervisor eliminado.', 'sup'), error: err => this.errMaestro(err, 'sup') });
+  }
+  private limpiaSup(d: any) { return { nombre: (d.nombre || '').trim(), sede: (d.sede || '').trim() }; }
+
+  private trasMaestro(msg: string, cual: 'sedes' | 'sup'): void {
+    this.cap.invalidar(); this.cargarMeta();
+    if (cual === 'sedes') this.cap.listarSedes().subscribe(r => this.sedesMaestro = r);
+    else this.cap.listarSupervisores().subscribe(r => this.supMaestro = r);
+    this.cargar();   // refresca gerente/zona de los asesores (autoritativo)
+    this.toast('✔ ' + msg);
+  }
+  private errMaestro(err: any, cual: 'sedes' | 'sup'): void {
+    this.toast('❌ ' + this.msg(err), true);
+    if (cual === 'sedes') this.cap.listarSedes().subscribe(r => this.sedesMaestro = r);
+    else this.cap.listarSupervisores().subscribe(r => this.supMaestro = r);
   }
 
   private payload(d: any): Partial<CapRow> {
