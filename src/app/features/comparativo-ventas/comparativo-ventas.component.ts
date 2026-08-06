@@ -5,8 +5,7 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { CargaVentasService } from '../../services/carga-ventas.service';
-import { CapSedesService } from '../../services/cap-sedes.service';
-import { ASESORES_CALL } from '../../shared/asesores';
+import { ASESORES_CALL, ASESORES_REALZZA } from '../../shared/asesores';
 import { DxDataGridComponent } from 'devextreme-angular';
 
 
@@ -19,14 +18,14 @@ import { DxDataGridComponent } from 'devextreme-angular';
 export class ComparativoVentasComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private ventasSrv = inject(CargaVentasService);
-  private capSrv = inject(CapSedesService);
   cargando = false;   // overlay animado mientras trae de BD
 
-  // Roster de asesores ACTUALES (para que la lista/analisis no traiga inactivos):
+  // Roster de asesores ACTUALES (para que la lista/analisis no traiga a otros vendedores):
   //  · Call    → ASESORES_CALL (canon), SIN Brenda CC12 (ella vende como Realzza).
-  //  · Realzza → CAP activos (incluye Brenda en REALZZA STORE).
+  //  · Realzza → ASESORES_REALZZA (los vendedores Realzza reales, NO el CAP de piso) + Brenda.
+  private readonly BRENDA_REALZZA = 'BERNAL BAZAN BRENDA NICOLL';
   private rosterRealzza = new Set<string>();      // nombres normalizados (para match)
-  private capNombresRealzza: string[] = [];       // nombres para el dropdown
+  private nombresRealzzaRoster: string[] = [];    // nombres para el dropdown
   // Estados que NO son venta neta → se excluyen (restan las NC del asesor). Igual criterio
   // que el comparativo de cartera / el neto del sistema.
   private readonly ESTADOS_EXCLUIDOS = [
@@ -101,29 +100,11 @@ export class ComparativoVentasComponent implements OnInit {
     });
   }
 
-  async ngOnInit(): Promise<void> {
-    await this.cargarCap();
+  ngOnInit(): void {
+    // Roster Realzza = vendedores Realzza reales (ASESORES_REALZZA) + Brenda (excepción).
+    this.nombresRealzzaRoster = [...ASESORES_REALZZA.map(a => a.nombre), this.BRENDA_REALZZA].sort();
+    this.rosterRealzza = new Set(this.nombresRealzzaRoster.map(n => this.normNom(n)));
     this.cargarDatos();
-  }
-
-  /** Carga el CAP (asesores Realzza activos) para el roster de Realzza. */
-  private async cargarCap(): Promise<void> {
-    try {
-      const rows = await this.capSrv.cargar();
-      const map = new Map<string, string>();   // normKey → nombre a mostrar (UPPER)
-      for (const r of rows) {
-        if (r.estado !== 'ACTIVO' || !r.vendedor) continue;
-        const k = this.normNom(r.vendedor);
-        if (!map.has(k)) map.set(k, r.vendedor.toUpperCase());
-      }
-      // Brenda SIEMPRE en Realzza (ya está en el CAP como REALZZA STORE; se garantiza).
-      const brenda = 'BERNAL BAZAN BRENDA NICOLL';
-      if (![...map.keys()].some(k => k.includes('BERNAL BAZAN BRENDA'))) map.set(this.normNom(brenda), brenda);
-      this.rosterRealzza = new Set(map.keys());
-      this.capNombresRealzza = Array.from(map.values()).sort();
-    } catch {
-      this.rosterRealzza = new Set(); this.capNombresRealzza = [];
-    }
   }
 
   /** ¿La venta pertenece a un asesor del roster actual del canal? */
@@ -200,7 +181,7 @@ export class ComparativoVentasComponent implements OnInit {
    *  sin Brenda; Realzza = CAP activos (+ Brenda). */
   private construirAsesores(): void {
     const nombres = this.esRealzza
-      ? this.capNombresRealzza
+      ? this.nombresRealzzaRoster
       : ASESORES_CALL.filter(a => a.value !== 'CC12').map(a => a.nombre).sort();
     this.asesores = [{ value: '', viewValue: 'Todos los asesores' },
       ...nombres.map(a => ({ value: a, viewValue: a }))];
