@@ -78,12 +78,6 @@
     <div class="modal-head">USUARIO DEL SISTEMA</div>
     <div class="modal-body">
       <div class="uf-grid">
-        <label>Usuario *
-          <input type="text" [(ngModel)]="form.usuario" placeholder="ej. jt_ferre" />
-        </label>
-        <label>Nombre *
-          <input type="text" [(ngModel)]="form.nombre" placeholder="Nombre completo" />
-        </label>
         <label>Perfil (Rol) *
           <select [(ngModel)]="form.rol" (ngModelChange)="onRolChange()">
             <option *ngFor="let r of rolOptions" [value]="r.value">{{ r.label }}</option>
@@ -131,6 +125,14 @@
         <!-- DNI del asesor (del CAP): se usa como usuario y contraseña por defecto -->
         <label *ngIf="form.rol === 'vendedor' && form.canal === 'sede'">DNI (del CAP)
           <input type="text" [(ngModel)]="form.dni" placeholder="Se autocompleta del CAP" />
+        </label>
+
+        <!-- Usuario y Nombre: al final; se autocompletan al elegir el vendedor de sede. -->
+        <label>Usuario *
+          <input type="text" [(ngModel)]="form.usuario" placeholder="ej. jt_ferre" />
+        </label>
+        <label>Nombre *
+          <input type="text" [(ngModel)]="form.nombre" placeholder="Nombre completo" />
         </label>
 
         <label>Contraseña {{ editId === null ? '*' : '' }}
