@@ -92,31 +92,40 @@ export class MaestroCapComponent implements OnInit {
         this.supervisoresMeta = m.supervisores || [];
         this.canales = m.canales || [];
         this.sedesNombres = this.sedesMeta.map(s => s.sede);
+        this.recomputarSupervisores();
       },
       error: () => { /* si falla, los selects quedan con acceptCustomValue */ },
     });
   }
 
-  /** Supervisores de la sede elegida (si no hay, muestra todos). Únicos y ordenados. */
-  get supervisoresDeSede(): string[] {
+  /**
+   * Supervisores de la sede elegida (si no hay, muestra todos). Únicos y ordenados.
+   * Es un CAMPO (no getter) recalculado solo cuando cambia la sede / se abre el popup:
+   * un getter devolvería un array nuevo en cada ciclo de detección de cambios y el
+   * dx-select-box reinstanciaría su dataSource, impidiendo seleccionar el valor.
+   */
+  supervisoresDeSede: string[] = [];
+
+  private recomputarSupervisores(): void {
     const s = (this.modelo.sede || '').trim();
     const dela = this.supervisoresMeta.filter(x => x.sede === s).map(x => x.nombre);
     const base = dela.length ? dela : this.supervisoresMeta.map(x => x.nombre);
-    return Array.from(new Set(base)).sort();
+    this.supervisoresDeSede = Array.from(new Set(base)).sort();
   }
 
   /** Al cambiar la sede: autocompleta gerente y zona (editable si es sede nueva). */
   onSedeChange(sede: string): void {
     const meta = this.sedesMeta.find(s => s.sede === sede);
     if (meta) { this.modelo.gerente = meta.gerente || ''; this.modelo.zona = meta.zona || ''; }
+    this.recomputarSupervisores();
   }
 
   onSelectionChanged(e: any): void { this.selected = e.selectedRowsData?.[0] || null; }
 
-  nuevo(): void { this.modo = 'nuevo'; this.modelo = this.vacio(); this.popupVisible = true; }
+  nuevo(): void { this.modo = 'nuevo'; this.modelo = this.vacio(); this.recomputarSupervisores(); this.popupVisible = true; }
   editar(): void {
     if (!this.selected) { this.toast('Selecciona un asesor para editar.', true); return; }
-    this.modo = 'editar'; this.modelo = { ...this.selected }; this.popupVisible = true;
+    this.modo = 'editar'; this.modelo = { ...this.selected }; this.recomputarSupervisores(); this.popupVisible = true;
   }
 
   guardar(): void {
