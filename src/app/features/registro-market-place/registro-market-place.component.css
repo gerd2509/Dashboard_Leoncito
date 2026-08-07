@@ -1,30 +1,40 @@
-:host { display: block; height: 100%; }
-.mp-shell { padding: 16px 18px; max-width: 1000px; margin: 0 auto; }
-.mp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.mp-ico { width: 46px; height: 46px; border-radius: 12px; background: #1A5FAD; display: grid; place-items: center; }
-.mp-ico mat-icon { color: #fff; }
-.mp-head h2 { margin: 0; font-size: 19px; font-weight: 800; color: #1E3A5F; }
-.mp-head p { margin: 2px 0 0; font-size: 12.5px; color: #7d93a8; }
+:host {
+  --mp-primary: #1A5FAD; --mp-ok: #2E9E5B; --mp-border: #d7e1ee; --mp-bg: #f4f7fb;
+  display: block; min-height: 100%; background: var(--mp-bg); color: #24303f;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+.mp-shell { padding: 6px 8px; }
 
-.mp-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 18px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
-.mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
-.mp-cond { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #dfe7f2; }
-label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 700; color: #45597a; }
-.mp-col2 { grid-column: 1 / -1; }
+/* Encabezado */
+.mp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.mp-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--mp-primary); display: grid; place-items: center; flex-shrink: 0; }
+.mp-ico mat-icon { color: #fff; font-size: 26px; width: 26px; height: 26px; }
+.mp-head h2 { margin: 0; font-size: 19px; font-weight: 800; color: #14314f; }
+.mp-head p { margin: 2px 0 0; font-size: 12.5px; color: #6b7a8d; }
+
+/* Tarjeta + grilla de 3 columnas (como Registro de Gestión) */
+.mp-card { background: #fff; border: 1px solid var(--mp-border); border-radius: 16px; padding: 18px 16px; box-shadow: 0 4px 16px rgba(20,49,79,.06); }
+.mp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 14px; align-items: start; }
+.mp-cond { margin-top: 14px; padding-top: 14px; border-top: 1px dashed #e0e8f2; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #4a6a88; min-width: 0; }
+.mp-col2 { grid-column: span 3; }
 
 .mp-error { display: flex; align-items: center; gap: 6px; color: #c0392b; font-size: 13px; margin-top: 14px; }
 .mp-error mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
-.mp-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #CCDAEE; background: #fff; color: #35496a; font-weight: 700; font-size: 14px; padding: 11px 18px; border-radius: 10px; cursor: pointer; }
-.mp-btn.primary { width: 100%; justify-content: center; margin-top: 18px; background: #1A5FAD; border-color: #1A5FAD; color: #fff; box-shadow: 0 3px 10px rgba(26,95,173,.28); }
-.mp-btn.primary:hover:not(:disabled) { background: #17539a; }
-.mp-btn:disabled { opacity: .5; cursor: not-allowed; }
+/* Botón guardar (verde, como Registro de Gestión) */
+.mp-btn { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--mp-border); background: #fff; color: #34465a; font-weight: 700; font-size: 14px; padding: 12px 18px; border-radius: 12px; cursor: pointer; }
+.mp-btn.primary { width: 100%; justify-content: center; margin-top: 18px; background: linear-gradient(135deg, #1f9d55, #14823f); border: none; color: #fff; box-shadow: 0 4px 14px rgba(31,157,85,.28); font-size: 15px; padding: 14px; }
+.mp-btn.primary:hover:not(:disabled) { filter: brightness(1.05); }
+.mp-btn:disabled { opacity: .55; cursor: not-allowed; }
 .mp-btn mat-icon { font-size: 19px; width: 19px; height: 19px; }
 
-.mp-ok { display: flex; align-items: center; gap: 14px; background: #e5f6ec; border: 1px solid #b6e2c6; border-radius: 14px; padding: 20px; }
+/* Confirmación */
+.mp-ok { display: flex; align-items: center; gap: 14px; background: #e5f6ec; border: 1px solid #b6e2c6; border-radius: 16px; padding: 20px; }
 .mp-ok > mat-icon { color: #1a7a3d; font-size: 36px; width: 36px; height: 36px; }
 .mp-ok b { display: block; color: #1a5a30; }
 .mp-ok span { font-size: 13px; color: #3d7a52; }
 .mp-ok .mp-btn { margin-left: auto; }
 
-@media (max-width: 640px) { .mp-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .mp-grid { grid-template-columns: 1fr 1fr; } .mp-col2 { grid-column: span 2; } }
+@media (max-width: 560px)  { .mp-grid { grid-template-columns: 1fr; } .mp-col2 { grid-column: span 1; } }
