@@ -64,18 +64,18 @@ export class RegistroMarketPlaceComponent implements OnInit {
   private vacio() {
     return {
       asesor: '', sede: '', market_place: 'SI', dni_cliente: '', celular_gestionado: '', tipo_cliente: '',
-      medio_primer_contacto: '', fecha_primer_contacto: '', estado_gestion: '', resultado_gestion: '',
+      medio_primer_contacto: '', fecha_primer_contacto: null as Date | null, estado_gestion: '', resultado_gestion: '',
       producto_interes: '', motivo_interes: '',
       // Agendamiento
-      motivo_agendamiento: '', fecha_agendamiento: '', hora_agendamiento: '', comentario_agendamiento: '',
+      motivo_agendamiento: '', fecha_agendamiento: null as Date | null, hora_agendamiento: '', comentario_agendamiento: '',
       // Derivación
-      fecha_derivacion: '', hora_derivacion: '', comentario_derivacion: '',
+      fecha_derivacion: null as Date | null, hora_derivacion: '', comentario_derivacion: '',
       // No interés / No atendible / Tercero
       motivo_no_interes: '', comentario_no_interes: '',
       motivo_no_atendible: '', comentario_no_atendible: '',
       motivos_tercero: '',
       // Re-llamada
-      fecha_rellamada: '', hora_rellamada: '', numero_titular: '',
+      fecha_rellamada: null as Date | null, hora_rellamada: '', numero_titular: '',
       // No contacto / Venta no concretada
       motivo_no_contacto: '', motivo_no_cierre: '', comentario_venta_no_concretada: '',
     };

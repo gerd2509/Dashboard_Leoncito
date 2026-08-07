@@ -45,7 +45,7 @@ export class RegistroDerivacionesComponent implements OnInit {
     return {
       asesor: '', sede: '', dni_cliente: '', celular_gestionado: '', tipo_base: '', tipo_cliente: '',
       medio_primer_contacto: '', producto_interes: '',
-      fecha_interes_derivacion: '', hora_interes_derivacion: '', comentario_derivacion: '',
+      fecha_interes_derivacion: null as Date | null, hora_interes_derivacion: '', comentario_derivacion: '',
     };
   }
 
