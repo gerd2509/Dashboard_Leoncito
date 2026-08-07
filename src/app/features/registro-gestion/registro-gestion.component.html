@@ -40,7 +40,8 @@
       </div>
       <div class="rg-field">
         <label>Asesor *</label>
-        <dx-select-box [dataSource]="asesores" [(value)]="modelo.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
+        <dx-text-box *ngIf="asesorFijo" [value]="modelo.asesor" [readOnly]="true" stylingMode="outlined"></dx-text-box>
+        <dx-select-box *ngIf="!asesorFijo" [dataSource]="asesores" [(value)]="modelo.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
           [placeholder]="cargandoAsesores ? 'Cargando…' : 'Selecciona…'" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field">

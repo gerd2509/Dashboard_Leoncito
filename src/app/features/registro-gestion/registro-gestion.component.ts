@@ -248,10 +248,11 @@ export class RegistroGestionComponent implements OnInit {
         return;
       }
       // Vendedor de SEDE → bloqueado al formulario Sede, a su propio nombre (igual que
-      // Call/Realzza): no muestra tabs ni pregunta el asesor.
-      if (canalU === 'sede') {
+      // Call/Realzza): no muestra tabs ni pregunta el asesor. (Call/Realzza ya retornaron
+      // arriba, así que cualquier `vendedor` que llegue aquí es de sede.)
+      if (rol === 'vendedor') {
         this.canal = 'sede';
-        this.modelo.asesor = asesor;
+        this.modelo.asesor = asesor || (u?.nombre || '').toString();
         this.asesorFijo = true;
         this.cap.cargar();
         if (key && key !== 'todas' && this.sedes.some(s => s.key === key)) {
