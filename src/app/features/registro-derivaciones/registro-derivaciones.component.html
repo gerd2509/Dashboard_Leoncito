@@ -1,0 +1,68 @@
+<div class="rd-shell">
+  <div class="rd-head">
+    <div class="rd-ico"><mat-icon>call_split</mat-icon></div>
+    <div>
+      <h2>Registro de Derivaciones</h2>
+      <p>Derivación de venta para cierre a sede (Ferreñafe / Lambayeque) — se guarda en la base de datos.</p>
+    </div>
+  </div>
+
+  <div class="rd-ok" *ngIf="guardado">
+    <mat-icon>check_circle</mat-icon>
+    <div><b>¡Derivación registrada!</b><span>Se guardó y ya cuenta para la atribución.</span></div>
+    <button class="rd-btn" (click)="registrarOtra()"><mat-icon>add</mat-icon> Registrar otra</button>
+  </div>
+
+  <form class="rd-card" *ngIf="!guardado" (ngSubmit)="guardar()">
+    <div class="rd-grid">
+      <label>Sede *
+        <dx-select-box [dataSource]="sedes" [(value)]="m.sede" [disabled]="sedeFija" (onValueChanged)="onSedeChange()"
+          placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Asesor *
+        <dx-text-box *ngIf="asesorFijo" [(value)]="m.asesor" [readOnly]="true" stylingMode="outlined"></dx-text-box>
+        <dx-select-box *ngIf="!asesorFijo" [dataSource]="asesoresSede" [(value)]="m.asesor" [searchEnabled]="true"
+          [disabled]="!m.sede" placeholder="Elige la sede primero" stylingMode="outlined"></dx-select-box>
+      </label>
+
+      <label>DNI Cliente *
+        <dx-text-box [(value)]="m.dni_cliente" mode="tel" [maxLength]="12" placeholder="Documento" stylingMode="outlined"></dx-text-box>
+      </label>
+      <label>Celular gestionado
+        <dx-text-box [(value)]="m.celular_gestionado" mode="tel" [maxLength]="12" placeholder="Celular" stylingMode="outlined"></dx-text-box>
+      </label>
+
+      <label>Fuente generadora (Tipo de base)
+        <dx-select-box [dataSource]="fuentes" [(value)]="m.tipo_base" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Tipo de cliente
+        <dx-select-box [dataSource]="tipoCliente" [(value)]="m.tipo_cliente" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+
+      <label>Medio de primer contacto
+        <dx-select-box [dataSource]="medios" [(value)]="m.medio_primer_contacto" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Producto de interés
+        <dx-select-box [dataSource]="productos" [(value)]="m.producto_interes" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+
+      <label>Fecha de derivación
+        <dx-date-box [(value)]="m.fecha_interes_derivacion" type="date" [displayFormat]="'dd/MM/yyyy'" stylingMode="outlined"></dx-date-box>
+      </label>
+      <label>Hora aproximada
+        <dx-text-box [(value)]="m.hora_interes_derivacion" placeholder="ej. 15:00" stylingMode="outlined"></dx-text-box>
+      </label>
+
+      <label class="rd-col2">Comentario adicional
+        <dx-text-box [(value)]="m.comentario_derivacion" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <div class="rd-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+
+    <button type="submit" class="rd-btn primary" [disabled]="!valido || guardando">
+      <mat-icon>{{ guardando ? 'hourglass_top' : 'save' }}</mat-icon>
+      {{ guardando ? 'Guardando…' : 'Guardar derivación' }}
+    </button>
+  </form>
+</div>

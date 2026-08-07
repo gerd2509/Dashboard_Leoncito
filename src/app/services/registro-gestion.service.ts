@@ -76,6 +76,11 @@ export class RegistroGestionService {
   registrarCallSede(payload: any): Observable<any> {
     return this.http.post(`${environment.gestionBase || environment.apiBase}/call-sedes`, payload);
   }
+
+  /** Registra una derivación de venta desde la plataforma (tabla gestion_sedes_deriv, origen app). */
+  registrarDerivacion(payload: any): Observable<any> {
+    return this.http.post(`${environment.apiBase}/gestion-sedes-deriv`, payload);
+  }
 }
 
 /** Payload de una gestión Call Center (mismos campos condicionales que Realzza,

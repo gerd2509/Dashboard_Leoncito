@@ -38,6 +38,7 @@ import { ActividadRealzzaComponent } from "../features/actividad-realzza/activid
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { MaestroCapComponent } from "../features/maestro-cap/maestro-cap.component";
 import { RegistroMarketPlaceComponent } from "../features/registro-market-place/registro-market-place.component";
+import { RegistroDerivacionesComponent } from "../features/registro-derivaciones/registro-derivaciones.component";
 import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
 import { RegistroKommoComponent } from "../features/registro-kommo/registro-kommo.component";
 import { AtribucionCallComponent } from "../features/atribucion-call/atribucion-call.component";
@@ -101,6 +102,7 @@ interface MenuItem {
     ComparativoCarteraVentasComponent,
     MaestroCapComponent,
     RegistroMarketPlaceComponent,
+    RegistroDerivacionesComponent,
     MaduracionLeadsComponent,
     RegistroKommoComponent,
     AtribucionCallComponent,
@@ -151,7 +153,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
         { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' },
         { label: 'REGISTRO GESTIÓN', icon: 'assignment_turned_in', modulo: 'registro-gestion' },
-        { label: 'REGISTRO MARKET PLACE', icon: 'storefront', modulo: 'registro-market-place' }
+        { label: 'REGISTRO MARKET PLACE', icon: 'storefront', modulo: 'registro-market-place' },
+        { label: 'REGISTRO DERIVACIONES', icon: 'call_split', modulo: 'registro-derivaciones' }
       ]
     },
     {

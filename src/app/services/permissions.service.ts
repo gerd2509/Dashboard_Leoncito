@@ -66,6 +66,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',           grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-gestion',             label: 'Registro de Gestión',          grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-market-place',        label: 'Registro Market Place',        grupo: 'Gestión', sedeScoped: true },
+  { key: 'registro-derivaciones',        label: 'Registro Derivaciones',        grupo: 'Gestión', sedeScoped: true },
   { key: 'ventas',                       label: 'Ventas — Call Center',         grupo: 'Ventas' },
   { key: 'atribucion-call',              label: 'Atribución Ventas (Call/Realzza)', grupo: 'Ventas' },
   { key: 'ventas-campo',                 label: 'Ventas — Realzza',             grupo: 'Ventas' },
@@ -108,7 +109,7 @@ const REALZZA_MODULES = [
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
 const ZONA_MODULES = ['control-gestion-sede'];
 // Rol vendedor: por defecto ve su panel personal + el formulario de registro.
-const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place'];
+const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones'];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],
@@ -122,7 +123,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v27';
+const STORAGE_KEY = 'gd_permissions_v28';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
