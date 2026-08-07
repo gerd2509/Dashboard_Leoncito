@@ -210,6 +210,7 @@ export class RegistroGestionComponent implements OnInit {
   guardado = false;
   error = '';
   sedeFija = false;   // true cuando la sede sale del login (no se pregunta)
+  asesorFijo = false; // true cuando el asesor sale del login (vendedor de sede) → no se elige
 
   ngOnInit(): void {
     this.sedes = this.sedeCfg.getSedesParaCombo().sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -246,6 +247,19 @@ export class RegistroGestionComponent implements OnInit {
         this.call.asesor = asesor;
         return;
       }
+      // Vendedor de SEDE → bloqueado al formulario Sede, a su propio nombre (igual que
+      // Call/Realzza): no muestra tabs ni pregunta el asesor.
+      if (canalU === 'sede') {
+        this.canal = 'sede';
+        this.modelo.asesor = asesor;
+        this.asesorFijo = true;
+        this.cap.cargar();
+        if (key && key !== 'todas' && this.sedes.some(s => s.key === key)) {
+          this.sedeFija = true;
+          this.seleccionarSede(this.sedes.find(x => x.key === key)!);
+        }
+        return;
+      }
     }
 
     // Admin/supervisor (o vendedor de sede sin canal Call/Realzza): asesores del CAP;
@@ -275,10 +289,12 @@ export class RegistroGestionComponent implements OnInit {
   get pasos(): Paso[] {
     if (this.canal === 'realzza') return this.pasosRealzza();
     if (this.canal === 'call') return this.pasosCall();
-    // Si la sede es fija (del login) no se pregunta la sede.
-    const p: Paso[] = this.sedeFija
+    // Si la sede es fija (del login) no se pregunta la sede; si el asesor es fijo
+    // (vendedor de sede) tampoco se pregunta el asesor.
+    let p: Paso[] = this.sedeFija
       ? ['dni', 'asesor', 'tipo', 'resultado']
       : ['dni', 'sede', 'asesor', 'tipo', 'resultado'];
+    if (this.asesorFijo) p = p.filter(s => s !== 'asesor');
     if (this.modelo.resultado === 'CONTACTO') {
       p.push('motivoContacto');
       if (MOTIVOS_CONTACTO_FORM.includes(this.modelo.motivo_contacto)) p.push('formulario');

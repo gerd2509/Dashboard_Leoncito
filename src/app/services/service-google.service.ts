@@ -181,6 +181,7 @@ export class SheetsService {
   // formulario sincronizado + registro por plataforma (Ferreñafe). Se mapea a la MISMA
   // forma que la hoja para que Control Gestión Sede no cambie su lógica.
   private mapGestionDbToSheet = (r: any) => ({
+    id: r.id,
     'Marca temporal': r.marca,
     'TIENDA SEDE': r.sede,
     'ASESOR': r.asesor,
@@ -211,6 +212,27 @@ export class SheetsService {
     if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
     return this.http.post<any>(`${base}/gestion/sync-sedes`, {}, { params });
+  }
+  /** Mapea una fila con forma de sheet → columnas de la tabla gestion (para editar). */
+  private mapSheetToGestionDb(d: any) {
+    return {
+      dni_cliente: d['DNI CLIENTE'], sede: d['TIENDA SEDE'], asesor: d['ASESOR'],
+      tipo_gestion: d['TIPO DE GESTION'], resultado: d['RESULTADO DE GESTION'],
+      motivo_contacto: d['MOTIVOS "CONTACTO EN LA GESTION"'], motivo_no_contacto: d['MOTIVOS "NO CONTACTO EN LA GESTION"'],
+      producto_interes: d['PRODUCTO DE INTERES'], detalle_contacto: d['DETALLE(COMENTARIO) CONTACTO'],
+      celular_actualizado: d['N° CELULAR ACTUALIZADO'], valor_venta: d['VALOR DE LA VENTA'],
+      fecha_compromiso: d['FECHA DE COMPROMISO O VISITA'],
+    };
+  }
+  /** Edita una gestión de sede (tabla gestion). */
+  updateGestionSede(id: number, sheetRow: any): Observable<any> {
+    const base = environment.gestionBase || environment.apiBase;
+    return this.http.put(`${base}/gestion/${id}`, this.mapSheetToGestionDb(sheetRow));
+  }
+  /** Elimina una gestión de sede (tabla gestion). */
+  deleteGestionSede(id: number): Observable<any> {
+    const base = environment.gestionBase || environment.apiBase;
+    return this.http.delete(`${base}/gestion/${id}`);
   }
 
   // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)

@@ -26,17 +26,20 @@
         <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión…" icon="store"></app-loading-overlay>
     </div>
 
-    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada"
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" keyExpr="id"
         [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
         [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
         [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
-        [selection]="{ mode: 'single' }">
+        [selection]="{ mode: 'single' }"
+        (onRowUpdated)="onRowUpdated($event)" (onRowRemoved)="onRowRemoved($event)">
 
+        <dxo-editing mode="row" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true" [confirmDelete]="true"></dxo-editing>
         <dxo-paging [pageSize]="10"></dxo-paging>
         <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
         <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
 
-        <dxi-column dataField="Marca temporal"                          caption="Marca Temporal" />
+        <dxi-column dataField="id" caption="ID" [width]="70" [allowEditing]="false" [visible]="false" />
+        <dxi-column dataField="Marca temporal" caption="Marca Temporal" [allowEditing]="false" />
         <dxi-column dataField="TIENDA SEDE"                             caption="Sede" />
         <dxi-column dataField="ASESOR"                                  caption="Asesor" />
         <dxi-column dataField="DNI CLIENTE"                             caption="DNI Cliente" />

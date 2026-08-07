@@ -89,6 +89,15 @@
             <option *ngFor="let r of rolOptions" [value]="r.value">{{ r.label }}</option>
           </select>
         </label>
+
+        <!-- Vendedor: primero el CANAL, luego la sede, luego el vendedor (autocompleta DNI). -->
+        <label *ngIf="form.rol === 'vendedor'">Canal *
+          <select [(ngModel)]="form.canal" (ngModelChange)="form.vendedor=''; form.dni=''; recomputarVendedores()">
+            <option value="">— Selecciona —</option>
+            <option *ngFor="let c of canalOptions" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </label>
+
         <div class="uf-campo uf-sede">
           <span class="uf-lbl">Sede(s) *
             <span class="uf-sede-count">{{ form.sedes.length }} seleccionada(s)</span>
@@ -111,13 +120,7 @@
           </div>
         </div>
 
-        <!-- Identidad del vendedor: solo cuando el rol es Vendedor -->
-        <label *ngIf="form.rol === 'vendedor'">Canal *
-          <select [(ngModel)]="form.canal" (ngModelChange)="form.vendedor=''; recomputarVendedores()">
-            <option value="">— Selecciona —</option>
-            <option *ngFor="let c of canalOptions" [value]="c.value">{{ c.label }}</option>
-          </select>
-        </label>
+        <!-- Identidad del vendedor: el vendedor se elige tras canal + sede -->
         <label *ngIf="form.rol === 'vendedor'">Vendedor *
           <select [(ngModel)]="form.vendedor" [disabled]="!form.canal" (ngModelChange)="onVendedorChange()">
             <option value="">{{ form.canal ? '— Selecciona —' : 'Elige canal primero' }}</option>

@@ -74,12 +74,8 @@ export class GestionSedeComponent implements OnInit {
   private async cargarData(): Promise<void> {
     this.isLoading = true;
     try {
-      const data = await lastValueFrom(this.service.getSheetDataSedes());
-      // Agregar columna 'ASESOR' unificada según la sede de cada fila
-      this.listData = data.map(row => {
-        const cfg = this.sedeConfig.getConfig(row['TIENDA SEDE']);
-        return { ...row, ASESOR: cfg ? (row[cfg.columnaAsesor] || '') : '' };
-      });
+      // Fuente única = BD (tabla gestion), ya mapeada a la forma del sheet (+ id + ASESOR).
+      this.listData = await lastValueFrom(this.service.getGestionSedesDB());
       this.aplicarFiltros();
     } catch (e) {
       console.error('Error al cargar datos de sedes:', e);
@@ -88,6 +84,22 @@ export class GestionSedeComponent implements OnInit {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  // ── Editar / eliminar registros del grid (persisten en la BD) ──
+  onRowUpdated(e: any): void {
+    const id = e?.key ?? e?.data?.id;
+    if (!id) return;
+    this.service.updateGestionSede(id, e.data).subscribe({
+      error: () => { alert('No se pudo guardar el cambio; se recargará la información.'); this.cargarData(); },
+    });
+  }
+  onRowRemoved(e: any): void {
+    const id = e?.key ?? e?.data?.id;
+    if (!id) return;
+    this.service.deleteGestionSede(id).subscribe({
+      error: () => { alert('No se pudo eliminar; se recargará la información.'); this.cargarData(); },
+    });
   }
 
   aplicarFiltros(): void {
