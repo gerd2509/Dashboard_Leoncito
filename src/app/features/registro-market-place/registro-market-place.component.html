@@ -7,13 +7,9 @@
     </div>
   </div>
 
-  <!-- Confirmación -->
   <div class="mp-ok" *ngIf="guardado">
     <mat-icon>check_circle</mat-icon>
-    <div>
-      <b>¡Gestión registrada!</b>
-      <span>Se guardó correctamente en MARKET PLACE.</span>
-    </div>
+    <div><b>¡Gestión registrada!</b><span>Se guardó correctamente en MARKET PLACE.</span></div>
     <button class="mp-btn" (click)="registrarOtra()"><mat-icon>add</mat-icon> Registrar otra</button>
   </div>
 
@@ -43,23 +39,30 @@
         <dx-select-box [dataSource]="medios" [(value)]="m.medio_primer_contacto" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </label>
 
+      <label>Fecha primer contacto
+        <dx-date-box [(value)]="m.fecha_primer_contacto" type="date" [displayFormat]="'dd/MM/yyyy'" stylingMode="outlined"></dx-date-box>
+      </label>
       <label>Estado de gestión *
         <dx-select-box [dataSource]="estados" [(value)]="m.estado_gestion" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </label>
-      <label>Resultado de gestión
-        <dx-select-box [dataSource]="resultados" [(value)]="m.resultado_gestion" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
-      </label>
     </div>
 
-    <!-- NO CONTACTO -->
-    <div class="mp-cond" *ngIf="esNoContacto">
-      <label>Motivo no contacto
+    <!-- ═══ NO CONTACTO ═══ -->
+    <div class="mp-cond mp-grid" *ngIf="esNoContacto">
+      <label class="mp-col2">Motivo no contacto
         <dx-select-box [dataSource]="motivosNoContacto" [(value)]="m.motivo_no_contacto" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </label>
     </div>
 
-    <!-- CONTACTO -->
-    <div class="mp-grid" *ngIf="esContacto">
+    <!-- ═══ CONTACTO ═══ -->
+    <div class="mp-cond mp-grid" *ngIf="esContacto">
+      <label class="mp-col2">Resultado de gestión
+        <dx-select-box [dataSource]="resultados" [(value)]="m.resultado_gestion" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+    </div>
+
+    <!-- INTERESADO -->
+    <div class="mp-grid" *ngIf="esInteresado">
       <label>Producto de interés
         <dx-select-box [dataSource]="productos" [(value)]="m.producto_interes" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </label>
@@ -70,13 +73,16 @@
 
     <!-- Agendamiento -->
     <div class="mp-cond mp-grid" *ngIf="esAgenda">
+      <label>Motivo agendamiento
+        <dx-select-box [dataSource]="motivosAgendamiento" [(value)]="m.motivo_agendamiento" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
       <label>Fecha agendamiento
         <dx-date-box [(value)]="m.fecha_agendamiento" type="date" [displayFormat]="'dd/MM/yyyy'" stylingMode="outlined"></dx-date-box>
       </label>
       <label>Hora aproximada
         <dx-text-box [(value)]="m.hora_agendamiento" placeholder="ej. 15:00" stylingMode="outlined"></dx-text-box>
       </label>
-      <label class="mp-col2">Comentario agendamiento
+      <label>Comentario agendamiento
         <dx-text-box [(value)]="m.comentario_agendamiento" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
       </label>
     </div>
@@ -101,6 +107,46 @@
       </label>
       <label>Comentario venta no concretada
         <dx-text-box [(value)]="m.comentario_venta_no_concretada" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <!-- NO INTERESADO -->
+    <div class="mp-cond mp-grid" *ngIf="esNoInteresado">
+      <label>Motivo no interés
+        <dx-select-box [dataSource]="motivosNoInteres" [(value)]="m.motivo_no_interes" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Comentario no interés
+        <dx-text-box [(value)]="m.comentario_no_interes" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <!-- NO ATENDIBLE -->
+    <div class="mp-cond mp-grid" *ngIf="esNoAtendible">
+      <label>Motivo no atendible
+        <dx-select-box [dataSource]="motivosNoAtendible" [(value)]="m.motivo_no_atendible" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Comentario no atendible
+        <dx-text-box [(value)]="m.comentario_no_atendible" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <!-- TERCERO RELACIONADO -->
+    <div class="mp-cond mp-grid" *ngIf="esTercero">
+      <label class="mp-col2">Motivos tercero relacionado
+        <dx-select-box [dataSource]="motivosTercero" [(value)]="m.motivos_tercero" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+    </div>
+
+    <!-- Re-llamada (NO CONTACTO o TERCERO con re-llamada) -->
+    <div class="mp-cond mp-grid" *ngIf="esRellamada">
+      <label>Fecha de re-llamada
+        <dx-date-box [(value)]="m.fecha_rellamada" type="date" [displayFormat]="'dd/MM/yyyy'" stylingMode="outlined"></dx-date-box>
+      </label>
+      <label>Hora de re-llamada
+        <dx-text-box [(value)]="m.hora_rellamada" placeholder="ej. 15:00" stylingMode="outlined"></dx-text-box>
+      </label>
+      <label class="mp-col2">Número titular actual
+        <dx-text-box [(value)]="m.numero_titular" mode="tel" [maxLength]="12" placeholder="Número del titular" stylingMode="outlined"></dx-text-box>
       </label>
     </div>
 
