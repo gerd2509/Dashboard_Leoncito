@@ -1316,7 +1316,8 @@ export class VentasCampoComponent implements OnInit {
 
     this.dataGlobalGo
       .filter(v => { const f = v.FECHAVENTA as Date; return f >= fechaInicio && f <= fechaFin; })
-      .filter(v => !this.esVentaOrfana(v))   // motos orfandad no-CALL no suman al vendedor
+      // Esta tabla cuenta TODAS las motos (incl. las no derivadas). La no-derivación solo
+      // se descuenta del "monto de ventas por asesor" (avance/bonos), no de aquí.
       .forEach(v => {
         const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
         const tipo   = (v.TipoProducto || 'SIN TIPO').toString().trim().toUpperCase();
