@@ -252,13 +252,14 @@ export class RegistroGestionComponent implements OnInit {
       // arriba, así que cualquier `vendedor` que llegue aquí es de sede.)
       if (rol === 'vendedor') {
         this.canal = 'sede';
-        this.modelo.asesor = asesor || (u?.nombre || '').toString();
         this.asesorFijo = true;
         this.cap.cargar();
         if (key && key !== 'todas' && this.sedes.some(s => s.key === key)) {
           this.sedeFija = true;
-          this.seleccionarSede(this.sedes.find(x => x.key === key)!);
+          this.seleccionarSede(this.sedes.find(x => x.key === key)!);   // ⚠ esto limpia modelo.asesor (parte síncrona)
         }
+        // El asesor se fija DESPUÉS de seleccionarSede (que lo resetea a '').
+        this.modelo.asesor = asesor || (u?.nombre || '').toString();
         return;
       }
     }
