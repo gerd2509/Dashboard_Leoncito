@@ -260,3 +260,24 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
   .mp-kpi { padding: 13px 14px; }
   .mp-kpi mat-icon { font-size: 28px; width: 28px; height: 28px; }
 }
+/* KPIs Market Place / Derivaciones (sede) */
+.mp-kpi.g5 mat-icon { color: #E65100; }
+.mp-kpi.g6 mat-icon { color: #2E7D32; }
+
+/* Minicards clicables + chevron */
+.mp-mini.mm-click { cursor: pointer; transition: transform .1s, box-shadow .15s; }
+.mp-mini.mm-click:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(20,49,79,.2); }
+.mp-mini.mm-click.on { outline: 3px solid rgba(255,255,255,.55); }
+.mm-h .mm-chev { margin-left: auto; font-size: 20px; }
+.mp-mini .mm-h { display: flex; align-items: center; gap: 6px; }
+
+/* Detalle (tabla) Market Place / Derivaciones */
+.mp-detalle { margin-top: 14px; background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 12px 14px; box-shadow: 0 3px 12px rgba(20,49,79,.06); }
+.mpd-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 10px; }
+.mpd-h mat-icon { color: #1A5FAD; }
+.mpd-tabla { display: flex; flex-direction: column; max-height: 320px; overflow: auto; }
+.mpd-row { display: grid; grid-template-columns: 1fr 1fr 1.4fr 1.8fr 1.4fr; gap: 8px; padding: 8px 6px; border-bottom: 1px solid #eef2f7; font-size: 12.5px; color: #33465c; }
+.mpd-row.mpd-row5 { grid-template-columns: 1fr 1.2fr 1.2fr 1.4fr 1.4fr; }
+.mpd-row.mpd-head, .mpd-row.mpd-head5 { position: sticky; top: 0; background: #293964; color: #fff; font-weight: 700; font-size: 11.5px; border: none; }
+.mpd-row .vnc { color: #c0392b; font-weight: 700; }
+.mpd-vacio { padding: 16px; text-align: center; color: #8aa0b6; font-size: 13px; }

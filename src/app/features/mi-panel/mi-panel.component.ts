@@ -180,6 +180,12 @@ export class MiPanelComponent implements OnInit {
   sedeCartaContacto = 0; sedeCartaNoContacto = 0;
   get sedeLlamadas(): number { return this.sedeLlamContacto + this.sedeLlamNoContacto; }
   get sedeCartas(): number { return this.sedeCartaContacto + this.sedeCartaNoContacto; }
+  // Market Place (sede) del día
+  sedeMpTotal = 0; sedeMpContacto = 0; sedeMpNoContacto = 0; sedeMpVnc = 0;
+  sedeMpDetalle: any[] = [];
+  // Derivaciones (sede) del día
+  sedeDerivTotal = 0; sedeDerivDetalle: any[] = [];
+  popupSede: '' | 'mp' | 'deriv' = '';
 
   ngOnInit(): void {
     const u = this.auth.getUsuario();
@@ -285,10 +291,25 @@ export class MiPanelComponent implements OnInit {
     this.gestHoyLabel = `${String(dia.getDate()).padStart(2, '0')}/${String(dia.getMonth() + 1).padStart(2, '0')}/${dia.getFullYear()}`;
     const rango = { desde: dia, hasta: dia };     // solo el día elegido (filtra en el backend)
 
-    // ── Vendedor de SEDE → gestión sedes (llamadas / cartas) ──
+    // ── Vendedor de SEDE → gestión sedes (llamadas/cartas) + Market Place + Derivaciones ──
     if (this.gestSede) {
-      this.sheets.getSheetDataSedes(rango).subscribe({
-        next: (rows) => { this.procesarSede(rows || []); this.gestCargando = false; },
+      forkJoin({
+        sede:  this.sheets.getGestionSedesDB(rango),                 // llamadas / cartas (tabla gestion)
+        mp:    this.sheets.getCallSedesDB(rango, this.vendedor),     // market place (gestion_call_sedes)
+        deriv: this.sheets.getDerivacionesDB(rango, this.vendedor),  // derivaciones (gestion_sedes_deriv)
+      }).subscribe({
+        next: ({ sede, mp, deriv }) => {
+          this.procesarSede(sede || []);
+          this.procesarSedeMp(mp || []);
+          this.procesarSedeDeriv(deriv || []);
+          this.gestChart = [
+            { clave: 'Llamadas', valor: this.sedeLlamadas, color: '#1565C0' },
+            { clave: 'Cartas', valor: this.sedeCartas, color: '#6A1B9A' },
+            { clave: 'Market Place', valor: this.sedeMpTotal, color: '#E65100' },
+            { clave: 'Derivaciones', valor: this.sedeDerivTotal, color: '#2E7D32' },
+          ];
+          this.gestCargando = false;
+        },
         error: () => { this.gestCargando = false; },
       });
       return;
@@ -371,6 +392,34 @@ export class MiPanelComponent implements OnInit {
       { clave: 'Cartas', valor: this.sedeCartas, color: '#6A1B9A' },
     ];
   }
+
+  /** Market Place del día (gestion_call_sedes, ya filtrado por asesor en el backend). */
+  private procesarSedeMp(rows: any[]): void {
+    const esCont = (r: any) => this.norm(r['ESTADO DE GESTIÓN']) === 'contacto';
+    const esNoCont = (r: any) => this.norm(r['ESTADO DE GESTIÓN']) === 'nocontacto';
+    const esVnc = (r: any) => this.norm(r['MOTIVO INTERÉS']) === this.norm('VENTA NO CONCRETADA');
+    this.sedeMpTotal = rows.length;
+    this.sedeMpContacto = rows.filter(esCont).length;
+    this.sedeMpNoContacto = rows.filter(esNoCont).length;
+    this.sedeMpVnc = rows.filter(esVnc).length;
+    this.sedeMpDetalle = rows.map(r => ({
+      dni: r['DNI CLIENTE'], celular: r['CELULAR GESTIONADO'], estado: r['ESTADO DE GESTIÓN'],
+      resultado: r['RESULTADO DE GESTIÓN'], motivo: r['MOTIVO INTERÉS'], producto: r['PRODUCTO INTERÉS'],
+    }));
+  }
+
+  /** Derivaciones del día (gestion_sedes_deriv, ya filtrado por asesor en el backend). */
+  private procesarSedeDeriv(rows: any[]): void {
+    this.sedeDerivTotal = rows.length;
+    this.sedeDerivDetalle = rows.map(r => ({
+      dni: r.dni_cliente, celular: r.celular_gestionado, fuente: r.tipo_base, tipoCliente: r.tipo_cliente,
+      producto: r.producto_interes, fecha: r.fecha_interes_derivacion, hora: r.hora_interes_derivacion,
+      comentario: r.comentario_derivacion,
+    }));
+  }
+
+  /** Abre/cierra el detalle de Market Place o Derivaciones (sede). */
+  toggleSedeDetalle(cual: 'mp' | 'deriv'): void { this.popupSede = this.popupSede === cual ? '' : cual; }
 
   /** ¿La marca temporal cae en la fecha dada? Tolera 'dd/mm/yyyy hh:mm' e ISO 'yyyy-mm-dd'. */
   private esFecha(marca: any, d: Date): boolean {

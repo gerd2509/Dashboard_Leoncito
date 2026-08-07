@@ -250,12 +250,22 @@ export class SheetsService {
     if (r.sede) o['ASESOR ' + r.sede.toString().toUpperCase()] = r.asesor;
     return o;
   };
-  getCallSedesDB(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+  getCallSedesDB(rango?: { desde?: Date; hasta?: Date }, asesor?: string): Observable<any[]> {
     const base = environment.gestionBase || environment.apiBase;
     let params = new HttpParams();
     if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    if (asesor) params = params.set('asesor', asesor);
     return this.http.get<any[]>(`${base}/call-sedes`, { params }).pipe(map(rows => (rows || []).map(this.mapCallSedeDbToSheet)));
+  }
+  /** Derivaciones (tabla gestion_sedes_deriv) por asesor/sede/rango — para Mi Panel. */
+  getDerivacionesDB(rango?: { desde?: Date; hasta?: Date }, asesor?: string, sede?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    if (asesor) params = params.set('asesor', asesor);
+    if (sede) params = params.set('sede', sede);
+    return this.http.get<any[]>(`${environment.apiBase}/gestion-sedes-deriv`, { params });
   }
   /** Copia al BD lo NUEVO del formulario call-sedes (botón "Sincronizar"). */
   sincronizarCallSedes(rango?: { desde?: Date; hasta?: Date }): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
