@@ -229,7 +229,7 @@ export class CierreGestionComponent implements OnInit {
     // Realzza
     'RZ1':  'ERNESTO',  'RZ2':  'NATALY',   'RZ3':  'TATIANA', 'RZ4':  'YUDITH',
     'RZ5':  'ANYELA',   'RZ6':  'FELICITA', 'RZ7': 'MERLY', 'RZ8': 'ANA RUT', 'RZ9': 'DENNIS', 'RZ10': 'AURORA',
-    'RZ11': 'WILLIAM',  'RZ12': 'LIZANDRO'
+    'RZ11': 'WILLIAM',  'RZ12': 'JESUS'
   };
 
   // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo
