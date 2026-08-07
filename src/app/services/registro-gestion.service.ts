@@ -71,6 +71,11 @@ export class RegistroGestionService {
   registrarCall(payload: GestionCallPayload): Observable<any> {
     return this.http.post(`${environment.apiBase}/gestion-call`, payload);
   }
+
+  /** Registra una gestión MARKET PLACE / Call Sedes en la BD (tabla gestion_call_sedes). */
+  registrarCallSede(payload: any): Observable<any> {
+    return this.http.post(`${environment.gestionBase || environment.apiBase}/call-sedes`, payload);
+  }
 }
 
 /** Payload de una gestión Call Center (mismos campos condicionales que Realzza,

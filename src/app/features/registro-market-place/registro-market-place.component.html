@@ -1,0 +1,114 @@
+<div class="mp-shell">
+  <div class="mp-head">
+    <div class="mp-ico"><mat-icon>storefront</mat-icon></div>
+    <div>
+      <h2>Registro MARKET PLACE</h2>
+      <p>Gestión de call sedes / market place — se guarda en la base de datos.</p>
+    </div>
+  </div>
+
+  <!-- Confirmación -->
+  <div class="mp-ok" *ngIf="guardado">
+    <mat-icon>check_circle</mat-icon>
+    <div>
+      <b>¡Gestión registrada!</b>
+      <span>Se guardó correctamente en MARKET PLACE.</span>
+    </div>
+    <button class="mp-btn" (click)="registrarOtra()"><mat-icon>add</mat-icon> Registrar otra</button>
+  </div>
+
+  <form class="mp-card" *ngIf="!guardado" (ngSubmit)="guardar()">
+    <div class="mp-grid">
+      <label>Sede *
+        <dx-select-box [dataSource]="sedes" [(value)]="m.sede" [disabled]="sedeFija" [searchEnabled]="true"
+          (onValueChanged)="onSedeChange()" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Asesor *
+        <dx-text-box *ngIf="asesorFijo" [(value)]="m.asesor" [readOnly]="true" stylingMode="outlined"></dx-text-box>
+        <dx-select-box *ngIf="!asesorFijo" [dataSource]="asesoresSede" [(value)]="m.asesor" [searchEnabled]="true"
+          [disabled]="!m.sede" placeholder="Elige la sede primero" stylingMode="outlined"></dx-select-box>
+      </label>
+
+      <label>DNI Cliente *
+        <dx-text-box [(value)]="m.dni_cliente" mode="tel" [maxLength]="12" placeholder="Documento" stylingMode="outlined"></dx-text-box>
+      </label>
+      <label>Celular gestionado
+        <dx-text-box [(value)]="m.celular_gestionado" mode="tel" [maxLength]="12" placeholder="Celular" stylingMode="outlined"></dx-text-box>
+      </label>
+
+      <label>Tipo de cliente
+        <dx-select-box [dataSource]="tipoCliente" [(value)]="m.tipo_cliente" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Medio de primer contacto
+        <dx-select-box [dataSource]="medios" [(value)]="m.medio_primer_contacto" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+
+      <label>Estado de gestión *
+        <dx-select-box [dataSource]="estados" [(value)]="m.estado_gestion" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Resultado de gestión
+        <dx-select-box [dataSource]="resultados" [(value)]="m.resultado_gestion" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+    </div>
+
+    <!-- NO CONTACTO -->
+    <div class="mp-cond" *ngIf="esNoContacto">
+      <label>Motivo no contacto
+        <dx-select-box [dataSource]="motivosNoContacto" [(value)]="m.motivo_no_contacto" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+    </div>
+
+    <!-- CONTACTO -->
+    <div class="mp-grid" *ngIf="esContacto">
+      <label>Producto de interés
+        <dx-select-box [dataSource]="productos" [(value)]="m.producto_interes" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Motivo interés
+        <dx-select-box [dataSource]="motivosInteres" [(value)]="m.motivo_interes" [searchEnabled]="true" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+    </div>
+
+    <!-- Agendamiento -->
+    <div class="mp-cond mp-grid" *ngIf="esAgenda">
+      <label>Fecha agendamiento
+        <dx-date-box [(value)]="m.fecha_agendamiento" type="date" [displayFormat]="'dd/MM/yyyy'" stylingMode="outlined"></dx-date-box>
+      </label>
+      <label>Hora aproximada
+        <dx-text-box [(value)]="m.hora_agendamiento" placeholder="ej. 15:00" stylingMode="outlined"></dx-text-box>
+      </label>
+      <label class="mp-col2">Comentario agendamiento
+        <dx-text-box [(value)]="m.comentario_agendamiento" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <!-- Derivación -->
+    <div class="mp-cond mp-grid" *ngIf="esDeriva">
+      <label>Fecha derivación
+        <dx-date-box [(value)]="m.fecha_derivacion" type="date" [displayFormat]="'dd/MM/yyyy'" stylingMode="outlined"></dx-date-box>
+      </label>
+      <label>Hora aproximada
+        <dx-text-box [(value)]="m.hora_derivacion" placeholder="ej. 15:00" stylingMode="outlined"></dx-text-box>
+      </label>
+      <label class="mp-col2">Comentario derivación
+        <dx-text-box [(value)]="m.comentario_derivacion" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <!-- Venta no concretada -->
+    <div class="mp-cond mp-grid" *ngIf="esVnc">
+      <label>Motivo de no cierre
+        <dx-select-box [dataSource]="motivosNoCierre" [(value)]="m.motivo_no_cierre" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </label>
+      <label>Comentario venta no concretada
+        <dx-text-box [(value)]="m.comentario_venta_no_concretada" placeholder="Comentario" stylingMode="outlined"></dx-text-box>
+      </label>
+    </div>
+
+    <div class="mp-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+
+    <button type="submit" class="mp-btn primary" [disabled]="!valido || guardando">
+      <mat-icon>{{ guardando ? 'hourglass_top' : 'save' }}</mat-icon>
+      {{ guardando ? 'Guardando…' : 'Guardar gestión' }}
+    </button>
+  </form>
+</div>
