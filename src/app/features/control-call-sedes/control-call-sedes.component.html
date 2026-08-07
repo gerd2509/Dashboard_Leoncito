@@ -15,6 +15,12 @@
         {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
     </button>
 
+    <button mat-stroked-button type="button" (click)="sincronizar()" [disabled]="sincronizando || isLoading"
+            title="Copia a la base de datos lo nuevo del formulario de call sedes">
+        <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
+        {{ sincronizando ? 'Sincronizando...' : 'Sincronizar formulario' }}
+    </button>
+
     <span class="sede-chip" *ngIf="!esAdmin && sedesDisponibles.length <= 1">📍 {{ sedeNombre }}</span>
     <span class="sede-chip" *ngIf="esAdmin">🛡️ Admin · {{ sedeNombre }}</span>
 </form>

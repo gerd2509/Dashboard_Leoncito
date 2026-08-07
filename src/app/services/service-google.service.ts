@@ -235,6 +235,37 @@ export class SheetsService {
     return this.http.delete(`${base}/gestion/${id}`);
   }
 
+  // 📞 CALL SEDES / MARKET PLACE (tabla gestion_call_sedes). Mapea a la forma del sheet
+  // "ferre" (incluida la columna dinámica ASESOR {SEDE} que usa control-call-sedes).
+  private mapCallSedeDbToSheet = (r: any) => {
+    const o: any = {
+      id: r.id, 'Marca temporal': r.marca, 'SEDE': r.sede, 'MARKET PLACE': r.market_place,
+      'DNI CLIENTE': r.dni_cliente, 'CELULAR GESTIONADO': r.celular_gestionado, 'TIPO DE CLIENTE': r.tipo_cliente,
+      'ESTADO DE GESTIÓN': r.estado_gestion, 'MEDIO DE PRIMER CONTACTO': r.medio_primer_contacto,
+      'RESULTADO DE GESTIÓN': r.resultado_gestion, 'PRODUCTO INTERÉS': r.producto_interes,
+      'MOTIVO INTERÉS': r.motivo_interes, 'MOTIVO DE NO CIERRE': r.motivo_no_cierre,
+      'COMENTARIO VENTA NO CONCRETADA': r.comentario_venta_no_concretada, 'ASESOR': r.asesor,
+      _origen: r.origen,
+    };
+    if (r.sede) o['ASESOR ' + r.sede.toString().toUpperCase()] = r.asesor;
+    return o;
+  };
+  getCallSedesDB(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+    const base = environment.gestionBase || environment.apiBase;
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any[]>(`${base}/call-sedes`, { params }).pipe(map(rows => (rows || []).map(this.mapCallSedeDbToSheet)));
+  }
+  /** Copia al BD lo NUEVO del formulario call-sedes (botón "Sincronizar"). */
+  sincronizarCallSedes(rango?: { desde?: Date; hasta?: Date }): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
+    const base = environment.gestionBase || environment.apiBase;
+    let params = new HttpParams();
+    if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
+    if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    return this.http.post<any>(`${base}/call-sedes/sync`, {}, { params });
+  }
+
   // 📞 Formulario de gestión de Ferreñafe (contacto / no contacto)
   getSheetDataFerre(): Observable<any[]> {
     return this.http.get<any[]>(this.apiUrlFerre);

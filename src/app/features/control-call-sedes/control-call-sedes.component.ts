@@ -3,6 +3,7 @@ import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
@@ -76,9 +77,12 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
   private readonly AGENDAMIENTO_KEY = this.normalizar('CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)');
   private readonly VNC_KEY          = this.normalizar('VENTA NO CONCRETADA');
 
+  sincronizando = false;
+
   constructor(
     private fb: UntypedFormBuilder,
     private sheetsService: SheetsService,
+    private snack: MatSnackBar,
   ) {
     this.formCtrl = this.fb.group({
       fechaGestion: [new Date()],
@@ -125,7 +129,7 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
   // Solo trae la data del form (sin calcular).
   private async cargarListData(): Promise<void> {
     try {
-      this.listData = await lastValueFrom(this.sheetsService.getSheetDataFerre());
+      this.listData = await lastValueFrom(this.sheetsService.getCallSedesDB());
     } catch (e) {
       console.error('Error al cargar datos de gestión de sedes:', e);
       this.listData = [];
@@ -181,7 +185,7 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     try {
       // Form de gestión (contacto / no contacto / motivo interés). Hoy contiene Ferreñafe (+ Motupe).
-      this.listData = await lastValueFrom(this.sheetsService.getSheetDataFerre());
+      this.listData = await lastValueFrom(this.sheetsService.getCallSedesDB());
       this.calcular();
     } catch (e) {
       console.error('Error al cargar datos de gestión de sedes:', e);
@@ -196,6 +200,26 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   async actualizar() {
     await this.cargarDatos();
+  }
+
+  /** Copia lo NUEVO del formulario call-sedes a la BD (solo el día visto) y recarga. */
+  sincronizar(): void {
+    if (this.sincronizando) return;
+    this.sincronizando = true;
+    const fecha = this.formCtrl.value.fechaGestion as Date;
+    this.sheetsService.sincronizarCallSedes({ desde: fecha, hasta: fecha }).subscribe({
+      next: async r => {
+        this.sincronizando = false;
+        this.snack.open(`✔ Sincronizado: ${r.insertados} nuevas gestiones del formulario.`, 'OK',
+          { duration: 3500, horizontalPosition: 'end', verticalPosition: 'top', panelClass: 'toast-ok' });
+        await this.cargarDatos();
+      },
+      error: () => {
+        this.sincronizando = false;
+        this.snack.open('❌ No se pudo sincronizar con el formulario.', 'OK',
+          { duration: 5000, horizontalPosition: 'end', verticalPosition: 'top', panelClass: 'toast-error' });
+      },
+    });
   }
 
   private calcular() {
