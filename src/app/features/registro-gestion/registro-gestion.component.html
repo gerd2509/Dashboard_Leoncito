@@ -36,33 +36,36 @@
       <div class="rg-field" *ngIf="!sedeFija">
         <label>Sede *</label>
         <dx-select-box [dataSource]="sedes" displayExpr="nombre" [value]="modelo.sede" [searchEnabled]="true"
-          (onSelectionChanged)="$event.selectedItem && seleccionarSede($event.selectedItem)" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+          (onSelectionChanged)="$event.selectedItem && seleccionarSede($event.selectedItem); touched()"
+          [isValid]="!(intento && !modelo.sede)" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field">
         <label>Asesor *</label>
         <dx-text-box *ngIf="asesorFijo" [value]="modelo.asesor" [readOnly]="true" stylingMode="outlined"></dx-text-box>
         <dx-select-box *ngIf="!asesorFijo" [dataSource]="asesores" [(value)]="modelo.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
+          [isValid]="!(intento && !modelo.asesor)" (onValueChanged)="touched()"
           [placeholder]="cargandoAsesores ? 'Cargando…' : 'Selecciona…'" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field">
         <label>DNI cliente *</label>
-        <dx-text-box [(value)]="modelo.dni_cliente" (onValueChanged)="modelo.dni_cliente = soloNum(modelo.dni_cliente, 8)" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box>
+        <dx-text-box [(value)]="modelo.dni_cliente" (onValueChanged)="modelo.dni_cliente = soloNum(modelo.dni_cliente, 8)" mode="tel" [maxLength]="8"
+          [isValid]="!(intento && sDniBad)" validationError="El DNI debe tener 8 dígitos" stylingMode="outlined"></dx-text-box>
       </div>
       <div class="rg-field">
         <label>Tipo de gestión *</label>
-        <dx-select-box [dataSource]="tipos" [(value)]="modelo.tipo_gestion" stylingMode="outlined"></dx-select-box>
+        <dx-select-box [dataSource]="tipos" [(value)]="modelo.tipo_gestion" [isValid]="!(intento && !modelo.tipo_gestion)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field">
         <label>Resultado *</label>
-        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="modelo.resultado" (onValueChanged)="onResultadoChange()" stylingMode="outlined"></dx-select-box>
+        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="modelo.resultado" (onValueChanged)="onResultadoChange(); touched()" [isValid]="!(intento && !modelo.resultado)" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field" *ngIf="sMotivoContacto">
         <label>Motivo contacto *</label>
-        <dx-select-box [dataSource]="motivosContacto" [(value)]="modelo.motivo_contacto" (onValueChanged)="onMotivoContactoChange()" stylingMode="outlined"></dx-select-box>
+        <dx-select-box [dataSource]="motivosContacto" [(value)]="modelo.motivo_contacto" (onValueChanged)="onMotivoContactoChange(); touched()" [isValid]="!(intento && !modelo.motivo_contacto)" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field" *ngIf="sNoContacto">
         <label>Motivo no contacto *</label>
-        <dx-select-box [dataSource]="motivosNoContacto" [(value)]="modelo.motivo_no_contacto" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+        <dx-select-box [dataSource]="motivosNoContacto" [(value)]="modelo.motivo_no_contacto" [acceptCustomValue]="true" [isValid]="!(intento && !modelo.motivo_no_contacto)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>
       </div>
       <ng-container *ngIf="sFormulario">
         <div class="rg-field"><label>Fecha compromiso/visita *</label>
@@ -85,23 +88,25 @@
       <div class="rg-field rg-2">
         <label>Asesor Realzza *</label>
         <dx-select-box [dataSource]="asesoresRealzza" [(value)]="rz.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
-          [disabled]="!elegirCanal" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+          [disabled]="!elegirCanal" [isValid]="!(intento && !rz.asesor)" (onValueChanged)="touched()" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field"><label>DNI cliente *</label>
-        <dx-text-box [(value)]="rz.dni_cliente" (onValueChanged)="rz.dni_cliente = soloNum(rz.dni_cliente, 8)" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box></div>
+        <dx-text-box [(value)]="rz.dni_cliente" (onValueChanged)="rz.dni_cliente = soloNum(rz.dni_cliente, 8)" mode="tel" [maxLength]="8"
+          [isValid]="!(intento && rzDniBad)" validationError="El DNI debe tener 8 dígitos" stylingMode="outlined"></dx-text-box></div>
       <div class="rg-field"><label>Celular gestionado *</label>
-        <dx-text-box [(value)]="rz.celular_gestionado" (onValueChanged)="rz.celular_gestionado = soloNum(rz.celular_gestionado, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
+        <dx-text-box [(value)]="rz.celular_gestionado" (onValueChanged)="rz.celular_gestionado = soloNum(rz.celular_gestionado, 9)" mode="tel" [maxLength]="9"
+          [isValid]="!(intento && rzCelBad)" validationError="El celular debe tener 9 dígitos" stylingMode="outlined"></dx-text-box></div>
       <div class="rg-field"><label>Tipo de base *</label>
-        <dx-select-box [dataSource]="rzTipoBase" [(value)]="rz.tipo_base" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="rzTipoBase" [(value)]="rz.tipo_base" [isValid]="!(intento && !rz.tipo_base)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
       <div class="rg-field"><label>Estado de gestión *</label>
-        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="rz.estado_gestion" (onValueChanged)="onRzEstadoChange()" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="rz.estado_gestion" (onValueChanged)="onRzEstadoChange(); touched()" [isValid]="!(intento && !rz.estado_gestion)" stylingMode="outlined"></dx-select-box></div>
       <div class="rg-field" *ngIf="rzNoCont"><label>Motivo no contacto *</label>
-        <dx-select-box [dataSource]="rzMotivoNoContacto" [(value)]="rz.motivo_no_contacto" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="rzMotivoNoContacto" [(value)]="rz.motivo_no_contacto" [isValid]="!(intento && !rz.motivo_no_contacto)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
       <ng-container *ngIf="rzCont">
         <div class="rg-field"><label>Medio primer contacto *</label>
-          <dx-select-box [dataSource]="rzMedio" [(value)]="rz.medio_primer_contacto" stylingMode="outlined"></dx-select-box></div>
+          <dx-select-box [dataSource]="rzMedio" [(value)]="rz.medio_primer_contacto" [isValid]="!(intento && !rz.medio_primer_contacto)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
         <div class="rg-field"><label>Resultado de gestión *</label>
-          <dx-select-box [dataSource]="rzResultado" [(value)]="rz.resultado_gestion" (onValueChanged)="onRzResultadoChange()" stylingMode="outlined"></dx-select-box></div>
+          <dx-select-box [dataSource]="rzResultado" [(value)]="rz.resultado_gestion" (onValueChanged)="onRzResultadoChange(); touched()" [isValid]="!(intento && !rz.resultado_gestion)" stylingMode="outlined"></dx-select-box></div>
       </ng-container>
       <ng-container *ngIf="rzInteres">
         <div class="rg-field"><label>Producto interés *</label>
@@ -162,27 +167,29 @@
       <div class="rg-field rg-2">
         <label>Asesor Call *</label>
         <dx-select-box [dataSource]="asesoresCall" [(value)]="call.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
-          [disabled]="!elegirCanal" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+          [disabled]="!elegirCanal" [isValid]="!(intento && !call.asesor)" (onValueChanged)="touched()" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rg-field"><label>DNI cliente *</label>
-        <dx-text-box [(value)]="call.dni_cliente" (onValueChanged)="call.dni_cliente = soloNum(call.dni_cliente, 8)" mode="tel" [maxLength]="8" stylingMode="outlined"></dx-text-box></div>
+        <dx-text-box [(value)]="call.dni_cliente" (onValueChanged)="call.dni_cliente = soloNum(call.dni_cliente, 8)" mode="tel" [maxLength]="8"
+          [isValid]="!(intento && callDniBad)" validationError="El DNI debe tener 8 dígitos" stylingMode="outlined"></dx-text-box></div>
       <div class="rg-field"><label>Celular gestionado *</label>
-        <dx-text-box [(value)]="call.celular_gestionado" (onValueChanged)="call.celular_gestionado = soloNum(call.celular_gestionado, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
+        <dx-text-box [(value)]="call.celular_gestionado" (onValueChanged)="call.celular_gestionado = soloNum(call.celular_gestionado, 9)" mode="tel" [maxLength]="9"
+          [isValid]="!(intento && callCelBad)" validationError="El celular debe tener 9 dígitos" stylingMode="outlined"></dx-text-box></div>
       <div class="rg-field"><label>Sede *</label>
-        <dx-select-box [dataSource]="callSedes" [(value)]="call.sede" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="callSedes" [(value)]="call.sede" [searchEnabled]="true" [isValid]="!(intento && !call.sede)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
       <div class="rg-field"><label>KOMMO *</label>
-        <dx-select-box [dataSource]="['SI','NO']" [(value)]="call.kommo" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="['SI','NO']" [(value)]="call.kommo" [isValid]="!(intento && !call.kommo)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
       <div class="rg-field"><label>Tipo de cliente *</label>
-        <dx-select-box [dataSource]="callTipoCliente" [(value)]="call.tipo_cliente" [searchEnabled]="true" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="callTipoCliente" [(value)]="call.tipo_cliente" [searchEnabled]="true" [isValid]="!(intento && !call.tipo_cliente)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
       <div class="rg-field"><label>Estado de gestión *</label>
-        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="call.estado_gestion" (onValueChanged)="onCallEstadoChange()" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="['CONTACTO','NO CONTACTO']" [(value)]="call.estado_gestion" (onValueChanged)="onCallEstadoChange(); touched()" [isValid]="!(intento && !call.estado_gestion)" stylingMode="outlined"></dx-select-box></div>
       <div class="rg-field" *ngIf="cNoCont"><label>Motivo no contacto *</label>
-        <dx-select-box [dataSource]="callMotivoNoContacto" [(value)]="call.motivo_no_contacto" stylingMode="outlined"></dx-select-box></div>
+        <dx-select-box [dataSource]="callMotivoNoContacto" [(value)]="call.motivo_no_contacto" [isValid]="!(intento && !call.motivo_no_contacto)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
       <ng-container *ngIf="cCont">
         <div class="rg-field"><label>Medio primer contacto *</label>
-          <dx-select-box [dataSource]="callMedio" [(value)]="call.medio_primer_contacto" stylingMode="outlined"></dx-select-box></div>
+          <dx-select-box [dataSource]="callMedio" [(value)]="call.medio_primer_contacto" [isValid]="!(intento && !call.medio_primer_contacto)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box></div>
         <div class="rg-field"><label>Resultado de gestión *</label>
-          <dx-select-box [dataSource]="callResultado" [(value)]="call.resultado_gestion" (onValueChanged)="onCallResultadoChange()" stylingMode="outlined"></dx-select-box></div>
+          <dx-select-box [dataSource]="callResultado" [(value)]="call.resultado_gestion" (onValueChanged)="onCallResultadoChange(); touched()" [isValid]="!(intento && !call.resultado_gestion)" stylingMode="outlined"></dx-select-box></div>
       </ng-container>
       <ng-container *ngIf="cInteres">
         <div class="rg-field"><label>Producto interés *</label>
@@ -239,6 +246,7 @@
     </div>
 
     <p class="rg-error" *ngIf="error">{{ error }}</p>
+    <p class="rg-error" *ngIf="!error && intento && primerError"><mat-icon>error_outline</mat-icon> {{ primerError }}</p>
 
     <div class="rg-actions">
       <button class="btn guardar" (click)="guardar()" [disabled]="!formOk || guardando">

@@ -16,17 +16,20 @@
   <form class="rd-card" *ngIf="!guardado" (ngSubmit)="guardar()">
     <div class="rd-grid">
       <label>Sede *
-        <dx-select-box [dataSource]="sedes" [(value)]="m.sede" [disabled]="sedeFija" (onValueChanged)="onSedeChange()"
+        <dx-select-box [dataSource]="sedes" [(value)]="m.sede" [disabled]="sedeFija"
+          (onValueChanged)="onSedeChange(); touched()" [isValid]="!(intento && invSede)"
           placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
       </label>
       <label>Asesor *
         <dx-text-box *ngIf="asesorFijo" [(value)]="m.asesor" [readOnly]="true" stylingMode="outlined"></dx-text-box>
         <dx-select-box *ngIf="!asesorFijo" [dataSource]="asesoresSede" [(value)]="m.asesor" [searchEnabled]="true"
-          [disabled]="!m.sede" placeholder="Elige la sede primero" stylingMode="outlined"></dx-select-box>
+          [disabled]="!m.sede" [isValid]="!(intento && invAsesor)" (onValueChanged)="touched()"
+          placeholder="Elige la sede primero" stylingMode="outlined"></dx-select-box>
       </label>
 
       <label>DNI Cliente *
-        <dx-text-box [(value)]="m.dni_cliente" mode="tel" [maxLength]="12" placeholder="Documento" stylingMode="outlined"></dx-text-box>
+        <dx-text-box [(value)]="m.dni_cliente" mode="tel" [maxLength]="12" placeholder="Documento"
+          [isValid]="!(intento && invDni)" (onValueChanged)="touched()" stylingMode="outlined"></dx-text-box>
       </label>
       <label>Celular gestionado
         <dx-text-box [(value)]="m.celular_gestionado" mode="tel" [maxLength]="12" placeholder="Celular" stylingMode="outlined"></dx-text-box>
@@ -59,6 +62,7 @@
     </div>
 
     <div class="rd-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+    <div class="rd-error" *ngIf="!error && intento && primerError"><mat-icon>error_outline</mat-icon> {{ primerError }}</div>
 
     <button type="submit" class="rd-btn primary" [disabled]="!valido || guardando">
       <mat-icon>{{ guardando ? 'hourglass_top' : 'save' }}</mat-icon>

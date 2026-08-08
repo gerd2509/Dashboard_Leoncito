@@ -46,7 +46,7 @@ export class RegistroSupervisorComponent {
 
   // Subtipo dentro de la pestaña Market Place.
   mpSubtipo: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA' = 'MARKET PLACE PLATAFORMA';
-  setMpSubtipo(v: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA'): void { this.mpSubtipo = v; }
+  setMpSubtipo(v: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA'): void { this.mpSubtipo = v; this.intento = false; }
   readonly margenMp = MARGEN_MP_DIAS;
 
   guardando = false;
@@ -71,10 +71,11 @@ export class RegistroSupervisorComponent {
 
   get supervisor(): string { return this.auth.getUsuario()?.nombre ?? ''; }
 
-  setTipo(t: 'GESTION' | 'MARKET_PLACE'): void { this.tipo = t; }
+  setTipo(t: 'GESTION' | 'MARKET_PLACE'): void { this.tipo = t; this.intento = false; }
 
   soloNumeros(campo: 'dni_cliente' | 'celular', max: number): void {
     this.g[campo] = (this.g[campo] ?? '').toString().replace(/\D/g, '').slice(0, max);
+    this.intento = true;
   }
 
   // ── Market Place: cálculo automático del estado por la regla de los 4 días ──
@@ -172,6 +173,18 @@ export class RegistroSupervisorComponent {
     return e;
   }
   get formValido(): boolean { return this.errores.length === 0; }
+  get primerError(): string { return this.errores[0] || ''; }
+
+  // ── Marcado en rojo del campo inválido (tras la 1ª interacción) ──
+  intento = false;
+  touched(): void { this.intento = true; }
+  get invGAsesor(): boolean { return !this.g.asesor; }
+  get invGDni(): boolean { return !/^\d{8}$/.test(this.g.dni_cliente || ''); }
+  get invGCel(): boolean { return !!this.g.celular && !/^\d{9}$/.test(this.g.celular); }
+  get invGEstado(): boolean { return !this.g.estado_gestion; }
+  get invMpAsesor(): boolean { return !this.mp.asesor; }
+  get invMpFecha(): boolean { return !this.mp.sinPub && !this.mp.fechaPub; }
+  get invMpEstadoLead(): boolean { return !this.mp.estadoLead; }
 
   registrar(): void {
     const errs = this.errores;
@@ -228,6 +241,7 @@ export class RegistroSupervisorComponent {
     } else {
       this.mp = { asesor: this.mp.asesor, fechaPub: null, sinPub: false, sePublico: false, cliente: '', estadoLead: '', comentario: '', fotos: [] };
     }
+    this.intento = false;
   }
 
   private fechaDMY(d: Date | null): string {

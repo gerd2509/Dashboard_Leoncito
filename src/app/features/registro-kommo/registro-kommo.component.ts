@@ -120,6 +120,7 @@ export class RegistroKommoComponent implements OnInit {
     this.f = blankForm(this.canal);
     this.f.asesor = this.asesorFijo;   // vendedor → asesor predeterminado; admin → vacío (lo elige)
     this.fechaLead = this.fechaAgend = this.horaAgend = this.fechaDeriv = this.horaDeriv = null;
+    this.intento = false;   // form limpio → sin marcas rojas hasta la próxima interacción
   }
 
   private fmtFecha(d: Date | null): string {
@@ -131,7 +132,11 @@ export class RegistroKommoComponent implements OnInit {
 
   soloNumeros(campo: 'dni_cliente' | 'celular_gestionado', max: number): void {
     this.f[campo] = (this.f[campo] ?? '').toString().replace(/\D/g, '').slice(0, max);
+    this.intento = true;   // el usuario ya escribió → habilita el marcado en rojo
   }
+
+  /** Primera interacción con el form: a partir de aquí se pintan en rojo los campos inválidos. */
+  touched(): void { this.intento = true; }
 
   // ── Visibilidad de campos según el flujo del form KOMMO ──
   get esContacto(): boolean { return this.f.estado_gestion === 'CONTACTO'; }
@@ -150,17 +155,30 @@ export class RegistroKommoComponent implements OnInit {
     return this.esInteresado && this.f.motivo_interes === 'VENTA NO CONCRETADA';
   }
 
+  // ── Validez por campo (para marcar en rojo el que esté mal) ──
+  // `intento` se activa al pulsar Registrar: hasta entonces no se pinta nada de rojo
+  // (para no mostrar el form todo rojo al abrirlo vacío).
+  intento = false;
+  get invAsesor(): boolean { return !this.f.asesor; }
+  get invDni(): boolean { return !/^\d{8}$/.test(this.f.dni_cliente || ''); }
+  get invCelular(): boolean { return !!this.f.celular_gestionado && !/^\d{9}$/.test(this.f.celular_gestionado); }
+  get invEstado(): boolean { return !this.f.estado_gestion; }
+  get invResultado(): boolean { return this.esContacto && !this.f.resultado_gestion; }
+  get invNoContacto(): boolean { return this.esNoContacto && !this.f.motivo_no_contacto; }
+
   private get errores(): string[] {
     const e: string[] = [];
-    if (!this.f.asesor) e.push('Selecciona el asesor.');
-    if (!/^\d{8}$/.test(this.f.dni_cliente || '')) e.push('El DNI debe tener 8 dígitos.');
-    if (this.f.celular_gestionado && !/^\d{9}$/.test(this.f.celular_gestionado)) e.push('El celular debe tener 9 dígitos.');
-    if (!this.f.estado_gestion) e.push('Selecciona el estado de gestión.');
-    if (this.esContacto && !this.f.resultado_gestion) e.push('Selecciona el resultado de gestión.');
-    if (this.esNoContacto && !this.f.motivo_no_contacto) e.push('Indica el motivo de no contacto.');
+    if (this.invAsesor) e.push('Selecciona el asesor.');
+    if (this.invDni) e.push('El DNI debe tener 8 dígitos.');
+    if (this.invCelular) e.push('El celular debe tener 9 dígitos.');
+    if (this.invEstado) e.push('Selecciona el estado de gestión.');
+    if (this.invResultado) e.push('Selecciona el resultado de gestión.');
+    if (this.invNoContacto) e.push('Indica el motivo de no contacto.');
     return e;
   }
   get formValido(): boolean { return this.errores.length === 0; }
+  /** Primer campo faltante (para la pista junto al botón deshabilitado). */
+  get primerError(): string { return this.errores[0] || ''; }
 
   registrar(): void {
     const errs = this.errores;

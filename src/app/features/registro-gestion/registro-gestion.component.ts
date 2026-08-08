@@ -282,6 +282,7 @@ export class RegistroGestionComponent implements OnInit {
     this.canal = c;
     this.pasoIndex = 0;
     this.error = '';
+    this.intento = false;
     this.modelo = this.modeloVacio();
     this.rz = this.rzVacio();
     this.call = this.callVacio();
@@ -492,6 +493,7 @@ export class RegistroGestionComponent implements OnInit {
   // ── Sanitizado y validación ──
   /** Deja solo dígitos y recorta al máximo indicado (para DNI/celular). */
   soloNum(v: string, max: number): string {
+    this.intento = true;   // el usuario ya escribió → habilita el marcado en rojo
     return (v ?? '').toString().replace(/\D/g, '').slice(0, max);
   }
   dniInvalido(): boolean {
@@ -501,6 +503,91 @@ export class RegistroGestionComponent implements OnInit {
   celularInvalido(): boolean {
     const c = (this.modelo.celular_actualizado ?? '').toString();
     return c.length > 0 && !/^\d{9}$/.test(c);
+  }
+
+  // ── Marcado en rojo del campo inválido + pista del primer faltante ──
+  // El rojo aparece solo tras la 1ª interacción (`intento`) para no abrir el form todo en rojo.
+  intento = false;
+  touched(): void { this.intento = true; }
+  private d8(v: string): boolean { return /^\d{8}$/.test(v || ''); }
+  private d9(v: string): boolean { return /^\d{9}$/.test(v || ''); }
+  private t(v: any): boolean { return `${v ?? ''}`.trim().length > 0; }
+  // "Bad" = no cumple el mínimo (vacío o formato incorrecto) → para el borde rojo.
+  get sDniBad(): boolean { return !this.d8(this.modelo.dni_cliente); }
+  get rzDniBad(): boolean { return !this.d8(this.rz.dni_cliente); }
+  get rzCelBad(): boolean { return !this.d9(this.rz.celular_gestionado); }
+  get callDniBad(): boolean { return !this.d8(this.call.dni_cliente); }
+  get callCelBad(): boolean { return !this.d9(this.call.celular_gestionado); }
+
+  /** Primer campo faltante del canal activo (mismo orden que formOk) para la pista. */
+  get primerError(): string {
+    if (this.faltaAsesor) return 'Selecciona el asesor.';
+    if (this.canal === 'realzza') {
+      const m = this.rz;
+      if (!this.d8(m.dni_cliente)) return 'El DNI debe tener 8 dígitos.';
+      if (!this.d9(m.celular_gestionado)) return 'El celular debe tener 9 dígitos.';
+      if (!m.tipo_base) return 'Selecciona el tipo de base.';
+      if (!m.estado_gestion) return 'Selecciona el estado de gestión.';
+      if (this.rzNoCont) return m.motivo_no_contacto ? '' : 'Indica el motivo de no contacto.';
+      if (!m.medio_primer_contacto) return 'Selecciona el medio de primer contacto.';
+      if (!m.resultado_gestion) return 'Selecciona el resultado de gestión.';
+      if (this.rzInteres) {
+        if (!m.producto_interes) return 'Selecciona el producto de interés.';
+        if (!m.motivo_interes) return 'Selecciona el motivo de interés.';
+        if (this.rzDeriv && !(m.fecha_interes_derivacion && m.hora_interes_derivacion && this.t(m.comentario_derivacion))) return 'Completa los datos de la derivación.';
+        if (this.rzAgend && !(m.motivo_agendamiento && m.fecha_interes_agendamiento && m.hora_interes_agendamiento && this.t(m.comentario_agendamiento))) return 'Completa los datos del agendamiento.';
+        if (this.rzNoConcret && !(m.motivo_no_cierre && this.t(m.comentario_venta_no_concretada))) return 'Completa el motivo de no cierre y el comentario.';
+        return '';
+      }
+      if (this.rzNoInt && !(m.motivo_no_interes && this.t(m.comentario_no_interes))) return 'Completa el motivo de no interés y el comentario.';
+      if (this.rzNoAtend && !(m.motivo_no_atendible && this.t(m.comentario_no_atendible))) return 'Completa el motivo de no atendible y el comentario.';
+      if (this.rzTerc) {
+        if (!m.motivos_tercero_relacionado) return 'Selecciona el motivo del tercero relacionado.';
+        if (this.rzTercAgenda && !(m.fecha_rellamada && m.hora_rellamada && this.d9(m.numero_titular_actual))) return 'Completa la re-llamada y el número del titular.';
+      }
+      return '';
+    }
+    if (this.canal === 'call') {
+      const m = this.call;
+      if (!this.d8(m.dni_cliente)) return 'El DNI debe tener 8 dígitos.';
+      if (!this.d9(m.celular_gestionado)) return 'El celular debe tener 9 dígitos.';
+      if (!m.sede) return 'Selecciona la sede.';
+      if (!m.kommo) return 'Indica si es KOMMO (SI/NO).';
+      if (!m.tipo_cliente) return 'Selecciona el tipo de cliente.';
+      if (!m.estado_gestion) return 'Selecciona el estado de gestión.';
+      if (this.cNoCont) return m.motivo_no_contacto ? '' : 'Indica el motivo de no contacto.';
+      if (!m.medio_primer_contacto) return 'Selecciona el medio de primer contacto.';
+      if (!m.resultado_gestion) return 'Selecciona el resultado de gestión.';
+      if (this.cInteres) {
+        if (!m.producto_interes) return 'Selecciona el producto de interés.';
+        if (!m.motivo_interes) return 'Selecciona el motivo de interés.';
+        if (this.cDeriv && !(m.fecha_interes_derivacion && m.hora_interes_derivacion && this.t(m.comentario_derivacion))) return 'Completa los datos de la derivación.';
+        if (this.cAgend && !(m.motivo_agendamiento && m.fecha_interes_agendamiento && m.hora_interes_agendamiento && this.t(m.comentario_agendamiento))) return 'Completa los datos del agendamiento.';
+        if (this.cNoConcret && !(m.motivo_no_cierre && this.t(m.comentario_venta_no_concretada))) return 'Completa el motivo de no cierre y el comentario.';
+        return '';
+      }
+      if (this.cNoInt && !(m.motivo_no_interes && this.t(m.comentario_no_interes))) return 'Completa el motivo de no interés y el comentario.';
+      if (this.cNoAtend && !(m.motivo_no_atendible && this.t(m.comentario_no_atendible))) return 'Completa el motivo de no atendible y el comentario.';
+      if (this.cTerc) {
+        if (!m.motivos_tercero_relacionado) return 'Selecciona el motivo del tercero relacionado.';
+        if (this.cTercAgenda && !(m.fecha_rellamada && m.hora_rellamada && this.d9(m.numero_titular_actual))) return 'Completa la re-llamada y el número del titular.';
+      }
+      return '';
+    }
+    const m = this.modelo;
+    if (!this.d8(m.dni_cliente)) return 'El DNI debe tener 8 dígitos.';
+    if (!m.sede) return 'Selecciona la sede.';
+    if (!m.asesor) return 'Selecciona el asesor.';
+    if (!m.tipo_gestion) return 'Selecciona el tipo de gestión.';
+    if (!m.resultado) return 'Selecciona el resultado.';
+    if (this.sNoContacto) return m.motivo_no_contacto ? '' : 'Indica el motivo de no contacto.';
+    if (this.sMotivoContacto) {
+      if (!m.motivo_contacto) return 'Selecciona el motivo de contacto.';
+      if (this.sFormulario && !(m.fecha_compromiso && this.t(m.valor_venta) && m.producto_interes)) return 'Completa fecha, valor y producto de interés.';
+      if (this.sDetalle && !(this.t(m.detalle_contacto) && this.d9(m.celular_actualizado))) return 'Completa el detalle y el celular actualizado (9 dígitos).';
+      return '';
+    }
+    return '';
   }
 
   pasoValido(): boolean {
@@ -740,6 +827,7 @@ export class RegistroGestionComponent implements OnInit {
   }
 
   registrarOtra(): void {
+    this.intento = false;   // form limpio → sin marcas rojas hasta la próxima interacción
     if (this.canal === 'realzza') {
       const asesor = this.rz.asesor;
       this.rz = this.rzVacio();

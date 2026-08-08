@@ -76,6 +76,19 @@ export class RegistroDerivacionesComponent implements OnInit {
     return !!this.m.asesor && !!this.m.sede && !!this.m.dni_cliente.trim();
   }
 
+  // ── Marcado en rojo del campo inválido (tras la 1ª interacción) ──
+  intento = false;
+  touched(): void { this.intento = true; }
+  get invSede(): boolean { return !this.m.sede; }
+  get invAsesor(): boolean { return !this.m.asesor; }
+  get invDni(): boolean { return !this.m.dni_cliente.trim(); }
+  get primerError(): string {
+    if (this.invSede) return 'Selecciona la sede.';
+    if (this.invAsesor) return 'Selecciona el asesor.';
+    if (this.invDni) return 'Ingresa el DNI del cliente.';
+    return '';
+  }
+
   private fmtFecha(v: any): string {
     if (!v) return '';
     const d = new Date(v);
@@ -104,6 +117,6 @@ export class RegistroDerivacionesComponent implements OnInit {
     const asesor = this.m.asesor, sede = this.m.sede;
     this.m = this.vacio();
     this.m.asesor = asesor; this.m.sede = sede;
-    this.guardado = false; this.error = '';
+    this.guardado = false; this.error = ''; this.intento = false;
   }
 }

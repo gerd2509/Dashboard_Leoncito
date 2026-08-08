@@ -22,7 +22,7 @@
     <div class="rs-grid" *ngIf="tipo === 'GESTION'">
       <div class="rs-field">
         <label>Asesor <span class="req">*</span></label>
-        <dx-select-box [dataSource]="asesores" [(value)]="g.asesor"
+        <dx-select-box [dataSource]="asesores" [(value)]="g.asesor" [isValid]="!(intento && invGAsesor)" (onValueChanged)="touched()"
           placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
       </div>
       <div class="rs-field">
@@ -33,16 +33,19 @@
       <div class="rs-field">
         <label>DNI del cliente <span class="req">*</span></label>
         <dx-text-box [(value)]="g.dni_cliente" (onValueChanged)="soloNumeros('dni_cliente', 8)"
+          [isValid]="!(intento && invGDni)" validationError="El DNI debe tener 8 dígitos"
           placeholder="8 dígitos" mode="tel" stylingMode="outlined" [maxLength]="8"></dx-text-box>
       </div>
       <div class="rs-field">
         <label>Celular gestionado</label>
         <dx-text-box [(value)]="g.celular" (onValueChanged)="soloNumeros('celular', 9)"
+          [isValid]="!(intento && invGCel)" validationError="El celular debe tener 9 dígitos"
           placeholder="9 dígitos" mode="tel" stylingMode="outlined" [maxLength]="9"></dx-text-box>
       </div>
       <div class="rs-field rs-full">
         <label>Estado de gestión (control) <span class="req">*</span></label>
-        <dx-radio-group [items]="estados" [(value)]="g.estado_gestion" layout="horizontal"></dx-radio-group>
+        <dx-radio-group [items]="estados" [(value)]="g.estado_gestion" (onValueChanged)="touched()"
+          [isValid]="!(intento && invGEstado)" layout="horizontal"></dx-radio-group>
       </div>
       <div class="rs-field rs-full">
         <label>Comentario</label>
@@ -73,14 +76,14 @@
 
         <div class="rs-field">
           <label>Asesor <span class="req">*</span></label>
-          <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor"
+          <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor" [isValid]="!(intento && invMpAsesor)" (onValueChanged)="touched()"
             placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
         </div>
 
         <div class="rs-field">
           <label>Fecha de la última publicación <span class="req" *ngIf="!mp.sinPub">*</span></label>
-          <dx-date-box [(value)]="mp.fechaPub" type="date" displayFormat="dd/MM/yyyy"
-            [disabled]="mp.sinPub" [max]="hoy" placeholder="dd/mm/aaaa" stylingMode="outlined" [openOnFieldClick]="true"></dx-date-box>
+          <dx-date-box [(value)]="mp.fechaPub" type="date" displayFormat="dd/MM/yyyy" (onValueChanged)="touched()"
+            [isValid]="!(intento && invMpFecha)" [disabled]="mp.sinPub" [max]="hoy" placeholder="dd/mm/aaaa" stylingMode="outlined" [openOnFieldClick]="true"></dx-date-box>
         </div>
 
         <div class="rs-field rs-full rs-checks">
@@ -115,7 +118,7 @@
 
         <div class="rs-field">
           <label>Asesor <span class="req">*</span></label>
-          <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor"
+          <dx-select-box [dataSource]="asesores" [(value)]="mp.asesor" [isValid]="!(intento && invMpAsesor)" (onValueChanged)="touched()"
             placeholder="Selecciona el asesor" [searchEnabled]="true" stylingMode="outlined"></dx-select-box>
         </div>
 
@@ -126,7 +129,7 @@
 
         <div class="rs-field rs-full">
           <label>Estado del lead <span class="req">*</span></label>
-          <dx-select-box [dataSource]="estadosLead" [(value)]="mp.estadoLead"
+          <dx-select-box [dataSource]="estadosLead" [(value)]="mp.estadoLead" [isValid]="!(intento && invMpEstadoLead)" (onValueChanged)="touched()"
             placeholder="Selecciona el estado" stylingMode="outlined"></dx-select-box>
         </div>
       </ng-container>
@@ -165,6 +168,8 @@
         </div>
       </div>
     </div>
+
+    <p class="rs-error" *ngIf="intento && primerError"><mat-icon>error_outline</mat-icon> {{ primerError }}</p>
 
     <button class="rs-btn" (click)="registrar()" [disabled]="guardando || !formValido">
       <mat-icon>{{ guardando ? 'hourglass_empty' : 'save' }}</mat-icon>

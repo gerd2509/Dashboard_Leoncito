@@ -168,6 +168,8 @@
 .rs-field label { font-size: 13px; font-weight: 700; color: #33445f; }
 .rs-field .req { color: #d32f2f; }
 
+.rs-error { display: flex; align-items: center; gap: 6px; color: #c0392b; font-weight: 600; font-size: 13.5px; margin: 14px 2px 0; }
+.rs-error mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .rs-btn {
   margin-top: 24px;
   width: 100%;

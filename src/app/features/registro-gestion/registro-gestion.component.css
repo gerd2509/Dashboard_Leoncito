@@ -78,7 +78,8 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml;utf8,<s
 .resumen li span { color: #6b7a8d; }
 .resumen li b { color: #24303f; text-align: right; }
 
-.rg-error { color: #c0392b; font-weight: 600; font-size: 13.5px; margin: 10px 2px 0; }
+.rg-error { color: #c0392b; font-weight: 600; font-size: 13.5px; margin: 10px 2px 0; display: flex; align-items: center; gap: 6px; }
+.rg-error mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .msg-err { color: #c0392b; font-weight: 600; font-size: 13px; margin: 8px 2px 0; }
 .msg-err b { color: #c0392b; }
 

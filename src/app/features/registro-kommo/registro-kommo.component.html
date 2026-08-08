@@ -23,6 +23,7 @@
           <label>Asesor *</label>
           <dx-select-box [dataSource]="asesores" [(value)]="f.asesor" [searchEnabled]="true"
             [acceptCustomValue]="true" [disabled]="esVendedor" placeholder="Selecciona o escribe"
+            [isValid]="!(intento && invAsesor)" (onValueChanged)="touched()"
             stylingMode="outlined"></dx-select-box>
         </div>
         <div class="rk-field">
@@ -39,12 +40,14 @@
         <div class="rk-field">
           <label>DNI cliente *</label>
           <dx-text-box [(value)]="f.dni_cliente" (onValueChanged)="soloNumeros('dni_cliente', 8)" mode="tel"
-            [maxLength]="8" stylingMode="outlined"></dx-text-box>
+            [maxLength]="8" [isValid]="!(intento && invDni)"
+            validationError="El DNI debe tener 8 dígitos" stylingMode="outlined"></dx-text-box>
         </div>
         <div class="rk-field">
           <label>Celular gestionado</label>
           <dx-text-box [(value)]="f.celular_gestionado" (onValueChanged)="soloNumeros('celular_gestionado', 9)" mode="tel"
-            [maxLength]="9" stylingMode="outlined"></dx-text-box>
+            [maxLength]="9" [isValid]="!(intento && invCelular)"
+            validationError="El celular debe tener 9 dígitos" stylingMode="outlined"></dx-text-box>
         </div>
         <div class="rk-field rk-2">
           <label>Nombre cliente</label>
@@ -61,7 +64,8 @@
         </div>
         <div class="rk-field">
           <label>Estado de gestión *</label>
-          <dx-select-box [dataSource]="estados" [(value)]="f.estado_gestion" stylingMode="outlined"></dx-select-box>
+          <dx-select-box [dataSource]="estados" [(value)]="f.estado_gestion"
+            [isValid]="!(intento && invEstado)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>
         </div>
       </div>
 
@@ -69,7 +73,8 @@
       <div class="rk-grid rk-rama" *ngIf="esNoContacto">
         <div class="rk-field rk-2">
           <label>Motivo no contacto *</label>
-          <dx-select-box [dataSource]="motivosNoContacto" [(value)]="f.motivo_no_contacto" [acceptCustomValue]="true" stylingMode="outlined"></dx-select-box>
+          <dx-select-box [dataSource]="motivosNoContacto" [(value)]="f.motivo_no_contacto" [acceptCustomValue]="true"
+            [isValid]="!(intento && invNoContacto)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>
         </div>
       </div>
 
@@ -77,7 +82,8 @@
       <div class="rk-grid rk-rama" *ngIf="esContacto">
         <div class="rk-field rk-2">
           <label>Resultado de gestión *</label>
-          <dx-select-box [dataSource]="resultados" [(value)]="f.resultado_gestion" stylingMode="outlined"></dx-select-box>
+          <dx-select-box [dataSource]="resultados" [(value)]="f.resultado_gestion"
+            [isValid]="!(intento && invResultado)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>
         </div>
 
         <!-- INTERESADO → Producto + Motivo de interés (ramifica) -->
@@ -170,6 +176,9 @@
       </div>
 
       <div class="rk-actions">
+        <span class="rk-hint" *ngIf="intento && primerError">
+          <mat-icon>error_outline</mat-icon> {{ primerError }}
+        </span>
         <button class="rk-btn" [disabled]="guardando || !formValido" (click)="registrar()">
           <mat-icon>save</mat-icon> {{ guardando ? 'Guardando…' : 'Registrar gestión' }}
         </button>
