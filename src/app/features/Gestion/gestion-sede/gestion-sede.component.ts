@@ -91,6 +91,11 @@ export class GestionSedeComponent implements OnInit {
     const id = e?.key ?? e?.data?.id;
     if (!id) return;
     this.service.updateGestionSede(id, e.data).subscribe({
+      // Sincroniza el arreglo maestro para que el cambio no se pierda al re-filtrar.
+      next: () => {
+        const i = this.listData.findIndex(r => String(r.id) === String(id));
+        if (i >= 0) this.listData[i] = { ...this.listData[i], ...e.data };
+      },
       error: () => { alert('No se pudo guardar el cambio; se recargará la información.'); this.cargarData(); },
     });
   }
@@ -98,6 +103,9 @@ export class GestionSedeComponent implements OnInit {
     const id = e?.key ?? e?.data?.id;
     if (!id) return;
     this.service.deleteGestionSede(id).subscribe({
+      // Quita la fila también de `listData` (el grid solo mutó la vista `dataFiltrada`).
+      // Sin esto la fila reaparecía al re-filtrar/Actualizar aunque ya estaba borrada en BD.
+      next: () => { this.listData = this.listData.filter(r => String(r.id) !== String(id)); },
       error: () => { alert('No se pudo eliminar; se recargará la información.'); this.cargarData(); },
     });
   }

@@ -846,10 +846,11 @@ export class RegistroGestionComponent implements OnInit {
       this.error = '';
       return;
     }
-    const sede = this.modelo.sede, sedeKey = this.modelo.sedeKey;
+    const sede = this.modelo.sede, sedeKey = this.modelo.sedeKey, asesor = this.modelo.asesor;
     this.modelo = this.modeloVacio();
-    // Conserva la sede (y sus asesores ya cargados); un registro nuevo arranca desde el DNI.
-    this.modelo.sede = sede; this.modelo.sedeKey = sedeKey;
+    // Conserva la sede y el ASESOR (para el vendedor de sede es fijo — su nombre debe
+    // reaparecer, no salir a elegir); un registro nuevo arranca desde el DNI.
+    this.modelo.sede = sede; this.modelo.sedeKey = sedeKey; this.modelo.asesor = asesor;
     this.pasoIndex = 0;   // siempre vuelve al DNI (cliente nuevo)
     this.guardado = false;
     this.error = '';
