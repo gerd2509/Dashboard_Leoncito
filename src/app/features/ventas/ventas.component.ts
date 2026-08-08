@@ -281,6 +281,11 @@ export class VentasComponent implements OnInit {
   private dniVacio(v: any): boolean {
     return !((v.DocIdentidad ?? '').toString().replace(/\D/g, ''));
   }
+  /** ¿Es una NOTA DE CRÉDITO? Nunca cuenta en Call (ni total, ni bonos, ni por asesor). */
+  private esNotaCredito(v: any): boolean {
+    const e = (v.EstadoVenta ?? '').toString().trim().toUpperCase();
+    return e === 'NOTA DE CRÉDITO' || e === 'NOTA DE CREDITO';
+  }
   /** ¿La venta cuenta al monto del asesor? (no es huérfana sin derivación). */
   private cuentaAlAsesor(v: any): boolean {
     if (!v.SinDerivacion || v.Extranjero) return true;
@@ -416,6 +421,7 @@ export class VentasComponent implements OnInit {
       if (fv < fechaInicio || fv > fechaFin) return false;
       const asesor = (v.AsesorVenta || '').toString().trim().toUpperCase();
       if (asesor === 'NAS') return false;                       // NAS no cuenta en Call
+      if (this.esNotaCredito(v)) return false;                  // las NC NUNCA cuentan en Call
       if ((this.parseNumber(v.MontoConsolidado) || 0) <= 0) return false;  // solo montos > 0
       if (selectedAsesor && asesor !== selectedAsesor) return false;
       if (selectedTipoProd === '1') return v.TipoProducto !== 'LEO' && v.TipoProducto !== 'DSK.';
@@ -446,7 +452,8 @@ export class VentasComponent implements OnInit {
   }
 
   calcularKPIs(): void {
-    // En Call se suma TODO lo de MontoConsolidado del rango (no hay NC que restar).
+    // En Call se suma TODO lo de MontoConsolidado del rango (las NOTAS DE CRÉDITO ya se
+    // excluyeron en aplicarFiltros: nunca cuentan).
     this.totalVentas      = this.filtroVentas.length;
     const rawTotal        = this.filtroVentas.reduce((s, v) => s + (v.MontoConsolidado || 0), 0);
     this.totalMontoVentas = Math.round(rawTotal);

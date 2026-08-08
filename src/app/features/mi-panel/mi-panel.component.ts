@@ -584,6 +584,9 @@ export class MiPanelComponent implements OnInit {
         // extranjería) y las de DNI vacío (RUC/empresa) atribuidas a mano — no cruzan por DNI.
         const dniVacio = (r: any) => !((r.doc_identidad ?? '').toString().replace(/\D/g, ''));
         this.todas = (rows || [])
+          // Call: las NOTAS DE CRÉDITO NUNCA cuentan (ni suman ni restan). En Realzza sí
+          // se conservan porque restan del neto en su mes de afectación.
+          .filter(r => !(this.esCall && this.esNotaCred(r)))
           .filter(r => !(r.sin_derivacion && !r.extranjero
               && !(dniVacio(r) && r.asesor_manual)
               && (r.tipo_base || '').toString().trim().toUpperCase() !== 'CALL'))
@@ -623,6 +626,11 @@ export class MiPanelComponent implements OnInit {
   private esReductor(r: any): boolean {
     const e = (r?.estado_venta || '').toString().toUpperCase();
     return e.includes('NOTA DE CR') || e.includes('INCAUTAC') || e.includes('REFACTUR');
+  }
+
+  /** ¿Es una NOTA DE CRÉDITO? En Call se descarta del panel (nunca cuenta). */
+  private esNotaCred(r: any): boolean {
+    return (r?.estado_venta || '').toString().toUpperCase().includes('NOTA DE CR');
   }
 
   /**
