@@ -271,7 +271,20 @@ export class VentasComponent implements OnInit {
       SinDerivacion:    !!r.sin_derivacion,
       // Marca manual "extranjero": si está, la venta sin derivación SÍ cuenta al asesor.
       Extranjero:       !!r.extranjero,
+      // Fila atribuida a mano: una venta con DNI vacío (RUC/empresa) atribuida
+      // manualmente SÍ cuenta al asesor, aunque figure sin derivación.
+      AtribManual:      !!r.asesor_manual,
     };
+  }
+
+  /** DNI/documento del cliente vacío → venta a nombre de empresa (RUC), no cruzable por DNI. */
+  private dniVacio(v: any): boolean {
+    return !((v.DocIdentidad ?? '').toString().replace(/\D/g, ''));
+  }
+  /** ¿La venta cuenta al monto del asesor? (no es huérfana sin derivación). */
+  private cuentaAlAsesor(v: any): boolean {
+    if (!v.SinDerivacion || v.Extranjero) return true;
+    return this.dniVacio(v) && v.AtribManual;   // RUC/empresa atribuida a mano → sí cuenta
   }
 
   configuracionesIniciales(): void {
@@ -411,10 +424,10 @@ export class VentasComponent implements OnInit {
     });
 
     // Ventas SIN derivación (ago-2026+): cuentan en el total/global pero se excluyen del
-    // desglose por asesor. Excepción: si están marcadas "extranjero" (carnet de
-    // extranjería, no cruzan por DNI) SÍ cuentan al asesor. `filtroVentasAsesor` es la
-    // base para las tablas por asesor.
-    this.filtroVentasAsesor = this.filtroVentas.filter(v => !v.SinDerivacion || v.Extranjero);
+    // desglose por asesor. Excepciones que SÍ cuentan al asesor: marcadas "extranjero"
+    // (carnet de extranjería) o con DNI vacío (RUC/empresa) atribuidas a mano — ambas no
+    // cruzan por DNI. `filtroVentasAsesor` es la base para las tablas por asesor.
+    this.filtroVentasAsesor = this.filtroVentas.filter(v => this.cuentaAlAsesor(v));
     this.generarVentasSinDerivacion();
 
     this.calcularKPIs();
@@ -482,7 +495,7 @@ export class VentasComponent implements OnInit {
   /** Tabla de control: ventas SIN derivación (ago-2026+). Suman al global, no al asesor. */
   generarVentasSinDerivacion(): void {
     this.ventasSinDerivacion = this.filtroVentas
-      .filter(v => v.SinDerivacion && !v.Extranjero)
+      .filter(v => !this.cuentaAlAsesor(v))
       .map(v => ({
         IDVENTA:          v.IDVENTA,
         FECHAVENTA:       v.FECHAVENTA,

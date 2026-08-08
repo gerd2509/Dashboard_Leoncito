@@ -299,7 +299,7 @@ export class VentasCampoComponent implements OnInit {
           EstadoVenta: r.estado_venta, Entidad: r.entidad, AsesorVenta: r.asesor_venta,
           TipoCredito: r.tipo_credito, TipoProducto: r.tipo_producto,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
-          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero,
+          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
           Margen: tot ? tot.mt : 0, ValorVenta: tot ? tot.vv : 0, LineaReal: primaryLinea,
         });
       } else if (esNC) {
@@ -314,7 +314,7 @@ export class VentasCampoComponent implements OnInit {
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(), EstadoVenta: r.estado_venta,
           AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems,
-          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero,
+          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
           DiaAF: this.parseNumber(r.dia_af), MesAF: this.parseNumber(r.mes_af), AñoAF: this.parseNumber(r.anio_af),
         });
       }
@@ -327,7 +327,7 @@ export class VentasCampoComponent implements OnInit {
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
           AsesorVenta: (r.asesor_venta || '').toString().trim(),
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
-          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero,
+          SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
         });
       }
     }
@@ -738,7 +738,15 @@ export class VentasCampoComponent implements OnInit {
    */
   private esVentaOrfana(v: any): boolean {
     if (v.Extranjero) return false;   // marcada extranjero (no cruza por DNI) → sí cuenta al vendedor
+    // Venta con DNI vacío (RUC/empresa) atribuida a mano → nunca cruza por DNI, pero al
+    // atribuirla manualmente SÍ debe contar al vendedor (aunque figure sin derivación).
+    if (this.dniVacio(v) && v.AtribManual) return false;
     return !!v.SinDerivacion && (v.TipoBase || '').toString().trim().toUpperCase() !== 'CALL';
+  }
+
+  /** DNI/documento del cliente vacío → venta a nombre de empresa (RUC), no cruzable por DNI. */
+  private dniVacio(v: any): boolean {
+    return !((v.DocIdentidad ?? '').toString().replace(/\D/g, ''));
   }
 
   /** Tabla de control: ventas sin derivación (no-CALL). Suman al global, no al avance. */
