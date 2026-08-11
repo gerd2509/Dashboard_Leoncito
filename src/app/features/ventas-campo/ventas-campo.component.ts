@@ -178,7 +178,9 @@ export class VentasCampoComponent implements OnInit {
     { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'AV9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
     { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
-    { value: 'AV11', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' }
+    { value: 'AV11', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' },
+    { value: 'AV12', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
+    { value: 'AV13', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' },
   ];
 
   nombresCortos: Record<string, string> = {
@@ -188,7 +190,6 @@ export class VentasCampoComponent implements OnInit {
     'ACOSTA JIMENEZ MARIELA NATALY': 'NATALY',
     'BERNAL BAZAN BRENDA NICOLL': 'BRENDA',
     'SERNAQUE DAVILA JUAN ALBERTO': 'JUAN',
-    'CARRANZA ALARCON TREYCI JOHANA': 'TREYCI',
     'SANDOVAL OTINIANO JUANA DEL PILAR': 'JUANA',
     'SANTAMARIA GUZMAN MERLY BRIGHITE': 'MERLY',
     'MIÑOPE GONZALES ANYELA ESTHEFANY': 'ANYELA',
@@ -196,7 +197,9 @@ export class VentasCampoComponent implements OnInit {
     'UCHOFEN VIGO FELICITA': 'FELICITA',
     'BUSTAMANTE CHALAN ANA RUT': 'ANA RUT',
     'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS',
-    'GUILLEN MACKUADO AURORA FERNANDA': 'AURORA'
+    'GUILLEN MACKUADO AURORA FERNANDA': 'AURORA',
+    'PEREZ TINEO WILLIAM HUMBERTO': 'WILLIAM',
+    'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO': 'JESUS',
   };
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
