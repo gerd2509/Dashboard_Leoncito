@@ -28,6 +28,90 @@
     </div>
 
     <!-- ══════════ MI SUELDO (Call / Realzza) — primero, debajo del saludo ══════════ -->
+    <!-- ══════════ SUELDO ESTIMADO — VENDEDOR DE SEDE ══════════ -->
+    <section class="mp-panel sueldo" *ngIf="esSedeVendedor && !error" [class.open]="abiertos['sueldo']">
+      <button class="mp-panel-head" type="button" (click)="togglePanel('sueldo')">
+        <span class="ph-ico" style="background:linear-gradient(135deg,#2E7D32,#43A047);"><mat-icon>savings</mat-icon></span>
+        <span class="ph-title">Mi sueldo estimado</span>
+        <span class="ph-sum" *ngIf="sueldoSede"><b>{{ soles(sueldoSede.remTotal) }}</b> total</span>
+        <mat-icon class="ph-chev">expand_more</mat-icon>
+      </button>
+      <div class="mp-panel-bodywrap">
+        <div class="mp-panel-body">
+          <div class="mp-gest-fecha">
+            <span class="mp-filtros-lbl"><mat-icon>event</mat-icon> Calcular sueldo del mes:</span>
+            <dx-select-box [items]="mesesSueldoSede" [value]="sueldoSedeMes" displayExpr="label" valueExpr="value"
+              stylingMode="underlined" width="170" (onValueChanged)="onSueldoSedeMes($event.value)"></dx-select-box>
+            <span class="mp-hint" *ngIf="sueldoSede">Categoría: <b>{{ sueldoSede.categoria }}</b> · Canal: <b>{{ sueldoSede.esCampana ? 'Campaña' : 'Receptivo' }}</b></span>
+          </div>
+
+          <div *ngIf="cargandoSueldoSede" class="mp-hint">Calculando…</div>
+
+          <ng-container *ngIf="sueldoSede && !cargandoSueldoSede">
+            <!-- 1) Sueldo base (fijo) primero + desglose de comisiones -->
+            <div class="mp-sueldo-grid">
+              <div class="msd base">
+                <div class="msd-h"><mat-icon>badge</mat-icon> Sueldo base</div>
+                <div class="msd-v">{{ soles(sueldoSede.sueldoBase) }}</div>
+                <div class="msd-x">Fijo para todos</div>
+              </div>
+              <div class="msd comis">
+                <div class="msd-h"><mat-icon>bolt</mat-icon> Comisión Electro (1.5%)</div>
+                <div class="msd-v">{{ soles(sueldoSede.comElectro) }}</div>
+                <div class="msd-x">Base: {{ soles(sueldoSede.baseElectro) }}</div>
+              </div>
+              <div class="msd comis">
+                <div class="msd-h"><mat-icon>chair</mat-icon> Comisión Melamina (3%)</div>
+                <div class="msd-v">{{ soles(sueldoSede.comMelamina) }}</div>
+                <div class="msd-x">Melamina: {{ soles(sueldoSede.melamina) }}</div>
+              </div>
+              <div class="msd comis">
+                <div class="msd-h"><mat-icon>handyman</mat-icon> Comisión Motos (1%)</div>
+                <div class="msd-v">{{ soles(sueldoSede.comMotos) }}</div>
+                <div class="msd-x">Motos: {{ soles(sueldoSede.motos) }}</div>
+              </div>
+            </div>
+
+            <!-- 2) Bonos + adicional motos + total al final -->
+            <div class="mp-sueldo-grid" style="margin-top:10px;">
+              <div class="msd comis">
+                <div class="msd-h"><mat-icon>military_tech</mat-icon> Bono Categoría</div>
+                <div class="msd-v">{{ soles(sueldoSede.bonoCategoria) }}</div>
+                <div class="msd-x">{{ sueldoSede.categoria }}</div>
+              </div>
+              <div class="msd comis" *ngIf="sueldoSede.esCampana">
+                <div class="msd-h"><mat-icon>groups</mat-icon> Bono Campañero</div>
+                <div class="msd-v">{{ soles(sueldoSede.bonoCampanero) }}</div>
+                <div class="msd-x">Canal Campaña</div>
+              </div>
+              <div class="msd comis" *ngIf="sueldoSede.bonoVolumen > 0">
+                <div class="msd-h"><mat-icon>trending_up</mat-icon> Bono Volumen</div>
+                <div class="msd-v">{{ soles(sueldoSede.bonoVolumen) }}</div>
+                <div class="msd-x">Sede al {{ (sueldoSede.logroSede * 100).toFixed(0) }}% de meta</div>
+              </div>
+              <div class="msd motos" *ngIf="sueldoSede.motosGlobal > 0">
+                <div class="msd-h"><mat-icon>two_wheeler</mat-icon> Motos GLOBAL GO</div>
+                <div class="msd-v">{{ soles(sueldoSede.pagoMotosGlobal) }}</div>
+                <div class="msd-x">{{ sueldoSede.motosGlobal }} motos × {{ soles(sueldoSede.tarifaMoto) }} ({{ sueldoSede.motosGlobal >= 5 ? '≥5' : '<5' }})</div>
+              </div>
+              <div class="msd total">
+                <div class="msd-h"><mat-icon>payments</mat-icon> Total estimado</div>
+                <div class="msd-v">{{ soles(sueldoSede.remTotal) }}</div>
+                <div class="msd-x">Venta: {{ soles(sueldoSede.ventaConIGV) }}</div>
+              </div>
+            </div>
+
+            <div class="msim-hint" style="margin-top:10px;">
+              <mat-icon>info</mat-icon> Estimado a mes completo, neto de NC/Incautaciones.
+              El Bono Volumen se activa cuando la sede llega al 100% de su meta.
+            </div>
+          </ng-container>
+
+          <div *ngIf="!sueldoSede && !cargandoSueldoSede" class="mpd-vacio">Sin ventas registradas para este mes.</div>
+        </div>
+      </div>
+    </section>
+
     <section class="mp-panel sueldo" *ngIf="aplicaSueldo && !cargando && !error" [class.open]="abiertos['sueldo']">
       <button class="mp-panel-head" type="button" (click)="togglePanel('sueldo')">
         <span class="ph-ico" style="background:linear-gradient(135deg,#2E7D32,#43A047);"><mat-icon>savings</mat-icon></span>

@@ -81,6 +81,11 @@ export class RegistroGestionService {
   registrarDerivacion(payload: any): Observable<any> {
     return this.http.post(`${environment.apiBase}/gestion-sedes-deriv`, payload);
   }
+
+  /** Registra una gestión de cobranza en la BD (tabla gestion_cobranza, gestion-service). */
+  registrarCobranza(payload: any): Observable<any> {
+    return this.http.post(`${environment.gestionBase || environment.apiBase}/gestion-cobranza`, payload);
+  }
 }
 
 /** Payload de una gestión Call Center (mismos campos condicionales que Realzza,

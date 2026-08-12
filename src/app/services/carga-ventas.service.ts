@@ -132,6 +132,46 @@ export class CargaVentasService {
   }
 
   /**
+   * Sueldo estimado del vendedor de PISO/SEDE (réplica del Excel de comisiones):
+   * comisión Electro 1.5% + Melamina 3% + Motos 1% (neto de NC/Incau) + Bono Categoría
+   * (derivada de la venta) + Bono Campañero (si el canal del CAP es CAMPAÑA).
+   */
+  obtenerSueldoSede(vendedor: string, anio: number, mes: number): Observable<any> {
+    const params = new HttpParams().set('vendedor', vendedor).set('anio', anio).set('mes', mes);
+    return this.http.get<any>(`${this.root}/ventas-sedes/sueldo`, { params });
+  }
+
+  // ── Maestro Metas por Sede (Fase 2: gate del Bono Volumen) ──
+  getMetaSede(anio: number, mes: number): Observable<any[]> {
+    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/meta-sede`, { params });
+  }
+  guardarMetaSede(p: { sede: string; anio: number; mes: number; meta: number }): Observable<any> {
+    return this.http.post<any>(`${this.root}/meta-sede`, p);
+  }
+  eliminarMetaSede(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.root}/meta-sede/${id}`);
+  }
+
+  // ── Maestro Metas por Tipo de Base (Realzza) ──
+  /** Grid del maestro: tipos de base con su meta del mes. */
+  getMetaTipoBase(anio: number, mes: number): Observable<any[]> {
+    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/meta-tipo-base`, { params });
+  }
+  /** Todas las metas del año [{tipo_base, anio, mes, meta}] → para Ventas Realzza. */
+  getMetaTipoBaseAnio(anio: number): Observable<any[]> {
+    const params = new HttpParams().set('anio', anio);
+    return this.http.get<any[]>(`${this.root}/meta-tipo-base`, { params });
+  }
+  guardarMetaTipoBase(p: { tipo_base: string; anio: number; mes: number; meta: number }): Observable<any> {
+    return this.http.post<any>(`${this.root}/meta-tipo-base`, p);
+  }
+  eliminarMetaTipoBase(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.root}/meta-tipo-base/${id}`);
+  }
+
+  /**
    * Conteo de LEADS KOMMO ingresados por mes (tablas leads_kommo_call/realzza),
    * según su fecha de creación. Para la "Maduración de Leads". Devuelve
    * [{ anio, mes, total }]. Opcional: filtrar por año.

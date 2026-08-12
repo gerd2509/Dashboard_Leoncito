@@ -111,6 +111,12 @@ export class MiPanelComponent implements OnInit {
   totalGanar = 0;                        // sueldoBase + comisionVentas + pagoMotos
   get aplicaSueldo(): boolean { return this.esCall || this.esRealzza; }
 
+  // ── Mi sueldo estimado (VENDEDOR DE SEDE): comisión electro/melamina/motos + bonos ──
+  sueldoSede: any = null;                 // respuesta de /ventas-sedes/sueldo
+  cargandoSueldoSede = false;
+  mesesSueldoSede: { value: string; label: string }[] = [];
+  sueldoSedeMes = '';                     // YYYY-MM
+
   // Simulador "¿cuánto ganaría?": el asesor edita ventas y motos (base fijo).
   simVentas = 0;                         // monto de ventas a simular
   simMotos = 0;                          // motos GLOBAL GO a simular
@@ -201,7 +207,34 @@ export class MiPanelComponent implements OnInit {
     if (!this.vendedor) { this.sinVendedor = true; return; }
     this.cargar();
     this.cargarGestiones();
+    if (this.esSedeVendedor) this.initSueldoSede();
   }
+
+  // ── Sueldo estimado del vendedor de sede (endpoint /ventas-sedes/sueldo) ──
+  private initSueldoSede(): void {
+    const hoy = new Date();
+    const meses: { value: string; label: string }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      meses.push({ value: v, label: this.formatMes(v) });
+    }
+    this.mesesSueldoSede = meses;
+    this.sueldoSedeMes = meses[0].value;
+    this.cargarSueldoSede();
+  }
+
+  cargarSueldoSede(): void {
+    const [ay, am] = (this.sueldoSedeMes || '').split('-').map(Number);
+    if (!ay || !am) return;
+    this.cargandoSueldoSede = true;
+    this.ventasSvc.obtenerSueldoSede(this.vendedor, ay, am).subscribe({
+      next: r => { this.sueldoSede = r; this.cargandoSueldoSede = false; },
+      error: () => { this.sueldoSede = null; this.cargandoSueldoSede = false; },
+    });
+  }
+
+  onSueldoSedeMes(v: string): void { this.sueldoSedeMes = v; this.cargarSueldoSede(); }
 
   /** ¿Es vendedor Call? / Realzza? (para mostrar sus análisis específicos). */
   get esCall(): boolean { return (this.canal || '').toLowerCase() === 'call'; }

@@ -23,7 +23,8 @@ interface SedeCall {
  * Evolución de Registros — tendencia (gráfico de líneas) de las gestiones reales
  * (1 por DNI) por día, en un rango de fechas. Global (todas las sedes Call) por
  * defecto, con selector para ver una sede en concreto. Mismos datos que
- * Control Call Sedes (sheet de gestión de sedes).
+ * Control Call Sedes: lee de la BD (gestion_call_sedes) → incluye lo migrado del
+ * sheet `ferre` y los registros por plataforma (Ferreñafe / MARKET PLACE).
  */
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
@@ -95,7 +96,10 @@ export class EvolucionRegistrosComponent implements OnInit {
   async cargarDatos(): Promise<void> {
     this.isLoading = true;
     try {
-      this.listData = await lastValueFrom(this.sheets.getSheetDataFerre());
+      // Fuente = BD (tabla gestion_call_sedes), igual que Control Call Sedes: incluye la
+      // data migrada del sheet `ferre` + los registros por plataforma (Ferreñafe, MARKET
+      // PLACE…). Mapeada a la forma del sheet (Marca temporal, DNI CLIENTE, ASESOR <SEDE>).
+      this.listData = await lastValueFrom(this.sheets.getCallSedesDB());
       this.calcular();
     } catch (e) {
       console.error('Error al cargar datos de gestión:', e);

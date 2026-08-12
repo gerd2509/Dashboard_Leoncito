@@ -242,15 +242,30 @@ export class VentasCampoComponent implements OnInit {
     const ventasReq = yrs.map(a => this.ventasSvc.obtenerVentasRealzzaModulo(a).pipe(catchError(() => of([] as any[]))));
     const margenReq = yrs.map(a => this.ventasSvc.obtenerMargen(a).pipe(catchError(() => of([] as any[]))));
     const evoReq = this.ventasSvc.obtenerVentasRealzzaEvolutivo().pipe(catchError(() => of([] as any[])));
-    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq }).subscribe({
-      next: ({ ventas, margen, evo }) => {
+    // Metas por tipo de base (BD, editables en el maestro) → para la columna Meta/%avance.
+    const metasReq = yrs.map(a => this.ventasSvc.getMetaTipoBaseAnio(a).pipe(catchError(() => of([] as any[]))));
+    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq, metas: forkJoin(metasReq) }).subscribe({
+      next: ({ ventas, margen, evo, metas }) => {
         this.procesarBD(([] as any[]).concat(...ventas), ([] as any[]).concat(...margen));
+        this.setMetasTipoBase(([] as any[]).concat(...metas));   // pobla metasPorMes desde la BD
         this.setEvolutivo(evo);        // gráfico evolutivo (neto por mes) desde ventas_realzza
         this.generarMesesGlobalGo();   // arma el selector de Mes + filtroGlobalGo (Detalle Global GO)
         this.cargandoBD = false;
         this.actualizarFiltros();
       },
       error: () => { this.cargandoBD = false; this.actualizarFiltros(); },
+    });
+  }
+
+  /** Pobla metasPorMes ('yyyy-mm' → {tipoBase → meta}) desde la BD (tabla meta_tipo_base). */
+  private setMetasTipoBase(rows: any[]): void {
+    this.metasPorMes = {};
+    this.metasTotalPorMes = {};
+    (rows || []).forEach(r => {
+      const tb = (r.tipo_base || '').toString().trim().toUpperCase();
+      if (!tb || !r.anio || !r.mes) return;
+      const mesKey = `${r.anio}-${String(r.mes).padStart(2, '0')}`;
+      (this.metasPorMes[mesKey] ??= {})[tb] = +r.meta || 0;
     });
   }
 

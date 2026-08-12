@@ -1,0 +1,100 @@
+<div class="rc-shell">
+  <div class="rc-head">
+    <div class="rc-ico"><mat-icon>request_quote</mat-icon></div>
+    <div>
+      <h2>Registro Gestión Cobranza</h2>
+      <p>Tipifica el contacto y registra el compromiso de pago del cliente.</p>
+    </div>
+  </div>
+
+  <!-- Confirmación -->
+  <div class="rc-ok" *ngIf="guardado">
+    <mat-icon>check_circle</mat-icon>
+    <div><b>¡Gestión registrada!</b><span>Se registró la gestión de cobranza.</span></div>
+    <button class="rc-btn" (click)="registrarOtra()"><mat-icon>add</mat-icon> Registrar otra</button>
+  </div>
+
+  <form class="rc-card" *ngIf="!guardado" (ngSubmit)="guardar()">
+
+    <!-- ═══ Bloque A: Datos de identificación (de la cartera/BD) ═══ -->
+    <div class="rc-bloque">
+      <div class="rc-bloque-t"><mat-icon>badge</mat-icon> Datos del cliente</div>
+      <div class="rc-grid">
+        <label>DNI del cliente *
+          <dx-text-box [(value)]="c.dni_cliente" (onValueChanged)="soloNumeros('dni_cliente', 8)" mode="tel" [maxLength]="8"
+            [isValid]="!(intento && invDni)" validationError="El DNI debe tener 8 dígitos"
+            placeholder="8 dígitos" stylingMode="outlined"></dx-text-box>
+        </label>
+        <label>Nombre completo
+          <dx-text-box [(value)]="c.nombre_cliente" placeholder="Nombre del cliente" stylingMode="outlined"></dx-text-box>
+        </label>
+        <label>N° de celular
+          <dx-text-box [(value)]="c.celular" (onValueChanged)="soloNumeros('celular', 9)" mode="tel" [maxLength]="9"
+            [isValid]="!(intento && invCelular)" validationError="El celular debe tener 9 dígitos"
+            placeholder="9 dígitos" stylingMode="outlined"></dx-text-box>
+        </label>
+        <label>Monto total adeudado
+          <dx-number-box [(value)]="$any(c).monto_adeudado" format="S/ #,##0.00" [min]="0" placeholder="S/ 0.00" stylingMode="outlined"></dx-number-box>
+        </label>
+      </div>
+    </div>
+
+    <!-- ═══ Bloque B: Tipificación del contacto ═══ -->
+    <div class="rc-bloque">
+      <div class="rc-bloque-t"><mat-icon>call</mat-icon> Tipificación del contacto</div>
+      <div class="rc-grid">
+        <label>Estado de contacto *
+          <dx-select-box [dataSource]="estadosContacto" [(value)]="c.estado_contacto"
+            [isValid]="!(intento && invEstado)" (onValueChanged)="touched()"
+            placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+        </label>
+        <!-- CONTACTO → motivo de no pago -->
+        <label *ngIf="esContacto">Motivo de no pago *
+          <dx-select-box [dataSource]="motivosNoPago" [(value)]="c.motivo_no_pago"
+            [isValid]="!(intento && invMotivoNoPago)" (onValueChanged)="touched()"
+            placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+        </label>
+        <!-- CONTACTO CON TERCERO → quién respondió + comentario -->
+        <label *ngIf="esTercero">¿Quién respondió? *
+          <dx-text-box [(value)]="c.quien_respondio" (onValueChanged)="touched()"
+            [isValid]="!(intento && invQuienRespondio)" validationError="Indica quién respondió"
+            placeholder="Ej. esposa, hijo, vecino…" stylingMode="outlined"></dx-text-box>
+        </label>
+        <label *ngIf="esTercero" class="rc-col-full">Comentario del tercero
+          <dx-text-area [(value)]="c.comentario_tercero" [height]="60" placeholder="Qué informó el tercero (opcional)" stylingMode="outlined"></dx-text-area>
+        </label>
+      </div>
+    </div>
+
+    <!-- ═══ Bloque C: Resolución y compromiso — SOLO si hubo CONTACTO ═══ -->
+    <div class="rc-bloque" *ngIf="esContacto">
+      <div class="rc-bloque-t"><mat-icon>handshake</mat-icon> Resolución y compromiso</div>
+      <div class="rc-grid">
+        <label>Resultado de gestión *
+          <dx-select-box [dataSource]="resultados" [(value)]="c.resultado_gestion"
+            [isValid]="!(intento && invResultado)" (onValueChanged)="touched()"
+            placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+        </label>
+        <!-- Fecha y Monto solo si hay Compromiso de Pago -->
+        <label *ngIf="esCompromiso">Fecha de compromiso *
+          <dx-date-box [(value)]="c.fecha_compromiso" type="date" displayFormat="dd/MM/yyyy" [openOnFieldClick]="true"
+            [isValid]="!(intento && invFechaComp)" (onValueChanged)="touched()" stylingMode="outlined"></dx-date-box>
+        </label>
+        <label *ngIf="esCompromiso">Monto a pagar *
+          <dx-number-box [(value)]="$any(c).monto_pagar" format="S/ #,##0.00" [min]="0"
+            [isValid]="!(intento && invMontoPagar)" (onValueChanged)="touched()" placeholder="S/ 0.00" stylingMode="outlined"></dx-number-box>
+        </label>
+        <label class="rc-col-full">Observaciones
+          <dx-text-area [(value)]="c.observaciones" [height]="70" placeholder="Comentario adicional (opcional)" stylingMode="outlined"></dx-text-area>
+        </label>
+      </div>
+    </div>
+
+    <div class="rc-error" *ngIf="intento && primerError"><mat-icon>error_outline</mat-icon> {{ primerError }}</div>
+
+    <button type="submit" class="rc-btn primary" [disabled]="!valido || guardando">
+      <mat-icon>{{ guardando ? 'hourglass_top' : 'save' }}</mat-icon>
+      {{ guardando ? 'Guardando…' : 'Registrar gestión' }}
+    </button>
+  </form>
+</div>

@@ -1,0 +1,65 @@
+<div class="mms-shell">
+  <div class="mms-head">
+    <div class="mms-ico"><mat-icon>flag</mat-icon></div>
+    <div>
+      <h2>Metas</h2>
+      <p *ngIf="modo === 'sede'">Meta mensual por sede. Alimenta el %logro que activa el <b>Bono Volumen</b> del sueldo de piso.</p>
+      <p *ngIf="modo === 'tipoBase'">Meta mensual por tipo de base (Realzza). Alimenta la columna <b>Meta / %avance</b> de "Ventas por tipo de base".</p>
+    </div>
+  </div>
+
+  <!-- Toggle de vista -->
+  <div class="mms-toggle">
+    <button [class.on]="modo === 'sede'" (click)="setModo('sede')"><mat-icon>store</mat-icon> Por Sede</button>
+    <button [class.on]="modo === 'tipoBase'" (click)="setModo('tipoBase')"><mat-icon>category</mat-icon> Por Tipo de Base</button>
+  </div>
+
+  <div class="mms-tools">
+    <label>Año
+      <dx-select-box [dataSource]="anios" [value]="anio" (onValueChanged)="onAnio($event.value)"
+        stylingMode="outlined" width="110"></dx-select-box>
+    </label>
+    <label>Mes
+      <dx-select-box [dataSource]="meses" [value]="mes" displayExpr="l" valueExpr="v"
+        (onValueChanged)="onMes($event.value)" stylingMode="outlined" width="150"></dx-select-box>
+    </label>
+    <button class="mms-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Recargar</button>
+    <span class="mms-hint"><mat-icon>info</mat-icon> Doble clic en la columna <b>Meta</b> para editarla.</span>
+  </div>
+
+  <!-- Vista POR SEDE -->
+  <dx-data-grid *ngIf="modo === 'sede'" [dataSource]="filas" keyExpr="sede" class="mms-grid" [showBorders]="true"
+    [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true"
+    (onRowUpdated)="onRowUpdated($event)">
+    <dxo-editing mode="cell" [allowUpdating]="true" [useIcons]="true"></dxo-editing>
+    <dxo-paging [pageSize]="20"></dxo-paging>
+
+    <dxi-column dataField="sede" caption="SEDE" [allowEditing]="false" [minWidth]="140"></dxi-column>
+    <dxi-column dataField="meta" caption="META (S/)" dataType="number" format="#,##0"
+      [minWidth]="130" alignment="right"></dxi-column>
+    <dxi-column dataField="actual" caption="TOTAL REAL (S/)" dataType="number" format="#,##0"
+      [allowEditing]="false" [minWidth]="140" alignment="right"></dxi-column>
+    <dxi-column caption="% LOGRO" [allowEditing]="false" [width]="120" alignment="center"
+      cellTemplate="logroTpl" [calculateCellValue]="logroCell"></dxi-column>
+
+    <div *dxTemplate="let d of 'logroTpl'">
+      <span class="mms-logro" [class.ok]="d.data.logro >= 100" [class.mid]="d.data.logro >= 50 && d.data.logro < 100">
+        {{ d.data.logro }}%
+      </span>
+    </div>
+  </dx-data-grid>
+
+  <!-- Vista POR TIPO DE BASE (Realzza) -->
+  <dx-data-grid *ngIf="modo === 'tipoBase'" [dataSource]="filasTb" keyExpr="tipo_base" class="mms-grid" [showBorders]="true"
+    [rowAlternationEnabled]="true" [columnAutoWidth]="true" [hoverStateEnabled]="true"
+    (onRowUpdated)="onRowUpdated($event)">
+    <dxo-editing mode="cell" [allowUpdating]="true" [useIcons]="true"></dxo-editing>
+    <dxo-paging [pageSize]="20"></dxo-paging>
+
+    <dxi-column dataField="tipo_base" caption="TIPO DE BASE" [allowEditing]="false" [minWidth]="200"></dxi-column>
+    <dxi-column dataField="meta" caption="META (S/)" dataType="number" format="#,##0"
+      [minWidth]="140" alignment="right"></dxi-column>
+  </dx-data-grid>
+
+  <div class="mms-loading" *ngIf="cargando">Cargando…</div>
+</div>

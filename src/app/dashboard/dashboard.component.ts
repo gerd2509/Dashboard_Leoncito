@@ -37,6 +37,8 @@ import { GestionSupervisorComponent } from "../features/control-supervisor/gesti
 import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { MaestroCapComponent } from "../features/maestro-cap/maestro-cap.component";
+import { MaestroMetasSedeComponent } from "../features/maestro-metas-sede/maestro-metas-sede.component";
+import { RegistroCobranzaComponent } from "../features/registro-cobranza/registro-cobranza.component";
 import { RegistroMarketPlaceComponent } from "../features/registro-market-place/registro-market-place.component";
 import { RegistroDerivacionesComponent } from "../features/registro-derivaciones/registro-derivaciones.component";
 import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
@@ -101,6 +103,8 @@ interface MenuItem {
     ActividadRealzzaComponent,
     ComparativoCarteraVentasComponent,
     MaestroCapComponent,
+    MaestroMetasSedeComponent,
+    RegistroCobranzaComponent,
     RegistroMarketPlaceComponent,
     RegistroDerivacionesComponent,
     MaduracionLeadsComponent,
@@ -208,6 +212,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ]
     },
     { icon: 'badge',                label: 'Maestro CAP',         modulo: 'maestro-cap', adminOnly: true },
+    { icon: 'flag',                 label: 'Metas por Sede',      modulo: 'maestro-metas-sede', adminOnly: true },
+    { icon: 'request_quote',        label: 'Registro Cobranza',   modulo: 'registro-cobranza', adminOnly: true },
     { icon: 'admin_panel_settings', label: 'Seguridad',           modulo: 'seguridad', adminOnly: true },
   ];
 
