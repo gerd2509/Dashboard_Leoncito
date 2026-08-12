@@ -32,16 +32,12 @@
 <!-- ===== KPIs ===== -->
 <div class="kpi-grid">
     <div class="card-resumen">
-        <div class="titulo">Total Monto Ventas</div>
+        <div class="titulo">Total Monto Ventas <small>(incluye NC)</small></div>
         <div class="valor">S/. {{ totalMontoVentas | number:'1.0-0' }}</div>
     </div>
     <div class="card-resumen card-nc">
         <div class="titulo">Notas de Crédito</div>
         <div class="valor">- S/. {{ totalNotasCredito | number:'1.0-0' }}</div>
-    </div>
-    <div class="card-resumen card-refact">
-        <div class="titulo">Refacturación</div>
-        <div class="valor">+ S/. {{ totalMontoRefacturacion | number:'1.0-0' }}</div>
     </div>
     <div class="card-resumen card-real">
         <div class="titulo">Monto Real Ventas</div>

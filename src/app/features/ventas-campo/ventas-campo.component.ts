@@ -653,39 +653,40 @@ export class VentasCampoComponent implements OnInit {
         return fechaNC >= fechaInicio && fechaNC <= fechaFin;
       })
       .map(nc => {
-        // Refacturación: SOLO cuenta cuando la NC y su venta nueva ocurren en el
-        // MISMO MES (el seleccionado). Una NC de un mes anterior (arrastrada por
-        // AF al mes en curso) y refacturada ahora NO es refacturación → se resta.
-        // La venta nueva: mismo DocIdentidad, IDVENTA distinto, misma fecha o
-        // posterior (>=), y dentro del mes seleccionado.
         const fNC = nc.FECHAVENTA as Date;
-        const ncDelMes = fNC.getFullYear() === anioSeleccionado && (fNC.getMonth() + 1) === mesSeleccionado;
-        const esRefacturacion = ncDelMes && !!nc.DocIdentidad && this.dataVentas.some(v => {
+        // ventaDelMes: la VENTA (CV) de la NC es del mes seleccionado. Base del NETO: la NC
+        // del mismo mes NETEA a 0 (se suma al Monto total y su NC la resta). Solo restan las
+        // "arrastradas" (venta de un mes anterior anulada este mes).
+        const ventaDelMes = fNC.getFullYear() === anioSeleccionado && (fNC.getMonth() + 1) === mesSeleccionado;
+        // esRefacturacion (SOLO para el ícono de la columna del detalle, NO afecta el neto):
+        // NC del mes con una RE-VENTA del mismo cliente ese mes (IDVENTA distinto, fecha ≥).
+        const esRefacturacion = ventaDelMes && !!nc.DocIdentidad && this.dataVentas.some(v => {
           if (v.DocIdentidad !== nc.DocIdentidad) return false;
           if (v.IDVENTA === nc.IDVENTA) return false;
           if (v.FECHAVENTA < nc.FECHAVENTA) return false;
           const f = v.FECHAVENTA as Date;
           return f.getFullYear() === anioSeleccionado && (f.getMonth() + 1) === mesSeleccionado;
         });
-        return {
-          ...nc,
-          esRefacturacion,
-          MontoRefacturacion: esRefacturacion ? nc.MontoConsolidado : 0
-        };
+        return { ...nc, ventaDelMes, esRefacturacion, MontoRefacturacion: esRefacturacion ? nc.MontoConsolidado : 0 };
       });
   }
 
-  /**
-   * Agrupa el monto de las notas de crédito por la clave devuelta por keyFn,
-   * EXCLUYENDO siempre las que tienen refacturación. Si una NC fue refacturada,
-   * la venta nueva ya está sumada en filtroVentas, por lo que descontar la NC
-   * sería un doble descuento. Centralizar este criterio evita que una tabla
-   * nueva olvide aplicar el filtro de refacturación.
-   */
-  private agruparNCSinRefacturacion(keyFn: (nc: any) => string, soloAvance = false): Map<string, number> {
+  /** NC del MISMO MES (venta y anulación el mes) por clave → se SUMAN al bruto (la venta se hizo). */
+  private agruparNCMismoMes(keyFn: (nc: any) => string, soloAvance = false): Map<string, number> {
     const map = new Map<string, number>();
     this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion) return;
+      if (!nc.ventaDelMes) return;
+      if (soloAvance && this.esVentaOrfana(nc)) return;
+      const key = keyFn(nc);
+      map.set(key, (map.get(key) || 0) + (nc.MontoConsolidado || 0));
+    });
+    return map;
+  }
+
+  /** TODAS las NC del filtro (por su mes de afectación) por clave → se RESTAN del neto. */
+  private agruparNCTodas(keyFn: (nc: any) => string, soloAvance = false): Map<string, number> {
+    const map = new Map<string, number>();
+    this.filtroNotasCredito.forEach(nc => {
       if (soloAvance && this.esVentaOrfana(nc)) return;   // orfandad no-CALL no toca el avance
       const key = keyFn(nc);
       map.set(key, (map.get(key) || 0) + (nc.MontoConsolidado || 0));
@@ -695,11 +696,18 @@ export class VentasCampoComponent implements OnInit {
 
   calcularKPIs(): void {
     this.totalVentas = this.filtroVentas.length;
-    this.totalMontoVentas = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
+    const brutoSinNC = Math.round(this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0));
     this.totalNotasCredito = Math.round(this.filtroNotasCredito.reduce((sum, nc) => sum + nc.MontoConsolidado, 0));
+    // NC cuya VENTA (CV) es del mes → se suman al Monto total (la venta se hizo; netean con
+    // su propia NC). Refacturación (informativa) = solo las que tuvieron re-venta.
+    const montoNcMismoMes = Math.round(this.filtroNotasCredito.reduce((sum, nc) => sum + (nc.ventaDelMes ? nc.MontoConsolidado : 0), 0));
     this.totalMontoRefacturacion = Math.round(this.filtroNotasCredito.reduce((sum, nc) => sum + (nc.MontoRefacturacion || 0), 0));
-    this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito + this.totalMontoRefacturacion;
-    this.ticket = this.totalVentas > 0 ? Math.round(this.totalMontoVentas / this.totalVentas) : 0;
+    // Monto total de ventas INCLUYE las NC del mes (la venta se hizo, luego se anuló).
+    this.totalMontoVentas = brutoSinNC + montoNcMismoMes;
+    // Monto neto = Monto total − NC (por su mes de afectación). Las NC del mismo mes netean
+    // a 0; solo las arrastradas (venta de un mes anterior anulada este mes) restan de verdad.
+    this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito;
+    this.ticket = this.totalVentas > 0 ? Math.round(brutoSinNC / this.totalVentas) : 0;
 
     // 2. Lógica de Proyección
     const hoy = new Date();
@@ -801,9 +809,11 @@ export class VentasCampoComponent implements OnInit {
       map.set(nombre, (map.get(nombre) || 0) + (v.MontoConsolidado || 0));
     });
 
-    // Restar solo las NCs puras (sin refacturación) por vendedor.
-    // Las refacturadas no restan porque la nueva venta ya está sumada en filtroVentas.
-    this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true)
+    // Neto por vendedor: suma las NC del mismo mes (venta que se hizo) y resta TODAS las NC
+    // (por AF). Efecto: solo restan las arrastradas (venta de un mes anterior anulada este mes).
+    this.agruparNCMismoMes(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true)
+      .forEach((monto, nombre) => map.set(nombre, (map.get(nombre) || 0) + monto));
+    this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true)
       .forEach((monto, nombre) => map.set(nombre, (map.get(nombre) || 0) - monto));
 
     this.chartData = Array.from(map, ([name, total]) => ({
@@ -980,16 +990,18 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
+    const mapNCMes = this.agruparNCMismoMes(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
+    const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
 
     const rows: any[] = [];
-    new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(nombre => {
+    new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(nombre => {
       const data = mapVentas.get(nombre) || { monto: 0, ops: 0 };
-      const montoNC = mapNC.get(nombre) || 0;
-      const montoNeto = data.monto - montoNC;
+      const montoVentasConNC = data.monto + (mapNCMes.get(nombre) || 0);   // bruto incluye NC del mes
+      const montoNC = mapNCTodas.get(nombre) || 0;
+      const montoNeto = montoVentasConNC - montoNC;                        // = bruto − arrastradas
       rows.push({
         Vendedor: nombre,
-        MontoVentas: Math.round(data.monto),
+        MontoVentas: Math.round(montoVentasConNC),
         MontoNC: Math.round(montoNC),
         MontoNeto: Math.round(montoNeto),
         NroOps: data.ops,
@@ -1030,14 +1042,17 @@ export class VentasCampoComponent implements OnInit {
       if (diaAF <= 28) return 'Semana 4 (22-28)';
       return 'Semana 5 (29-31)';
     };
-    const ncPorSemana = this.agruparNCSinRefacturacion(nc => semanaDeNCAF(nc.DiaAF || 0));
+    // NC del mismo mes → se suman al bruto en su semana de VENTA (CV). Todas las NC → restan
+    // en su semana de AFECTACIÓN (AF). Así el neto mensual cuadra y la semana refleja el movimiento.
+    const ncMesPorSemanaCV = this.agruparNCMismoMes(nc => semanaDeNCAF((nc.FECHAVENTA as Date).getDate()));
+    const ncTodasPorSemanaAF = this.agruparNCTodas(nc => semanaDeNCAF(nc.DiaAF || 0));
     this.ventasPorSemana = config.map(s => {
       const ventas = this.filtroVentas.filter(v => {
         const dia = (v.FECHAVENTA as Date).getDate();
         return dia >= s.min && dia <= s.max;
       });
-      const montoVentas = Math.round(ventas.reduce((sum, v) => sum + (v.MontoConsolidado || 0), 0));
-      const montoNC = Math.round(ncPorSemana.get(s.label) || 0);
+      const montoVentas = Math.round(ventas.reduce((sum, v) => sum + (v.MontoConsolidado || 0), 0)) + Math.round(ncMesPorSemanaCV.get(s.label) || 0);
+      const montoNC = Math.round(ncTodasPorSemanaAF.get(s.label) || 0);
       const ops = ventas.length;
       return {
         Semana: s.label,
@@ -1057,13 +1072,15 @@ export class VentasCampoComponent implements OnInit {
       const cur = mapVentas.get(ent) || { monto: 0, ops: 0 };
       mapVentas.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.entidadDisplay(nc.Entidad));
+    const mapNCMes = this.agruparNCMismoMes(nc => this.entidadDisplay(nc.Entidad));
+    const mapNCTodas = this.agruparNCTodas(nc => this.entidadDisplay(nc.Entidad));
     const rows: any[] = [];
-    new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(ent => {
+    new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(ent => {
       const data = mapVentas.get(ent) || { monto: 0, ops: 0 };
-      const montoNC = Math.round(mapNC.get(ent) || 0);
-      const montoNeto = Math.round(data.monto) - montoNC;
-      rows.push({ Entidad: ent, MontoVentas: Math.round(data.monto), MontoNC: montoNC,
+      const montoVentas = Math.round(data.monto) + Math.round(mapNCMes.get(ent) || 0);   // bruto incluye NC del mes
+      const montoNC = Math.round(mapNCTodas.get(ent) || 0);
+      const montoNeto = montoVentas - montoNC;
+      rows.push({ Entidad: ent, MontoVentas: montoVentas, MontoNC: montoNC,
         MontoNeto: montoNeto, NroOps: data.ops,
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0, Participacion: 0 });
     });
@@ -1120,17 +1137,19 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(tipoKey);
+    const mapNCMes = this.agruparNCMismoMes(tipoKey);
+    const mapNCTodas = this.agruparNCTodas(tipoKey);
 
     const rows: any[] = [];
-    new Set<string>([...mapVentas.keys(), ...mapNC.keys()]).forEach(tipo => {
+    new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(tipo => {
       const data = mapVentas.get(tipo) || { monto: 0, ops: 0 };
-      const montoNC = Math.round(mapNC.get(tipo) || 0);
+      const montoVentas = Math.round(data.monto) + Math.round(mapNCMes.get(tipo) || 0);   // bruto incluye NC del mes
+      const montoNC = Math.round(mapNCTodas.get(tipo) || 0);
       rows.push({
         TipoCredito: tipo,
-        MontoVentas: Math.round(data.monto),
+        MontoVentas: montoVentas,
         MontoNC: montoNC,
-        MontoNeto: Math.round(data.monto) - montoNC,
+        MontoNeto: montoVentas - montoNC,
         NroOps: data.ops,
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0
@@ -1150,7 +1169,8 @@ export class VentasCampoComponent implements OnInit {
   generarVentasPorAsesorTipoBase(): void {
     const tiposSet = new Set<string>();
     this.filtroVentasAvance.forEach(v => tiposSet.add((v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()));
-    this.filtroNotasCredito.forEach(nc => { if (!nc.esRefacturacion && !this.esVentaOrfana(nc)) tiposSet.add((nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()); });
+    // Solo las NC ARRASTRADAS restan (las del mismo mes netean a 0, no aparecen aquí).
+    this.filtroNotasCredito.forEach(nc => { if (!nc.ventaDelMes && !this.esVentaOrfana(nc)) tiposSet.add((nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase()); });
     this.tiposBaseUnicos = Array.from(tiposSet).sort();
 
     const map = new Map<string, Map<string, number>>();   // asesor → tipoBase → monto
@@ -1163,7 +1183,9 @@ export class VentasCampoComponent implements OnInit {
       acum(this.resolverNombreVendedor(v.Vendedor, v.TipoBase), (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), v.MontoConsolidado || 0);
     });
     this.filtroNotasCredito.forEach(nc => {
-      if (nc.esRefacturacion || this.esVentaOrfana(nc)) return;
+      // Las NC del mismo mes netean a 0 (su venta no está en el bruto activo) → no restan.
+      // Solo restan las arrastradas (venta de un mes anterior anulada este mes).
+      if (nc.ventaDelMes || this.esVentaOrfana(nc)) return;
       acum(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), -(nc.MontoConsolidado || 0));
     });
 
@@ -1187,7 +1209,8 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase());
+    const mapNCMes = this.agruparNCMismoMes(nc => (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase());
+    const mapNCTodas = this.agruparNCTodas(nc => (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase());
 
     // Metas del MES filtrado (según fechaFin del filtro).
     const fechaFin = new Date(this.formVentas.value.fechaFin);
@@ -1196,25 +1219,26 @@ export class VentasCampoComponent implements OnInit {
 
     // Todos los tipos con ventas, con NC (aunque no tengan ventas ese mes) o con meta.
     // Incluir los de solo-NC es clave para que la suma de netos cuadre con el Monto Real.
-    const tipos = new Set<string>([...mapVentas.keys(), ...mapNC.keys(), ...Object.keys(metasMes)]);
+    const tipos = new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys(), ...Object.keys(metasMes)]);
 
     const rows: any[] = [];
     tipos.forEach(tipo => {
       const data = mapVentas.get(tipo) || { monto: 0, ops: 0 };
-      const montoNC = Math.round(mapNC.get(tipo) || 0);
-      // Sin clamp a 0: el neto puede ser negativo (más NC que ventas ese mes) para que la
-      // suma de netos cuadre con el Monto Real global (ventas − NC + refacturación).
-      const montoNeto = Math.round(data.monto) - montoNC;
+      const montoVentas = Math.round(data.monto) + Math.round(mapNCMes.get(tipo) || 0);   // bruto incluye NC del mes
+      const montoNC = Math.round(mapNCTodas.get(tipo) || 0);
+      // Sin clamp a 0: el neto puede ser negativo (más NC arrastradas que ventas ese mes)
+      // para que la suma de netos cuadre con el Monto Real global.
+      const montoNeto = montoVentas - montoNC;
       const meta = metasMes[tipo] || 0;
       rows.push({
         TipoBase: tipo,
-        MontoVentas: Math.round(data.monto),
+        MontoVentas: montoVentas,
         MontoNeto: montoNeto,
         NroOps: data.ops,
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0,
         Meta: meta,
-        PorcentajeAvance: meta > 0 ? Math.round((Math.round(data.monto) / meta) * 1000) / 10 : 0
+        PorcentajeAvance: meta > 0 ? Math.round((montoVentas / meta) * 1000) / 10 : 0
       });
     });
 
@@ -1564,11 +1588,12 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
-    const mapNC = this.agruparNCSinRefacturacion(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
+    const mapNCMes = this.agruparNCMismoMes(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
+    const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
 
     this.tablaBonosAsesor = Array.from(mapVentas.entries()).map(([nombre, data]) => {
-      const ventas = Math.round(data.ventas);
-      const montoNC = Math.round(mapNC.get(nombre) || 0);
+      const ventas = Math.round(data.ventas) + Math.round(mapNCMes.get(nombre) || 0);   // bruto incluye NC del mes
+      const montoNC = Math.round(mapNCTodas.get(nombre) || 0);
       const montoNeto = Math.max(0, ventas - montoNC);
       const ticket = data.ops > 0 ? Math.round(data.ventas / data.ops) : 0;
       let ticketDiario = 0;
