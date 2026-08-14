@@ -94,6 +94,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'logistica-registrar',          label: 'Registrar Entrega',            grupo: 'Logística', sedeScoped: true },
   { key: 'logistica-entregas',           label: 'Control de Entregas',          grupo: 'Logística', sedeScoped: true },
   { key: 'logistica-calendario',         label: 'Calendario de Entregas',       grupo: 'Logística', sedeScoped: true },
+  { key: 'logistica-despacho',           label: 'Lista de Despacho',            grupo: 'Logística', sedeScoped: true },
   { key: 'logistica-rutas',              label: 'Ruta de Reparto',              grupo: 'Logística', sedeScoped: true },
 ];
 

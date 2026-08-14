@@ -20,6 +20,13 @@ const PRODUCTOS = [
   'JUEGO MUEBLES', 'JUEGO COMEDOR', 'MELAMINA', 'CAMA', 'COLCHON', 'CAMA + COLCHON', 'PEQUEÑOS ARTEFACTOS',
 ];
 
+// Carros de reparto disponibles (color = identidad visual del vehículo).
+const VEHICULOS = [
+  { id: 'AZUL', color: '#1565C0' },
+  { id: 'VERDE', color: '#2E7D32' },
+  { id: 'NARANJA', color: '#EF6C00' },
+];
+
 /**
  * Módulo LOGÍSTICA — Control de Entregas. Un solo componente con dos vistas (submenús):
  *  · vista='registrar' → formulario para planificar una entrega (DNI + producto + fecha).
@@ -36,7 +43,8 @@ const PRODUCTOS = [
   styleUrl: './logistica.component.css',
 })
 export class LogisticaComponent implements OnInit {
-  @Input() vista: 'registrar' | 'entregas' | 'calendario' | 'rutas' = 'registrar';
+  @Input() vista: 'registrar' | 'entregas' | 'calendario' | 'rutas' | 'despacho' = 'registrar';
+  readonly vehiculos = VEHICULOS;
 
   private auth = inject(AuthService);
   private snack = inject(MatSnackBar);
@@ -63,7 +71,7 @@ export class LogisticaComponent implements OnInit {
     this.f.sede = this.sedeUsuario || (this.sedeOptions[0]?.key ?? '');
     this.filtro.sede = this.esAdmin ? '' : this.sedeUsuario;
     this.calcAltura();
-    if (this.vista === 'entregas' || this.vista === 'calendario' || this.vista === 'rutas') this.cargar();
+    if (this.vista !== 'registrar') this.cargar();
   }
 
   readonly productos = PRODUCTOS;
@@ -132,6 +140,7 @@ export class LogisticaComponent implements OnInit {
     hasta: new Date(this.hoy.getFullYear(), this.hoy.getMonth() + 1, 0),
     estado: '',
     sede: '',
+    vehiculo: '',
   };
   datos: Entrega[] = [];
   cargando = false;
@@ -141,6 +150,14 @@ export class LogisticaComponent implements OnInit {
   get kpiEntregadas(): number { return this.datos.filter(e => e.estado === 'ENTREGADO').length; }
   get kpiVencidas(): number { return this.datos.filter(e => e.vencida).length; }
 
+  /** Sede para la consulta según la vista:
+   *  · Control de Entregas ('entregas') = el COORDINADOR ve TODAS las sedes (filtro opcional).
+   *  · Despacho / Rutas / Calendario = acotado a la sede del usuario (admin puede elegir). */
+  private sedeParaConsulta(): string | undefined {
+    if (this.vista === 'entregas') return this.filtro.sede || undefined;
+    return (this.esAdmin ? this.filtro.sede : this.sedeUsuario) || undefined;
+  }
+
   cargar(): void {
     this.cargando = true;
     this.seleccion = [];
@@ -149,11 +166,40 @@ export class LogisticaComponent implements OnInit {
       desde: this.ymd(this.filtro.desde),
       hasta: this.ymd(this.filtro.hasta),
       estado: this.filtro.estado || undefined,
-      sede: (this.esAdmin ? this.filtro.sede : this.sedeUsuario) || undefined,
+      sede: this.sedeParaConsulta(),
+      vehiculo: (this.vista === 'rutas' ? this.filtro.vehiculo : '') || undefined,
     }).subscribe({
-      next: (rows) => { this.datos = rows || []; this.construirCitas(); this.construirRuta(); this.cargando = false; },
+      next: (rows) => {
+        this.datos = rows || [];
+        this.construirCitas(); this.construirRuta(); this.construirDespacho();
+        this.cargando = false;
+      },
       error: (err) => { this.cargando = false; this.toast(err?.error?.message ?? 'No se pudo cargar.', 'error'); },
     });
+  }
+
+  // ── Asignar carro de reparto a la selección (Control de Entregas) ──
+  asignarVehiculoSel(veh: string): void {
+    const ids = this.selE.map(e => e.id);
+    if (!ids.length) { this.toast('Selecciona entregas para asignar el carro.', 'error'); return; }
+    this.api.asignarVehiculo(ids, veh).subscribe({
+      next: () => { this.toast(veh ? `Asignadas al carro ${veh}.` : 'Carro quitado.'); this.cargar(); },
+      error: (err) => this.toast(err?.error?.message ?? 'No se pudo asignar el carro.', 'error'),
+    });
+  }
+  colorVehiculo(v: string | null | undefined): string {
+    return VEHICULOS.find(x => x.id === (v || '').toUpperCase())?.color || '#90A4AE';
+  }
+
+  // ── Lista de Despacho por Vehículo ──
+  despachoGrupos: { vehiculo: string; color: string; entregas: Entrega[] }[] = [];
+  private construirDespacho(): void {
+    const grupos = [...VEHICULOS.map(v => ({ vehiculo: v.id, color: v.color })),
+      { vehiculo: 'SIN ASIGNAR', color: '#90A4AE' }];
+    const pend = this.datos.filter(e => e.estado === 'PENDIENTE');
+    this.despachoGrupos = grupos
+      .map(g => ({ ...g, entregas: pend.filter(e => (e.vehiculo || 'SIN ASIGNAR').toUpperCase() === g.vehiculo) }))
+      .filter(g => g.entregas.length > 0 || g.vehiculo !== 'SIN ASIGNAR');
   }
 
   // ── Ruta de reparto (usa las coordenadas de las entregas PENDIENTES) ──

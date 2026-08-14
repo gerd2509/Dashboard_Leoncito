@@ -173,3 +173,40 @@
 .btn-repro:disabled { opacity: .55; cursor: default; }
 .repro-badge { display: inline-flex; align-items: center; gap: 3px; background: #F3E5F5; color: #6A1B9A; border-radius: 999px; padding: 1px 8px; font-size: 11.5px; font-weight: 800; }
 .repro-badge mat-icon { font-size: 14px; width: 14px; height: 14px; }
+
+/* Asignar carro */
+.logi-vehiculos { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+  background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 10px 14px; }
+.veh-lbl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; color: #46586c; }
+.veh-lbl mat-icon { font-size: 19px; width: 19px; height: 19px; color: #607D8B; }
+.veh-btn { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 16px; border-radius: 9px;
+  border: none; color: #fff; font-weight: 800; cursor: pointer; font-size: 12.5px; }
+.veh-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.veh-btn.quitar { background: #eceff1; color: #546E7A; }
+.veh-btn:disabled { opacity: .4; cursor: default; }
+.veh-badge { display: inline-flex; align-items: center; gap: 4px; color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 800; }
+.veh-badge mat-icon { font-size: 14px; width: 14px; height: 14px; }
+.veh-none { color: #b0bccb; }
+
+/* Lista de despacho */
+.despacho-cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.desp-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; overflow: hidden; box-shadow: 0 1px 3px rgba(20,50,90,.05); }
+.desp-head { display: flex; align-items: center; gap: 8px; color: #fff; padding: 12px 16px; font-weight: 800; }
+.desp-head mat-icon { font-size: 22px; width: 22px; height: 22px; }
+.dh-name { font-size: 15px; }
+.dh-count { margin-left: auto; background: rgba(255,255,255,.28); border-radius: 999px; padding: 2px 12px; font-size: 13px; }
+.desp-body { padding: 10px 12px; max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.desp-item { border: 1px solid #eef2f7; border-left: 3px solid #cfd8e3; border-radius: 9px; padding: 9px 11px; }
+.desp-item.vencida { border-left-color: #E53935; background: #fff7f6; }
+.di-top { display: flex; justify-content: space-between; gap: 8px; }
+.di-prod { font-weight: 800; color: #1f2d3d; font-size: 13px; }
+.di-fecha { font-size: 11.5px; color: #8a97a6; }
+.di-cli { font-size: 12.5px; color: #46586c; margin-top: 2px; }
+.di-dir { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #7c8a9a; margin-top: 4px; }
+.di-dir mat-icon { font-size: 15px; width: 15px; height: 15px; }
+.di-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.di-tag { display: inline-flex; align-items: center; gap: 3px; background: #eef3f9; color: #556; border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+.di-tag mat-icon { font-size: 13px; width: 13px; height: 13px; }
+.di-tag.coord { background: #e7f6ec; color: #1B7A3D; }
+.di-tag.venc { background: #FDECEA; color: #C62828; font-weight: 800; }
+.desp-empty { color: #9aa7b6; font-size: 12.5px; padding: 8px; text-align: center; }

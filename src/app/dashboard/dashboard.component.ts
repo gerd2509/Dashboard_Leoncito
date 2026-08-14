@@ -219,6 +219,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Registrar Entrega',     icon: 'add_box',        modulo: 'logistica-registrar' },
         { label: 'Control de Entregas',   icon: 'fact_check',     modulo: 'logistica-entregas' },
         { label: 'Calendario de Entregas', icon: 'calendar_month', modulo: 'logistica-calendario' },
+        { label: 'Lista de Despacho',      icon: 'local_shipping', modulo: 'logistica-despacho' },
         { label: 'Ruta de Reparto',        icon: 'route',          modulo: 'logistica-rutas' },
       ]
     },

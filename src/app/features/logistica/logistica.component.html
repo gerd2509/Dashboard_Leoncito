@@ -89,7 +89,7 @@
       <div class="fld"><label>Estado</label>
         <dx-select-box [(value)]="filtro.estado" [items]="estados" [showClearButton]="true" placeholder="Todos"></dx-select-box>
       </div>
-      <div class="fld" *ngIf="esAdmin"><label>Sede</label>
+      <div class="fld"><label>Sede</label>
         <dx-select-box [(value)]="filtro.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
           [showClearButton]="true" placeholder="Todas"></dx-select-box>
       </div>
@@ -118,6 +118,18 @@
       </button>
     </div>
 
+    <!-- Asignar CARRO de reparto a la selección -->
+    <div class="logi-vehiculos">
+      <span class="veh-lbl"><mat-icon>local_shipping</mat-icon> Asignar carro:</span>
+      <button *ngFor="let v of vehiculos" class="veh-btn" [style.background]="v.color"
+        [disabled]="!seleccion.length" (click)="asignarVehiculoSel(v.id)">
+        <mat-icon>local_shipping</mat-icon> {{ v.id }}
+      </button>
+      <button class="veh-btn quitar" [disabled]="!seleccion.length" (click)="asignarVehiculoSel('')">
+        <mat-icon>do_not_disturb</mat-icon> Quitar
+      </button>
+    </div>
+
     <div class="grid-wrap">
       <dx-data-grid [dataSource]="datos" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
         [columnAutoWidth]="true" [wordWrapEnabled]="true" [(selectedRowKeys)]="seleccion"
@@ -134,6 +146,7 @@
         <dxi-column dataField="producto" caption="Producto" [minWidth]="180"></dxi-column>
         <dxi-column dataField="sede" caption="Sede" [width]="115"></dxi-column>
         <dxi-column dataField="estado" caption="Estado" [width]="115" cellTemplate="estadoTpl"></dxi-column>
+        <dxi-column dataField="vehiculo" caption="Carro" [width]="110" alignment="center" cellTemplate="vehTpl"></dxi-column>
         <dxi-column dataField="veces_reprogramada" caption="Reprog." [width]="85" alignment="center" cellTemplate="reproTpl"></dxi-column>
         <dxi-column dataField="celular" caption="Celular" [width]="110"></dxi-column>
         <dxi-column dataField="coordenadas" caption="Coordenadas" [width]="140"></dxi-column>
@@ -141,6 +154,12 @@
         <dxi-column dataField="fecha_entregado" caption="Entregado" [width]="130"></dxi-column>
         <dxi-column dataField="motivo_anulacion" caption="Motivo anulación" [minWidth]="160"></dxi-column>
 
+        <div *dxTemplate="let d of 'vehTpl'">
+          <span class="veh-badge" *ngIf="d.data.vehiculo" [style.background]="colorVehiculo(d.data.vehiculo)">
+            <mat-icon>local_shipping</mat-icon> {{ d.data.vehiculo }}
+          </span>
+          <span class="veh-none" *ngIf="!d.data.vehiculo">—</span>
+        </div>
         <div *dxTemplate="let d of 'reproTpl'">
           <span class="repro-badge" *ngIf="d.data.veces_reprogramada" [title]="d.data.motivo_reprogramacion || ''">
             <mat-icon>event_repeat</mat-icon> {{ d.data.veces_reprogramada }}
@@ -230,6 +249,10 @@
         <dx-select-box [(value)]="filtro.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
           [showClearButton]="true" placeholder="Todas"></dx-select-box>
       </div>
+      <div class="fld"><label>Carro</label>
+        <dx-select-box [(value)]="filtro.vehiculo" [items]="vehiculos" valueExpr="id" displayExpr="id"
+          [showClearButton]="true" placeholder="Todos"></dx-select-box>
+      </div>
       <button class="btn-tool" (click)="cargar()"><mat-icon>search</mat-icon> Cargar entregas</button>
       <button class="btn-tool ok" (click)="obtenerUbicacion()" [disabled]="obteniendoUbic">
         <mat-icon>my_location</mat-icon> {{ obteniendoUbic ? 'Ubicando…' : (ubicacionActual ? 'Actualizar mi ubicación' : 'Usar mi ubicación') }}
@@ -249,6 +272,53 @@
     </div>
 
     <app-gps-ruta *ngIf="puntosRuta.length" [coordenadas]="puntosRuta"></app-gps-ruta>
+  </ng-container>
+
+  <!-- ═══════════ LISTA DE DESPACHO POR VEHÍCULO ═══════════ -->
+  <ng-container *ngIf="vista === 'despacho'">
+    <div class="logi-head">
+      <span class="lh-ico"><mat-icon>local_shipping</mat-icon></span>
+      <div>
+        <div class="lh-title">Lista de Despacho por Vehículo</div>
+        <div class="lh-sub">Entregas pendientes agrupadas por carro de reparto. Asígnalos en Control de Entregas.</div>
+      </div>
+    </div>
+
+    <div class="logi-filtros">
+      <div class="fld"><label>Desde</label><dx-date-box [(value)]="filtro.desde" type="date" displayFormat="dd/MM/yyyy"></dx-date-box></div>
+      <div class="fld"><label>Hasta</label><dx-date-box [(value)]="filtro.hasta" type="date" displayFormat="dd/MM/yyyy"></dx-date-box></div>
+      <div class="fld" *ngIf="esAdmin"><label>Sede</label>
+        <dx-select-box [(value)]="filtro.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
+          [showClearButton]="true" placeholder="Todas"></dx-select-box>
+      </div>
+      <button class="btn-tool" (click)="cargar()"><mat-icon>search</mat-icon> Buscar</button>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="despacho-cols">
+        <div class="desp-card" *ngFor="let g of despachoGrupos">
+          <div class="desp-head" [style.background]="g.color">
+            <mat-icon>local_shipping</mat-icon>
+            <span class="dh-name">Carro {{ g.vehiculo }}</span>
+            <span class="dh-count">{{ g.entregas.length }}</span>
+          </div>
+          <div class="desp-body">
+            <div class="desp-item" *ngFor="let e of g.entregas" [class.vencida]="e.vencida">
+              <div class="di-top"><span class="di-prod">{{ e.producto }}</span><span class="di-fecha">{{ e.fecha_entrega }}</span></div>
+              <div class="di-cli">{{ e.cliente_nombre || e.dni_cliente }}<span *ngIf="e.sede"> · {{ e.sede }}</span></div>
+              <div class="di-dir" *ngIf="e.direccion"><mat-icon>place</mat-icon> {{ e.direccion }}</div>
+              <div class="di-tags">
+                <span class="di-tag" *ngIf="e.celular"><mat-icon>call</mat-icon> {{ e.celular }}</span>
+                <span class="di-tag coord" *ngIf="e.coordenadas"><mat-icon>my_location</mat-icon> con coords</span>
+                <span class="di-tag venc" *ngIf="e.vencida">VENCIDA</span>
+              </div>
+            </div>
+            <div class="desp-empty" *ngIf="!g.entregas.length">Sin entregas asignadas.</div>
+          </div>
+        </div>
+      </div>
+      <app-loading-overlay [inline]="true" [visible]="cargando" mensaje="Cargando despacho…" icon="local_shipping"></app-loading-overlay>
+    </div>
   </ng-container>
 
   <!-- ═══════════ MODAL: ANULAR ENTREGA(S) ═══════════ -->

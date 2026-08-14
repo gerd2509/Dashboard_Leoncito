@@ -14,6 +14,7 @@ export interface Entrega {
   celular?: string | null;
   direccion?: string | null;
   coordenadas?: string | null;
+  vehiculo?: string | null;
   observacion?: string | null;
   estado: 'PENDIENTE' | 'ENTREGADO' | 'ANULADO' | string;
   motivo_anulacion?: string | null;
@@ -57,10 +58,15 @@ export class EntregasService {
     return this.http.post<any>(this.base, payload);
   }
 
-  listar(filtro: { desde?: string; hasta?: string; sede?: string; estado?: string; dni?: string } = {}): Observable<Entrega[]> {
+  listar(filtro: { desde?: string; hasta?: string; sede?: string; estado?: string; dni?: string; vehiculo?: string } = {}): Observable<Entrega[]> {
     let params = new HttpParams();
     for (const [k, v] of Object.entries(filtro)) if (v) params = params.set(k, v);
     return this.http.get<Entrega[]>(this.base, { params });
+  }
+
+  /** Asigna (o quita, vehiculo='') el carro de reparto a varias entregas. */
+  asignarVehiculo(ids: number[], vehiculo: string): Observable<{ success: boolean; actualizados: number }> {
+    return this.http.patch<any>(`${this.base}/asignar-vehiculo`, { ids, vehiculo });
   }
 
   /** Marca varias entregas como ENTREGADO (o desmarca con entregado=false). */

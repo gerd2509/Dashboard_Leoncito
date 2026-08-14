@@ -61,11 +61,21 @@ export class RutaMapsService {
       throw new Error('Se requieren al menos 2 puntos (origen y destino) para abrir la navegación.');
     }
 
-    // Todos los puntos, en orden, separados por '/'. Cada uno como "lat,lng".
-    const ruta = coordenadas.map((c) => `${c.lat},${c.lng}`).join('/');
-    const params = new URLSearchParams({ travelmode });
+    // Formato universal api=1: origin + destination + waypoints. Con `dir_action=navigate`
+    // Google Maps ofrece directamente "Iniciar" (navegación paso a paso), en vez de solo
+    // la vista previa de la ruta.
+    const pts = coordenadas.map((c) => `${c.lat},${c.lng}`);
+    const params = new URLSearchParams({
+      api: '1',
+      origin: pts[0],
+      destination: pts[pts.length - 1],
+      travelmode,
+      dir_action: 'navigate',
+    });
+    const waypoints = pts.slice(1, -1).join('|');
+    if (waypoints) params.set('waypoints', waypoints);
 
-    return `https://www.google.com/maps/dir/${ruta}/?${params.toString()}`;
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
   }
 
   /**
