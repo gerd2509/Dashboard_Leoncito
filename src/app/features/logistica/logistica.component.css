@@ -121,3 +121,30 @@
 .btn-anular:hover { background: #C62828; }
 .btn-anular:disabled { opacity: .55; cursor: default; }
 .grid-acc button.anular:hover { color: #C62828; }
+
+/* Sección de acciones (fuera de la grilla) */
+.logi-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+  background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 10px 14px; }
+.acc-sel { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #46586c; }
+.acc-sel mat-icon { font-size: 18px; width: 18px; height: 18px; color: #1565C0; }
+.acc-sep { flex: 1; }
+.btn-acc { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; border-radius: 9px;
+  border: none; color: #fff; font-weight: 800; cursor: pointer; font-size: 13px; }
+.btn-acc mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.btn-acc.edit { background: #1565C0; }
+.btn-acc.edit:hover { background: #0D47A1; }
+.btn-acc.ok   { background: #2E7D32; }
+.btn-acc.ok:hover { background: #1B5E20; }
+.btn-acc.warn { background: #EF6C00; }
+.btn-acc.warn:hover { background: #E65100; }
+.btn-acc.del  { background: #C62828; }
+.btn-acc.del:hover { background: #B71C1C; }
+.btn-acc:disabled { opacity: .45; cursor: default; }
+
+/* Modal editar (ancho) */
+.logi-modal.wide { width: 640px; }
+.lm-head.edit { background: linear-gradient(90deg, #1565C0, #1E88E5); }
+.ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.ed-grid .ed-2 { grid-column: 1 / -1; }
+.btn-guardar.sm { height: 40px; padding: 0 18px; }
+@media (max-width: 640px) { .ed-grid { grid-template-columns: 1fr; } }

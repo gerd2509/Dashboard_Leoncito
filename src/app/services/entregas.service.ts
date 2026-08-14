@@ -13,6 +13,7 @@ export interface Entrega {
   sede?: string | null;
   celular?: string | null;
   direccion?: string | null;
+  coordenadas?: string | null;
   observacion?: string | null;
   estado: 'PENDIENTE' | 'ENTREGADO' | 'ANULADO' | string;
   motivo_anulacion?: string | null;
@@ -31,6 +32,7 @@ export interface EntregaPayload {
   codigo_cv?: string;
   celular?: string;
   direccion?: string;
+  coordenadas?: string;
   observacion?: string;
   registrado_por?: string;
 }

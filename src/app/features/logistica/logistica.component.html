@@ -1,4 +1,4 @@
-<div class="logi-shell" [class.full]="vista === 'calendario'">
+<div class="logi-shell" [class.full]="vista !== 'registrar'">
 
   <!-- ═══════════ REGISTRAR ENTREGA ═══════════ -->
   <ng-container *ngIf="vista === 'registrar'">
@@ -46,6 +46,10 @@
           <dx-text-box [(value)]="f.direccion" placeholder="Para la ruta de reparto"></dx-text-box>
         </div>
         <div class="fld fld-2">
+          <label>Coordenadas <small>(lat, lng — para armar la ruta)</small></label>
+          <dx-text-box [(value)]="f.coordenadas" placeholder="Ej. -6.7011, -79.9061 (copia de Google Maps)"></dx-text-box>
+        </div>
+        <div class="fld fld-2">
           <label>Observación <small>(opcional)</small></label>
           <dx-text-area [(value)]="f.observacion" [height]="70"></dx-text-area>
         </div>
@@ -90,10 +94,25 @@
           [showClearButton]="true" placeholder="Todas"></dx-select-box>
       </div>
       <button class="btn-tool" (click)="cargar()"><mat-icon>search</mat-icon> Buscar</button>
-      <button class="btn-tool ok" (click)="guardarEntregas()" [disabled]="!seleccion.length">
-        <mat-icon>check_circle</mat-icon> Marcar entregado ({{ seleccion.length }})
-      </button>
       <button class="btn-tool" (click)="exportarExcel()" [disabled]="!datos.length"><mat-icon>download</mat-icon> Excel</button>
+    </div>
+
+    <!-- Sección de ACCIONES (operan sobre lo seleccionado) -->
+    <div class="logi-acciones">
+      <span class="acc-sel"><mat-icon>check_box</mat-icon> {{ seleccion.length }} seleccionada(s)</span>
+      <span class="acc-sep"></span>
+      <button class="btn-acc edit" (click)="abrirEditar()" [disabled]="seleccion.length !== 1">
+        <mat-icon>edit</mat-icon> Editar
+      </button>
+      <button class="btn-acc ok" (click)="marcarEntregadoSel()" [disabled]="!selPend.length">
+        <mat-icon>check_circle</mat-icon> Marcar entregado
+      </button>
+      <button class="btn-acc warn" (click)="pedirAnular()" [disabled]="!selPend.length">
+        <mat-icon>block</mat-icon> Anular
+      </button>
+      <button class="btn-acc del" (click)="pedirEliminar()" [disabled]="!seleccion.length">
+        <mat-icon>delete</mat-icon> Eliminar
+      </button>
     </div>
 
     <div class="grid-wrap">
@@ -112,11 +131,11 @@
         <dxi-column dataField="producto" caption="Producto" [minWidth]="180"></dxi-column>
         <dxi-column dataField="sede" caption="Sede" [width]="115"></dxi-column>
         <dxi-column dataField="estado" caption="Estado" [width]="115" cellTemplate="estadoTpl"></dxi-column>
+        <dxi-column dataField="celular" caption="Celular" [width]="110"></dxi-column>
+        <dxi-column dataField="coordenadas" caption="Coordenadas" [width]="140"></dxi-column>
         <dxi-column dataField="entregado_por" caption="Entregó" [width]="135"></dxi-column>
         <dxi-column dataField="fecha_entregado" caption="Entregado" [width]="130"></dxi-column>
-        <dxi-column dataField="motivo_anulacion" caption="Motivo anulación" [minWidth]="160" [visible]="false"></dxi-column>
-        <dxi-column caption="Acciones" [width]="130" alignment="center" [allowSorting]="false"
-          [allowFiltering]="false" [allowResizing]="false" cellTemplate="accTpl"></dxi-column>
+        <dxi-column dataField="motivo_anulacion" caption="Motivo anulación" [minWidth]="160"></dxi-column>
 
         <div *dxTemplate="let d of 'estadoTpl'">
           <span class="est"
@@ -126,12 +145,6 @@
             [title]="d.data.motivo_anulacion || ''">
             {{ d.data.vencida && d.data.estado === 'PENDIENTE' ? 'VENCIDA' : d.data.estado }}
           </span>
-        </div>
-        <div *dxTemplate="let d of 'accTpl'" class="grid-acc">
-          <button *ngIf="d.data.estado === 'PENDIENTE'" (click)="pedirAnular(d.data)" title="Anular" class="anular"><mat-icon>block</mat-icon></button>
-          <button *ngIf="d.data.estado === 'ENTREGADO'" (click)="revertir(d.data)" title="Revertir a pendiente"><mat-icon>undo</mat-icon></button>
-          <button *ngIf="d.data.estado === 'ANULADO'" (click)="reactivar(d.data)" title="Reactivar"><mat-icon>restart_alt</mat-icon></button>
-          <button (click)="eliminar(d.data)" title="Eliminar" class="del"><mat-icon>delete</mat-icon></button>
         </div>
       </dx-data-grid>
       <app-loading-overlay [inline]="true" [visible]="cargando" mensaje="Cargando entregas…" icon="local_shipping"></app-loading-overlay>
@@ -191,12 +204,12 @@
     </dx-scheduler>
   </ng-container>
 
-  <!-- ═══════════ MODAL: ANULAR ENTREGA ═══════════ -->
-  <div class="logi-modal-ov" *ngIf="anulando" (click)="cancelarAnular()">
+  <!-- ═══════════ MODAL: ANULAR ENTREGA(S) ═══════════ -->
+  <div class="logi-modal-ov" *ngIf="anulSel.length" (click)="cancelarAnular()">
     <div class="logi-modal" (click)="$event.stopPropagation()">
-      <div class="lm-head">Anular entrega</div>
+      <div class="lm-head">Anular {{ anulSel.length }} entrega(s)</div>
       <div class="lm-body">
-        <p class="lm-sub"><b>{{ anulando.producto }}</b> · {{ anulando.dni_cliente }}<span *ngIf="anulando.cliente_nombre"> · {{ anulando.cliente_nombre }}</span></p>
+        <p class="lm-sub" *ngIf="anulSel.length === 1"><b>{{ anulSel[0].producto }}</b> · {{ anulSel[0].dni_cliente }}<span *ngIf="anulSel[0].cliente_nombre"> · {{ anulSel[0].cliente_nombre }}</span></p>
         <div class="fld">
           <label>Motivo <b>*</b></label>
           <dx-select-box [(value)]="anulMotivo" [items]="motivosAnulacion" placeholder="Elige el motivo"></dx-select-box>
@@ -210,6 +223,56 @@
         <button class="btn-cancelar" (click)="cancelarAnular()">Cancelar</button>
         <button class="btn-anular" (click)="confirmarAnular()" [disabled]="!anulMotivo || anulGuardando">
           {{ anulGuardando ? 'Anulando…' : 'Anular entrega' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: EDITAR ENTREGA ═══════════ -->
+  <div class="logi-modal-ov" *ngIf="editando" (click)="cancelarEditar()">
+    <div class="logi-modal wide" (click)="$event.stopPropagation()">
+      <div class="lm-head edit">Editar entrega · {{ editando.dni_cliente }}</div>
+      <div class="lm-body">
+        <div class="ed-grid">
+          <div class="fld"><label>Cliente</label><dx-text-box [(value)]="ed.cliente_nombre"></dx-text-box></div>
+          <div class="fld"><label>Producto <b>*</b></label>
+            <dx-select-box [items]="productos" [(value)]="ed.producto" [searchEnabled]="true" [acceptCustomValue]="true"></dx-select-box>
+          </div>
+          <div class="fld"><label>Fecha de entrega <b>*</b></label>
+            <dx-date-box [(value)]="ed.fecha_entrega" type="date" displayFormat="dd/MM/yyyy"></dx-date-box>
+          </div>
+          <div class="fld"><label>Sede</label>
+            <dx-select-box [(value)]="ed.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"></dx-select-box>
+          </div>
+          <div class="fld"><label>Estado</label>
+            <dx-select-box [(value)]="ed.estado" [items]="estadosEdit"></dx-select-box>
+          </div>
+          <div class="fld"><label>Celular</label><dx-text-box [(value)]="ed.celular"></dx-text-box></div>
+          <div class="fld ed-2"><label>Dirección</label><dx-text-box [(value)]="ed.direccion"></dx-text-box></div>
+          <div class="fld ed-2"><label>Coordenadas <small>(lat, lng)</small></label><dx-text-box [(value)]="ed.coordenadas"></dx-text-box></div>
+          <div class="fld ed-2"><label>Observación</label><dx-text-area [(value)]="ed.observacion" [height]="60"></dx-text-area></div>
+        </div>
+      </div>
+      <div class="lm-actions">
+        <button class="btn-cancelar" (click)="cancelarEditar()">Cancelar</button>
+        <button class="btn-guardar sm" (click)="guardarEditar()" [disabled]="edGuardando">
+          {{ edGuardando ? 'Guardando…' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: ELIMINAR ═══════════ -->
+  <div class="logi-modal-ov" *ngIf="eliminandoSel?.length" (click)="cancelarEliminar()">
+    <div class="logi-modal" (click)="$event.stopPropagation()">
+      <div class="lm-head">Eliminar {{ eliminandoSel?.length }} entrega(s)</div>
+      <div class="lm-body">
+        <p class="lm-sub">Se eliminarán por completo de la base de datos. Es <b>irreversible</b>.</p>
+      </div>
+      <div class="lm-actions">
+        <button class="btn-cancelar" (click)="cancelarEliminar()">Cancelar</button>
+        <button class="btn-anular" (click)="confirmarEliminar()" [disabled]="elimGuardando">
+          {{ elimGuardando ? 'Eliminando…' : 'Sí, eliminar' }}
         </button>
       </div>
     </div>

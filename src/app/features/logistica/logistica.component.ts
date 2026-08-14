@@ -8,6 +8,7 @@ import { EntregasService, Entrega } from '../../services/entregas.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
+import { firstValueFrom } from 'rxjs';
 
 // Categorías de producto (igual que los registros de gestión). Simple por ahora;
 // luego se puede cambiar por el catálogo real (endpoint /productos ya existe).
@@ -73,7 +74,7 @@ export class LogisticaComponent implements OnInit {
     return {
       dni_cliente: '', cliente_nombre: '', producto: '',
       fecha_entrega: null as Date | null, sede: '',
-      celular: '', direccion: '', observacion: '',
+      celular: '', direccion: '', coordenadas: '', observacion: '',
     };
   }
   get sedeFija(): boolean { return !this.esAdmin && !!this.sedeUsuario; }
@@ -106,6 +107,7 @@ export class LogisticaComponent implements OnInit {
       sede: this.f.sede,
       celular: this.f.celular.trim() || undefined,
       direccion: this.f.direccion.trim() || undefined,
+      coordenadas: this.f.coordenadas.trim() || undefined,
       observacion: this.f.observacion.trim() || undefined,
       registrado_por: this.nombreUsuario || undefined,
     }).subscribe({
@@ -201,57 +203,99 @@ export class LogisticaComponent implements OnInit {
   onCitaClick = (e: any): void => { e.cancel = true; };
   onFormOpening = (e: any): void => { e.cancel = true; };
 
-  /** Marca como ENTREGADO las filas seleccionadas (check + Guardar). */
-  guardarEntregas(): void {
-    // OJO: el id llega como STRING desde el backend; comparar como string (antes fallaba).
-    const sel = new Set((this.seleccion || []).map(String));
-    const pendientes = this.datos.filter(e => sel.has(String(e.id)) && e.estado === 'PENDIENTE').map(e => e.id);
-    if (!pendientes.length) { this.toast('Selecciona entregas pendientes para marcarlas.', 'error'); return; }
-    this.api.marcarEntregado(pendientes, this.nombreUsuario).subscribe({
+  // ══════════ ACCIONES SOBRE LA SELECCIÓN (sección de botones) ══════════
+  readonly estadosEdit = ['PENDIENTE', 'ENTREGADO', 'ANULADO'];
+  /** Entregas seleccionadas (el id llega como STRING → comparar como string). */
+  get selE(): Entrega[] {
+    const s = new Set((this.seleccion || []).map(String));
+    return this.datos.filter(e => s.has(String(e.id)));
+  }
+  get selPend(): Entrega[] { return this.selE.filter(e => e.estado === 'PENDIENTE'); }
+
+  /** Marca como ENTREGADO las pendientes seleccionadas. */
+  marcarEntregadoSel(): void {
+    const ids = this.selPend.map(e => e.id);
+    if (!ids.length) { this.toast('Selecciona entregas pendientes para marcarlas.', 'error'); return; }
+    this.api.marcarEntregado(ids, this.nombreUsuario).subscribe({
       next: (r) => { this.toast(`✔ ${r.actualizados} entrega(s) marcada(s) como entregadas.`); this.cargar(); },
       error: (err) => { this.toast(err?.error?.message ?? 'No se pudo actualizar.', 'error'); },
     });
   }
 
-  /** Revierte una entrega a PENDIENTE. */
-  revertir(e: Entrega): void {
-    this.api.marcarEntregado([e.id], this.nombreUsuario, false).subscribe({
-      next: () => { this.toast('Entrega revertida a pendiente.'); this.cargar(); },
-      error: (err) => { this.toast(err?.error?.message ?? 'No se pudo revertir.', 'error'); },
+  // ── Editar (1 seleccionada) ──
+  editando: Entrega | null = null;
+  edGuardando = false;
+  ed = this.edVacio();
+  private edVacio() {
+    return { cliente_nombre: '', producto: '', fecha_entrega: null as Date | null, sede: '',
+      celular: '', direccion: '', coordenadas: '', observacion: '', estado: 'PENDIENTE' };
+  }
+  abrirEditar(): void {
+    const sel = this.selE;
+    if (sel.length !== 1) { this.toast('Selecciona una sola entrega para editar.', 'error'); return; }
+    const x = sel[0];
+    const [y, m, d] = (x.fecha_entrega || '').split('-').map(Number);
+    this.ed = {
+      cliente_nombre: x.cliente_nombre || '', producto: x.producto || '',
+      fecha_entrega: y ? new Date(y, m - 1, d) : null, sede: x.sede || '',
+      celular: x.celular || '', direccion: x.direccion || '', coordenadas: x.coordenadas || '',
+      observacion: x.observacion || '', estado: x.estado || 'PENDIENTE',
+    };
+    this.editando = x;
+  }
+  cancelarEditar(): void { this.editando = null; }
+  guardarEditar(): void {
+    if (!this.editando || this.edGuardando) return;
+    if (!this.ed.producto.trim() || !this.ed.fecha_entrega) { this.toast('Producto y fecha son obligatorios.', 'error'); return; }
+    this.edGuardando = true;
+    this.api.actualizar(this.editando.id, {
+      cliente_nombre: this.ed.cliente_nombre.trim(), producto: this.ed.producto.trim(),
+      fecha_entrega: this.ymd(this.ed.fecha_entrega as Date), sede: this.ed.sede,
+      celular: this.ed.celular.trim(), direccion: this.ed.direccion.trim(),
+      coordenadas: this.ed.coordenadas.trim(), observacion: this.ed.observacion.trim(),
+      estado: this.ed.estado,
+    }).subscribe({
+      next: () => { this.edGuardando = false; this.editando = null; this.toast('Entrega actualizada.'); this.cargar(); },
+      error: (err) => { this.edGuardando = false; this.toast(err?.error?.message ?? 'No se pudo actualizar.', 'error'); },
     });
   }
 
-  eliminar(e: Entrega): void {
-    this.api.eliminar(e.id).subscribe({
-      next: () => { this.toast('Entrega eliminada.'); this.cargar(); },
-      error: (err) => { this.toast(err?.error?.message ?? 'No se pudo eliminar.', 'error'); },
-    });
-  }
-
-  // ── Anular entrega (con motivo) ──
+  // ── Anular (pendientes seleccionadas, con motivo) ──
   readonly motivosAnulacion = ['DESISTIÓ DEL CRÉDITO', 'CLIENTE NO UBICADO', 'CAMBIO DE PRODUCTO',
     'DEVOLUCIÓN', 'DUPLICADO', 'OTRO'];
-  anulando: Entrega | null = null;
+  anulSel: Entrega[] = [];
   anulMotivo = '';
   anulComentario = '';
   anulGuardando = false;
-  pedirAnular(e: Entrega): void { this.anulando = e; this.anulMotivo = ''; this.anulComentario = ''; }
-  cancelarAnular(): void { this.anulando = null; }
+  pedirAnular(): void {
+    const p = this.selPend;
+    if (!p.length) { this.toast('Selecciona entregas pendientes para anular.', 'error'); return; }
+    this.anulSel = p; this.anulMotivo = ''; this.anulComentario = '';
+  }
+  cancelarAnular(): void { this.anulSel = []; }
   confirmarAnular(): void {
-    if (!this.anulando || !this.anulMotivo || this.anulGuardando) return;
+    if (!this.anulSel.length || !this.anulMotivo || this.anulGuardando) return;
     const motivo = this.anulMotivo + (this.anulComentario.trim() ? ` — ${this.anulComentario.trim()}` : '');
     this.anulGuardando = true;
-    this.api.actualizar(this.anulando.id, { estado: 'ANULADO', motivo_anulacion: motivo }).subscribe({
-      next: () => { this.anulGuardando = false; this.anulando = null; this.toast('Entrega anulada.'); this.cargar(); },
-      error: (err) => { this.anulGuardando = false; this.toast(err?.error?.message ?? 'No se pudo anular.', 'error'); },
-    });
+    Promise.all(this.anulSel.map(e => firstValueFrom(this.api.actualizar(e.id, { estado: 'ANULADO', motivo_anulacion: motivo }))))
+      .then(() => { this.anulGuardando = false; this.anulSel = []; this.toast('Entrega(s) anulada(s).'); this.cargar(); })
+      .catch((err) => { this.anulGuardando = false; this.toast(err?.error?.message ?? 'No se pudo anular.', 'error'); });
   }
-  /** Reactiva una entrega anulada (vuelve a PENDIENTE). */
-  reactivar(e: Entrega): void {
-    this.api.actualizar(e.id, { estado: 'PENDIENTE', motivo_anulacion: '' }).subscribe({
-      next: () => { this.toast('Entrega reactivada.'); this.cargar(); },
-      error: (err) => { this.toast(err?.error?.message ?? 'No se pudo reactivar.', 'error'); },
-    });
+
+  // ── Eliminar (selección) con confirmación ──
+  eliminandoSel: Entrega[] | null = null;
+  elimGuardando = false;
+  pedirEliminar(): void {
+    if (!this.selE.length) { this.toast('Selecciona entregas para eliminar.', 'error'); return; }
+    this.eliminandoSel = this.selE;
+  }
+  cancelarEliminar(): void { this.eliminandoSel = null; }
+  confirmarEliminar(): void {
+    if (!this.eliminandoSel?.length || this.elimGuardando) return;
+    this.elimGuardando = true;
+    Promise.all(this.eliminandoSel.map(e => firstValueFrom(this.api.eliminar(e.id))))
+      .then(() => { this.elimGuardando = false; this.eliminandoSel = null; this.toast('Entrega(s) eliminada(s).'); this.cargar(); })
+      .catch((err) => { this.elimGuardando = false; this.toast(err?.error?.message ?? 'No se pudo eliminar.', 'error'); });
   }
 
   /** Resalta las entregas vencidas (pendientes con fecha pasada). */
