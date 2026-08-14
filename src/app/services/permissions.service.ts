@@ -101,7 +101,6 @@ const CALL_MODULES = [
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
-  'logistica-registrar', 'logistica-entregas',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
@@ -112,8 +111,7 @@ const REALZZA_MODULES = [
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
 const ZONA_MODULES = ['control-gestion-sede'];
 // Rol vendedor: por defecto ve su panel personal + el formulario de registro.
-const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones',
-  'logistica-registrar', 'logistica-entregas'];
+const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones'];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],

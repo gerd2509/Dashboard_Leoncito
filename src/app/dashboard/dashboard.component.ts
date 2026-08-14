@@ -213,6 +213,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Carga de Ventas',      icon: 'cloud_upload',       modulo: 'carga-ventas' }
       ]
     },
+    {
+      icon: 'local_shipping', label: 'Logística',
+      submenu: [
+        { label: 'Registrar Entrega',   icon: 'add_box',    modulo: 'logistica-registrar' },
+        { label: 'Control de Entregas', icon: 'fact_check', modulo: 'logistica-entregas' },
+      ]
+    },
     { icon: 'badge',                label: 'Maestro CAP',         modulo: 'maestro-cap', adminOnly: true },
     { icon: 'flag',                 label: 'Metas por Sede',      modulo: 'maestro-metas-sede', adminOnly: true },
     { icon: 'request_quote',        label: 'Registro Cobranza',   modulo: 'registro-cobranza', adminOnly: true },
