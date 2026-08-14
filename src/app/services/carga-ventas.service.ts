@@ -77,10 +77,11 @@ export class CargaVentasService {
    * Trae las ventas (tabla ventas) filtradas por año y, opcionalmente, mes y sede.
    * Usado por ventas-sedes y pizarra-metas.
    */
-  obtenerVentas(anio: number, opts?: { mes?: number; sede?: string }): Observable<any[]> {
+  obtenerVentas(anio: number, opts?: { mes?: number; sede?: string; sedekeys?: string[] }): Observable<any[]> {
     let params = new HttpParams().set('anio', anio);
     if (opts?.mes) params = params.set('mes', opts.mes);
     if (opts?.sede) params = params.set('sede', opts.sede);
+    if (opts?.sedekeys?.length) params = params.set('sedekeys', opts.sedekeys.join(','));
     return this.http.get<any[]>(`${this.root}/ventas`, { params });
   }
 
@@ -89,10 +90,11 @@ export class CargaVentasService {
    * por año y, opcionalmente, mes y sede. Usado por ventas-sedes (Ventas por Línea
    * Real) y pizarra-metas (KPI Margen %).
    */
-  obtenerMargen(anio: number, opts?: { mes?: number; sede?: string }): Observable<any[]> {
+  obtenerMargen(anio: number, opts?: { mes?: number; sede?: string; sedekeys?: string[] }): Observable<any[]> {
     let params = new HttpParams().set('anio', anio);
     if (opts?.mes) params = params.set('mes', opts.mes);
     if (opts?.sede) params = params.set('sede', opts.sede);
+    if (opts?.sedekeys?.length) params = params.set('sedekeys', opts.sedekeys.join(','));
     return this.http.get<any[]>(`${this.root}/margen-ventas`, { params });
   }
 

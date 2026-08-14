@@ -236,11 +236,15 @@ export class VentasSedesComponent implements OnInit {
    */
   cargarVentas(anio?: number): void {
     const y = anio ?? new Date(this.formVentas.value.fechaFin).getFullYear();
+    // Usuario con sede(s) fija(s): pide al server SOLO su(s) sede(s) → no baja las 10
+    // sedes del año (menos egress/payload). El admin/global sigue trayendo todas para
+    // el resumen general. Las claves ya están normalizadas (coinciden con el backend).
+    const sk = this.esGlobal ? undefined : this.sedesUsuarioKeys;
     this.cargando = true;
     this.errorCarga = '';
     forkJoin({
-      ventas: this.ventasSvc.obtenerVentas(y),
-      margen: this.ventasSvc.obtenerMargen(y),
+      ventas: this.ventasSvc.obtenerVentas(y, { sedekeys: sk }),
+      margen: this.ventasSvc.obtenerMargen(y, { sedekeys: sk }),
       evo: this.ventasSvc.obtenerEvolutivoSedes(),
     }).subscribe({
       next: ({ ventas, margen, evo }) => {
