@@ -421,6 +421,26 @@ export class SeguridadComponent implements OnInit {
     });
   }
 
+  // ── Eliminar usuario (borrado real en BD, con confirmación) ──
+  usuarioAEliminar: UsuarioDB | null = null;
+  eliminando = false;
+  pedirEliminar(u: UsuarioDB): void { this.usuarioAEliminar = u; }
+  cancelarEliminar(): void { this.usuarioAEliminar = null; }
+  confirmarEliminar(): void {
+    const u = this.usuarioAEliminar;
+    if (!u || this.eliminando) return;
+    this.eliminando = true;
+    this.usuariosSvc.eliminar(u.id).subscribe({
+      next: () => {
+        this.eliminando = false;
+        this.usuarioAEliminar = null;
+        this.cargarUsuarios();
+        this.toast(`Usuario "${u.usuario}" eliminado.`);
+      },
+      error: (err) => { this.eliminando = false; this.toast(err?.error?.message ?? 'No se pudo eliminar el usuario.', 'error'); },
+    });
+  }
+
   rolLabel(rol: string): string {
     return this.rolOptions.find(r => r.value === (rol || '').toLowerCase())?.label ?? rol;
   }

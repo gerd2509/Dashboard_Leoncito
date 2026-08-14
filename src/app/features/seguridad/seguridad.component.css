@@ -755,3 +755,15 @@ td.col-modulo {
 .bulk-perm-reset { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 1.5px solid #d8e2ee; color: #46586c; border-radius: 7px; padding: 3px 10px; cursor: pointer; font-weight: 700; font-size: 12px; }
 .bulk-perm-reset:hover { border-color: #f0a020; color: #E65100; }
 .bulk-perm-reset mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+/* ── Eliminar usuario ── */
+.usr-acc .acc-del:hover { color: #C62828; }
+.del-box { max-width: 440px; }
+.modal-head.del { background: linear-gradient(90deg, #C62828, #E53935); }
+.del-warn { display: flex; gap: 12px; align-items: flex-start; color: #46586c; font-size: 13.5px; line-height: 1.5; }
+.del-warn > mat-icon { color: #E53935; font-size: 30px; width: 30px; height: 30px; flex-shrink: 0; }
+.del-warn p { margin: 8px 0 0; font-size: 12.5px; color: #78889a; }
+.del-user { color: #8a97a6; font-weight: 600; }
+.btn-eliminar { background: #E53935; color: #fff; border: none; border-radius: 8px; padding: 0 18px; height: 38px; cursor: pointer; font-weight: 800; }
+.btn-eliminar:hover { background: #C62828; }
+.btn-eliminar:disabled { opacity: .6; cursor: default; }

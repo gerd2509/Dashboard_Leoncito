@@ -65,6 +65,7 @@
           <button (click)="toggleEstadoUsuario(d.data)" [title]="d.data.activo ? 'Desactivar' : 'Activar'">
             <mat-icon>{{ d.data.activo ? 'toggle_on' : 'toggle_off' }}</mat-icon>
           </button>
+          <button (click)="pedirEliminar(d.data)" title="Eliminar" class="acc-del"><mat-icon>delete</mat-icon></button>
         </div>
       </dx-data-grid>
       <app-loading-overlay [inline]="true" [visible]="cargandoU" mensaje="Cargando usuarios…" icon="shield"></app-loading-overlay>
@@ -235,6 +236,29 @@
       <button class="btn-cancelar" (click)="cerrarBulk()">Cerrar</button>
       <button class="btn-salvar" (click)="crearBulk()" [disabled]="bulkCreando || bulkNuevos === 0">
         {{ bulkCreando ? 'Creando…' : 'Crear ' + bulkNuevos + ' usuario(s)' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: CONFIRMAR ELIMINAR USUARIO ═══════════ -->
+<div class="modal-overlay" *ngIf="usuarioAEliminar" (click)="cancelarEliminar()">
+  <div class="modal-box del-box" (click)="$event.stopPropagation()">
+    <div class="modal-head del">ELIMINAR USUARIO</div>
+    <div class="modal-body">
+      <div class="del-warn">
+        <mat-icon>warning</mat-icon>
+        <div>
+          ¿Seguro que quieres eliminar a <b>{{ usuarioAEliminar.nombre || usuarioAEliminar.usuario }}</b>
+          <span class="del-user">({{ usuarioAEliminar.usuario }})</span>?
+          <p>Esto lo borra <b>por completo de la base de datos</b> — no solo lo desactiva. Es <b>irreversible</b>.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancelar" (click)="cancelarEliminar()">Cancelar</button>
+      <button class="btn-eliminar" (click)="confirmarEliminar()" [disabled]="eliminando">
+        {{ eliminando ? 'Eliminando…' : 'Sí, eliminar' }}
       </button>
     </div>
   </div>

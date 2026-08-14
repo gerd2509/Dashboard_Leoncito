@@ -67,6 +67,11 @@ export class UsuariosService {
     return this.http.patch(`${this.base}/${id}/estado`, { activo });
   }
 
+  /** Borra el usuario de la BD (real, no solo desactivar). */
+  eliminar(id: number): Observable<any> {
+    return this.http.delete(`${this.base}/${id}`);
+  }
+
   /** Guarda los permisos (módulos) de un usuario. `null` = usa el default por rol-perfil. */
   guardarModulos(id: number, modulos: string[] | null): Observable<any> {
     return this.http.patch(`${this.base}/${id}/modulos`, { modulos });
