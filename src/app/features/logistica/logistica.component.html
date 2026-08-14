@@ -1,0 +1,130 @@
+<div class="logi-shell">
+
+  <!-- ═══════════ REGISTRAR ENTREGA ═══════════ -->
+  <ng-container *ngIf="vista === 'registrar'">
+    <div class="logi-head">
+      <span class="lh-ico"><mat-icon>local_shipping</mat-icon></span>
+      <div>
+        <div class="lh-title">Registrar Entrega</div>
+        <div class="lh-sub">Planifica una entrega. El nombre del cliente es opcional; basta el DNI.</div>
+      </div>
+    </div>
+
+    <div class="logi-card">
+      <div class="form-grid">
+        <div class="fld">
+          <label>DNI del cliente <b>*</b></label>
+          <dx-text-box [(value)]="f.dni_cliente" placeholder="Solo números"
+            [isValid]="!(intento && invDni)" (onInput)="intento = intento"></dx-text-box>
+        </div>
+        <div class="fld">
+          <label>Nombre del cliente <small>(opcional)</small></label>
+          <dx-text-box [(value)]="f.cliente_nombre" placeholder="Se puede cruzar luego con ventas"></dx-text-box>
+        </div>
+        <div class="fld fld-2">
+          <label>Producto a entregar <b>*</b></label>
+          <dx-text-box [(value)]="f.producto" placeholder="Ej. MOTOCICLETA DURO 250…"
+            [isValid]="!(intento && invProducto)"></dx-text-box>
+        </div>
+        <div class="fld">
+          <label>Fecha de entrega <b>*</b></label>
+          <dx-date-box [(value)]="f.fecha_entrega" type="date" displayFormat="dd/MM/yyyy"
+            [isValid]="!(intento && invFecha)"></dx-date-box>
+        </div>
+        <div class="fld">
+          <label>Sede <b>*</b></label>
+          <dx-select-box [(value)]="f.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
+            [readOnly]="sedeFija" [isValid]="!(intento && invSede)" placeholder="Elige la sede"></dx-select-box>
+        </div>
+        <div class="fld">
+          <label>Celular <small>(opcional)</small></label>
+          <dx-text-box [(value)]="f.celular"></dx-text-box>
+        </div>
+        <div class="fld">
+          <label>Dirección <small>(opcional)</small></label>
+          <dx-text-box [(value)]="f.direccion" placeholder="Para la ruta de reparto"></dx-text-box>
+        </div>
+        <div class="fld fld-2">
+          <label>Observación <small>(opcional)</small></label>
+          <dx-text-area [(value)]="f.observacion" [height]="70"></dx-text-area>
+        </div>
+      </div>
+
+      <div class="logi-actions">
+        <span class="hint" *ngIf="intento && !formValido"><mat-icon>info</mat-icon> {{ primerError }}</span>
+        <button class="btn-guardar" (click)="registrar()" [disabled]="guardando || (intento && !formValido)">
+          <mat-icon>save</mat-icon> {{ guardando ? 'Guardando…' : 'Registrar entrega' }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ═══════════ CONTROL DE ENTREGAS ═══════════ -->
+  <ng-container *ngIf="vista === 'entregas'">
+    <div class="logi-head">
+      <span class="lh-ico"><mat-icon>fact_check</mat-icon></span>
+      <div>
+        <div class="lh-title">Control de Entregas</div>
+        <div class="lh-sub">Marca lo entregado con el check y guarda. Las vencidas van resaltadas.</div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi pend"><div class="kpi-n">{{ kpiPendientes }}</div><div class="kpi-l">Pendientes</div></div>
+      <div class="kpi ent"><div class="kpi-n">{{ kpiEntregadas }}</div><div class="kpi-l">Entregadas</div></div>
+      <div class="kpi venc"><div class="kpi-n">{{ kpiVencidas }}</div><div class="kpi-l">Vencidas</div></div>
+      <div class="kpi tot"><div class="kpi-n">{{ datos.length }}</div><div class="kpi-l">Total</div></div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="logi-filtros">
+      <div class="fld"><label>Desde</label><dx-date-box [(value)]="filtro.desde" type="date" displayFormat="dd/MM/yyyy"></dx-date-box></div>
+      <div class="fld"><label>Hasta</label><dx-date-box [(value)]="filtro.hasta" type="date" displayFormat="dd/MM/yyyy"></dx-date-box></div>
+      <div class="fld"><label>Estado</label>
+        <dx-select-box [(value)]="filtro.estado" [items]="estados" [showClearButton]="true" placeholder="Todos"></dx-select-box>
+      </div>
+      <div class="fld" *ngIf="esAdmin"><label>Sede</label>
+        <dx-select-box [(value)]="filtro.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
+          [showClearButton]="true" placeholder="Todas"></dx-select-box>
+      </div>
+      <button class="btn-tool" (click)="cargar()"><mat-icon>search</mat-icon> Buscar</button>
+      <button class="btn-tool ok" (click)="guardarEntregas()" [disabled]="!seleccion.length">
+        <mat-icon>check_circle</mat-icon> Marcar entregado ({{ seleccion.length }})
+      </button>
+      <button class="btn-tool" (click)="exportarExcel()" [disabled]="!datos.length"><mat-icon>download</mat-icon> Excel</button>
+    </div>
+
+    <dx-data-grid [dataSource]="datos" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
+      [columnAutoWidth]="true" [wordWrapEnabled]="true" [(selectedRowKeys)]="seleccion"
+      [hoverStateEnabled]="true" (onCellPrepared)="onCellPrepared($event)" class="logi-grid">
+      <dxo-selection mode="multiple" [showCheckBoxesMode]="'always'"></dxo-selection>
+      <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar…"></dxo-search-panel>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-paging [pageSize]="20"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[20, 50, 100]" [showInfo]="true"></dxo-pager>
+
+      <dxi-column dataField="fecha_entrega" caption="Fecha" dataType="date" [width]="105"></dxi-column>
+      <dxi-column dataField="dni_cliente" caption="DNI" [width]="105"></dxi-column>
+      <dxi-column dataField="cliente_nombre" caption="Cliente" [minWidth]="150"></dxi-column>
+      <dxi-column dataField="producto" caption="Producto" [minWidth]="200"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [width]="120"></dxi-column>
+      <dxi-column dataField="estado" caption="Estado" [width]="120" cellTemplate="estadoTpl"></dxi-column>
+      <dxi-column dataField="entregado_por" caption="Entregó" [width]="140"></dxi-column>
+      <dxi-column dataField="fecha_entregado" caption="Entregado" [width]="140"></dxi-column>
+      <dxi-column caption="Acciones" [width]="110" alignment="center" [allowSorting]="false"
+        [allowFiltering]="false" cellTemplate="accTpl"></dxi-column>
+
+      <div *dxTemplate="let d of 'estadoTpl'">
+        <span class="est" [class.ent]="d.data.estado === 'ENTREGADO'" [class.venc]="d.data.vencida">
+          {{ d.data.vencida && d.data.estado === 'PENDIENTE' ? 'VENCIDA' : d.data.estado }}
+        </span>
+      </div>
+      <div *dxTemplate="let d of 'accTpl'" class="grid-acc">
+        <button *ngIf="d.data.estado === 'ENTREGADO'" (click)="revertir(d.data)" title="Revertir a pendiente"><mat-icon>undo</mat-icon></button>
+        <button (click)="eliminar(d.data)" title="Eliminar" class="del"><mat-icon>delete</mat-icon></button>
+      </div>
+    </dx-data-grid>
+  </ng-container>
+
+</div>

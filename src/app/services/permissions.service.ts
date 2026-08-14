@@ -91,6 +91,8 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'conversor-csv',                label: 'Conversor CSV',                grupo: 'Herramientas' },
   { key: 'limpieza-bbdd',                label: 'Limpieza BBDD',                grupo: 'Herramientas' },
   { key: 'gps-ruta',                     label: 'Optimizar Rutas GPS',          grupo: 'Herramientas' },
+  { key: 'logistica-registrar',          label: 'Registrar Entrega',            grupo: 'Logística', sedeScoped: true },
+  { key: 'logistica-entregas',           label: 'Control de Entregas',          grupo: 'Logística', sedeScoped: true },
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
@@ -99,6 +101,7 @@ const CALL_MODULES = [
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
+  'logistica-registrar', 'logistica-entregas',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
@@ -109,7 +112,8 @@ const REALZZA_MODULES = [
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
 const ZONA_MODULES = ['control-gestion-sede'];
 // Rol vendedor: por defecto ve su panel personal + el formulario de registro.
-const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones'];
+const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones',
+  'logistica-registrar', 'logistica-entregas'];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],
@@ -123,7 +127,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-zona':      [...VENDEDOR_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v28';
+const STORAGE_KEY = 'gd_permissions_v29';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

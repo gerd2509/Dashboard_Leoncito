@@ -40,6 +40,7 @@ import { MaestroCapComponent } from "../features/maestro-cap/maestro-cap.compone
 import { MaestroMetasSedeComponent } from "../features/maestro-metas-sede/maestro-metas-sede.component";
 import { RegistroCobranzaComponent } from "../features/registro-cobranza/registro-cobranza.component";
 import { RegistroMarketPlaceComponent } from "../features/registro-market-place/registro-market-place.component";
+import { LogisticaComponent } from "../features/logistica/logistica.component";
 import { RegistroDerivacionesComponent } from "../features/registro-derivaciones/registro-derivaciones.component";
 import { MaduracionLeadsComponent } from "../features/maduracion-leads/maduracion-leads.component";
 import { RegistroKommoComponent } from "../features/registro-kommo/registro-kommo.component";
@@ -106,6 +107,7 @@ interface MenuItem {
     MaestroMetasSedeComponent,
     RegistroCobranzaComponent,
     RegistroMarketPlaceComponent,
+    LogisticaComponent,
     RegistroDerivacionesComponent,
     MaduracionLeadsComponent,
     RegistroKommoComponent,
