@@ -204,6 +204,38 @@
     </dx-scheduler>
   </ng-container>
 
+  <!-- ═══════════ RUTA DE REPARTO ═══════════ -->
+  <ng-container *ngIf="vista === 'rutas'">
+    <div class="logi-head">
+      <span class="lh-ico"><mat-icon>route</mat-icon></span>
+      <div>
+        <div class="lh-title">Ruta de Reparto</div>
+        <div class="lh-sub">Arma la ruta óptima con las entregas <b>pendientes</b> que tengan coordenadas. Optimiza y ábrela en Google Maps.</div>
+      </div>
+    </div>
+
+    <div class="logi-filtros">
+      <div class="fld"><label>Desde</label><dx-date-box [(value)]="filtro.desde" type="date" displayFormat="dd/MM/yyyy"></dx-date-box></div>
+      <div class="fld"><label>Hasta</label><dx-date-box [(value)]="filtro.hasta" type="date" displayFormat="dd/MM/yyyy"></dx-date-box></div>
+      <div class="fld" *ngIf="esAdmin"><label>Sede</label>
+        <dx-select-box [(value)]="filtro.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
+          [showClearButton]="true" placeholder="Todas"></dx-select-box>
+      </div>
+      <button class="btn-tool" (click)="cargar()"><mat-icon>search</mat-icon> Cargar entregas</button>
+      <span class="ruta-info">
+        <span class="ri ok"><mat-icon>place</mat-icon> {{ puntosRuta.length }} con coordenadas</span>
+        <span class="ri warn" *ngIf="entregasSinCoord"><mat-icon>warning</mat-icon> {{ entregasSinCoord }} sin coordenadas (no entran a la ruta)</span>
+      </span>
+    </div>
+
+    <div class="ruta-vacia" *ngIf="!puntosRuta.length && !cargando">
+      <mat-icon>wrong_location</mat-icon>
+      No hay entregas pendientes con coordenadas en el periodo/sede elegido. Registra las coordenadas en cada entrega para armar la ruta.
+    </div>
+
+    <app-gps-ruta *ngIf="puntosRuta.length" [coordenadas]="puntosRuta"></app-gps-ruta>
+  </ng-container>
+
   <!-- ═══════════ MODAL: ANULAR ENTREGA(S) ═══════════ -->
   <div class="logi-modal-ov" *ngIf="anulSel.length" (click)="cancelarAnular()">
     <div class="logi-modal" (click)="$event.stopPropagation()">

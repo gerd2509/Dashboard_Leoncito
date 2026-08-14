@@ -148,3 +148,13 @@
 .ed-grid .ed-2 { grid-column: 1 / -1; }
 .btn-guardar.sm { height: 40px; padding: 0 18px; }
 @media (max-width: 640px) { .ed-grid { grid-template-columns: 1fr; } }
+
+/* Ruta de reparto */
+.ruta-info { display: inline-flex; gap: 12px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+.ri { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; }
+.ri mat-icon { font-size: 17px; width: 17px; height: 17px; }
+.ri.ok { color: #1B7A3D; }
+.ri.warn { color: #B15200; }
+.ruta-vacia { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px dashed #d6e0ec;
+  border-radius: 12px; padding: 22px; color: #7c8a9a; font-size: 13.5px; }
+.ruta-vacia mat-icon { color: #b0bccb; }

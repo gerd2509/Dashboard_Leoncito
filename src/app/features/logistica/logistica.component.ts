@@ -6,6 +6,8 @@ import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { EntregasService, Entrega } from '../../services/entregas.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { GpsRutaComponent } from '../gps-ruta/gps-ruta.component';
+import { Coordenada } from '../gps-ruta/models/ruta.model';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { firstValueFrom } from 'rxjs';
@@ -29,12 +31,12 @@ const PRODUCTOS = [
 @Component({
   selector: 'app-logistica',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent, GpsRutaComponent],
   templateUrl: './logistica.component.html',
   styleUrl: './logistica.component.css',
 })
 export class LogisticaComponent implements OnInit {
-  @Input() vista: 'registrar' | 'entregas' | 'calendario' = 'registrar';
+  @Input() vista: 'registrar' | 'entregas' | 'calendario' | 'rutas' = 'registrar';
 
   private auth = inject(AuthService);
   private snack = inject(MatSnackBar);
@@ -61,7 +63,7 @@ export class LogisticaComponent implements OnInit {
     this.f.sede = this.sedeUsuario || (this.sedeOptions[0]?.key ?? '');
     this.filtro.sede = this.esAdmin ? '' : this.sedeUsuario;
     this.calcAltura();
-    if (this.vista === 'entregas' || this.vista === 'calendario') this.cargar();
+    if (this.vista === 'entregas' || this.vista === 'calendario' || this.vista === 'rutas') this.cargar();
   }
 
   readonly productos = PRODUCTOS;
@@ -149,9 +151,34 @@ export class LogisticaComponent implements OnInit {
       estado: this.filtro.estado || undefined,
       sede: (this.esAdmin ? this.filtro.sede : this.sedeUsuario) || undefined,
     }).subscribe({
-      next: (rows) => { this.datos = rows || []; this.construirCitas(); this.cargando = false; },
+      next: (rows) => { this.datos = rows || []; this.construirCitas(); this.construirRuta(); this.cargando = false; },
       error: (err) => { this.cargando = false; this.toast(err?.error?.message ?? 'No se pudo cargar.', 'error'); },
     });
+  }
+
+  // ── Ruta de reparto (usa las coordenadas de las entregas PENDIENTES) ──
+  puntosRuta: Coordenada[] = [];
+  entregasSinCoord = 0;
+  private construirRuta(): void {
+    this.puntosRuta = [];
+    this.entregasSinCoord = 0;
+    for (const e of this.datos) {
+      if (e.estado !== 'PENDIENTE') continue;
+      const c = this.parseCoord(e.coordenadas);
+      if (!c) { this.entregasSinCoord++; continue; }
+      this.puntosRuta.push({
+        id: String(e.id),
+        nombre: `${e.producto} · ${e.cliente_nombre || e.dni_cliente}`,
+        lat: c.lat, lng: c.lng,
+      });
+    }
+  }
+  /** Parsea "lat, lng" (o "lat; lng") a números. */
+  private parseCoord(s: string | null | undefined): { lat: number; lng: number } | null {
+    if (!s) return null;
+    const p = s.split(/[,;]/).map(x => parseFloat(x.trim()));
+    if (p.length < 2 || !isFinite(p[0]) || !isFinite(p[1])) return null;
+    return { lat: p[0], lng: p[1] };
   }
 
   // ── Calendario (dx-scheduler) ──
