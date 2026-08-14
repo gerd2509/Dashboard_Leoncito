@@ -27,6 +27,7 @@
         </div>
         <div class="sct-actions">
           <button class="tool-btn" (click)="cargarUsuarios()" title="Recargar"><mat-icon>refresh</mat-icon></button>
+          <button class="tool-btn" (click)="abrirBulk()" title="Crear usuarios por sede (desde el CAP)"><mat-icon>group_add</mat-icon></button>
           <button class="tool-btn primary" (click)="nuevoUsuario()" title="Nuevo usuario"><mat-icon>person_add</mat-icon></button>
         </div>
       </div>
@@ -153,6 +154,56 @@
       <button class="btn-cancelar" (click)="cancelarForm()">Cancelar</button>
       <button class="btn-salvar" (click)="guardarUsuario()" [disabled]="guardandoU || !formValido">
         {{ guardandoU ? 'Guardando…' : 'Salvar' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAL: ALTA MASIVA POR SEDE (desde el CAP) ═══════════ -->
+<div class="modal-overlay" *ngIf="mostrarBulk" (click)="cerrarBulk()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-head">CREAR USUARIOS POR SEDE (CAP)</div>
+    <div class="modal-body">
+      <p class="bulk-nota">
+        <mat-icon>info</mat-icon>
+        Crea de golpe un usuario <b>vendedor de sede</b> por cada asesor <b>ACTIVO</b> del CAP en la sede elegida.
+        El <b>usuario y la contraseña serán el DNI</b>, y se pedirá cambiarla en el primer ingreso. Los que ya existen se omiten.
+      </p>
+
+      <div class="form-field">
+        <label>Sede</label>
+        <select [(ngModel)]="bulkSede" (ngModelChange)="onBulkSedeChange()">
+          <option value="">— Elige una sede —</option>
+          <option *ngFor="let s of bulkSedeOptions" [value]="s.value">{{ s.label }}</option>
+        </select>
+      </div>
+
+      <div class="bulk-loading" *ngIf="bulkCargando"><mat-icon>hourglass_top</mat-icon> Leyendo el CAP…</div>
+
+      <div *ngIf="bulkSede && !bulkCargando">
+        <div class="bulk-resumen">
+          <span class="bulk-chip nuevos"><mat-icon>person_add</mat-icon> {{ bulkNuevos }} nuevos</span>
+          <span class="bulk-chip existentes"><mat-icon>how_to_reg</mat-icon> {{ bulkExistentes }} ya existen</span>
+          <span class="bulk-chip total">{{ bulkPreview.length }} en el CAP</span>
+        </div>
+
+        <div class="bulk-list" *ngIf="bulkPreview.length">
+          <div class="bulk-row bulk-head"><span>DNI</span><span>Vendedor</span><span>Estado</span></div>
+          <div class="bulk-row" *ngFor="let f of bulkPreview" [class.exist]="f.existe">
+            <span>{{ f.dni }}</span>
+            <span>{{ f.vendedor }}</span>
+            <span>
+              <span class="est-tag" [class.on]="!f.existe">{{ f.existe ? 'Ya existe' : 'Nuevo' }}</span>
+            </span>
+          </div>
+        </div>
+        <div class="bulk-empty" *ngIf="!bulkPreview.length">No hay asesores activos con DNI en esta sede.</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancelar" (click)="cerrarBulk()">Cerrar</button>
+      <button class="btn-salvar" (click)="crearBulk()" [disabled]="bulkCreando || bulkNuevos === 0">
+        {{ bulkCreando ? 'Creando…' : 'Crear ' + bulkNuevos + ' usuario(s)' }}
       </button>
     </div>
   </div>

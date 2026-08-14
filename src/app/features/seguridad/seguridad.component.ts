@@ -65,6 +65,17 @@ export class SeguridadComponent implements OnInit {
   editId: number | null = null;
   guardandoU = false;
   errorForm = '';
+
+  // ── Alta MASIVA por sede (desde el CAP) ──
+  mostrarBulk = false;
+  bulkSede = '';
+  bulkSedeOptions: { value: string; label: string }[] = [];
+  bulkPreview: { vendedor: string; dni: string; existe: boolean }[] = [];
+  bulkNuevos = 0;
+  bulkExistentes = 0;
+  bulkCargando = false;
+  bulkCreando = false;
+  bulkResultado: { creados: number; omitidos: number } | null = null;
   form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false };
 
   // Identidad del vendedor (solo cuando rol = vendedor).
@@ -179,6 +190,51 @@ export class SeguridadComponent implements OnInit {
     this.errorForm = '';
     this.sedeDropdownOpen = false;
     this.mostrarForm = true;
+  }
+
+  // ── Alta MASIVA por sede (desde el CAP) ──
+  abrirBulk(): void {
+    // Solo sedes físicas (los vendedores de piso). Realzza/zonas/todas no aplican.
+    this.bulkSedeOptions = this.sedeCfg.getSedesParaCombo().map(s => ({ value: s.key, label: s.nombre }));
+    this.bulkSede = '';
+    this.bulkPreview = [];
+    this.bulkNuevos = this.bulkExistentes = 0;
+    this.bulkResultado = null;
+    this.mostrarBulk = true;
+  }
+  cerrarBulk(): void { this.mostrarBulk = false; }
+
+  /** Al elegir la sede: previsualiza cuántos se crearían (nuevos) y cuántos ya existen. */
+  onBulkSedeChange(): void {
+    this.bulkPreview = [];
+    this.bulkNuevos = this.bulkExistentes = 0;
+    this.bulkResultado = null;
+    if (!this.bulkSede) return;
+    this.bulkCargando = true;
+    this.usuariosSvc.previewBulkCap(this.bulkSede).subscribe({
+      next: (r) => {
+        this.bulkPreview = r.detalle || [];
+        this.bulkNuevos = r.nuevos; this.bulkExistentes = r.existentes;
+        this.bulkCargando = false;
+      },
+      error: (err) => { this.bulkCargando = false; this.toast(err?.error?.message ?? 'No se pudo leer el CAP.', 'error'); },
+    });
+  }
+
+  /** Crea de golpe todos los usuarios nuevos de la sede (usuario y clave = DNI). */
+  crearBulk(): void {
+    if (!this.bulkSede || this.bulkNuevos === 0 || this.bulkCreando) return;
+    this.bulkCreando = true;
+    this.usuariosSvc.crearBulkCap(this.bulkSede).subscribe({
+      next: (r) => {
+        this.bulkCreando = false;
+        this.bulkResultado = { creados: r.creados, omitidos: r.omitidos };
+        this.toast(`${r.creados} usuario(s) creado(s)${r.omitidos ? `, ${r.omitidos} omitido(s)` : ''}.`, 'ok');
+        this.cargarUsuarios();
+        this.onBulkSedeChange();   // refresca la previsualización (ya figuran como existentes)
+      },
+      error: (err) => { this.bulkCreando = false; this.toast(err?.error?.message ?? 'No se pudieron crear los usuarios.', 'error'); },
+    });
   }
 
   editarUsuario(u: UsuarioDB): void {

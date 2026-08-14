@@ -48,6 +48,16 @@ export class UsuariosService {
     return this.http.post(this.base, payload);
   }
 
+  /** Previsualiza el alta masiva de una sede desde el CAP (quiénes se crearían / ya existen). */
+  previewBulkCap(sede: string): Observable<{ success: boolean; sede: string; total: number; nuevos: number; existentes: number; detalle: { vendedor: string; dni: string; existe: boolean }[] }> {
+    return this.http.get<any>(`${this.base}/bulk-cap`, { params: { sede } });
+  }
+
+  /** Crea de golpe todos los usuarios (vendedor de sede) de la sede desde el CAP. usuario=clave=DNI. */
+  crearBulkCap(sede: string): Observable<{ success: boolean; sede: string; creados: number; omitidos: number; detalle: { creados: any[]; omitidos: any[] } }> {
+    return this.http.post<any>(`${this.base}/bulk-cap`, { sede });
+  }
+
   actualizar(id: number, payload: UsuarioPayload): Observable<any> {
     return this.http.put(`${this.base}/${id}`, payload);
   }

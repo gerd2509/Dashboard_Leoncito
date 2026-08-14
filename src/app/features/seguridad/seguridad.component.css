@@ -724,3 +724,21 @@ td.col-modulo {
 .btn-default { display: inline-flex; align-items: center; gap: 5px; background: #fff; border: 1.5px solid #d8e2ee; color: #46586c; border-radius: 8px; padding: 0 14px; cursor: pointer; font-weight: 700; }
 .btn-default:hover { border-color: #f0a020; color: #E65100; }
 .btn-default mat-icon { font-size: 18px; width: 18px; height: 18px; }
+/* ── Alta masiva por sede (CAP) ── */
+.bulk-nota { display: flex; gap: 8px; align-items: flex-start; background: #f0f7ff; border: 1px solid #d6e6fb; color: #365072; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; line-height: 1.45; margin-bottom: 14px; }
+.bulk-nota mat-icon { color: #1A73E8; font-size: 19px; width: 19px; height: 19px; flex-shrink: 0; }
+.bulk-loading { display: flex; align-items: center; gap: 7px; color: #6b7c93; font-size: 13px; padding: 10px 2px; }
+.bulk-resumen { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 8px; }
+.bulk-chip { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.bulk-chip mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.bulk-chip.nuevos { background: #e7f6ec; color: #1B7A3D; }
+.bulk-chip.existentes { background: #fff3e0; color: #B15200; }
+.bulk-chip.total { background: #eef2f7; color: #556; }
+.bulk-list { border: 1px solid #e3eaf3; border-radius: 8px; overflow: hidden; max-height: 320px; overflow-y: auto; }
+.bulk-row { display: grid; grid-template-columns: 110px 1fr 92px; gap: 8px; align-items: center; padding: 7px 12px; font-size: 12.5px; border-top: 1px solid #eef2f7; }
+.bulk-row:first-child { border-top: none; }
+.bulk-row.bulk-head { background: #f5f8fc; font-weight: 800; color: #46586c; text-transform: uppercase; font-size: 11px; letter-spacing: .3px; position: sticky; top: 0; }
+.bulk-row.exist { color: #9aa7b6; }
+.est-tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 11px; font-weight: 700; background: #fff3e0; color: #B15200; }
+.est-tag.on { background: #e7f6ec; color: #1B7A3D; }
+.bulk-empty { color: #8a97a6; font-size: 13px; padding: 14px 2px; text-align: center; }
