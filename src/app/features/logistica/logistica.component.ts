@@ -7,6 +7,9 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { EntregasService, Entrega } from '../../services/entregas.service';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
+import CustomStore from 'devextreme/data/custom_store';
+import DataSource from 'devextreme/data/data_source';
+import { firstValueFrom } from 'rxjs';
 
 /**
  * Módulo LOGÍSTICA — Control de Entregas. Un solo componente con dos vistas (submenús):
@@ -24,7 +27,7 @@ import * as FileSaver from 'file-saver';
   styleUrl: './logistica.component.css',
 })
 export class LogisticaComponent implements OnInit {
-  @Input() vista: 'registrar' | 'entregas' = 'registrar';
+  @Input() vista: 'registrar' | 'entregas' | 'calendario' = 'registrar';
 
   private auth = inject(AuthService);
   private snack = inject(MatSnackBar);
@@ -50,8 +53,22 @@ export class LogisticaComponent implements OnInit {
       : this.sedeCfg.getSedesParaCombo().filter(s => s.key === this.sedeUsuario);
     this.f.sede = this.sedeUsuario || (this.sedeOptions[0]?.key ?? '');
     this.filtro.sede = this.esAdmin ? '' : this.sedeUsuario;
-    if (this.vista === 'entregas') this.cargar();
+    if (this.vista === 'entregas' || this.vista === 'calendario') this.cargar();
   }
+
+  // Desplegable de productos con búsqueda en el servidor (~38k distintos → no cargar todo).
+  // Permite además escribir un producto libre (acceptCustomValue).
+  productoDS = new DataSource({
+    paginate: false,
+    store: new CustomStore({
+      key: 'value',
+      loadMode: 'raw',
+      load: (opts: any) => firstValueFrom(this.api.buscarProductos((opts?.searchValue ?? '').toString()))
+        .then(arr => (arr || []).map(v => ({ value: v }))),
+      byKey: (k: any) => Promise.resolve({ value: k }),
+    }),
+  });
+  onCustomProducto = (e: any) => { if (e?.text) e.customItem = { value: e.text }; };
 
   // ══════════ VISTA: REGISTRAR ══════════
   guardando = false;
@@ -128,16 +145,61 @@ export class LogisticaComponent implements OnInit {
   cargar(): void {
     this.cargando = true;
     this.seleccion = [];
+    this.mesCargado = `${this.filtro.desde.getFullYear()}-${this.filtro.desde.getMonth()}`;
     this.api.listar({
       desde: this.ymd(this.filtro.desde),
       hasta: this.ymd(this.filtro.hasta),
       estado: this.filtro.estado || undefined,
       sede: (this.esAdmin ? this.filtro.sede : this.sedeUsuario) || undefined,
     }).subscribe({
-      next: (rows) => { this.datos = rows || []; this.cargando = false; },
+      next: (rows) => { this.datos = rows || []; this.construirCitas(); this.cargando = false; },
       error: (err) => { this.cargando = false; this.toast(err?.error?.message ?? 'No se pudo cargar.', 'error'); },
     });
   }
+
+  // ── Calendario (dx-scheduler) ──
+  citas: any[] = [];
+  calFecha = new Date();
+  private mesCargado = '';
+  readonly estadoRecursos = [
+    { id: 'PENDIENTE', text: 'Pendiente', color: '#FB8C00' },
+    { id: 'ENTREGADO', text: 'Entregado', color: '#43A047' },
+    { id: 'VENCIDA',   text: 'Vencida',   color: '#E53935' },
+  ];
+
+  private construirCitas(): void {
+    this.citas = this.datos.map(e => {
+      const [y, m, d] = (e.fecha_entrega || '').split('-').map(Number);
+      const dia = y ? new Date(y, m - 1, d) : new Date();
+      const grupo = e.estado === 'ENTREGADO' ? 'ENTREGADO' : (e.vencida ? 'VENCIDA' : 'PENDIENTE');
+      return {
+        id: e.id, text: `${e.producto} · ${e.cliente_nombre || e.dni_cliente}`,
+        start: dia, end: dia, allDay: true, grupo, _e: e,
+      };
+    });
+  }
+
+  /** Al navegar de mes en el calendario, recarga las entregas de ese mes. */
+  onSchedulerOption = (e: any): void => {
+    if (e?.name !== 'currentDate' || !e.value) return;
+    const d = new Date(e.value);
+    if (`${d.getFullYear()}-${d.getMonth()}` === this.mesCargado) return;
+    this.filtro.desde = new Date(d.getFullYear(), d.getMonth(), 1);
+    this.filtro.hasta = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    this.cargar();
+  };
+
+  /** Click en una cita del calendario → ofrece marcar entregado / revertir. */
+  onCitaClick = (e: any): void => {
+    e.cancel = true;   // no abrir el popup de edición nativo
+    const ent: Entrega = e.appointmentData?._e;
+    if (!ent) return;
+    if (ent.estado === 'ENTREGADO') this.revertir(ent);
+    else this.api.marcarEntregado([ent.id], this.nombreUsuario).subscribe({
+      next: () => { this.toast('✔ Entrega marcada como entregada.'); this.cargar(); },
+      error: (err) => this.toast(err?.error?.message ?? 'No se pudo actualizar.', 'error'),
+    });
+  };
 
   /** Marca como ENTREGADO las filas seleccionadas (check + Guardar). */
   guardarEntregas(): void {

@@ -216,8 +216,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     {
       icon: 'local_shipping', label: 'Logística',
       submenu: [
-        { label: 'Registrar Entrega',   icon: 'add_box',    modulo: 'logistica-registrar' },
-        { label: 'Control de Entregas', icon: 'fact_check', modulo: 'logistica-entregas' },
+        { label: 'Registrar Entrega',     icon: 'add_box',        modulo: 'logistica-registrar' },
+        { label: 'Control de Entregas',   icon: 'fact_check',     modulo: 'logistica-entregas' },
+        { label: 'Calendario de Entregas', icon: 'calendar_month', modulo: 'logistica-calendario' },
       ]
     },
     { icon: 'badge',                label: 'Maestro CAP',         modulo: 'maestro-cap', adminOnly: true },

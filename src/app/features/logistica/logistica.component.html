@@ -19,12 +19,15 @@
         </div>
         <div class="fld">
           <label>Nombre del cliente <small>(opcional)</small></label>
-          <dx-text-box [(value)]="f.cliente_nombre" placeholder="Se puede cruzar luego con ventas"></dx-text-box>
+          <dx-text-box [(value)]="f.cliente_nombre"></dx-text-box>
         </div>
         <div class="fld fld-2">
           <label>Producto a entregar <b>*</b></label>
-          <dx-text-box [(value)]="f.producto" placeholder="Ej. MOTOCICLETA DURO 250…"
-            [isValid]="!(intento && invProducto)"></dx-text-box>
+          <dx-select-box [dataSource]="productoDS" valueExpr="value" displayExpr="value"
+            [(value)]="f.producto" [searchEnabled]="true" searchExpr="value" [minSearchLength]="2"
+            [searchTimeout]="300" [acceptCustomValue]="true" (onCustomItemCreating)="onCustomProducto($event)"
+            [showClearButton]="true" [isValid]="!(intento && invProducto)"
+            placeholder="Escribe para buscar el producto…"></dx-select-box>
         </div>
         <div class="fld">
           <label>Fecha de entrega <b>*</b></label>
@@ -125,6 +128,38 @@
         <button (click)="eliminar(d.data)" title="Eliminar" class="del"><mat-icon>delete</mat-icon></button>
       </div>
     </dx-data-grid>
+  </ng-container>
+
+  <!-- ═══════════ CALENDARIO ═══════════ -->
+  <ng-container *ngIf="vista === 'calendario'">
+    <div class="logi-head">
+      <span class="lh-ico"><mat-icon>calendar_month</mat-icon></span>
+      <div>
+        <div class="lh-title">Calendario de Entregas</div>
+        <div class="lh-sub">Entregas por día, color por estado. Clic en una entrega para marcarla entregada / revertirla.</div>
+      </div>
+    </div>
+
+    <div class="logi-filtros">
+      <div class="fld"><label>Estado</label>
+        <dx-select-box [(value)]="filtro.estado" [items]="estados" [showClearButton]="true" placeholder="Todos"></dx-select-box>
+      </div>
+      <div class="fld" *ngIf="esAdmin"><label>Sede</label>
+        <dx-select-box [(value)]="filtro.sede" [items]="sedeOptions" valueExpr="key" displayExpr="nombre"
+          [showClearButton]="true" placeholder="Todas"></dx-select-box>
+      </div>
+      <button class="btn-tool" (click)="cargar()"><mat-icon>refresh</mat-icon> Aplicar</button>
+      <span class="cal-leyenda">
+        <span class="lg pend">Pendiente</span><span class="lg ent">Entregado</span><span class="lg venc">Vencida</span>
+      </span>
+    </div>
+
+    <dx-scheduler [dataSource]="citas" [currentDate]="calFecha" [views]="['month','week','agenda']"
+      currentView="month" [height]="660" [editing]="false" [firstDayOfWeek]="1" [showAllDayPanel]="false"
+      textExpr="text" startDateExpr="start" endDateExpr="end" allDayExpr="allDay"
+      (onAppointmentClick)="onCitaClick($event)" (onOptionChanged)="onSchedulerOption($event)" class="logi-cal">
+      <dxi-resource fieldExpr="grupo" [dataSource]="estadoRecursos" [useColorAsDefault]="true" label="Estado"></dxi-resource>
+    </dx-scheduler>
   </ng-container>
 
 </div>

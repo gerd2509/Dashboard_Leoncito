@@ -61,3 +61,12 @@
   .form-grid { grid-template-columns: 1fr; }
   .kpi-row { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ── Calendario ── */
+.logi-cal { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(20,50,90,.05); }
+.cal-leyenda { display: inline-flex; gap: 8px; align-items: center; margin-left: auto; }
+.cal-leyenda .lg { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700; color: #46586c; }
+.cal-leyenda .lg::before { content: ''; width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.cal-leyenda .lg.pend::before { background: #FB8C00; }
+.cal-leyenda .lg.ent::before  { background: #43A047; }
+.cal-leyenda .lg.venc::before { background: #E53935; }

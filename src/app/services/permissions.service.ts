@@ -93,6 +93,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'gps-ruta',                     label: 'Optimizar Rutas GPS',          grupo: 'Herramientas' },
   { key: 'logistica-registrar',          label: 'Registrar Entrega',            grupo: 'Logística', sedeScoped: true },
   { key: 'logistica-entregas',           label: 'Control de Entregas',          grupo: 'Logística', sedeScoped: true },
+  { key: 'logistica-calendario',         label: 'Calendario de Entregas',       grupo: 'Logística', sedeScoped: true },
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────

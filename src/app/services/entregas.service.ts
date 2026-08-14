@@ -39,6 +39,14 @@ export interface EntregaPayload {
 export class EntregasService {
   private http = inject(HttpClient);
   private base = `${environment.gestionBase || environment.apiBase}/entregas`;
+  private ventasBase = `${environment.ventasBase || environment.apiBase}`;
+
+  /** Búsqueda de productos (para el desplegable) — distinct de ventas, coincidencias por `q`. */
+  buscarProductos(q: string): Observable<string[]> {
+    let params = new HttpParams();
+    if (q) params = params.set('q', q);
+    return this.http.get<string[]>(`${this.ventasBase}/productos`, { params });
+  }
 
   crear(payload: EntregaPayload): Observable<{ success: boolean; id: number }> {
     return this.http.post<any>(this.base, payload);
