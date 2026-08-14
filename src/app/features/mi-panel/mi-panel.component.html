@@ -414,12 +414,12 @@
         </div>
       </section>
 
-      <!-- ══════════ PANEL 3b: ANÁLISIS POR CANAL (Call / Realzza) ══════════ -->
-      <section class="mp-panel" *ngIf="esCall || esRealzza" [class.open]="abiertos['analisis']">
+      <!-- ══════════ PANEL 3b: ANÁLISIS POR CANAL (Call / Realzza / Sedes) ══════════ -->
+      <section class="mp-panel" *ngIf="esCall || esRealzza || esSedeVendedor" [class.open]="abiertos['analisis']">
         <button class="mp-panel-head" type="button" (click)="togglePanel('analisis')">
           <span class="ph-ico entidad"><mat-icon>insights</mat-icon></span>
-          <span class="ph-title">Análisis {{ esCall ? 'Call' : 'Realzza' }}</span>
-          <span class="ph-sum">{{ esCall ? 'tipo base · sede · tipo cliente' : 'tipo base · entidad' }}</span>
+          <span class="ph-title">Análisis {{ esCall ? 'Call' : esRealzza ? 'Realzza' : 'Sedes' }}</span>
+          <span class="ph-sum">{{ esCall ? 'tipo base · sede · tipo cliente' : esRealzza ? 'tipo base · entidad' : 'fuente generadora · entidad · tipo cliente' }}</span>
           <mat-icon class="ph-chev">expand_more</mat-icon>
         </button>
         <div class="mp-panel-bodywrap">
@@ -442,6 +442,12 @@
                 <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoBase, lbl: 'Tipo base', titulo: 'Ventas por tipo base', icon: 'sell', color: '#1565C0' }"></ng-container>
                 <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', titulo: 'Ventas por entidad', icon: 'account_balance', color: '#6A1B9A' }"></ng-container>
                 <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosEntidad, lbl: 'Entidad', titulo: 'Motos por entidad', icon: 'two_wheeler', color: '#E65100' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosTipoProd, lbl: 'Tipo producto', titulo: 'Motos por tipo de producto', icon: 'two_wheeler', color: '#2E7D32' }"></ng-container>
+              </ng-container>
+              <ng-container *ngIf="esSedeVendedor">
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porFuente, lbl: 'Fuente', titulo: 'Ventas por fuente generadora', icon: 'hub', color: '#1565C0' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porEntidadTab, lbl: 'Entidad', titulo: 'Ventas por entidad', icon: 'account_balance', color: '#6A1B9A' }"></ng-container>
+                <ng-container *ngTemplateOutlet="tGrupo; context: { data: porTipoCliente, lbl: 'Tipo cliente', titulo: 'Ventas por tipo de cliente', icon: 'group', color: '#00838F' }"></ng-container>
                 <ng-container *ngTemplateOutlet="tGrupo; context: { data: motosTipoProd, lbl: 'Tipo producto', titulo: 'Motos por tipo de producto', icon: 'two_wheeler', color: '#2E7D32' }"></ng-container>
               </ng-container>
             </div>

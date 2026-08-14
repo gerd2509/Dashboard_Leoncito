@@ -97,7 +97,8 @@ export class MiPanelComponent implements OnInit {
   porTipoBase: AgrupadoTabla[] = [];     // Realzza: por tipo de base
   porEntidadTab: AgrupadoTabla[] = [];   // Realzza: por entidad
   motosEntidad: AgrupadoTabla[] = [];    // Realzza: motos por entidad
-  motosTipoProd: AgrupadoTabla[] = [];   // Realzza: motos por tipo de producto
+  motosTipoProd: AgrupadoTabla[] = [];   // Realzza/Sede: motos por tipo de producto
+  porFuente: AgrupadoTabla[] = [];       // Sede: por fuente generadora (atrib_fuente_sede)
 
   // ── Mi sueldo estimado (Call / Realzza): base + comisión por monto vendido + motos ──
   readonly sueldoBase = 1130;            // fijo para todos
@@ -726,6 +727,14 @@ export class MiPanelComponent implements OnInit {
       const esMoto = (r: any) => (r.tipo_producto ?? '').toString().toUpperCase().includes('MOTO');
       this.motosEntidad = this.agruparTabla(cvIn, afIn, 'entidad', esMoto);
       this.motosTipoProd = this.agruparTabla(cvIn, afIn, 'tipo_producto', esMoto);
+    } else if (this.esSedeVendedor) {
+      // Vendedor de sede: mismo detalle que Call/Realzza pero por FUENTE GENERADORA
+      // (atrib_fuente_sede, la derivación de sede) + entidad + tipo cliente + motos.
+      this.porFuente = this.agruparTabla(cvIn, afIn, 'atrib_fuente_sede');
+      this.porEntidadTab = this.agruparTabla(cvIn, afIn, 'entidad');
+      this.porTipoCliente = this.agruparTabla(cvIn, afIn, 'tipo_cliente');
+      const esMoto = (r: any) => (r.estado_tipo_producto ?? '').toString().toUpperCase().includes('MOTO');
+      this.motosTipoProd = this.agruparTabla(cvIn, afIn, 'estado_tipo_producto', esMoto);
     }
 
     // Historial estilo "Evolución de Ventas Mensual": respeta el rango (solo los
