@@ -198,6 +198,37 @@
           </div>
         </div>
         <div class="bulk-empty" *ngIf="!bulkPreview.length">No hay asesores activos con DNI en esta sede.</div>
+
+        <!-- Permisos a aplicar a TODOS los creados -->
+        <div class="bulk-perm" *ngIf="bulkNuevos > 0">
+          <label class="bulk-perm-toggle">
+            <input type="checkbox" [(ngModel)]="bulkPersonalizar" (ngModelChange)="onBulkPersonalizarChange()">
+            <span>Personalizar permisos <small>(si no, usan el default del vendedor de sede)</small></span>
+          </label>
+
+          <div class="bulk-perm-mods" *ngIf="bulkPersonalizar">
+            <div class="bulk-perm-head">
+              <span><mat-icon>key</mat-icon> Módulos que verán los {{ bulkNuevos }} usuarios</span>
+              <button type="button" class="bulk-perm-reset" (click)="resetBulkModulos()"><mat-icon>restart_alt</mat-icon> Default</button>
+            </div>
+            <div class="perm-grupo" *ngFor="let g of grupos">
+              <div class="perm-grupo-h">
+                <span><mat-icon>folder_open</mat-icon> {{ g }}</span>
+                <span class="perm-grupo-acc">
+                  <button type="button" (click)="todosGrupoBulk(g, true)">Todos</button>
+                  <button type="button" (click)="todosGrupoBulk(g, false)">Ninguno</button>
+                </span>
+              </div>
+              <div class="perm-item" *ngFor="let m of modulosDe(g)" (click)="toggleBulkPerm(m.key)">
+                <div class="toggle" [class.active]="estaBulkPerm(m.key)">
+                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                </div>
+                <span class="perm-lbl">{{ m.label }}</span>
+                <span class="sede-badge" *ngIf="m.sedeScoped"><mat-icon>place</mat-icon> por sede</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-actions">

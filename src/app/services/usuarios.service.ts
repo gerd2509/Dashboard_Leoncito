@@ -53,9 +53,10 @@ export class UsuariosService {
     return this.http.get<any>(`${this.base}/bulk-cap`, { params: { sede } });
   }
 
-  /** Crea de golpe todos los usuarios (vendedor de sede) de la sede desde el CAP. usuario=clave=DNI. */
-  crearBulkCap(sede: string): Observable<{ success: boolean; sede: string; creados: number; omitidos: number; detalle: { creados: any[]; omitidos: any[] } }> {
-    return this.http.post<any>(`${this.base}/bulk-cap`, { sede });
+  /** Crea de golpe todos los usuarios (vendedor de sede) de la sede desde el CAP. usuario=clave=DNI.
+   *  `modulos`: si se pasa, se asigna ese set de permisos a todos; si es null/omitido, usan el default del rol. */
+  crearBulkCap(sede: string, modulos?: string[] | null): Observable<{ success: boolean; sede: string; creados: number; omitidos: number; detalle: { creados: any[]; omitidos: any[] } }> {
+    return this.http.post<any>(`${this.base}/bulk-cap`, modulos ? { sede, modulos } : { sede });
   }
 
   actualizar(id: number, payload: UsuarioPayload): Observable<any> {

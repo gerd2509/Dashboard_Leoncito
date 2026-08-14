@@ -76,6 +76,9 @@ export class SeguridadComponent implements OnInit {
   bulkCargando = false;
   bulkCreando = false;
   bulkResultado: { creados: number; omitidos: number } | null = null;
+  // Permisos a asignar a todos los creados: false = default del rol; true = set personalizado.
+  bulkPersonalizar = false;
+  bulkModulos = new Set<string>();
   form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false };
 
   // Identidad del vendedor (solo cuando rol = vendedor).
@@ -200,15 +203,34 @@ export class SeguridadComponent implements OnInit {
     this.bulkPreview = [];
     this.bulkNuevos = this.bulkExistentes = 0;
     this.bulkResultado = null;
+    this.bulkPersonalizar = false;
+    this.bulkModulos = new Set<string>();
     this.mostrarBulk = true;
   }
   cerrarBulk(): void { this.mostrarBulk = false; }
+
+  // ── Permisos del alta masiva (se aplican a TODOS los creados) ──
+  /** Módulos default del vendedor de sede (base cuando se personaliza). */
+  private bulkModulosDefault(): string[] { return this.permisos.defaultPara('vendedor', this.bulkSede); }
+  estaBulkPerm(key: string): boolean { return this.bulkModulos.has(key); }
+  toggleBulkPerm(key: string): void {
+    if (this.bulkModulos.has(key)) this.bulkModulos.delete(key); else this.bulkModulos.add(key);
+  }
+  todosGrupoBulk(grupo: string, on: boolean): void {
+    for (const m of this.modulosDe(grupo)) { if (on) this.bulkModulos.add(m.key); else this.bulkModulos.delete(m.key); }
+  }
+  resetBulkModulos(): void { this.bulkModulos = new Set(this.bulkModulosDefault()); }
+  onBulkPersonalizarChange(): void {
+    // Al activar "personalizar", arranca desde el default del vendedor de sede.
+    if (this.bulkPersonalizar && this.bulkModulos.size === 0) this.resetBulkModulos();
+  }
 
   /** Al elegir la sede: previsualiza cuántos se crearían (nuevos) y cuántos ya existen. */
   onBulkSedeChange(): void {
     this.bulkPreview = [];
     this.bulkNuevos = this.bulkExistentes = 0;
     this.bulkResultado = null;
+    if (this.bulkPersonalizar) this.resetBulkModulos();   // re-sincroniza el default al cambiar de sede
     if (!this.bulkSede) return;
     this.bulkCargando = true;
     this.usuariosSvc.previewBulkCap(this.bulkSede).subscribe({
@@ -225,7 +247,8 @@ export class SeguridadComponent implements OnInit {
   crearBulk(): void {
     if (!this.bulkSede || this.bulkNuevos === 0 || this.bulkCreando) return;
     this.bulkCreando = true;
-    this.usuariosSvc.crearBulkCap(this.bulkSede).subscribe({
+    const modulos = this.bulkPersonalizar ? Array.from(this.bulkModulos) : null;
+    this.usuariosSvc.crearBulkCap(this.bulkSede, modulos).subscribe({
       next: (r) => {
         this.bulkCreando = false;
         this.bulkResultado = { creados: r.creados, omitidos: r.omitidos };
