@@ -158,3 +158,8 @@
 .ruta-vacia { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px dashed #d6e0ec;
   border-radius: 12px; padding: 22px; color: #7c8a9a; font-size: 13.5px; }
 .ruta-vacia mat-icon { color: #b0bccb; }
+
+.ruta-info-bar { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 12px;
+  background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 10px 14px; }
+.ri.me { color: #1565C0; }
+.ri.err { color: #C62828; }

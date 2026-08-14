@@ -159,19 +159,36 @@ export class LogisticaComponent implements OnInit {
   // ── Ruta de reparto (usa las coordenadas de las entregas PENDIENTES) ──
   puntosRuta: Coordenada[] = [];
   entregasSinCoord = 0;
+  // Ubicación en tiempo real del logístico → punto de PARTIDA de la ruta.
+  ubicacionActual: Coordenada | null = null;
+  ubicacionError = '';
+  obteniendoUbic = false;
+
+  obtenerUbicacion(): void {
+    if (!navigator.geolocation) { this.ubicacionError = 'Tu navegador no soporta geolocalización.'; return; }
+    this.ubicacionError = ''; this.obteniendoUbic = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.ubicacionActual = { id: '__me__', nombre: '📍 Mi ubicación (inicio)', lat: pos.coords.latitude, lng: pos.coords.longitude };
+        this.obteniendoUbic = false; this.construirRuta();
+      },
+      () => { this.obteniendoUbic = false; this.ubicacionError = 'No se pudo obtener tu ubicación. Permite el acceso a la ubicación en el navegador.'; },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  }
+
   private construirRuta(): void {
-    this.puntosRuta = [];
+    const pts: Coordenada[] = [];
     this.entregasSinCoord = 0;
     for (const e of this.datos) {
       if (e.estado !== 'PENDIENTE') continue;
       const c = this.parseCoord(e.coordenadas);
       if (!c) { this.entregasSinCoord++; continue; }
-      this.puntosRuta.push({
-        id: String(e.id),
-        nombre: `${e.producto} · ${e.cliente_nombre || e.dni_cliente}`,
-        lat: c.lat, lng: c.lng,
-      });
+      pts.push({ id: String(e.id), nombre: `${e.producto} · ${e.cliente_nombre || e.dni_cliente}`, lat: c.lat, lng: c.lng });
     }
+    // La ruta PARTE desde la ubicación actual del logístico (origen). Google optimiza
+    // el orden de las entregas por CERCANÍA (optimizeWaypoints), no por orden de registro.
+    this.puntosRuta = this.ubicacionActual ? [this.ubicacionActual, ...pts] : pts;
   }
   /** Parsea "lat, lng" (o "lat; lng") a números. */
   private parseCoord(s: string | null | undefined): { lat: number; lng: number } | null {

@@ -222,10 +222,16 @@
           [showClearButton]="true" placeholder="Todas"></dx-select-box>
       </div>
       <button class="btn-tool" (click)="cargar()"><mat-icon>search</mat-icon> Cargar entregas</button>
-      <span class="ruta-info">
-        <span class="ri ok"><mat-icon>place</mat-icon> {{ puntosRuta.length }} con coordenadas</span>
-        <span class="ri warn" *ngIf="entregasSinCoord"><mat-icon>warning</mat-icon> {{ entregasSinCoord }} sin coordenadas (no entran a la ruta)</span>
-      </span>
+      <button class="btn-tool ok" (click)="obtenerUbicacion()" [disabled]="obteniendoUbic">
+        <mat-icon>my_location</mat-icon> {{ obteniendoUbic ? 'Ubicando…' : (ubicacionActual ? 'Actualizar mi ubicación' : 'Usar mi ubicación') }}
+      </button>
+    </div>
+
+    <div class="ruta-info-bar">
+      <span class="ri ok"><mat-icon>place</mat-icon> {{ ubicacionActual ? (puntosRuta.length - 1) : puntosRuta.length }} entrega(s) con coordenadas</span>
+      <span class="ri warn" *ngIf="entregasSinCoord"><mat-icon>warning</mat-icon> {{ entregasSinCoord }} sin coordenadas (no entran a la ruta)</span>
+      <span class="ri me" *ngIf="ubicacionActual"><mat-icon>my_location</mat-icon> Parte desde tu ubicación</span>
+      <span class="ri err" *ngIf="ubicacionError"><mat-icon>gps_off</mat-icon> {{ ubicacionError }}</span>
     </div>
 
     <div class="ruta-vacia" *ngIf="!puntosRuta.length && !cargando">
