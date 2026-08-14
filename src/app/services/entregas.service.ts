@@ -15,6 +15,7 @@ export interface Entrega {
   direccion?: string | null;
   observacion?: string | null;
   estado: 'PENDIENTE' | 'ENTREGADO' | 'ANULADO' | string;
+  motivo_anulacion?: string | null;
   registrado_por?: string | null;
   entregado_por?: string | null;
   fecha_entregado?: string | null;
@@ -63,7 +64,7 @@ export class EntregasService {
     return this.http.patch<any>(`${this.base}/entregar`, { ids, entregado_por: entregadoPor, entregado });
   }
 
-  actualizar(id: number, cambios: Partial<EntregaPayload> & { estado?: string }): Observable<any> {
+  actualizar(id: number, cambios: Partial<EntregaPayload> & { estado?: string; motivo_anulacion?: string }): Observable<any> {
     return this.http.put(`${this.base}/${id}`, cambios);
   }
 

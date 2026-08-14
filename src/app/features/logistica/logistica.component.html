@@ -96,36 +96,46 @@
       <button class="btn-tool" (click)="exportarExcel()" [disabled]="!datos.length"><mat-icon>download</mat-icon> Excel</button>
     </div>
 
-    <dx-data-grid [dataSource]="datos" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
-      [columnAutoWidth]="true" [wordWrapEnabled]="true" [(selectedRowKeys)]="seleccion"
-      [hoverStateEnabled]="true" (onCellPrepared)="onCellPrepared($event)" class="logi-grid">
-      <dxo-selection mode="multiple" [showCheckBoxesMode]="'always'"></dxo-selection>
-      <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar…"></dxo-search-panel>
-      <dxo-filter-row [visible]="true"></dxo-filter-row>
-      <dxo-paging [pageSize]="20"></dxo-paging>
-      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[20, 50, 100]" [showInfo]="true"></dxo-pager>
+    <div class="grid-wrap">
+      <dx-data-grid [dataSource]="datos" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
+        [columnAutoWidth]="true" [wordWrapEnabled]="true" [(selectedRowKeys)]="seleccion"
+        [hoverStateEnabled]="true" (onCellPrepared)="onCellPrepared($event)" class="logi-grid">
+        <dxo-selection mode="multiple" showCheckBoxesMode="always" [allowSelectAll]="true"></dxo-selection>
+        <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar…"></dxo-search-panel>
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
+        <dxo-paging [pageSize]="20"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[20, 50, 100]" [showInfo]="true"></dxo-pager>
 
-      <dxi-column dataField="fecha_entrega" caption="Fecha" dataType="date" [width]="105"></dxi-column>
-      <dxi-column dataField="dni_cliente" caption="DNI" [width]="105"></dxi-column>
-      <dxi-column dataField="cliente_nombre" caption="Cliente" [minWidth]="150"></dxi-column>
-      <dxi-column dataField="producto" caption="Producto" [minWidth]="200"></dxi-column>
-      <dxi-column dataField="sede" caption="Sede" [width]="120"></dxi-column>
-      <dxi-column dataField="estado" caption="Estado" [width]="120" cellTemplate="estadoTpl"></dxi-column>
-      <dxi-column dataField="entregado_por" caption="Entregó" [width]="140"></dxi-column>
-      <dxi-column dataField="fecha_entregado" caption="Entregado" [width]="140"></dxi-column>
-      <dxi-column caption="Acciones" [width]="110" alignment="center" [allowSorting]="false"
-        [allowFiltering]="false" cellTemplate="accTpl"></dxi-column>
+        <dxi-column dataField="fecha_entrega" caption="Fecha" dataType="date" [width]="105"></dxi-column>
+        <dxi-column dataField="dni_cliente" caption="DNI" [width]="105"></dxi-column>
+        <dxi-column dataField="cliente_nombre" caption="Cliente" [minWidth]="150"></dxi-column>
+        <dxi-column dataField="producto" caption="Producto" [minWidth]="180"></dxi-column>
+        <dxi-column dataField="sede" caption="Sede" [width]="115"></dxi-column>
+        <dxi-column dataField="estado" caption="Estado" [width]="115" cellTemplate="estadoTpl"></dxi-column>
+        <dxi-column dataField="entregado_por" caption="Entregó" [width]="135"></dxi-column>
+        <dxi-column dataField="fecha_entregado" caption="Entregado" [width]="130"></dxi-column>
+        <dxi-column dataField="motivo_anulacion" caption="Motivo anulación" [minWidth]="160" [visible]="false"></dxi-column>
+        <dxi-column caption="Acciones" [width]="130" alignment="center" [allowSorting]="false"
+          [allowFiltering]="false" [allowResizing]="false" cellTemplate="accTpl"></dxi-column>
 
-      <div *dxTemplate="let d of 'estadoTpl'">
-        <span class="est" [class.ent]="d.data.estado === 'ENTREGADO'" [class.venc]="d.data.vencida">
-          {{ d.data.vencida && d.data.estado === 'PENDIENTE' ? 'VENCIDA' : d.data.estado }}
-        </span>
-      </div>
-      <div *dxTemplate="let d of 'accTpl'" class="grid-acc">
-        <button *ngIf="d.data.estado === 'ENTREGADO'" (click)="revertir(d.data)" title="Revertir a pendiente"><mat-icon>undo</mat-icon></button>
-        <button (click)="eliminar(d.data)" title="Eliminar" class="del"><mat-icon>delete</mat-icon></button>
-      </div>
-    </dx-data-grid>
+        <div *dxTemplate="let d of 'estadoTpl'">
+          <span class="est"
+            [class.ent]="d.data.estado === 'ENTREGADO'"
+            [class.venc]="d.data.vencida && d.data.estado === 'PENDIENTE'"
+            [class.anul]="d.data.estado === 'ANULADO'"
+            [title]="d.data.motivo_anulacion || ''">
+            {{ d.data.vencida && d.data.estado === 'PENDIENTE' ? 'VENCIDA' : d.data.estado }}
+          </span>
+        </div>
+        <div *dxTemplate="let d of 'accTpl'" class="grid-acc">
+          <button *ngIf="d.data.estado === 'PENDIENTE'" (click)="pedirAnular(d.data)" title="Anular" class="anular"><mat-icon>block</mat-icon></button>
+          <button *ngIf="d.data.estado === 'ENTREGADO'" (click)="revertir(d.data)" title="Revertir a pendiente"><mat-icon>undo</mat-icon></button>
+          <button *ngIf="d.data.estado === 'ANULADO'" (click)="reactivar(d.data)" title="Reactivar"><mat-icon>restart_alt</mat-icon></button>
+          <button (click)="eliminar(d.data)" title="Eliminar" class="del"><mat-icon>delete</mat-icon></button>
+        </div>
+      </dx-data-grid>
+      <app-loading-overlay [inline]="true" [visible]="cargando" mensaje="Cargando entregas…" icon="local_shipping"></app-loading-overlay>
+    </div>
   </ng-container>
 
   <!-- ═══════════ CALENDARIO ═══════════ -->
@@ -156,7 +166,8 @@
       currentView="month" [height]="alturaCal" [editing]="false" [firstDayOfWeek]="1" [showAllDayPanel]="false"
       textExpr="text" startDateExpr="start" endDateExpr="end" allDayExpr="allDay"
       appointmentTooltipTemplate="tooltipCita"
-      (onAppointmentClick)="onCitaClick($event)" (onOptionChanged)="onSchedulerOption($event)" class="logi-cal">
+      (onAppointmentClick)="onCitaClick($event)" (onAppointmentDblClick)="onCitaClick($event)"
+      (onAppointmentFormOpening)="onFormOpening($event)" (onOptionChanged)="onSchedulerOption($event)" class="logi-cal">
       <dxi-resource fieldExpr="grupo" [dataSource]="estadoRecursos" [useColorAsDefault]="true" label="Estado"></dxi-resource>
 
       <!-- Detalle de la entrega (solo lectura; marcar entregado va en Control de Entregas) -->
@@ -179,5 +190,29 @@
       </div>
     </dx-scheduler>
   </ng-container>
+
+  <!-- ═══════════ MODAL: ANULAR ENTREGA ═══════════ -->
+  <div class="logi-modal-ov" *ngIf="anulando" (click)="cancelarAnular()">
+    <div class="logi-modal" (click)="$event.stopPropagation()">
+      <div class="lm-head">Anular entrega</div>
+      <div class="lm-body">
+        <p class="lm-sub"><b>{{ anulando.producto }}</b> · {{ anulando.dni_cliente }}<span *ngIf="anulando.cliente_nombre"> · {{ anulando.cliente_nombre }}</span></p>
+        <div class="fld">
+          <label>Motivo <b>*</b></label>
+          <dx-select-box [(value)]="anulMotivo" [items]="motivosAnulacion" placeholder="Elige el motivo"></dx-select-box>
+        </div>
+        <div class="fld">
+          <label>Comentario <small>(opcional)</small></label>
+          <dx-text-area [(value)]="anulComentario" [height]="70" placeholder="Detalle adicional…"></dx-text-area>
+        </div>
+      </div>
+      <div class="lm-actions">
+        <button class="btn-cancelar" (click)="cancelarAnular()">Cancelar</button>
+        <button class="btn-anular" (click)="confirmarAnular()" [disabled]="!anulMotivo || anulGuardando">
+          {{ anulGuardando ? 'Anulando…' : 'Anular entrega' }}
+        </button>
+      </div>
+    </div>
+  </div>
 
 </div>

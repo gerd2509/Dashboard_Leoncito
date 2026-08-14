@@ -1,10 +1,11 @@
-import { Component, Input, OnInit, inject } from '@angular/core';
+import { Component, Input, OnInit, HostListener, inject } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { EntregasService, Entrega } from '../../services/entregas.service';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 
@@ -27,7 +28,7 @@ const PRODUCTOS = [
 @Component({
   selector: 'app-logistica',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
   templateUrl: './logistica.component.html',
   styleUrl: './logistica.component.css',
 })
@@ -58,6 +59,7 @@ export class LogisticaComponent implements OnInit {
       : this.sedeCfg.getSedesParaCombo().filter(s => s.key === this.sedeUsuario);
     this.f.sede = this.sedeUsuario || (this.sedeOptions[0]?.key ?? '');
     this.filtro.sede = this.esAdmin ? '' : this.sedeUsuario;
+    this.calcAltura();
     if (this.vista === 'entregas' || this.vista === 'calendario') this.cargar();
   }
 
@@ -158,16 +160,22 @@ export class LogisticaComponent implements OnInit {
     { id: 'PENDIENTE', text: 'Pendiente', color: '#FB8C00' },
     { id: 'ENTREGADO', text: 'Entregado', color: '#43A047' },
     { id: 'VENCIDA',   text: 'Vencida',   color: '#E53935' },
+    { id: 'ANULADO',   text: 'Anulado',   color: '#90A4AE' },
   ];
 
   private construirCitas(): void {
     this.citas = this.datos.map(e => {
       const [y, m, d] = (e.fecha_entrega || '').split('-').map(Number);
-      const dia = y ? new Date(y, m - 1, d) : new Date();
-      const grupo = e.estado === 'ENTREGADO' ? 'ENTREGADO' : (e.vencida ? 'VENCIDA' : 'PENDIENTE');
+      // Evento CON HORA dentro del día (no all-day) → se queda dentro de la celda del día,
+      // nunca se desborda al día siguiente.
+      const ini = y ? new Date(y, m - 1, d, 8, 0, 0) : new Date();
+      const fin = y ? new Date(y, m - 1, d, 9, 0, 0) : new Date();
+      const grupo = e.estado === 'ENTREGADO' ? 'ENTREGADO'
+        : e.estado === 'ANULADO' ? 'ANULADO'
+        : (e.vencida ? 'VENCIDA' : 'PENDIENTE');
       return {
         id: e.id, text: `${e.producto} · ${e.cliente_nombre || e.dni_cliente}`,
-        start: dia, end: dia, allDay: true, grupo, _e: e,
+        start: ini, end: fin, grupo, _e: e,
       };
     });
   }
@@ -182,15 +190,22 @@ export class LogisticaComponent implements OnInit {
     this.cargar();
   };
 
-  /** Alto del calendario: ocupa casi todo el alto de la ventana. */
-  alturaCal = Math.max(500, (typeof window !== 'undefined' ? window.innerHeight : 820) - 200);
-  /** Evita que el clic abra el popup de edición nativo (solo se ve el tooltip de detalle). */
+  /** Alto del calendario: ocupa el panel sin generar scroll de página. */
+  alturaCal = 560;
+  @HostListener('window:resize') onResize(): void { this.calcAltura(); }
+  private calcAltura(): void {
+    const h = (typeof window !== 'undefined' ? window.innerHeight : 820) - 250;
+    this.alturaCal = Math.max(460, h);
+  }
+  /** Evita que el clic/doble-clic abra el popup de edición nativo (solo tooltip de detalle). */
   onCitaClick = (e: any): void => { e.cancel = true; };
+  onFormOpening = (e: any): void => { e.cancel = true; };
 
   /** Marca como ENTREGADO las filas seleccionadas (check + Guardar). */
   guardarEntregas(): void {
-    const ids = (this.seleccion || []).map(Number).filter(Boolean);
-    const pendientes = this.datos.filter(e => ids.includes(e.id) && e.estado !== 'ENTREGADO').map(e => e.id);
+    // OJO: el id llega como STRING desde el backend; comparar como string (antes fallaba).
+    const sel = new Set((this.seleccion || []).map(String));
+    const pendientes = this.datos.filter(e => sel.has(String(e.id)) && e.estado === 'PENDIENTE').map(e => e.id);
     if (!pendientes.length) { this.toast('Selecciona entregas pendientes para marcarlas.', 'error'); return; }
     this.api.marcarEntregado(pendientes, this.nombreUsuario).subscribe({
       next: (r) => { this.toast(`✔ ${r.actualizados} entrega(s) marcada(s) como entregadas.`); this.cargar(); },
@@ -210,6 +225,32 @@ export class LogisticaComponent implements OnInit {
     this.api.eliminar(e.id).subscribe({
       next: () => { this.toast('Entrega eliminada.'); this.cargar(); },
       error: (err) => { this.toast(err?.error?.message ?? 'No se pudo eliminar.', 'error'); },
+    });
+  }
+
+  // ── Anular entrega (con motivo) ──
+  readonly motivosAnulacion = ['DESISTIÓ DEL CRÉDITO', 'CLIENTE NO UBICADO', 'CAMBIO DE PRODUCTO',
+    'DEVOLUCIÓN', 'DUPLICADO', 'OTRO'];
+  anulando: Entrega | null = null;
+  anulMotivo = '';
+  anulComentario = '';
+  anulGuardando = false;
+  pedirAnular(e: Entrega): void { this.anulando = e; this.anulMotivo = ''; this.anulComentario = ''; }
+  cancelarAnular(): void { this.anulando = null; }
+  confirmarAnular(): void {
+    if (!this.anulando || !this.anulMotivo || this.anulGuardando) return;
+    const motivo = this.anulMotivo + (this.anulComentario.trim() ? ` — ${this.anulComentario.trim()}` : '');
+    this.anulGuardando = true;
+    this.api.actualizar(this.anulando.id, { estado: 'ANULADO', motivo_anulacion: motivo }).subscribe({
+      next: () => { this.anulGuardando = false; this.anulando = null; this.toast('Entrega anulada.'); this.cargar(); },
+      error: (err) => { this.anulGuardando = false; this.toast(err?.error?.message ?? 'No se pudo anular.', 'error'); },
+    });
+  }
+  /** Reactiva una entrega anulada (vuelve a PENDIENTE). */
+  reactivar(e: Entrega): void {
+    this.api.actualizar(e.id, { estado: 'PENDIENTE', motivo_anulacion: '' }).subscribe({
+      next: () => { this.toast('Entrega reactivada.'); this.cargar(); },
+      error: (err) => { this.toast(err?.error?.message ?? 'No se pudo reactivar.', 'error'); },
     });
   }
 
