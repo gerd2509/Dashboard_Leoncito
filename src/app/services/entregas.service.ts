@@ -17,6 +17,8 @@ export interface Entrega {
   observacion?: string | null;
   estado: 'PENDIENTE' | 'ENTREGADO' | 'ANULADO' | string;
   motivo_anulacion?: string | null;
+  motivo_reprogramacion?: string | null;
+  veces_reprogramada?: number;
   registrado_por?: string | null;
   entregado_por?: string | null;
   fecha_entregado?: string | null;
@@ -64,6 +66,11 @@ export class EntregasService {
   /** Marca varias entregas como ENTREGADO (o desmarca con entregado=false). */
   marcarEntregado(ids: number[], entregadoPor: string, entregado = true): Observable<{ success: boolean; actualizados: number }> {
     return this.http.patch<any>(`${this.base}/entregar`, { ids, entregado_por: entregadoPor, entregado });
+  }
+
+  /** Reprograma varias entregas a una nueva fecha con un motivo. Vuelve a PENDIENTE. */
+  reprogramar(ids: number[], fechaEntrega: string, motivo: string): Observable<{ success: boolean; actualizados: number }> {
+    return this.http.patch<any>(`${this.base}/reprogramar`, { ids, fecha_entrega: fechaEntrega, motivo });
   }
 
   actualizar(id: number, cambios: Partial<EntregaPayload> & { estado?: string; motivo_anulacion?: string }): Observable<any> {

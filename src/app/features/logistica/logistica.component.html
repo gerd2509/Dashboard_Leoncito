@@ -107,6 +107,9 @@
       <button class="btn-acc ok" (click)="marcarEntregadoSel()" [disabled]="!selPend.length">
         <mat-icon>check_circle</mat-icon> Marcar entregado
       </button>
+      <button class="btn-acc repro" (click)="pedirReprogramar()" [disabled]="!selPend.length">
+        <mat-icon>event_repeat</mat-icon> Reprogramar
+      </button>
       <button class="btn-acc warn" (click)="pedirAnular()" [disabled]="!selPend.length">
         <mat-icon>block</mat-icon> Anular
       </button>
@@ -131,12 +134,18 @@
         <dxi-column dataField="producto" caption="Producto" [minWidth]="180"></dxi-column>
         <dxi-column dataField="sede" caption="Sede" [width]="115"></dxi-column>
         <dxi-column dataField="estado" caption="Estado" [width]="115" cellTemplate="estadoTpl"></dxi-column>
+        <dxi-column dataField="veces_reprogramada" caption="Reprog." [width]="85" alignment="center" cellTemplate="reproTpl"></dxi-column>
         <dxi-column dataField="celular" caption="Celular" [width]="110"></dxi-column>
         <dxi-column dataField="coordenadas" caption="Coordenadas" [width]="140"></dxi-column>
         <dxi-column dataField="entregado_por" caption="Entregó" [width]="135"></dxi-column>
         <dxi-column dataField="fecha_entregado" caption="Entregado" [width]="130"></dxi-column>
         <dxi-column dataField="motivo_anulacion" caption="Motivo anulación" [minWidth]="160"></dxi-column>
 
+        <div *dxTemplate="let d of 'reproTpl'">
+          <span class="repro-badge" *ngIf="d.data.veces_reprogramada" [title]="d.data.motivo_reprogramacion || ''">
+            <mat-icon>event_repeat</mat-icon> {{ d.data.veces_reprogramada }}
+          </span>
+        </div>
         <div *dxTemplate="let d of 'estadoTpl'">
           <span class="est"
             [class.ent]="d.data.estado === 'ENTREGADO'"
@@ -261,6 +270,34 @@
         <button class="btn-cancelar" (click)="cancelarAnular()">Cancelar</button>
         <button class="btn-anular" (click)="confirmarAnular()" [disabled]="!anulMotivo || anulGuardando">
           {{ anulGuardando ? 'Anulando…' : 'Anular entrega' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ MODAL: REPROGRAMAR ═══════════ -->
+  <div class="logi-modal-ov" *ngIf="reprogSel.length" (click)="cancelarReprog()">
+    <div class="logi-modal" (click)="$event.stopPropagation()">
+      <div class="lm-head repro">Reprogramar {{ reprogSel.length }} entrega(s)</div>
+      <div class="lm-body">
+        <p class="lm-sub" *ngIf="reprogSel.length === 1"><b>{{ reprogSel[0].producto }}</b> · {{ reprogSel[0].dni_cliente }}<span *ngIf="reprogSel[0].cliente_nombre"> · {{ reprogSel[0].cliente_nombre }}</span></p>
+        <div class="fld">
+          <label>Nueva fecha de entrega <b>*</b></label>
+          <dx-date-box [(value)]="reprogFecha" type="date" displayFormat="dd/MM/yyyy"></dx-date-box>
+        </div>
+        <div class="fld">
+          <label>Motivo <b>*</b></label>
+          <dx-select-box [(value)]="reprogMotivo" [items]="motivosReprogramacion" placeholder="¿Por qué se reprograma?"></dx-select-box>
+        </div>
+        <div class="fld">
+          <label>Comentario <small>(opcional)</small></label>
+          <dx-text-area [(value)]="reprogComentario" [height]="60" placeholder="Detalle adicional…"></dx-text-area>
+        </div>
+      </div>
+      <div class="lm-actions">
+        <button class="btn-cancelar" (click)="cancelarReprog()">Cancelar</button>
+        <button class="btn-repro" (click)="confirmarReprog()" [disabled]="!reprogFecha || !reprogMotivo || reprogGuardando">
+          {{ reprogGuardando ? 'Reprogramando…' : 'Reprogramar' }}
         </button>
       </div>
     </div>

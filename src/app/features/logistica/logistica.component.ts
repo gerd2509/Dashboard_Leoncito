@@ -326,6 +326,33 @@ export class LogisticaComponent implements OnInit {
       .catch((err) => { this.anulGuardando = false; this.toast(err?.error?.message ?? 'No se pudo anular.', 'error'); });
   }
 
+  // ── Reprogramar (pendientes seleccionadas: nueva fecha + motivo) ──
+  readonly motivosReprogramacion = ['CLIENTE NO UBICADO', 'CLIENTE AUSENTE', 'DIRECCIÓN INCORRECTA / INUBICABLE',
+    'CLIENTE SOLICITÓ OTRA FECHA', 'ZONA INACCESIBLE / CLIMA', 'PRODUCTO NO DISPONIBLE / SIN STOCK',
+    'PROBLEMA DE TRANSPORTE', 'FUERA DE HORARIO', 'OTRO'];
+  reprogSel: Entrega[] = [];
+  reprogFecha: Date | null = null;
+  reprogMotivo = '';
+  reprogComentario = '';
+  reprogGuardando = false;
+  pedirReprogramar(): void {
+    const p = this.selPend;
+    if (!p.length) { this.toast('Selecciona entregas pendientes para reprogramar.', 'error'); return; }
+    this.reprogSel = p; this.reprogFecha = null; this.reprogMotivo = ''; this.reprogComentario = '';
+  }
+  cancelarReprog(): void { this.reprogSel = []; }
+  confirmarReprog(): void {
+    if (!this.reprogSel.length || !this.reprogFecha || !this.reprogMotivo || this.reprogGuardando) return;
+    const motivo = this.reprogMotivo + (this.reprogComentario.trim() ? ` — ${this.reprogComentario.trim()}` : '');
+    const fecha = this.ymd(this.reprogFecha);
+    const ids = this.reprogSel.map(e => e.id);
+    this.reprogGuardando = true;
+    this.api.reprogramar(ids, fecha, motivo).subscribe({
+      next: (r) => { this.reprogGuardando = false; this.reprogSel = []; this.toast(`✔ ${r.actualizados} entrega(s) reprogramada(s).`); this.cargar(); },
+      error: (err) => { this.reprogGuardando = false; this.toast(err?.error?.message ?? 'No se pudo reprogramar.', 'error'); },
+    });
+  }
+
   // ── Eliminar (selección) con confirmación ──
   eliminandoSel: Entrega[] | null = null;
   elimGuardando = false;
