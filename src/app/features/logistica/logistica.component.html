@@ -1,4 +1,4 @@
-<div class="logi-shell">
+<div class="logi-shell" [class.full]="vista === 'calendario'">
 
   <!-- ═══════════ REGISTRAR ENTREGA ═══════════ -->
   <ng-container *ngIf="vista === 'registrar'">
@@ -134,7 +134,7 @@
       <span class="lh-ico"><mat-icon>calendar_month</mat-icon></span>
       <div>
         <div class="lh-title">Calendario de Entregas</div>
-        <div class="lh-sub">Entregas por día, color por estado. Clic en una entrega para marcarla entregada / revertirla.</div>
+        <div class="lh-sub">Entregas por día, color por estado. Clic en una entrega para ver el detalle. (Marcar entregado se hace en Control de Entregas.)</div>
       </div>
     </div>
 
@@ -153,10 +153,30 @@
     </div>
 
     <dx-scheduler [dataSource]="citas" [currentDate]="calFecha" [views]="['month','week','agenda']"
-      currentView="month" [height]="660" [editing]="false" [firstDayOfWeek]="1" [showAllDayPanel]="false"
+      currentView="month" [height]="alturaCal" [editing]="false" [firstDayOfWeek]="1" [showAllDayPanel]="false"
       textExpr="text" startDateExpr="start" endDateExpr="end" allDayExpr="allDay"
+      appointmentTooltipTemplate="tooltipCita"
       (onAppointmentClick)="onCitaClick($event)" (onOptionChanged)="onSchedulerOption($event)" class="logi-cal">
       <dxi-resource fieldExpr="grupo" [dataSource]="estadoRecursos" [useColorAsDefault]="true" label="Estado"></dxi-resource>
+
+      <!-- Detalle de la entrega (solo lectura; marcar entregado va en Control de Entregas) -->
+      <div *dxTemplate="let m of 'tooltipCita'">
+        <div class="cita-detalle" *ngIf="m.appointmentData._e as e">
+          <div class="cd-prod">{{ e.producto }}</div>
+          <div class="cd-row"><mat-icon>badge</mat-icon> {{ e.dni_cliente }}<span *ngIf="e.cliente_nombre"> · {{ e.cliente_nombre }}</span></div>
+          <div class="cd-row"><mat-icon>event</mat-icon> {{ e.fecha_entrega }}</div>
+          <div class="cd-row"><mat-icon>store</mat-icon> {{ e.sede || '—' }}</div>
+          <div class="cd-row" *ngIf="e.celular"><mat-icon>call</mat-icon> {{ e.celular }}</div>
+          <div class="cd-row" *ngIf="e.direccion"><mat-icon>place</mat-icon> {{ e.direccion }}</div>
+          <div class="cd-row" *ngIf="e.observacion"><mat-icon>notes</mat-icon> {{ e.observacion }}</div>
+          <div class="cd-estado">
+            <span class="est" [class.ent]="e.estado === 'ENTREGADO'" [class.venc]="e.vencida">
+              {{ e.vencida && e.estado === 'PENDIENTE' ? 'VENCIDA' : e.estado }}
+            </span>
+            <span *ngIf="e.entregado_por" class="cd-ent">✔ {{ e.entregado_por }} · {{ e.fecha_entregado }}</span>
+          </div>
+        </div>
+      </div>
     </dx-scheduler>
   </ng-container>
 

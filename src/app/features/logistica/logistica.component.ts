@@ -182,17 +182,10 @@ export class LogisticaComponent implements OnInit {
     this.cargar();
   };
 
-  /** Click en una cita del calendario → ofrece marcar entregado / revertir. */
-  onCitaClick = (e: any): void => {
-    e.cancel = true;   // no abrir el popup de edición nativo
-    const ent: Entrega = e.appointmentData?._e;
-    if (!ent) return;
-    if (ent.estado === 'ENTREGADO') this.revertir(ent);
-    else this.api.marcarEntregado([ent.id], this.nombreUsuario).subscribe({
-      next: () => { this.toast('✔ Entrega marcada como entregada.'); this.cargar(); },
-      error: (err) => this.toast(err?.error?.message ?? 'No se pudo actualizar.', 'error'),
-    });
-  };
+  /** Alto del calendario: ocupa casi todo el alto de la ventana. */
+  alturaCal = Math.max(500, (typeof window !== 'undefined' ? window.innerHeight : 820) - 200);
+  /** Evita que el clic abra el popup de edición nativo (solo se ve el tooltip de detalle). */
+  onCitaClick = (e: any): void => { e.cancel = true; };
 
   /** Marca como ENTREGADO las filas seleccionadas (check + Guardar). */
   guardarEntregas(): void {
