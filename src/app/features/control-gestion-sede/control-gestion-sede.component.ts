@@ -248,12 +248,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   sincronizar(): void {
     if (this.sincronizando) return;
     this.sincronizando = true;
-    // Solo el día que se está viendo → rápido (el histórico ya está migrado).
-    const fecha = this.formCtrl.value.fechaGestion as Date;
-    this.sheetsService.sincronizarGestionSedes({ desde: fecha, hasta: fecha }).subscribe({
+    // SIN rango → el backend trae TODO LO NUEVO del formulario (desde la última fecha ya
+    // en BD hasta hoy), no solo el día que se ve. Inserta lo que falte (dedupe por hash).
+    this.sheetsService.sincronizarGestionSedes().subscribe({
       next: async r => {
         this.sincronizando = false;
-        this.snack.open(`✔ Sincronizado: ${r.insertados} nuevas gestiones del formulario.`, 'OK',
+        this.snack.open(`✔ Sincronizado: ${r.insertados} gestiones nuevas del formulario.`, 'OK',
           { duration: 3500, horizontalPosition: 'end', verticalPosition: 'top', panelClass: 'toast-ok' });
         await this.cargarDatos();
       },
