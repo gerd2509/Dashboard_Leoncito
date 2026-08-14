@@ -23,11 +23,9 @@
         </div>
         <div class="fld fld-2">
           <label>Producto a entregar <b>*</b></label>
-          <dx-select-box [dataSource]="productoDS" valueExpr="value" displayExpr="value"
-            [(value)]="f.producto" [searchEnabled]="true" searchExpr="value" [minSearchLength]="2"
-            [searchTimeout]="300" [acceptCustomValue]="true" (onCustomItemCreating)="onCustomProducto($event)"
+          <dx-select-box [items]="productos" [(value)]="f.producto" [searchEnabled]="true"
             [showClearButton]="true" [isValid]="!(intento && invProducto)"
-            placeholder="Escribe para buscar el producto…"></dx-select-box>
+            placeholder="Elige el producto"></dx-select-box>
         </div>
         <div class="fld">
           <label>Fecha de entrega <b>*</b></label>

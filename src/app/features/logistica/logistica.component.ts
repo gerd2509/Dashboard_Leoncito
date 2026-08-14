@@ -7,9 +7,14 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { EntregasService, Entrega } from '../../services/entregas.service';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
-import CustomStore from 'devextreme/data/custom_store';
-import DataSource from 'devextreme/data/data_source';
-import { firstValueFrom } from 'rxjs';
+
+// Categorías de producto (igual que los registros de gestión). Simple por ahora;
+// luego se puede cambiar por el catálogo real (endpoint /productos ya existe).
+const PRODUCTOS = [
+  'REFRIGERADORA', 'VISICOOLER', 'COCINA', 'LAVADORA', 'CONGELADORA', 'TELEVISOR', 'EQUIPO SONIDO',
+  'LAPTOP', 'IMPRESORA', 'TELEFONO CELULAR', 'MOTOCICLETA', 'MOTOTAXI', 'MOTO CARGUERA', 'MOTO ELECTRICA',
+  'JUEGO MUEBLES', 'JUEGO COMEDOR', 'MELAMINA', 'CAMA', 'COLCHON', 'CAMA + COLCHON', 'PEQUEÑOS ARTEFACTOS',
+];
 
 /**
  * Módulo LOGÍSTICA — Control de Entregas. Un solo componente con dos vistas (submenús):
@@ -56,19 +61,7 @@ export class LogisticaComponent implements OnInit {
     if (this.vista === 'entregas' || this.vista === 'calendario') this.cargar();
   }
 
-  // Desplegable de productos con búsqueda en el servidor (~38k distintos → no cargar todo).
-  // Permite además escribir un producto libre (acceptCustomValue).
-  productoDS = new DataSource({
-    paginate: false,
-    store: new CustomStore({
-      key: 'value',
-      loadMode: 'raw',
-      load: (opts: any) => firstValueFrom(this.api.buscarProductos((opts?.searchValue ?? '').toString()))
-        .then(arr => (arr || []).map(v => ({ value: v }))),
-      byKey: (k: any) => Promise.resolve({ value: k }),
-    }),
-  });
-  onCustomProducto = (e: any) => { if (e?.text) e.customItem = { value: e.text }; };
+  readonly productos = PRODUCTOS;
 
   // ══════════ VISTA: REGISTRAR ══════════
   guardando = false;
