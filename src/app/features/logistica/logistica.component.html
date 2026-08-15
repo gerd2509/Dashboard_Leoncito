@@ -23,9 +23,10 @@
         </div>
         <div class="fld fld-2">
           <label>Productos a entregar <b>*</b> <small>(puedes elegir varios)</small></label>
-          <dx-tag-box [items]="comboProductos" [(value)]="f.productosSel" [searchEnabled]="true"
+          <dx-tag-box [dataSource]="productoDS" valueExpr="nombre" displayExpr="nombre" searchExpr="nombre"
+            [(value)]="f.productosSel" [searchEnabled]="true" [minSearchLength]="2" [searchTimeout]="250"
             [showSelectionControls]="true" [showClearButton]="true" [isValid]="!(intento && invProducto)"
-            placeholder="Busca y selecciona uno o varios productos…"></dx-tag-box>
+            placeholder="Escribe 2+ letras para buscar y selecciona uno o varios…"></dx-tag-box>
         </div>
         <div class="fld">
           <label>Fecha de entrega <b>*</b></label>
@@ -447,7 +448,8 @@
         <div class="ed-grid">
           <div class="fld"><label>Cliente</label><dx-text-box [(value)]="ed.cliente_nombre"></dx-text-box></div>
           <div class="fld ed-2"><label>Productos <b>*</b></label>
-            <dx-tag-box [items]="comboProductos" [(value)]="ed.productosSel" [searchEnabled]="true"
+            <dx-tag-box [dataSource]="productoDS" valueExpr="nombre" displayExpr="nombre" searchExpr="nombre"
+              [(value)]="ed.productosSel" [searchEnabled]="true" [minSearchLength]="2" [searchTimeout]="250"
               [showSelectionControls]="true" [showClearButton]="true"></dx-tag-box>
           </div>
           <div class="fld"><label>Fecha de entrega <b>*</b></label>

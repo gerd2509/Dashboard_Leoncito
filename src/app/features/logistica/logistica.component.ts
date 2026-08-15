@@ -13,6 +13,8 @@ import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import * as XLSX from 'xlsx';
 import { firstValueFrom } from 'rxjs';
+import CustomStore from 'devextreme/data/custom_store';
+import DataSource from 'devextreme/data/data_source';
 
 // Categorías de producto (igual que los registros de gestión). Simple por ahora;
 // luego se puede cambiar por el catálogo real (endpoint /productos ya existe).
@@ -80,8 +82,8 @@ export class LogisticaComponent implements OnInit {
     this.calcAltura();
     if (this.vista === 'despacho') this.cargarUsuariosLogistica();
     if (this.vista === 'rutas') this.obtenerUbicacion();   // ubicación automática al entrar a Rutas
-    // El inventario alimenta el combo de productos (registrar/editar) y su propia grilla.
-    if (['registrar', 'entregas', 'inventario'].includes(this.vista)) this.cargarInventario();
+    // La grilla del inventario necesita la lista; el combo de productos usa productoDS (server-search).
+    if (this.vista === 'inventario') this.cargarInventario();
     if (this.vista !== 'registrar' && this.vista !== 'inventario') this.cargar();
   }
 
@@ -90,10 +92,25 @@ export class LogisticaComponent implements OnInit {
   importando = false;
   invReemplazar = false;
   importResultado: { insertados: number; total: number } | null = null;
-  /** Lista para el combo: el inventario importado; si está vacío, las categorías base. */
-  get comboProductos(): string[] {
-    return this.inventarioItems.length ? this.inventarioItems.map(x => x.nombre) : this.productos;
-  }
+
+  // Combo de productos (registrar/editar) con BÚSQUEDA EN EL SERVIDOR (escala a miles;
+  // evita cargar todo el array — que trababa el tag-box). Fallback: si el inventario está
+  // vacío, la búsqueda devuelve las categorías base filtradas.
+  productoDS = new DataSource({
+    paginate: false,
+    store: new CustomStore({
+      key: 'nombre',
+      load: async (opts: any) => {
+        const q = (opts?.searchValue ?? '').toString();
+        const inv = await firstValueFrom(this.api.inventario(q));
+        if (inv && inv.length) return inv.map(x => ({ nombre: x.nombre }));
+        const ql = q.toLowerCase();
+        return this.productos.filter(p => !ql || p.toLowerCase().includes(ql)).map(nombre => ({ nombre }));
+      },
+      byKey: (k: any) => Promise.resolve({ nombre: k }),
+    }),
+  });
+
   cargarInventario(): void {
     this.api.inventario().subscribe({ next: (r) => { this.inventarioItems = r || []; }, error: () => {} });
   }
