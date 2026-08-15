@@ -674,9 +674,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         this.sedeConfig.normalizar(this.sedeConfig.getConfig(s.key)?.valorSede ?? s.nombre)));
 
       const desdeK = this.ymd(desde), hastaK = this.ymd(hasta);
-      const data = await lastValueFrom(this.sheetsService.getSheetDataSedes({ desde, hasta }));
+      // La evolución lee de la BD (misma fuente que la vista diaria): así refleja TODO el
+      // histórico migrado + lo sincronizado del formulario, y funciona para cualquier
+      // usuario con acceso (antes leía el sheet directo → con el nuevo form quedaba casi
+      // vacío y podía fallar para no-admins).
+      const data = await lastValueFrom(this.sheetsService.getGestionSedesDB({ desde, hasta }));
 
-      // Llamadas / cartas por día (del sheet de sedes).
+      // Llamadas / cartas por día (de la gestión de sedes en BD).
       const porDia = new Map<string, { ll: number; ca: number }>();
       for (const r of (data ?? [])) {
         if (!valorSet.has(this.sedeConfig.normalizar(r['TIENDA SEDE']))) continue;
