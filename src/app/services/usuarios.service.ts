@@ -15,6 +15,7 @@ export interface UsuarioDB {
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
   activo: boolean;
   dni?: string;                // vínculo con el CAP (usuario/clave por defecto)
+  vehiculo?: string;           // carro asignado (rol chofer): AZUL/VERDE/NARANJA
   debe_cambiar_password?: boolean;
   creado_en?: string;
   actualizado_en?: string;
@@ -32,6 +33,7 @@ export interface UsuarioPayload {
   activo: boolean;
   password?: string;
   dni?: string;
+  vehiculo?: string;
   debe_cambiar_password?: boolean;
 }
 

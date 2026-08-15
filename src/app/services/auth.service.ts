@@ -10,6 +10,7 @@ export interface Usuario {
   sedes?: string[];    // sedes asignadas (varias). Si no hay, se asume [sede].
   vendedor?: string;   // rol vendedor: su nombre exacto (para "Mi Panel")
   canal?: string;      // rol vendedor: 'sede' | 'call' | 'realzza'
+  vehiculo?: string;   // rol chofer: carro asignado (AZUL/VERDE/NARANJA)
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
 }
 

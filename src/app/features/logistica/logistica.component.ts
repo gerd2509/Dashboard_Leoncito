@@ -56,6 +56,8 @@ export class LogisticaComponent implements OnInit {
   esAdmin = false;
   sedeUsuario = '';                 // clave de sede del usuario (si tiene una)
   nombreUsuario = '';
+  rolUsuario = '';                  // 'chofer' | 'almacenero' | ...
+  vehiculoUsuario = '';             // chofer: su carro asignado (AZUL/VERDE/NARANJA)
   sedeOptions: { key: string; nombre: string }[] = [];
   readonly estados = ['PENDIENTE', 'ENTREGADO', 'ANULADO'];
 
@@ -63,6 +65,8 @@ export class LogisticaComponent implements OnInit {
     const u = this.auth.getUsuario();
     this.esAdmin = this.auth.esAdmin();
     this.nombreUsuario = u?.nombre || u?.vendedor || u?.sede || '';
+    this.rolUsuario = (u?.rol || '').toLowerCase();
+    this.vehiculoUsuario = (u?.vehiculo || '').toUpperCase();
     const sedes = this.auth.sedesUsuario();
     const fisicas = this.sedeCfg.expandirSedes(sedes);
     this.sedeUsuario = fisicas.length === 1 ? fisicas[0] : (fisicas[0] || '');
@@ -73,23 +77,38 @@ export class LogisticaComponent implements OnInit {
     this.f.sede = this.sedeUsuario || (this.sedeOptions[0]?.key ?? '');
     this.filtro.sede = this.esAdmin ? '' : this.sedeUsuario;
     this.calcAltura();
-    if (this.vista === 'despacho') this.cargarAlmaceneros();
+    if (this.vista === 'despacho') this.cargarUsuariosLogistica();
     if (this.vista === 'rutas') this.obtenerUbicacion();   // ubicación automática al entrar a Rutas
     if (this.vista !== 'registrar') this.cargar();
   }
 
-  // Almaceneros disponibles (usuarios con rol 'almacenero') para asignar a cada carro.
+  // Usuarios de logística: almaceneros (para asignar) + chofer por carro (para mostrar).
   almaceneros: string[] = [];
-  private cargarAlmaceneros(): void {
+  choferPorVehiculo: Record<string, string> = {};
+  private cargarUsuariosLogistica(): void {
     this.usuariosSvc.listar().subscribe({
       next: (us) => {
-        this.almaceneros = (us || [])
-          .filter(u => (u.rol || '').toLowerCase() === 'almacenero' && u.activo)
-          .map(u => (u.nombre || u.usuario || '').trim())
-          .filter(Boolean);
+        const activos = (us || []).filter(u => u.activo);
+        this.almaceneros = activos.filter(u => (u.rol || '').toLowerCase() === 'almacenero')
+          .map(u => (u.nombre || u.usuario || '').trim()).filter(Boolean);
+        this.choferPorVehiculo = {};
+        activos.filter(u => (u.rol || '').toLowerCase() === 'chofer' && u.vehiculo)
+          .forEach(u => { this.choferPorVehiculo[(u.vehiculo || '').toUpperCase()] = (u.nombre || u.usuario || '').trim(); });
       },
       error: () => {},
     });
+  }
+
+  /** Entregas PENDIENTES visibles según el rol: chofer→su carro; almacenero→sus asignadas. */
+  private entregasVisibles(): Entrega[] {
+    let list = this.datos.filter(e => e.estado === 'PENDIENTE');
+    if (this.rolUsuario === 'chofer' && this.vehiculoUsuario) {
+      list = list.filter(e => (e.vehiculo || '').toUpperCase() === this.vehiculoUsuario);
+    } else if (this.rolUsuario === 'almacenero') {
+      const me = (this.nombreUsuario || '').toUpperCase();
+      list = list.filter(e => (e.almacenero || '').toUpperCase() === me);
+    }
+    return list;
   }
 
   readonly productos = PRODUCTOS;
@@ -210,18 +229,20 @@ export class LogisticaComponent implements OnInit {
   }
 
   // ── Lista de Despacho por Vehículo ──
-  despachoGrupos: { vehiculo: string; color: string; entregas: Entrega[]; almacenero: string }[] = [];
+  despachoGrupos: { vehiculo: string; color: string; entregas: Entrega[]; almacenero: string; chofer: string }[] = [];
   private construirDespacho(): void {
     const grupos = [...VEHICULOS.map(v => ({ vehiculo: v.id, color: v.color })),
       { vehiculo: 'SIN ASIGNAR', color: '#90A4AE' }];
-    const pend = this.datos.filter(e => e.estado === 'PENDIENTE');
+    const pend = this.entregasVisibles();
     this.despachoGrupos = grupos
       .map(g => {
         const entregas = pend.filter(e => (e.vehiculo || 'SIN ASIGNAR').toUpperCase() === g.vehiculo);
         const almacenero = entregas.find(e => e.almacenero)?.almacenero || '';
-        return { ...g, entregas, almacenero };
+        const chofer = this.choferPorVehiculo[g.vehiculo] || '';
+        return { ...g, entregas, almacenero, chofer };
       })
-      .filter(g => g.entregas.length > 0 || g.vehiculo !== 'SIN ASIGNAR');
+      // Chofer/almacenero solo ven su(s) carro(s); el resto ve todos menos SIN ASIGNAR vacío.
+      .filter(g => g.entregas.length > 0 || (g.vehiculo !== 'SIN ASIGNAR' && !this.rolUsuario.match(/chofer|almacenero/)));
   }
 
   /** Asigna el almacenero a TODAS las entregas del carro (solo cambio hecho por el usuario). */
@@ -259,8 +280,7 @@ export class LogisticaComponent implements OnInit {
   private construirRuta(): void {
     const pts: Coordenada[] = [];
     this.entregasSinCoord = 0;
-    for (const e of this.datos) {
-      if (e.estado !== 'PENDIENTE') continue;
+    for (const e of this.entregasVisibles()) {
       const c = this.parseCoord(e.coordenadas);
       if (!c) { this.entregasSinCoord++; continue; }
       pts.push({ id: String(e.id), nombre: `${e.producto} · ${e.cliente_nombre || e.dni_cliente}`, lat: c.lat, lng: c.lng });

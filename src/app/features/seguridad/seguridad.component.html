@@ -129,6 +129,19 @@
           <input type="text" [(ngModel)]="form.dni" placeholder="Se autocompleta del CAP" />
         </label>
 
+        <!-- Chofer: carro de reparto asignado -->
+        <label *ngIf="form.rol === 'chofer'">Carro asignado *
+          <select [(ngModel)]="form.vehiculo">
+            <option value="">— Elige el carro —</option>
+            <option *ngFor="let v of vehiculoOptions" [value]="v">{{ v }}</option>
+          </select>
+        </label>
+
+        <!-- DNI para chofer / almacenero / jefe de almacén (usuario y clave por defecto) -->
+        <label *ngIf="form.rol === 'chofer' || form.rol === 'almacenero' || form.rol === 'jefe_almacen'">DNI
+          <input type="text" [(ngModel)]="form.dni" (ngModelChange)="onDniLogistica()" placeholder="DNI → usuario y clave por defecto" />
+        </label>
+
         <!-- Usuario y Nombre: al final; se autocompletan al elegir el vendedor de sede. -->
         <label>Usuario *
           <input type="text" [(ngModel)]="form.usuario" placeholder="ej. jt_ferre" />

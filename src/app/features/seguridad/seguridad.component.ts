@@ -79,7 +79,17 @@ export class SeguridadComponent implements OnInit {
   // Permisos a asignar a todos los creados: false = default del rol; true = set personalizado.
   bulkPersonalizar = false;
   bulkModulos = new Set<string>();
-  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false };
+  form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'] as string[], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false, vehiculo: '' };
+  readonly vehiculoOptions = ['AZUL', 'VERDE', 'NARANJA'];
+  /** ¿El DNI se usa como usuario/clave? (chofer/almacenero/jefe: al tipear el DNI se autocompleta). */
+  onDniLogistica(): void {
+    const rolesDni = ['chofer', 'almacenero', 'jefe_almacen'];
+    const dni = (this.form.dni || '').replace(/\D/g, '');
+    if (this.editId !== null || !rolesDni.includes(this.form.rol) || !dni) return;
+    if (!this.form.usuario.trim()) this.form.usuario = dni;
+    if (!this.form.password.trim()) this.form.password = dni;
+    this.form.debeCambiar = true;
+  }
 
   // Identidad del vendedor (solo cuando rol = vendedor).
   readonly canalOptions = [
@@ -191,7 +201,7 @@ export class SeguridadComponent implements OnInit {
 
   nuevoUsuario(): void {
     this.editId = null;
-    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false };
+    this.form = { usuario: '', nombre: '', rol: 'gerente', sede: 'todas', sedes: ['todas'], canal: '', vendedor: '', password: '', activo: true, dni: '', debeCambiar: false, vehiculo: '' };
     this.vendedorOptions = [];
     this.errorForm = '';
     this.sedeDropdownOpen = false;
@@ -279,6 +289,7 @@ export class SeguridadComponent implements OnInit {
       activo: u.activo,
       dni: u.dni ?? '',
       debeCambiar: !!u.debe_cambiar_password,
+      vehiculo: u.vehiculo ?? '',
     };
     this.recomputarVendedores();
     this.errorForm = '';
@@ -401,6 +412,7 @@ export class SeguridadComponent implements OnInit {
       canal: esVendedor ? f.canal : '', vendedor: esVendedor ? f.vendedor.trim() : '',
       activo: f.activo, password: f.password.trim() || undefined,
       dni: f.dni.trim() || undefined, debe_cambiar_password: f.debeCambiar,
+      vehiculo: f.rol === 'chofer' ? (f.vehiculo || '') : '',
     };
     const obs = esNuevo
       ? this.usuariosSvc.crear(payload)

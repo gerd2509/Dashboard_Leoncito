@@ -323,6 +323,9 @@
             <span class="dh-name">Carro {{ g.vehiculo }}</span>
             <span class="dh-count">{{ g.entregas.length }}</span>
           </div>
+          <div class="desp-chofer" *ngIf="g.vehiculo !== 'SIN ASIGNAR'">
+            <mat-icon>person</mat-icon> Chofer: <b>{{ g.chofer || '— sin asignar —' }}</b>
+          </div>
           <div class="desp-alm" *ngIf="g.vehiculo !== 'SIN ASIGNAR'">
             <mat-icon>warehouse</mat-icon>
             <dx-select-box [value]="g.almacenero" [items]="almaceneros" [searchEnabled]="true"
