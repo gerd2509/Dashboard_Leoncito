@@ -277,6 +277,37 @@ export class LogisticaComponent implements OnInit {
     return { lat: p[0], lng: p[1] };
   }
 
+  // ── Navegación PASO A PASO (de a una entrega) ──
+  // Con un solo destino, Google Maps SÍ inicia la navegación turn-by-turn (no la
+  // ignora como con varias paradas). Sin `origin`, Maps usa la ubicación real del móvil.
+  private distanciaKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+    const R = 6371, rad = (x: number) => x * Math.PI / 180;
+    const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  /** Entregas de la ruta (sin el punto "mi ubicación"), ordenadas por cercanía a mí. */
+  get entregasRuta(): Coordenada[] {
+    const pts = this.puntosRuta.filter(p => p.id !== '__me__');
+    if (!this.ubicacionActual) return pts;
+    const me = this.ubicacionActual;
+    return [...pts].sort((a, b) => this.distanciaKm(me, a) - this.distanciaKm(me, b));
+  }
+  /** Abre Google Maps y ARRANCA la navegación hacia ese punto (un solo destino). */
+  navegarA(p: Coordenada): void {
+    const params = new URLSearchParams({ api: '1', destination: `${p.lat},${p.lng}`, travelmode: 'driving', dir_action: 'navigate' });
+    window.open(`https://www.google.com/maps/dir/?${params.toString()}`, '_blank');
+  }
+  /** Navega a la entrega MÁS CERCANA a tu ubicación actual. */
+  navegarSiguiente(): void {
+    const lista = this.entregasRuta;
+    if (!lista.length) { this.toast('No hay entregas con coordenadas para navegar.', 'error'); return; }
+    this.navegarA(lista[0]);
+  }
+  distKm(p: Coordenada): number | null {
+    return this.ubicacionActual ? Math.round(this.distanciaKm(this.ubicacionActual, p) * 10) / 10 : null;
+  }
+
   // ── Calendario (dx-scheduler) ──
   citas: any[] = [];
   calFecha = new Date();

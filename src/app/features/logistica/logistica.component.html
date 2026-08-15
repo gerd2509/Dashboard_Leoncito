@@ -271,6 +271,27 @@
       No hay entregas pendientes con coordenadas en el periodo/sede elegido. Registra las coordenadas en cada entrega para armar la ruta.
     </div>
 
+    <!-- Navegación PASO A PASO (Google Maps inicia directo con un solo destino) -->
+    <div class="nav-paso" *ngIf="entregasRuta.length">
+      <div class="np-head">
+        <div>
+          <div class="np-title"><mat-icon>navigation</mat-icon> Navegación paso a paso</div>
+          <div class="np-sub">Va a la entrega más cercana e <b>inicia la navegación directo</b> en Google Maps. Al entregar, vuelve y toca la siguiente.</div>
+        </div>
+        <button class="np-next" (click)="navegarSiguiente()">
+          <mat-icon>near_me</mat-icon> Navegar a la más cercana
+        </button>
+      </div>
+      <div class="np-list">
+        <div class="np-item" *ngFor="let p of entregasRuta; let i = index">
+          <span class="np-num">{{ i + 1 }}</span>
+          <span class="np-name">{{ p.nombre }}</span>
+          <span class="np-dist" *ngIf="distKm(p) !== null">{{ distKm(p) }} km</span>
+          <button class="np-go" (click)="navegarA(p)"><mat-icon>navigation</mat-icon> Navegar</button>
+        </div>
+      </div>
+    </div>
+
     <app-gps-ruta *ngIf="puntosRuta.length" [coordenadas]="puntosRuta"></app-gps-ruta>
   </ng-container>
 
