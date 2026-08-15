@@ -15,6 +15,7 @@ export interface Entrega {
   direccion?: string | null;
   coordenadas?: string | null;
   vehiculo?: string | null;
+  almacenero?: string | null;
   observacion?: string | null;
   estado: 'PENDIENTE' | 'ENTREGADO' | 'ANULADO' | string;
   motivo_anulacion?: string | null;
@@ -67,6 +68,11 @@ export class EntregasService {
   /** Asigna (o quita, vehiculo='') el carro de reparto a varias entregas. */
   asignarVehiculo(ids: number[], vehiculo: string): Observable<{ success: boolean; actualizados: number }> {
     return this.http.patch<any>(`${this.base}/asignar-vehiculo`, { ids, vehiculo });
+  }
+
+  /** Asigna (o quita, almacenero='') el almacenero a varias entregas (p. ej. las de un carro). */
+  asignarAlmacenero(ids: number[], almacenero: string): Observable<{ success: boolean; actualizados: number }> {
+    return this.http.patch<any>(`${this.base}/asignar-almacenero`, { ids, almacenero });
   }
 
   /** Marca varias entregas como ENTREGADO (o desmarca con entregado=false). */

@@ -210,3 +210,8 @@
 .di-tag.coord { background: #e7f6ec; color: #1B7A3D; }
 .di-tag.venc { background: #FDECEA; color: #C62828; font-weight: 800; }
 .desp-empty { color: #9aa7b6; font-size: 12.5px; padding: 8px; text-align: center; }
+
+/* Almacenero por carro (despacho) */
+.desp-alm { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #eef2f7; background: #f8fafc; }
+.desp-alm mat-icon { font-size: 18px; width: 18px; height: 18px; color: #607D8B; }
+.desp-alm .alm-sel { flex: 1; }

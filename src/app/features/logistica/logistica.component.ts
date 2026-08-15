@@ -5,6 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { EntregasService, Entrega } from '../../services/entregas.service';
+import { UsuariosService } from '../../services/usuarios.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { GpsRutaComponent } from '../gps-ruta/gps-ruta.component';
 import { Coordenada } from '../gps-ruta/models/ruta.model';
@@ -50,6 +51,7 @@ export class LogisticaComponent implements OnInit {
   private snack = inject(MatSnackBar);
   private sedeCfg = inject(SedeConfigService);
   private api = inject(EntregasService);
+  private usuariosSvc = inject(UsuariosService);
 
   esAdmin = false;
   sedeUsuario = '';                 // clave de sede del usuario (si tiene una)
@@ -71,7 +73,23 @@ export class LogisticaComponent implements OnInit {
     this.f.sede = this.sedeUsuario || (this.sedeOptions[0]?.key ?? '');
     this.filtro.sede = this.esAdmin ? '' : this.sedeUsuario;
     this.calcAltura();
+    if (this.vista === 'despacho') this.cargarAlmaceneros();
+    if (this.vista === 'rutas') this.obtenerUbicacion();   // ubicación automática al entrar a Rutas
     if (this.vista !== 'registrar') this.cargar();
+  }
+
+  // Almaceneros disponibles (usuarios con rol 'almacenero') para asignar a cada carro.
+  almaceneros: string[] = [];
+  private cargarAlmaceneros(): void {
+    this.usuariosSvc.listar().subscribe({
+      next: (us) => {
+        this.almaceneros = (us || [])
+          .filter(u => (u.rol || '').toLowerCase() === 'almacenero' && u.activo)
+          .map(u => (u.nombre || u.usuario || '').trim())
+          .filter(Boolean);
+      },
+      error: () => {},
+    });
   }
 
   readonly productos = PRODUCTOS;
@@ -192,14 +210,29 @@ export class LogisticaComponent implements OnInit {
   }
 
   // ── Lista de Despacho por Vehículo ──
-  despachoGrupos: { vehiculo: string; color: string; entregas: Entrega[] }[] = [];
+  despachoGrupos: { vehiculo: string; color: string; entregas: Entrega[]; almacenero: string }[] = [];
   private construirDespacho(): void {
     const grupos = [...VEHICULOS.map(v => ({ vehiculo: v.id, color: v.color })),
       { vehiculo: 'SIN ASIGNAR', color: '#90A4AE' }];
     const pend = this.datos.filter(e => e.estado === 'PENDIENTE');
     this.despachoGrupos = grupos
-      .map(g => ({ ...g, entregas: pend.filter(e => (e.vehiculo || 'SIN ASIGNAR').toUpperCase() === g.vehiculo) }))
+      .map(g => {
+        const entregas = pend.filter(e => (e.vehiculo || 'SIN ASIGNAR').toUpperCase() === g.vehiculo);
+        const almacenero = entregas.find(e => e.almacenero)?.almacenero || '';
+        return { ...g, entregas, almacenero };
+      })
       .filter(g => g.entregas.length > 0 || g.vehiculo !== 'SIN ASIGNAR');
+  }
+
+  /** Asigna el almacenero a TODAS las entregas del carro (solo cambio hecho por el usuario). */
+  onAlmaceneroChange(g: { vehiculo: string; entregas: Entrega[] }, e: any): void {
+    if (!e?.event) return;                    // ignora el set programático inicial
+    const ids = g.entregas.map(x => x.id);
+    if (!ids.length) return;
+    this.api.asignarAlmacenero(ids, e.value || '').subscribe({
+      next: () => { this.toast(e.value ? `Almacenero asignado al carro ${g.vehiculo}.` : 'Almacenero quitado.'); this.cargar(); },
+      error: (err) => this.toast(err?.error?.message ?? 'No se pudo asignar el almacenero.', 'error'),
+    });
   }
 
   // ── Ruta de reparto (usa las coordenadas de las entregas PENDIENTES) ──

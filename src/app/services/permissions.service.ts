@@ -28,7 +28,7 @@ export const PERFILES: Perfil[] = [
 ];
 
 // Roles configurables en la matriz (admin es acceso total, no configurable).
-export const ROLES_CONFIGURABLES = ['gerente', 'supervisor', 'vendedor'];
+export const ROLES_CONFIGURABLES = ['gerente', 'supervisor', 'vendedor', 'jefe_almacen', 'chofer', 'almacenero'];
 
 // ─── Combinaciones Rol + Perfil (columnas de la matriz de Seguridad) ──────────
 // Set FIJO y chico: NO crece al agregar sedes.
@@ -113,6 +113,10 @@ const REALZZA_MODULES = [
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
 const ZONA_MODULES = ['control-gestion-sede'];
+// Roles de LOGÍSTICA (por defecto ven su parte del módulo Logística).
+const JEFE_ALMACEN_MODULES = ['logistica-registrar', 'logistica-entregas', 'logistica-despacho', 'logistica-calendario', 'logistica-rutas'];
+const CHOFER_MODULES = ['logistica-despacho', 'logistica-rutas'];
+const ALMACENERO_MODULES = ['logistica-registrar', 'logistica-despacho'];
 // Rol vendedor: por defecto ve su panel personal + el formulario de registro.
 const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones'];
 
@@ -126,9 +130,19 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'vendedor-call':      [...VENDEDOR_MODULES],
   'vendedor-realzza':   [...VENDEDOR_MODULES],
   'vendedor-zona':      [...VENDEDOR_MODULES],
+  // Logística (mismos módulos en cualquier perfil de sede).
+  'jefe_almacen-call':  [...JEFE_ALMACEN_MODULES],
+  'jefe_almacen-realzza': [...JEFE_ALMACEN_MODULES],
+  'jefe_almacen-zona':  [...JEFE_ALMACEN_MODULES],
+  'chofer-call':        [...CHOFER_MODULES],
+  'chofer-realzza':     [...CHOFER_MODULES],
+  'chofer-zona':        [...CHOFER_MODULES],
+  'almacenero-call':    [...ALMACENERO_MODULES],
+  'almacenero-realzza': [...ALMACENERO_MODULES],
+  'almacenero-zona':    [...ALMACENERO_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v29';
+const STORAGE_KEY = 'gd_permissions_v30';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

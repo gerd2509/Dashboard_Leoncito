@@ -94,6 +94,9 @@ export class SeguridadComponent implements OnInit {
     { value: 'gerente', label: 'Gerente' },
     { value: 'supervisor', label: 'Supervisor' },
     { value: 'vendedor', label: 'Vendedor' },
+    { value: 'jefe_almacen', label: 'Jefe de Almacén' },
+    { value: 'chofer', label: 'Chofer' },
+    { value: 'almacenero', label: 'Almacenero' },
   ];
   sedeOptions: { value: string; label: string }[] = [];
 

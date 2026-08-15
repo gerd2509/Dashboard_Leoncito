@@ -302,6 +302,13 @@
             <span class="dh-name">Carro {{ g.vehiculo }}</span>
             <span class="dh-count">{{ g.entregas.length }}</span>
           </div>
+          <div class="desp-alm" *ngIf="g.vehiculo !== 'SIN ASIGNAR'">
+            <mat-icon>warehouse</mat-icon>
+            <dx-select-box [value]="g.almacenero" [items]="almaceneros" [searchEnabled]="true"
+              [showClearButton]="true" placeholder="Asignar almacenero…"
+              [disabled]="!g.entregas.length" (onValueChanged)="onAlmaceneroChange(g, $event)"
+              class="alm-sel"></dx-select-box>
+          </div>
           <div class="desp-body">
             <div class="desp-item" *ngFor="let e of g.entregas" [class.vencida]="e.vencida">
               <div class="di-top"><span class="di-prod">{{ e.producto }}</span><span class="di-fecha">{{ e.fecha_entrega }}</span></div>
