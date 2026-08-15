@@ -221,6 +221,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Calendario de Entregas', icon: 'calendar_month', modulo: 'logistica-calendario' },
         { label: 'Lista de Despacho',      icon: 'local_shipping', modulo: 'logistica-despacho' },
         { label: 'Ruta de Reparto',        icon: 'route',          modulo: 'logistica-rutas' },
+        { label: 'Inventario de Productos', icon: 'inventory_2',   modulo: 'logistica-inventario' },
       ]
     },
     { icon: 'badge',                label: 'Maestro CAP',         modulo: 'maestro-cap', adminOnly: true },

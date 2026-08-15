@@ -237,3 +237,16 @@
 .desp-chofer { display: flex; align-items: center; gap: 6px; padding: 8px 12px; font-size: 12.5px; color: #46586c; border-bottom: 1px solid #eef2f7; }
 .desp-chofer mat-icon { font-size: 17px; width: 17px; height: 17px; color: #607D8B; }
 .desp-chofer b { color: #1f2d3d; }
+
+/* Inventario */
+.inv-tools { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px;
+  background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 12px 16px; }
+.inv-import { display: inline-flex; align-items: center; gap: 7px; background: #1565C0; color: #fff; border-radius: 10px; height: 42px; padding: 0 20px; font-weight: 800; cursor: pointer; }
+.inv-import:hover { background: #0D47A1; }
+.inv-import mat-icon { font-size: 20px; width: 20px; height: 20px; }
+.inv-check { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: #46586c; font-weight: 600; cursor: pointer; }
+.inv-check input { width: 16px; height: 16px; accent-color: #1565C0; }
+.inv-total { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #34495e; }
+.inv-total mat-icon { font-size: 18px; width: 18px; height: 18px; color: #607D8B; }
+.inv-res { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: #1B7A3D; }
+.inv-res mat-icon { font-size: 17px; width: 17px; height: 17px; }

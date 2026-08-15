@@ -22,10 +22,10 @@
           <dx-text-box [(value)]="f.cliente_nombre"></dx-text-box>
         </div>
         <div class="fld fld-2">
-          <label>Producto a entregar <b>*</b></label>
-          <dx-select-box [items]="productos" [(value)]="f.producto" [searchEnabled]="true"
-            [showClearButton]="true" [isValid]="!(intento && invProducto)"
-            placeholder="Elige el producto"></dx-select-box>
+          <label>Productos a entregar <b>*</b> <small>(puedes elegir varios)</small></label>
+          <dx-tag-box [items]="comboProductos" [(value)]="f.productosSel" [searchEnabled]="true"
+            [showSelectionControls]="true" [showClearButton]="true" [isValid]="!(intento && invProducto)"
+            placeholder="Busca y selecciona uno o varios productos…"></dx-tag-box>
         </div>
         <div class="fld">
           <label>Fecha de entrega <b>*</b></label>
@@ -352,6 +352,41 @@
     </div>
   </ng-container>
 
+  <!-- ═══════════ INVENTARIO DE PRODUCTOS ═══════════ -->
+  <ng-container *ngIf="vista === 'inventario'">
+    <div class="logi-head">
+      <span class="lh-ico"><mat-icon>inventory_2</mat-icon></span>
+      <div>
+        <div class="lh-title">Inventario de Productos</div>
+        <div class="lh-sub">Sube un Excel con la columna <b>PRODUCTOS</b>. Esta lista alimenta el combo de "Productos a entregar" (búsqueda + varios).</div>
+      </div>
+    </div>
+
+    <div class="inv-tools">
+      <label class="inv-import">
+        <mat-icon>upload_file</mat-icon> {{ importando ? 'Importando…' : 'Subir Excel' }}
+        <input type="file" accept=".xlsx,.xls" (change)="importarInventarioExcel($event)" hidden [disabled]="importando">
+      </label>
+      <label class="inv-check">
+        <input type="checkbox" [(ngModel)]="invReemplazar"> Reemplazar todo el inventario
+      </label>
+      <span class="inv-total"><mat-icon>inventory_2</mat-icon> {{ inventarioItems.length }} productos</span>
+      <span class="inv-res" *ngIf="importResultado"><mat-icon>check_circle</mat-icon> {{ importResultado.insertados }} nuevos · {{ importResultado.total }} en total</span>
+    </div>
+
+    <dx-data-grid [dataSource]="inventarioItems" keyExpr="id" [showBorders]="true" [rowAlternationEnabled]="true"
+      [columnAutoWidth]="true" [hoverStateEnabled]="true" class="logi-grid">
+      <dxo-search-panel [visible]="true" [width]="280" placeholder="Buscar producto…"></dxo-search-panel>
+      <dxo-paging [pageSize]="25"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[25, 50, 100]" [showInfo]="true"></dxo-pager>
+      <dxi-column dataField="nombre" caption="Producto" [minWidth]="300"></dxi-column>
+      <dxi-column caption="" [width]="70" alignment="center" [allowSorting]="false" cellTemplate="delTpl"></dxi-column>
+      <div *dxTemplate="let d of 'delTpl'" class="grid-acc">
+        <button (click)="eliminarInvItem(d.data)" title="Eliminar" class="del"><mat-icon>delete</mat-icon></button>
+      </div>
+    </dx-data-grid>
+  </ng-container>
+
   <!-- ═══════════ MODAL: ANULAR ENTREGA(S) ═══════════ -->
   <div class="logi-modal-ov" *ngIf="anulSel.length" (click)="cancelarAnular()">
     <div class="logi-modal" (click)="$event.stopPropagation()">
@@ -411,8 +446,9 @@
       <div class="lm-body">
         <div class="ed-grid">
           <div class="fld"><label>Cliente</label><dx-text-box [(value)]="ed.cliente_nombre"></dx-text-box></div>
-          <div class="fld"><label>Producto <b>*</b></label>
-            <dx-select-box [items]="productos" [(value)]="ed.producto" [searchEnabled]="true" [acceptCustomValue]="true"></dx-select-box>
+          <div class="fld ed-2"><label>Productos <b>*</b></label>
+            <dx-tag-box [items]="comboProductos" [(value)]="ed.productosSel" [searchEnabled]="true"
+              [showSelectionControls]="true" [showClearButton]="true"></dx-tag-box>
           </div>
           <div class="fld"><label>Fecha de entrega <b>*</b></label>
             <dx-date-box [(value)]="ed.fecha_entrega" type="date" displayFormat="dd/MM/yyyy"></dx-date-box>

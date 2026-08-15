@@ -11,6 +11,7 @@ import { GpsRutaComponent } from '../gps-ruta/gps-ruta.component';
 import { Coordenada } from '../gps-ruta/models/ruta.model';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
+import * as XLSX from 'xlsx';
 import { firstValueFrom } from 'rxjs';
 
 // Categorías de producto (igual que los registros de gestión). Simple por ahora;
@@ -44,7 +45,7 @@ const VEHICULOS = [
   styleUrl: './logistica.component.css',
 })
 export class LogisticaComponent implements OnInit {
-  @Input() vista: 'registrar' | 'entregas' | 'calendario' | 'rutas' | 'despacho' = 'registrar';
+  @Input() vista: 'registrar' | 'entregas' | 'calendario' | 'rutas' | 'despacho' | 'inventario' = 'registrar';
   readonly vehiculos = VEHICULOS;
 
   private auth = inject(AuthService);
@@ -79,7 +80,52 @@ export class LogisticaComponent implements OnInit {
     this.calcAltura();
     if (this.vista === 'despacho') this.cargarUsuariosLogistica();
     if (this.vista === 'rutas') this.obtenerUbicacion();   // ubicación automática al entrar a Rutas
-    if (this.vista !== 'registrar') this.cargar();
+    // El inventario alimenta el combo de productos (registrar/editar) y su propia grilla.
+    if (['registrar', 'entregas', 'inventario'].includes(this.vista)) this.cargarInventario();
+    if (this.vista !== 'registrar' && this.vista !== 'inventario') this.cargar();
+  }
+
+  // ── Inventario de productos (Excel → BD → combo de "Producto a entregar") ──
+  inventarioItems: { id: number; nombre: string }[] = [];
+  importando = false;
+  invReemplazar = false;
+  importResultado: { insertados: number; total: number } | null = null;
+  /** Lista para el combo: el inventario importado; si está vacío, las categorías base. */
+  get comboProductos(): string[] {
+    return this.inventarioItems.length ? this.inventarioItems.map(x => x.nombre) : this.productos;
+  }
+  cargarInventario(): void {
+    this.api.inventario().subscribe({ next: (r) => { this.inventarioItems = r || []; }, error: () => {} });
+  }
+  importarInventarioExcel(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.importando = true; this.importResultado = null;
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const cols = Object.keys(rows[0] || {});
+        const key = cols.find(k => k.toString().trim().toUpperCase() === 'PRODUCTOS') || cols[0];
+        const productos = rows.map(r => String(r[key] ?? '').trim()).filter(Boolean);
+        if (!productos.length) { this.importando = false; this.toast('No se encontraron productos en la columna PRODUCTOS.', 'error'); return; }
+        this.api.importarInventario(productos, this.invReemplazar).subscribe({
+          next: (res) => { this.importando = false; this.importResultado = { insertados: res.insertados, total: res.total }; this.toast(`✔ ${res.insertados} nuevos · ${res.total} en inventario.`); this.cargarInventario(); },
+          error: (err) => { this.importando = false; this.toast(err?.error?.message ?? 'No se pudo importar.', 'error'); },
+        });
+      } catch { this.importando = false; this.toast('No se pudo leer el Excel.', 'error'); }
+      input.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  eliminarInvItem(item: { id: number }): void {
+    this.api.eliminarInventario(item.id).subscribe({
+      next: () => { this.toast('Producto eliminado.'); this.cargarInventario(); },
+      error: (err) => this.toast(err?.error?.message ?? 'No se pudo eliminar.', 'error'),
+    });
   }
 
   // Usuarios de logística: almaceneros (para asignar) + chofer por carro (para mostrar).
@@ -119,14 +165,14 @@ export class LogisticaComponent implements OnInit {
   f = this.vacio();
   private vacio() {
     return {
-      dni_cliente: '', cliente_nombre: '', producto: '',
+      dni_cliente: '', cliente_nombre: '', productosSel: [] as string[],
       fecha_entrega: null as Date | null, sede: '',
       celular: '', direccion: '', coordenadas: '', observacion: '',
     };
   }
   get sedeFija(): boolean { return !this.esAdmin && !!this.sedeUsuario; }
   get invDni(): boolean { return (this.f.dni_cliente || '').replace(/\D/g, '').length < 6; }
-  get invProducto(): boolean { return !(this.f.producto || '').trim(); }
+  get invProducto(): boolean { return !this.f.productosSel.length; }
   get invFecha(): boolean { return !this.f.fecha_entrega; }
   get invSede(): boolean { return !(this.f.sede || '').trim(); }
   get formValido(): boolean { return !this.invDni && !this.invProducto && !this.invFecha && !this.invSede; }
@@ -149,7 +195,7 @@ export class LogisticaComponent implements OnInit {
     this.api.crear({
       dni_cliente: this.f.dni_cliente.replace(/\D/g, ''),
       cliente_nombre: this.f.cliente_nombre.trim() || undefined,
-      producto: this.f.producto.trim(),
+      producto: this.f.productosSel.join(', '),
       fecha_entrega: this.ymd(this.f.fecha_entrega as Date),
       sede: this.f.sede,
       celular: this.f.celular.trim() || undefined,
@@ -401,7 +447,7 @@ export class LogisticaComponent implements OnInit {
   edGuardando = false;
   ed = this.edVacio();
   private edVacio() {
-    return { cliente_nombre: '', producto: '', fecha_entrega: null as Date | null, sede: '',
+    return { cliente_nombre: '', productosSel: [] as string[], fecha_entrega: null as Date | null, sede: '',
       celular: '', direccion: '', coordenadas: '', observacion: '', estado: 'PENDIENTE' };
   }
   abrirEditar(): void {
@@ -410,7 +456,8 @@ export class LogisticaComponent implements OnInit {
     const x = sel[0];
     const [y, m, d] = (x.fecha_entrega || '').split('-').map(Number);
     this.ed = {
-      cliente_nombre: x.cliente_nombre || '', producto: x.producto || '',
+      cliente_nombre: x.cliente_nombre || '',
+      productosSel: (x.producto || '').split(',').map(s => s.trim()).filter(Boolean),
       fecha_entrega: y ? new Date(y, m - 1, d) : null, sede: x.sede || '',
       celular: x.celular || '', direccion: x.direccion || '', coordenadas: x.coordenadas || '',
       observacion: x.observacion || '', estado: x.estado || 'PENDIENTE',
@@ -420,10 +467,10 @@ export class LogisticaComponent implements OnInit {
   cancelarEditar(): void { this.editando = null; }
   guardarEditar(): void {
     if (!this.editando || this.edGuardando) return;
-    if (!this.ed.producto.trim() || !this.ed.fecha_entrega) { this.toast('Producto y fecha son obligatorios.', 'error'); return; }
+    if (!this.ed.productosSel.length || !this.ed.fecha_entrega) { this.toast('Producto y fecha son obligatorios.', 'error'); return; }
     this.edGuardando = true;
     this.api.actualizar(this.editando.id, {
-      cliente_nombre: this.ed.cliente_nombre.trim(), producto: this.ed.producto.trim(),
+      cliente_nombre: this.ed.cliente_nombre.trim(), producto: this.ed.productosSel.join(', '),
       fecha_entrega: this.ymd(this.ed.fecha_entrega as Date), sede: this.ed.sede,
       celular: this.ed.celular.trim(), direccion: this.ed.direccion.trim(),
       coordenadas: this.ed.coordenadas.trim(), observacion: this.ed.observacion.trim(),

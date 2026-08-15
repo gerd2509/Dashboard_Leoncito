@@ -55,6 +55,22 @@ export class EntregasService {
     return this.http.get<string[]>(`${this.ventasBase}/productos`, { params });
   }
 
+  // ── Inventario de productos (lista importada de Excel) ──
+  private invBase = `${environment.gestionBase || environment.apiBase}/productos-inventario`;
+  /** Lista/búsqueda del inventario de productos. */
+  inventario(q = ''): Observable<{ id: number; nombre: string }[]> {
+    let params = new HttpParams();
+    if (q) params = params.set('q', q);
+    return this.http.get<{ id: number; nombre: string }[]>(this.invBase, { params });
+  }
+  /** Importa la lista de productos del Excel (reemplazar=true borra el inventario previo). */
+  importarInventario(productos: string[], reemplazar = false): Observable<{ success: boolean; recibidos: number; insertados: number; duplicados: number; total: number }> {
+    return this.http.post<any>(`${this.invBase}/bulk`, { productos, reemplazar });
+  }
+  eliminarInventario(id: number): Observable<any> {
+    return this.http.delete(`${this.invBase}/${id}`);
+  }
+
   crear(payload: EntregaPayload): Observable<{ success: boolean; id: number }> {
     return this.http.post<any>(this.base, payload);
   }
