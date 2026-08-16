@@ -287,7 +287,7 @@ export class VentasCampoComponent implements OnInit {
       if (mr.cliente && !margenCliente.has(codigo)) margenCliente.set(codigo, mr.cliente);
       const t = margenTot.get(codigo) || { vv: 0, mt: 0 }; t.vv += vv; t.mt += mt; margenTot.set(codigo, t);
       if ((mr.sede || '').toString().trim().toUpperCase() === 'REALZZA') {
-        this.dataMargen.push({ Codigo: codigo, LineaReal: linea, ValorVenta: vv, MargenTotal: mt, FECHAVENTA: mr.fecha ? new Date(mr.fecha) : null });
+        this.dataMargen.push({ Codigo: codigo, LineaReal: linea, ValorVenta: vv, MargenTotal: mt, FECHAVENTA: this.fechaLocal(mr.fecha) });
       }
     }
 
@@ -1446,6 +1446,20 @@ export class VentasCampoComponent implements OnInit {
       return Number(value.replace(/,/g, '').replace(/[^0-9.-]+/g, '')) || 0;
     }
     return 0;
+  }
+
+  /**
+   * Convierte la `fecha` de margen_ventas (llega como ISO UTC, p. ej.
+   * "2026-08-14T00:00:00.000Z") a un Date en fecha LOCAL sin desfase de zona horaria.
+   * `new Date(iso)` interpretaría la medianoche UTC como el día ANTERIOR 19:00 en Lima
+   * (UTC-5) y corría cada venta un día hacia atrás → totales por mes/línea equivocados.
+   */
+  private fechaLocal(f: any): Date | null {
+    if (!f) return null;
+    const s = String(f).slice(0, 10);            // "YYYY-MM-DD"
+    const [y, m, d] = s.split('-').map(Number);
+    if (!y || !m || !d) { const dt = new Date(f); return isNaN(dt.getTime()) ? null : dt; }
+    return new Date(y, m - 1, d);                 // medianoche local, sin correr el día
   }
 
   getNombreMes(mes: number): string {
