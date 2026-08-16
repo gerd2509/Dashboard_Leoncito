@@ -1,5 +1,16 @@
 :host { display: block; position: relative; }
 
+/* Parte superior estática: header + KPIs + resumen/tablas por asesor + toggle.
+   Queda fija (sticky) mientras el detalle de abajo scrollea. */
+.cgs-top { position: sticky; top: 0; z-index: 20; background: #EEF2F8; padding-bottom: 6px; }
+
+/* Overlay de carga sobre TODO el módulo (no un bloque que empuje los cards). */
+.cgs-loading {
+  position: absolute; inset: 0; z-index: 60; border-radius: 12px;
+  background: rgba(238,242,248,.72); display: flex; align-items: flex-start;
+  justify-content: center; padding-top: 140px;
+}
+
 /* ── Header ── */
 .cgs-head {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
@@ -41,19 +52,22 @@
 .sec-titulo { display: flex; align-items: center; gap: 7px; font-size: 14px; color: #46586c; font-weight: 800; margin: 4px 0 10px; }
 .sec-titulo mat-icon { font-size: 20px; width: 20px; height: 20px; color: #1A5FAD; }
 .resumen-sedes { margin-bottom: 20px; }
-.rs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+/* 5 por fila (2 filas para 10 sedes); cards un poco más grandes. */
+.rs-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .rs-card {
   text-align: left; background: #fff; border: 1px solid #e6edf5; border-top: 3px solid #1A5FAD;
-  border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: transform .12s, box-shadow .12s;
+  border-radius: 12px; padding: 16px 18px; cursor: pointer; transition: transform .12s, box-shadow .12s;
 }
 .rs-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(20,50,90,.12); }
-.rs-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.rs-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
-.rs-head b { font-size: 14px; color: #1E3A5F; font-weight: 800; }
-.rs-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-.rs-metrics > div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.rs-metrics span { font-size: 10px; color: #8a97a6; font-weight: 700; }
-.rs-metrics b { font-size: 15px; color: #34465a; font-weight: 800; }
+.rs-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.rs-dot { width: 13px; height: 13px; border-radius: 4px; display: inline-block; }
+.rs-head b { font-size: 15.5px; color: #1E3A5F; font-weight: 800; }
+.rs-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.rs-metrics > div { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rs-metrics span { font-size: 10.5px; color: #8a97a6; font-weight: 700; }
+.rs-metrics b { font-size: 17px; color: #34465a; font-weight: 800; }
+@media (max-width: 1250px) { .rs-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px)  { .rs-grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* ── Resumen por asesor (estilo tablas KOMMO) ── */
 .asesor-resumen { margin-bottom: 18px; }
@@ -63,10 +77,11 @@
 .ar-head.mp { background: #EF6C00; }
 .ar-head.dv { background: #6A1B9A; }
 .ar-head mat-icon { font-size: 19px; width: 19px; height: 19px; }
-.ar-scroll { max-height: 340px; overflow: auto; }
+/* Las tablas por asesor crecen según la cantidad de asesores (sin scroll interno). */
+.ar-scroll { overflow: visible; }
 .ar-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .ar-table th, .ar-table td { padding: 7px 12px; text-align: center; border-bottom: 1px solid #eef2f7; }
-.ar-table th { background: #f3f6fb; color: #46586c; font-weight: 800; font-size: 11.5px; text-transform: uppercase; letter-spacing: .3px; position: sticky; top: 0; }
+.ar-table th { background: #f3f6fb; color: #46586c; font-weight: 800; font-size: 11.5px; text-transform: uppercase; letter-spacing: .3px; }
 .ar-table td.ta-l, .ar-table th.ta-l { text-align: left; font-weight: 700; color: #1E3A5F; }
 .ar-table td.tot { font-weight: 800; color: #1A5FAD; }
 .ar-table tbody tr:hover { background: #f7fafd; }

@@ -73,12 +73,11 @@ export class CierreGestionSedesComponent implements OnInit {
   };
 
   constructor(private fb: UntypedFormBuilder) {
-    const hoy = new Date();
-    const ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    // Por defecto la data mostrada es la de HOY (desde = hasta = hoy).
     this.form = this.fb.group({
       sede:        ['todas'],
-      fechaInicio: [ini],
-      fechaFin:    [hoy],
+      fechaInicio: [new Date()],
+      fechaFin:    [new Date()],
     });
   }
 

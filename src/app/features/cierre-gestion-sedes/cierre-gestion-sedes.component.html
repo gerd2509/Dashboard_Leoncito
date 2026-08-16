@@ -1,4 +1,9 @@
 
+<div class="cgs-loading" *ngIf="isLoading">
+  <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
+</div>
+
+<div class="cgs-top">
 <div class="cgs-head" [style.borderTopColor]="colorActual">
   <span class="cgs-title">
     <mat-icon [style.color]="colorActual">location_city</mat-icon>
@@ -16,10 +21,6 @@
     </form>
     <button class="cgs-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Actualizar</button>
   </div>
-</div>
-
-<div class="cgs-loading" *ngIf="isLoading">
-  <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
 </div>
 
 <!-- ═══════════ KPIs de la vista actual ═══════════ -->
@@ -115,19 +116,16 @@
   </div>
 </div>
 
-<!-- Botón para mostrar/ocultar el detalle (grillas grandes) -->
-<div class="detalle-toggle">
+<!-- Botón para mostrar/ocultar el detalle (solo en vista por sede; en Global va siempre visible) -->
+<div class="detalle-toggle" *ngIf="esVistaSede">
   <button class="cgs-btn" (click)="toggleDetalle()">
     <mat-icon>{{ mostrarDetalle ? 'expand_less' : 'expand_more' }}</mat-icon>
     {{ mostrarDetalle ? 'Ocultar detalle' : 'Ver detalle' }}
   </button>
 </div>
+</div><!-- /.cgs-top -->
 
-<div class="grid-container" *ngIf="mostrarDetalle">
-  <div class="grid-overlay" *ngIf="isLoading">
-    <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
-  </div>
-
+<div class="grid-container" *ngIf="!esVistaSede || mostrarDetalle">
   <!-- ═══════════ Llamadas y Cartas ═══════════ -->
   <div class="tabla-sec">
     <div class="ts-head" [style.borderLeftColor]="colorActual">
