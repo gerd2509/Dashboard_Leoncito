@@ -267,6 +267,18 @@ export class SheetsService {
     if (sede) params = params.set('sede', sede);
     return this.http.get<any[]>(`${environment.apiBase}/gestion-sedes-deriv`, { params });
   }
+  /** Edita una derivación (persiste en BD). El backend enruta el asesor a la columna de su sede. */
+  updateDerivacion(id: any, data: any): Observable<any> {
+    return this.http.put(`${environment.apiBase}/gestion-sedes-deriv/${id}`, data);
+  }
+  /** Elimina una derivación de la BD. */
+  deleteDerivacion(id: any): Observable<any> {
+    return this.http.delete(`${environment.apiBase}/gestion-sedes-deriv/${id}`);
+  }
+  /** Copia al BD lo NUEVO del formulario de derivaciones (botón "Sincronizar"). */
+  sincronizarDerivaciones(): Observable<any> {
+    return this.http.post(`${environment.apiBase}/gestion-sedes-deriv/sync`, {});
+  }
   /** Copia al BD lo NUEVO del formulario call-sedes (botón "Sincronizar"). */
   sincronizarCallSedes(rango?: { desde?: Date; hasta?: Date }): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
     const base = environment.gestionBase || environment.apiBase;

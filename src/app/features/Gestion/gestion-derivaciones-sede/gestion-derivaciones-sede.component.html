@@ -1,0 +1,63 @@
+
+<div class="gk-head">
+  <span class="gk-title"><mat-icon>call_split</mat-icon>
+    <div><b>Gestión Derivaciones Sedes</b><small>Derivaciones de venta por sede y asesor</small></div>
+  </span>
+  <div class="gk-actions">
+    <form class="gk-filtros" [formGroup]="formFiltro">
+      <dx-select-box width="180" formControlName="sede" [dataSource]="sedesDisponibles"
+          displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
+          stylingMode="outlined" [disabled]="bloquearSede" (onValueChanged)="onSedeChanged($event)" />
+      <dx-select-box width="220" formControlName="asesor" [dataSource]="asesores"
+          label="Asesor" labelMode="floating" stylingMode="outlined"
+          [showClearButton]="true" placeholder="Todos" (onValueChanged)="onAsesorChanged($event)" />
+      <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [showClearButton]="true" />
+      <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+          labelMode="floating" stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [showClearButton]="true" />
+    </form>
+    <button class="gk-btn" (click)="filtrar()"><mat-icon>refresh</mat-icon> Actualizar</button>
+    <button class="gk-btn sync" (click)="sincronizar()"><mat-icon>sync</mat-icon> Sincronizar</button>
+    <button class="gk-btn excel" (click)="exportar()"><mat-icon>table_view</mat-icon> Excel</button>
+  </div>
+</div>
+
+<div class="grid-container">
+    <div class="grid-overlay" *ngIf="isLoading">
+        <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando derivaciones…" icon="call_split"></app-loading-overlay>
+    </div>
+
+    <dx-data-grid id="dataGrid" class="focqus-elevation mt-2" [dataSource]="dataFiltrada" keyExpr="id"
+        [allowColumnReordering]="true" [showBorders]="true" [showColumnLines]="true"
+        [showRowLines]="true" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
+        [selection]="{ mode: 'single' }"
+        (onRowUpdated)="onRowUpdated($event)" (onRowRemoved)="onRowRemoved($event)">
+
+        <dxo-editing mode="row" [allowUpdating]="true" [allowDeleting]="true" [useIcons]="true" [confirmDelete]="true"></dxo-editing>
+        <dxo-paging [pageSize]="10"></dxo-paging>
+        <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+        <dxo-filter-row [visible]="showFilterRow" [applyFilter]="currentFilter" />
+
+        <dxi-column dataField="id"                       caption="ID" [width]="70" [allowEditing]="false" [visible]="false" />
+        <dxi-column dataField="marca"                    caption="Marca Temporal" [allowEditing]="false" />
+        <dxi-column dataField="sede"                     caption="Sede" />
+        <dxi-column dataField="asesor"                   caption="Asesor" />
+        <dxi-column dataField="dni_cliente"              caption="DNI Cliente" />
+        <dxi-column dataField="celular_gestionado"       caption="Celular" />
+        <dxi-column dataField="tipo_base"                caption="Tipo Base" />
+        <dxi-column dataField="tipo_cliente"             caption="Tipo Cliente" />
+        <dxi-column dataField="producto_interes"         caption="Producto de Interés" />
+        <dxi-column dataField="motivo_interes"           caption="Motivo" />
+        <dxi-column dataField="fecha_interes_derivacion" caption="Fecha Derivación" />
+        <dxi-column dataField="hora_interes_derivacion"  caption="Hora Derivación" />
+        <dxi-column dataField="comentario_derivacion"    caption="Comentario" />
+        <dxi-column dataField="origen"                   caption="Origen" [width]="90" [allowEditing]="false" />
+
+        <dxo-summary>
+            <dxi-total-item alignment="right" column="marca" summaryType="count"
+                displayFormat="Registros: {0}" />
+        </dxo-summary>
+
+    </dx-data-grid>
+</div>

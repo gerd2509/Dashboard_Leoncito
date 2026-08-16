@@ -63,6 +63,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'gestion-kommo',                label: 'Gestión — Kommo',              grupo: 'Gestión' },
   { key: 'registro-kommo',               label: 'Registro KOMMO',               grupo: 'Gestión' },
   { key: 'gestion-sede',                 label: 'Gestión Sede',                 grupo: 'Gestión', sedeScoped: true },
+  { key: 'gestion-derivaciones-sede',    label: 'Gestión Derivaciones Sedes',   grupo: 'Gestión', sedeScoped: true },
   { key: 'gestion-call-sedes',           label: 'Gestión Call Sedes',           grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-gestion',             label: 'Registro de Gestión',          grupo: 'Gestión', sedeScoped: true },
   { key: 'registro-market-place',        label: 'Registro Market Place',        grupo: 'Gestión', sedeScoped: true },
@@ -101,7 +102,7 @@ export const ALL_MODULES: ModuleConfig[] = [
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
-  'agendamientos-sedes', 'gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
+  'agendamientos-sedes', 'gestion-sede', 'gestion-derivaciones-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
@@ -143,7 +144,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'almacenero-zona':    [...ALMACENERO_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v30';
+const STORAGE_KEY = 'gd_permissions_v31';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

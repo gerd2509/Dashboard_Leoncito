@@ -20,6 +20,7 @@ import { GestionKommoComponent } from "../features/Gestion/gestion-kommo/gestion
 import { AgendamientosKommoComponent } from "../features/agendamientos/agendamientos-kommo/agendamientos-kommo.component";
 import { ControlGestionSedeComponent } from "../features/control-gestion-sede/control-gestion-sede.component";
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
+import { GestionDerivacionesSedeComponent } from "../features/Gestion/gestion-derivaciones-sede/gestion-derivaciones-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
 import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
 import { EvolucionRegistrosComponent } from "../features/evolucion-registros/evolucion-registros.component";
@@ -87,6 +88,7 @@ interface MenuItem {
     AgendamientosSedesComponent,
     ControlGestionSedeComponent,
     GestionSedeComponent,
+    GestionDerivacionesSedeComponent,
     GestionCallSedesComponent,
     ControlCallSedesComponent,
     EvolucionRegistrosComponent,
@@ -157,6 +159,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'KOMMO',       icon: 'public',        modulo: 'gestion-kommo' },
         { label: 'REGISTRO KOMMO', icon: 'hub',        modulo: 'registro-kommo' },
         { label: 'SEDES',       icon: 'location_city', modulo: 'gestion-sede' },
+        { label: 'DERIVACIONES SEDES', icon: 'call_split', modulo: 'gestion-derivaciones-sede' },
         { label: 'CALL SEDES',  icon: 'call',          modulo: 'gestion-call-sedes' },
         { label: 'REGISTRO GESTIÓN', icon: 'assignment_turned_in', modulo: 'registro-gestion' },
         { label: 'REGISTRO MARKET PLACE', icon: 'storefront', modulo: 'registro-market-place' },
