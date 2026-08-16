@@ -6,6 +6,9 @@
 <div class="cgs-top">
 <div class="cgs-head" [style.borderTopColor]="colorActual">
   <span class="cgs-title">
+    <button class="cgs-volver" *ngIf="esVistaSede && !bloquearSede" (click)="volverGlobal()" title="Volver a todas las sedes">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
     <mat-icon [style.color]="colorActual">location_city</mat-icon>
     <div><b>{{ titulo }}</b><small>Consolidado de gestión por sede — llamadas/cartas, market place y derivaciones</small></div>
   </span>
@@ -50,6 +53,7 @@
     <div class="kpi-body"><span class="kpi-lbl">Derivaciones</span><b class="kpi-val">{{ kpi.derivaciones | number }}</b></div>
   </div>
 </div>
+</div><!-- /.cgs-top (solo header + KPIs quedan estáticos) -->
 
 <!-- ═══════════ Resumen coloreado por sede (solo "Todas") ═══════════ -->
 <div class="resumen-sedes" *ngIf="resumenSedes.length">
@@ -71,17 +75,31 @@
 <!-- ═══════════ Resumen por asesor (solo al ver UNA sede) ═══════════ -->
 <div class="asesor-resumen" *ngIf="esVistaSede">
   <div class="ar-grid">
-    <!-- Llamadas y Cartas -->
+    <!-- Llamadas -->
     <div class="ar-card">
-      <div class="ar-head"><mat-icon>call</mat-icon> Llamadas y Cartas</div>
+      <div class="ar-head"><mat-icon>call</mat-icon> Llamadas</div>
       <div class="ar-scroll">
         <table class="ar-table">
           <thead><tr><th class="ta-l">Asesor</th><th>Contacto</th><th>No contacto</th><th>Total</th></tr></thead>
           <tbody>
-            <tr *ngFor="let r of resumenLC"><td class="ta-l">{{ r.nombre }}</td><td>{{ r.contacto }}</td><td>{{ r.noContacto }}</td><td class="tot">{{ r.total }}</td></tr>
-            <tr *ngIf="!resumenLC.length" class="ar-vacio"><td colspan="4">Sin registros</td></tr>
+            <tr *ngFor="let r of resumenLlam"><td class="ta-l">{{ r.nombre }}</td><td>{{ r.contacto }}</td><td>{{ r.noContacto }}</td><td class="tot">{{ r.total }}</td></tr>
+            <tr *ngIf="!resumenLlam.length" class="ar-vacio"><td colspan="4">Sin registros</td></tr>
           </tbody>
-          <tfoot *ngIf="resumenLC.length"><tr><td class="ta-l">TOTAL</td><td>{{ totLC.contacto }}</td><td>{{ totLC.noContacto }}</td><td class="tot">{{ totLC.total }}</td></tr></tfoot>
+          <tfoot *ngIf="resumenLlam.length"><tr><td class="ta-l">TOTAL</td><td>{{ totLlam.contacto }}</td><td>{{ totLlam.noContacto }}</td><td class="tot">{{ totLlam.total }}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <!-- Cartas -->
+    <div class="ar-card">
+      <div class="ar-head cart"><mat-icon>mail</mat-icon> Cartas</div>
+      <div class="ar-scroll">
+        <table class="ar-table">
+          <thead><tr><th class="ta-l">Asesor</th><th>Contacto</th><th>No contacto</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of resumenCart"><td class="ta-l">{{ r.nombre }}</td><td>{{ r.contacto }}</td><td>{{ r.noContacto }}</td><td class="tot">{{ r.total }}</td></tr>
+            <tr *ngIf="!resumenCart.length" class="ar-vacio"><td colspan="4">Sin registros</td></tr>
+          </tbody>
+          <tfoot *ngIf="resumenCart.length"><tr><td class="ta-l">TOTAL</td><td>{{ totCart.contacto }}</td><td>{{ totCart.noContacto }}</td><td class="tot">{{ totCart.total }}</td></tr></tfoot>
         </table>
       </div>
     </div>
@@ -123,7 +141,6 @@
     {{ mostrarDetalle ? 'Ocultar detalle' : 'Ver detalle' }}
   </button>
 </div>
-</div><!-- /.cgs-top -->
 
 <div class="grid-container" *ngIf="!esVistaSede || mostrarDetalle">
   <!-- ═══════════ Llamadas y Cartas ═══════════ -->

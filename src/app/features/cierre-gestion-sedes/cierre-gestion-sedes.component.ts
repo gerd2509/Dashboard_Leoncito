@@ -52,10 +52,12 @@ export class CierreGestionSedesComponent implements OnInit {
   resumenSedes: ResumenSede[] = [];
 
   // Resúmenes por asesor (solo cuando se ve UNA sede) — estilo imagen KOMMO.
-  resumenLC: ResumenAsesor[] = [];   // Llamadas y Cartas
-  resumenMP: ResumenAsesor[] = [];   // Market Place
-  resumenDV: ResumenAsesor[] = [];   // Derivaciones (solo total, sin contacto/no contacto)
-  totLC = { contacto: 0, noContacto: 0, total: 0 };
+  resumenLlam: ResumenAsesor[] = [];  // Llamadas (contacto/no contacto)
+  resumenCart: ResumenAsesor[] = [];  // Cartas (contacto/no contacto)
+  resumenMP: ResumenAsesor[] = [];    // Market Place
+  resumenDV: ResumenAsesor[] = [];    // Derivaciones (solo total)
+  totLlam = { contacto: 0, noContacto: 0, total: 0 };
+  totCart = { contacto: 0, noContacto: 0, total: 0 };
   totMP = { contacto: 0, noContacto: 0, total: 0 };
   totDV = 0;
 
@@ -175,18 +177,29 @@ export class CierreGestionSedesComponent implements OnInit {
     // Resumen coloreado por sede (solo en la vista "Todas").
     this.resumenSedes = todas ? this.construirResumen() : [];
 
-    // Resúmenes por asesor (solo al ver UNA sede).
+    // Resúmenes por asesor (solo al ver UNA sede). Llamadas y Cartas van SEPARADAS.
     if (todas) {
-      this.resumenLC = this.resumenMP = this.resumenDV = [];
-      this.totLC = this.totMP = { contacto: 0, noContacto: 0, total: 0 }; this.totDV = 0;
+      this.resumenLlam = this.resumenCart = this.resumenMP = this.resumenDV = [];
+      this.totLlam = this.totCart = this.totMP = { contacto: 0, noContacto: 0, total: 0 }; this.totDV = 0;
     } else {
-      this.resumenLC = this.agruparPorAsesor(this.llamadasCartas, 'ASESOR', 'RESULTADO DE GESTION');
-      this.resumenMP = this.agruparPorAsesor(this.market, 'ASESOR', 'ESTADO DE GESTIÓN');
-      this.resumenDV = this.agruparPorAsesor(this.derivaciones, 'asesor', null);
-      this.totLC = this.sumar(this.resumenLC);
-      this.totMP = this.sumar(this.resumenMP);
-      this.totDV = this.resumenDV.reduce((s, r) => s + r.total, 0);
+      const llam = this.llamadasCartas.filter(r => this.esLlamada(r['TIPO DE GESTION']));
+      const cart = this.llamadasCartas.filter(r => this.esCarta(r['TIPO DE GESTION']));
+      this.resumenLlam = this.agruparPorAsesor(llam, 'ASESOR', 'RESULTADO DE GESTION');
+      this.resumenCart = this.agruparPorAsesor(cart, 'ASESOR', 'RESULTADO DE GESTION');
+      this.resumenMP   = this.agruparPorAsesor(this.market, 'ASESOR', 'ESTADO DE GESTIÓN');
+      this.resumenDV   = this.agruparPorAsesor(this.derivaciones, 'asesor', null);
+      this.totLlam = this.sumar(this.resumenLlam);
+      this.totCart = this.sumar(this.resumenCart);
+      this.totMP   = this.sumar(this.resumenMP);
+      this.totDV   = this.resumenDV.reduce((s, r) => s + r.total, 0);
     }
+  }
+
+  /** Vuelve a la vista Global (Todas). Disponible solo si el usuario no está fijo a una sede. */
+  volverGlobal(): void {
+    if (this.bloquearSede) return;
+    this.form.patchValue({ sede: 'todas' });
+    this.aplicar();
   }
 
   /** Solo el primer nombre (los rosters son "APELLIDO APELLIDO NOMBRE ..."). */
