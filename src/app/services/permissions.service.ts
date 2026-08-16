@@ -76,6 +76,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV',              grupo: 'Ventas' },
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',         grupo: 'Control & Sedes', sedeScoped: true },
+  { key: 'cierre-gestion-sedes',         label: 'Cierre Gestión Sedes',         grupo: 'Control & Sedes', sedeScoped: true },
   { key: 'control-call-sedes',           label: 'Control Call Sedes',           grupo: 'Control & Sedes', sedeScoped: true },
   { key: 'evolucion-registros',          label: 'Evolución de Registros',       grupo: 'Control & Sedes', sedeScoped: true },
   { key: 'pizarra-metas',                label: 'Pizarra de Metas',             grupo: 'Control & Sedes', sedeScoped: true },
@@ -102,7 +103,7 @@ export const ALL_MODULES: ModuleConfig[] = [
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
 const CALL_MODULES = [
-  'agendamientos-sedes', 'gestion-sede', 'gestion-derivaciones-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes',
+  'agendamientos-sedes', 'gestion-sede', 'gestion-derivaciones-sede', 'control-gestion-sede', 'cierre-gestion-sedes', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
@@ -114,7 +115,7 @@ const REALZZA_MODULES = [
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
-const ZONA_MODULES = ['control-gestion-sede'];
+const ZONA_MODULES = ['control-gestion-sede', 'cierre-gestion-sedes'];
 // Roles de LOGÍSTICA (por defecto ven su parte del módulo Logística).
 const JEFE_ALMACEN_MODULES = ['logistica-registrar', 'logistica-entregas', 'logistica-despacho', 'logistica-calendario', 'logistica-rutas'];
 const CHOFER_MODULES = ['logistica-despacho', 'logistica-rutas'];
@@ -144,7 +145,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'almacenero-zona':    [...ALMACENERO_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v31';
+const STORAGE_KEY = 'gd_permissions_v32';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

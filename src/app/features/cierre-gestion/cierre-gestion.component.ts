@@ -8,19 +8,6 @@ import { AuthService } from '../../services/auth.service';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
 
-// Monitoreo del supervisor: por asesor, cuántas gestiones (contacto y no contacto)
-// fueron re-verificadas por el supervisor y si coinciden o no.
-interface MonitoreoAsesor {
-  asesorId: string;
-  asesor: string;
-  total: number;         // registros del asesor considerados (contacto + no contacto)
-  supervisados: number;  // confirmados + discrepancias
-  discrepancias: number; // el supervisor encontró un estado distinto al del asesor
-  confirmados: number;   // el supervisor verificó el MISMO estado
-  pendientes: number;    // el supervisor aún no lo revisa
-  detalle: { dni: string; celular: string; tipoBase: string; estadoAsesor: string; resultado: string; hora: string }[];
-}
-
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 @Component({
@@ -81,11 +68,6 @@ export class CierreGestionComponent implements OnInit {
   dataContactabilidadKOMMORealzza: any[] = [];
   porcentajeMetaRealzza = 0;
   porcentajeMetaDerivacionRealzza = 0;
-
-  // ── Monitoreo del Supervisor (Realzza) ──
-  readonly supervisorRealzza = 'CARMONA CASTAÑEDA JOSE MANUEL';
-  monitoreoSupervisor: MonitoreoAsesor[] = [];
-  asesorMonitoreoExpandido: string | null = null;
 
   // KOMMO Market Place (registros con MARKET PLACE = SI)
   dataContactabilidadKOMMOCallMarket: any[] = [];
@@ -315,7 +297,6 @@ export class CierreGestionComponent implements OnInit {
     this.generarGraficoConformidadFiltrado();
     this.procesarDatosPostVentaFiltrada();
     this.totalGestionesPorAsesorYTipo();
-    this.calcularMonitoreoSupervisor();
   }
 
   async actualizar() {
@@ -641,105 +622,9 @@ export class CierreGestionComponent implements OnInit {
     return { data: resultado, porcentajeMeta };
   }
 
-  // ── MONITOREO DEL SUPERVISOR (Realzza) ──
-  // El supervisor CARMONA re-llama a los clientes que los asesores marcaron NO CONTACTO,
-  // para verificar si de verdad no contestan. Cruce por DNI CLIENTE y CELULAR GESTIONADO.
-  calcularMonitoreoSupervisor(): void {
-    const f = this.obtenerFechaSeleccionada();
-    if (!f) { this.monitoreoSupervisor = []; return; }
-
-    const sup = this.supervisorRealzza.toUpperCase().trim();
-    const delDia = this.dataRealzza.filter(item =>
-      this.esMismaFecha(item['Marca temporal'], f.dia, f.mes, f.anio));
-
-    // Índice de las gestiones del supervisor del día, por DNI y por celular.
-    const supPorDni = new Map<string, { estado: string; hora: string }>();
-    const supPorCel = new Map<string, { estado: string; hora: string }>();
-    delDia
-      .filter(item => (item['ASESOR REALZZA'] || '').toString().toUpperCase().trim() === sup)
-      .forEach(item => {
-        const estado = (item['ESTADO DE GESTIÓN'] || '').toString().toUpperCase().trim();
-        const hora = (item['Marca temporal'] || '').toString().split(' ')[1] || '';
-        const dni = this.soloDigitos(item['DNI CLIENTE']);
-        const cel = this.soloDigitos(item['CELULAR GESTIONADO']);
-        if (dni) supPorDni.set(dni, { estado, hora });
-        if (cel) supPorCel.set(cel, { estado, hora });
-      });
-
-    const resultado: MonitoreoAsesor[] = [];
-    this.asesoresRealzza.forEach(asesor => {
-      // Ahora se consideran TANTO contacto como no contacto del asesor.
-      const recs = delDia.filter(item => {
-        const est = (item['ESTADO DE GESTIÓN'] || '').toString().toUpperCase().trim();
-        return (item['ASESOR REALZZA'] || '').toString().toUpperCase().trim() === asesor.viewValue.toUpperCase().trim()
-          && (est === 'NO CONTACTO' || est === 'CONTACTO');
-      });
-
-      const vistos = new Set<string>();
-      const detalle: MonitoreoAsesor['detalle'] = [];
-      let discrepancias = 0, confirmados = 0, pendientes = 0;
-
-      recs.forEach(item => {
-        const dni = this.soloDigitos(item['DNI CLIENTE']);
-        const cel = this.soloDigitos(item['CELULAR GESTIONADO']);
-        const claveCliente = dni || cel;
-        if (!claveCliente || vistos.has(claveCliente)) return;   // un cliente por asesor
-        vistos.add(claveCliente);
-
-        const estadoAsesor = (item['ESTADO DE GESTIÓN'] || '').toString().toUpperCase().trim();
-        const tipoBase = (item['TIPO DE BASE'] || '').toString().trim();
-
-        const hit = (dni && supPorDni.get(dni)) || (cel && supPorCel.get(cel)) || null;
-        let resultadoTxt: string;
-        if (!hit) { resultadoTxt = 'PENDIENTE'; pendientes++; }
-        else if (hit.estado === estadoAsesor) { resultadoTxt = 'CONFIRMADO'; confirmados++; }
-        else { resultadoTxt = 'DISCREPANCIA'; discrepancias++; }
-
-        detalle.push({ dni, celular: cel, tipoBase, estadoAsesor, resultado: resultadoTxt, hora: hit ? hit.hora : '' });
-      });
-
-      resultado.push({
-        asesorId: asesor.value,
-        asesor: this.nombreCorto(asesor),
-        total: detalle.length,
-        supervisados: discrepancias + confirmados,
-        discrepancias, confirmados, pendientes,
-        detalle,
-      });
-    });
-
-    // Solo asesores con registros; primero los que tienen más discrepancias.
-    this.monitoreoSupervisor = resultado
-      .filter(r => r.total > 0)
-      .sort((a, b) => b.discrepancias - a.discrepancias || b.total - a.total);
-  }
-
-  toggleMonitoreo(asesorId: string): void {
-    this.asesorMonitoreoExpandido = this.asesorMonitoreoExpandido === asesorId ? null : asesorId;
-  }
-
-  claseResultado(r: string): string {
-    return r === 'DISCREPANCIA' ? 'res-si' : r === 'CONFIRMADO' ? 'res-no' : 'res-pend';
-  }
-  iconoResultado(r: string): string {
-    return r === 'DISCREPANCIA' ? 'priority_high' : r === 'CONFIRMADO' ? 'check_circle' : 'schedule';
-  }
-
   private soloDigitos(v: any): string {
     return (v ?? '').toString().replace(/\D/g, '');
   }
-
-  // Visible para gerente/supervisor Realzza y para admin.
-  get mostrarMonitoreoRealzza(): boolean {
-    const u = this.auth.getUsuario();
-    return !!u && (u.rol === 'admin' || u.sede.toLowerCase().includes('realzza'));
-  }
-
-  // Totales para la cabecera del panel de monitoreo.
-  get totalMonRegistros(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.total, 0); }
-  get totalMonSupervisados(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.supervisados, 0); }
-  get totalMonDiscrepancias(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.discrepancias, 0); }
-  get totalMonPendientes(): number { return this.monitoreoSupervisor.reduce((s, r) => s + r.pendientes, 0); }
 
   // TIMERS
   limpiarTimers() {

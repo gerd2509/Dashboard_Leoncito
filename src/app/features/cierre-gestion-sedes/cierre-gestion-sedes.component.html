@@ -1,0 +1,151 @@
+
+<div class="cgs-head" [style.borderTopColor]="colorActual">
+  <span class="cgs-title">
+    <mat-icon [style.color]="colorActual">location_city</mat-icon>
+    <div><b>{{ titulo }}</b><small>Consolidado de gestión por sede — llamadas/cartas, market place y derivaciones</small></div>
+  </span>
+  <div class="cgs-actions">
+    <form class="cgs-filtros" [formGroup]="form">
+      <dx-select-box width="200" formControlName="sede" [dataSource]="sedesDisponibles"
+          displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
+          stylingMode="outlined" [disabled]="bloquearSede" (onValueChanged)="onSedeChanged()" />
+      <dx-date-box formControlName="fechaInicio" type="date" [openOnFieldClick]="true" label="Desde"
+          labelMode="floating" stylingMode="outlined" width="135" [displayFormat]="'dd/MM/yyyy'" />
+      <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
+          labelMode="floating" stylingMode="outlined" width="135" [displayFormat]="'dd/MM/yyyy'" />
+    </form>
+    <button class="cgs-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Actualizar</button>
+  </div>
+</div>
+
+<!-- ═══════════ KPIs de la vista actual ═══════════ -->
+<div class="kpi-row">
+  <div class="kpi-card" [style.borderLeftColor]="colorActual">
+    <div class="kpi-ico" [style.background]="colorActual"><mat-icon>call</mat-icon></div>
+    <div class="kpi-body"><span class="kpi-lbl">Llamadas</span><b class="kpi-val">{{ kpi.llamadas | number }}</b></div>
+  </div>
+  <div class="kpi-card" [style.borderLeftColor]="colorActual">
+    <div class="kpi-ico" [style.background]="colorActual"><mat-icon>mail</mat-icon></div>
+    <div class="kpi-body"><span class="kpi-lbl">Cartas</span><b class="kpi-val">{{ kpi.cartas | number }}</b></div>
+  </div>
+  <div class="kpi-card ok">
+    <div class="kpi-ico"><mat-icon>verified</mat-icon></div>
+    <div class="kpi-body">
+      <span class="kpi-lbl">Contactabilidad</span>
+      <b class="kpi-val">{{ kpi.contactabilidad }}%</b>
+      <small class="kpi-sub">{{ kpi.contacto | number }} / {{ kpi.gestiones | number }} gestiones</small>
+    </div>
+  </div>
+  <div class="kpi-card mp">
+    <div class="kpi-ico"><mat-icon>storefront</mat-icon></div>
+    <div class="kpi-body"><span class="kpi-lbl">Market Place</span><b class="kpi-val">{{ kpi.marketplace | number }}</b></div>
+  </div>
+  <div class="kpi-card dv">
+    <div class="kpi-ico"><mat-icon>call_split</mat-icon></div>
+    <div class="kpi-body"><span class="kpi-lbl">Derivaciones</span><b class="kpi-val">{{ kpi.derivaciones | number }}</b></div>
+  </div>
+</div>
+
+<!-- ═══════════ Resumen coloreado por sede (solo "Todas") ═══════════ -->
+<div class="resumen-sedes" *ngIf="resumenSedes.length">
+  <h3 class="sec-titulo"><mat-icon>dashboard</mat-icon> Resumen por sede</h3>
+  <div class="rs-grid">
+    <button class="rs-card" *ngFor="let s of resumenSedes" [style.borderTopColor]="s.color" (click)="verSede(s.key)">
+      <div class="rs-head"><span class="rs-dot" [style.background]="s.color"></span><b>{{ s.nombre }}</b></div>
+      <div class="rs-metrics">
+        <div><span>Llamadas</span><b>{{ s.llamadas | number }}</b></div>
+        <div><span>Cartas</span><b>{{ s.cartas | number }}</b></div>
+        <div><span>Contact.</span><b>{{ contactabilidadSede(s) }}%</b></div>
+        <div><span>Market P.</span><b>{{ s.marketplace | number }}</b></div>
+        <div><span>Derivac.</span><b>{{ s.derivaciones | number }}</b></div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<div class="grid-container">
+  <div class="grid-overlay" *ngIf="isLoading">
+    <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
+  </div>
+
+  <!-- ═══════════ Llamadas y Cartas ═══════════ -->
+  <div class="tabla-sec">
+    <div class="ts-head" [style.borderLeftColor]="colorActual">
+      <span><mat-icon>call</mat-icon> Llamadas y Cartas <em>({{ llamadasCartas.length | number }})</em></span>
+      <button class="cgs-btn excel" (click)="exportarLC()"><mat-icon>table_view</mat-icon> Excel</button>
+    </div>
+    <dx-data-grid #gridLC [dataSource]="llamadasCartas" keyExpr="id" class="focqus-elevation"
+        [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+      <dxo-paging [pageSize]="10"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+      <dxo-filter-row [visible]="true" />
+      <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar…" />
+      <dxi-column dataField="Marca temporal"       caption="Marca Temporal" />
+      <dxi-column dataField="TIENDA SEDE"          caption="Sede" />
+      <dxi-column dataField="ASESOR"               caption="Asesor" />
+      <dxi-column dataField="TIPO DE GESTION"      caption="Tipo" />
+      <dxi-column dataField="RESULTADO DE GESTION" caption="Resultado" />
+      <dxi-column dataField="DNI CLIENTE"          caption="DNI" />
+      <dxi-column dataField="PRODUCTO DE INTERES"  caption="Producto" />
+      <dxi-column dataField="N° CELULAR ACTUALIZADO" caption="Celular" />
+      <dxi-column dataField="DETALLE(COMENTARIO) CONTACTO" caption="Detalle" />
+      <dxo-summary><dxi-total-item alignment="right" column="Marca temporal" summaryType="count" displayFormat="Registros: {0}" /></dxo-summary>
+    </dx-data-grid>
+  </div>
+
+  <!-- ═══════════ Market Place ═══════════ -->
+  <div class="tabla-sec">
+    <div class="ts-head mp">
+      <span><mat-icon>storefront</mat-icon> Market Place <em>({{ market.length | number }})</em></span>
+      <button class="cgs-btn excel" (click)="exportarMP()"><mat-icon>table_view</mat-icon> Excel</button>
+    </div>
+    <dx-data-grid #gridMP [dataSource]="market" keyExpr="id" class="focqus-elevation"
+        [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+      <dxo-paging [pageSize]="10"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+      <dxo-filter-row [visible]="true" />
+      <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar…" />
+      <dxi-column dataField="Marca temporal"      caption="Marca Temporal" />
+      <dxi-column dataField="SEDE"                caption="Sede" />
+      <dxi-column dataField="ASESOR"              caption="Asesor" />
+      <dxi-column dataField="MARKET PLACE"        caption="Market Place" />
+      <dxi-column dataField="DNI CLIENTE"         caption="DNI" />
+      <dxi-column dataField="TIPO DE CLIENTE"     caption="Tipo Cliente" />
+      <dxi-column dataField="ESTADO DE GESTIÓN"   caption="Estado" />
+      <dxi-column dataField="RESULTADO DE GESTIÓN" caption="Resultado" />
+      <dxi-column dataField="PRODUCTO INTERÉS"    caption="Producto" />
+      <dxi-column dataField="MOTIVO INTERÉS"      caption="Motivo" />
+      <dxo-summary><dxi-total-item alignment="right" column="Marca temporal" summaryType="count" displayFormat="Registros: {0}" /></dxo-summary>
+    </dx-data-grid>
+  </div>
+
+  <!-- ═══════════ Derivaciones ═══════════ -->
+  <div class="tabla-sec">
+    <div class="ts-head dv">
+      <span><mat-icon>call_split</mat-icon> Derivaciones <em>({{ derivaciones.length | number }})</em></span>
+      <button class="cgs-btn excel" (click)="exportarDV()"><mat-icon>table_view</mat-icon> Excel</button>
+    </div>
+    <dx-data-grid #gridDV [dataSource]="derivaciones" keyExpr="id" class="focqus-elevation"
+        [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+        [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+      <dxo-paging [pageSize]="10"></dxo-paging>
+      <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" />
+      <dxo-filter-row [visible]="true" />
+      <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar…" />
+      <dxi-column dataField="marca"                    caption="Marca Temporal" />
+      <dxi-column dataField="sede"                     caption="Sede" />
+      <dxi-column dataField="asesor"                   caption="Asesor" />
+      <dxi-column dataField="dni_cliente"              caption="DNI" />
+      <dxi-column dataField="celular_gestionado"       caption="Celular" />
+      <dxi-column dataField="tipo_base"                caption="Tipo Base" />
+      <dxi-column dataField="tipo_cliente"             caption="Tipo Cliente" />
+      <dxi-column dataField="producto_interes"         caption="Producto" />
+      <dxi-column dataField="motivo_interes"           caption="Motivo" />
+      <dxi-column dataField="fecha_interes_derivacion" caption="Fecha Deriv." />
+      <dxi-column dataField="comentario_derivacion"    caption="Comentario" />
+      <dxo-summary><dxi-total-item alignment="right" column="marca" summaryType="count" displayFormat="Registros: {0}" /></dxo-summary>
+    </dx-data-grid>
+  </div>
+</div>

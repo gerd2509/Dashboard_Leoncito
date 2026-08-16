@@ -19,6 +19,7 @@ import { EvolucionTipoClienteComponent } from "../features/evolucion-tipo-client
 import { GestionKommoComponent } from "../features/Gestion/gestion-kommo/gestion-kommo.component";
 import { AgendamientosKommoComponent } from "../features/agendamientos/agendamientos-kommo/agendamientos-kommo.component";
 import { ControlGestionSedeComponent } from "../features/control-gestion-sede/control-gestion-sede.component";
+import { CierreGestionSedesComponent } from "../features/cierre-gestion-sedes/cierre-gestion-sedes.component";
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
 import { GestionDerivacionesSedeComponent } from "../features/Gestion/gestion-derivaciones-sede/gestion-derivaciones-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
@@ -87,6 +88,7 @@ interface MenuItem {
     AgendamientosKommoComponent,
     AgendamientosSedesComponent,
     ControlGestionSedeComponent,
+    CierreGestionSedesComponent,
     GestionSedeComponent,
     GestionDerivacionesSedeComponent,
     GestionCallSedesComponent,
@@ -182,6 +184,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       icon: 'location_city', label: 'Control & Sedes',
       submenu: [
         { label: 'Control Gestión Sede', icon: 'location_city', modulo: 'control-gestion-sede' },
+        { label: 'Cierre Gestión Sedes', icon: 'fact_check',    modulo: 'cierre-gestion-sedes' },
         { label: 'Control Call Sedes',   icon: 'call',          modulo: 'control-call-sedes' },
         { label: 'Evolución de Registros', icon: 'insights',    modulo: 'evolucion-registros' },
         { label: 'Pizarra de Metas',     icon: 'dashboard',     modulo: 'pizarra-metas' }
@@ -327,6 +330,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 s.modulo === 'gestion-call-sedes'   ? `CALL ${sedeUpper}` :
                 s.modulo === 'ventas-sedes'         ? `SEDE ${sedeUpper}` :
                 s.modulo === 'control-gestion-sede' ? `Control Gestión ${nombreSede}` :
+                s.modulo === 'cierre-gestion-sedes' ? `Cierre Gestión ${nombreSede}` :
                 s.modulo === 'control-call-sedes'   ? `Control Call ${nombreSede}` :
                 s.label,
             }));
@@ -335,6 +339,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         if (!item.modulo || !this.permissions.canAccess(item.modulo, u.rol, u.sede, u.modulos)) return null;
         const label =
           item.modulo === 'control-gestion-sede' ? `Control Gestión ${nombreSede}` :
+          item.modulo === 'cierre-gestion-sedes' ? `Cierre Gestión ${nombreSede}` :
           item.modulo === 'control-call-sedes'   ? `Control Call ${nombreSede}` :
           item.label;
         return { ...item, label };
