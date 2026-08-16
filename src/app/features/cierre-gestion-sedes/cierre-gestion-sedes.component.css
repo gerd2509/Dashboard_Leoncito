@@ -55,6 +55,28 @@
 .rs-metrics span { font-size: 10px; color: #8a97a6; font-weight: 700; }
 .rs-metrics b { font-size: 15px; color: #34465a; font-weight: 800; }
 
+/* ── Resumen por asesor (estilo tablas KOMMO) ── */
+.asesor-resumen { margin-bottom: 18px; }
+.ar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+.ar-card { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(20,50,90,.05); }
+.ar-head { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 800; color: #fff; background: #283593; padding: 10px 14px; }
+.ar-head.mp { background: #EF6C00; }
+.ar-head.dv { background: #6A1B9A; }
+.ar-head mat-icon { font-size: 19px; width: 19px; height: 19px; }
+.ar-scroll { max-height: 340px; overflow: auto; }
+.ar-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.ar-table th, .ar-table td { padding: 7px 12px; text-align: center; border-bottom: 1px solid #eef2f7; }
+.ar-table th { background: #f3f6fb; color: #46586c; font-weight: 800; font-size: 11.5px; text-transform: uppercase; letter-spacing: .3px; position: sticky; top: 0; }
+.ar-table td.ta-l, .ar-table th.ta-l { text-align: left; font-weight: 700; color: #1E3A5F; }
+.ar-table td.tot { font-weight: 800; color: #1A5FAD; }
+.ar-table tbody tr:hover { background: #f7fafd; }
+.ar-table tfoot td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 2px solid #d5e0ee; }
+.ar-vacio td { color: #9db1c7; font-style: italic; padding: 16px; }
+
+/* ── Toggle de detalle ── */
+.detalle-toggle { display: flex; justify-content: center; margin: 4px 0 16px; }
+.detalle-toggle .cgs-btn { padding: 9px 22px; }
+
 /* ── Tablas ── */
 .grid-container { position: relative; display: flex; flex-direction: column; gap: 22px; }
 .grid-overlay { position: absolute; inset: 0; background: rgba(238,242,248,0.88); display: flex; justify-content: center; align-items: center; z-index: 10; border-radius: 10px; }

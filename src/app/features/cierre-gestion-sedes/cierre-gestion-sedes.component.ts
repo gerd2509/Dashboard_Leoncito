@@ -15,6 +15,8 @@ interface ResumenSede {
   llamadas: number; cartas: number; contacto: number; gestiones: number;
   marketplace: number; derivaciones: number;
 }
+// Resumen por asesor (contacto / no contacto / total) — estilo tabla KOMMO.
+interface ResumenAsesor { nombre: string; contacto: number; noContacto: number; total: number; }
 
 @Component({
   selector: 'app-cierre-gestion-sedes',
@@ -48,6 +50,17 @@ export class CierreGestionSedesComponent implements OnInit {
   kpi = { llamadas: 0, cartas: 0, contacto: 0, gestiones: 0, contactabilidad: 0, marketplace: 0, derivaciones: 0 };
   // Resumen por sede (solo cuando se ve "Todas").
   resumenSedes: ResumenSede[] = [];
+
+  // Resúmenes por asesor (solo cuando se ve UNA sede) — estilo imagen KOMMO.
+  resumenLC: ResumenAsesor[] = [];   // Llamadas y Cartas
+  resumenMP: ResumenAsesor[] = [];   // Market Place
+  resumenDV: ResumenAsesor[] = [];   // Derivaciones (solo total, sin contacto/no contacto)
+  totLC = { contacto: 0, noContacto: 0, total: 0 };
+  totMP = { contacto: 0, noContacto: 0, total: 0 };
+  totDV = 0;
+
+  mostrarDetalle = false;   // el detalle (grillas grandes) arranca colapsado
+  toggleDetalle(): void { this.mostrarDetalle = !this.mostrarDetalle; }
 
   @ViewChild('gridLC') gridLC!: DxDataGridComponent;
   @ViewChild('gridMP') gridMP!: DxDataGridComponent;
@@ -100,6 +113,7 @@ export class CierreGestionSedesComponent implements OnInit {
     return this.coloresSede[this.sedeConfig.normalizar(sede)] || '#1A5FAD';
   }
   colorSede(key: string): string { return this.coloresSede[key] || '#1A5FAD'; }
+  get esVistaSede(): boolean { const s = this.form.value.sede; return !!s && s !== 'todas'; }
 
   private rango() {
     const { fechaInicio, fechaFin } = this.form.value;
@@ -161,6 +175,49 @@ export class CierreGestionSedesComponent implements OnInit {
 
     // Resumen coloreado por sede (solo en la vista "Todas").
     this.resumenSedes = todas ? this.construirResumen() : [];
+
+    // Resúmenes por asesor (solo al ver UNA sede).
+    if (todas) {
+      this.resumenLC = this.resumenMP = this.resumenDV = [];
+      this.totLC = this.totMP = { contacto: 0, noContacto: 0, total: 0 }; this.totDV = 0;
+    } else {
+      this.resumenLC = this.agruparPorAsesor(this.llamadasCartas, 'ASESOR', 'RESULTADO DE GESTION');
+      this.resumenMP = this.agruparPorAsesor(this.market, 'ASESOR', 'ESTADO DE GESTIÓN');
+      this.resumenDV = this.agruparPorAsesor(this.derivaciones, 'asesor', null);
+      this.totLC = this.sumar(this.resumenLC);
+      this.totMP = this.sumar(this.resumenMP);
+      this.totDV = this.resumenDV.reduce((s, r) => s + r.total, 0);
+    }
+  }
+
+  /** Solo el primer nombre (los rosters son "APELLIDO APELLIDO NOMBRE ..."). */
+  private primerNombre(full: any): string {
+    const t = (full || '').toString().trim().split(/\s+/).filter(Boolean);
+    if (t.length >= 3) return t[2];            // 2 apellidos + nombre → el 3º token
+    return t[t.length - 1] || (full || '').toString();
+  }
+
+  /** Agrupa filas por asesor → { contacto, noContacto, total }. Si `campoResultado`
+   *  es null (derivaciones), solo cuenta el total. Muestra el primer nombre. */
+  private agruparPorAsesor(rows: any[], campoAsesor: string, campoResultado: string | null): ResumenAsesor[] {
+    const map = new Map<string, ResumenAsesor>();
+    for (const r of rows) {
+      const full = (r[campoAsesor] || '').toString().trim();
+      if (!full) continue;
+      let a = map.get(full);
+      if (!a) { a = { nombre: this.primerNombre(full), contacto: 0, noContacto: 0, total: 0 }; map.set(full, a); }
+      a.total++;
+      if (campoResultado) {
+        if (this.esContacto(r[campoResultado])) a.contacto++; else a.noContacto++;
+      }
+    }
+    return [...map.values()].sort((x, y) => y.total - x.total);
+  }
+
+  private sumar(rows: ResumenAsesor[]) {
+    return rows.reduce((s, r) => ({
+      contacto: s.contacto + r.contacto, noContacto: s.noContacto + r.noContacto, total: s.total + r.total,
+    }), { contacto: 0, noContacto: 0, total: 0 });
   }
 
   private construirResumen(): ResumenSede[] {

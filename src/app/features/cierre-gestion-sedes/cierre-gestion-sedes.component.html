@@ -18,6 +18,10 @@
   </div>
 </div>
 
+<div class="cgs-loading" *ngIf="isLoading">
+  <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
+</div>
+
 <!-- ═══════════ KPIs de la vista actual ═══════════ -->
 <div class="kpi-row">
   <div class="kpi-card" [style.borderLeftColor]="colorActual">
@@ -63,7 +67,63 @@
   </div>
 </div>
 
-<div class="grid-container">
+<!-- ═══════════ Resumen por asesor (solo al ver UNA sede) ═══════════ -->
+<div class="asesor-resumen" *ngIf="esVistaSede">
+  <div class="ar-grid">
+    <!-- Llamadas y Cartas -->
+    <div class="ar-card">
+      <div class="ar-head"><mat-icon>call</mat-icon> Llamadas y Cartas</div>
+      <div class="ar-scroll">
+        <table class="ar-table">
+          <thead><tr><th class="ta-l">Asesor</th><th>Contacto</th><th>No contacto</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of resumenLC"><td class="ta-l">{{ r.nombre }}</td><td>{{ r.contacto }}</td><td>{{ r.noContacto }}</td><td class="tot">{{ r.total }}</td></tr>
+            <tr *ngIf="!resumenLC.length" class="ar-vacio"><td colspan="4">Sin registros</td></tr>
+          </tbody>
+          <tfoot *ngIf="resumenLC.length"><tr><td class="ta-l">TOTAL</td><td>{{ totLC.contacto }}</td><td>{{ totLC.noContacto }}</td><td class="tot">{{ totLC.total }}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <!-- Market Place -->
+    <div class="ar-card">
+      <div class="ar-head mp"><mat-icon>storefront</mat-icon> Market Place</div>
+      <div class="ar-scroll">
+        <table class="ar-table">
+          <thead><tr><th class="ta-l">Asesor</th><th>Contacto</th><th>No contacto</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of resumenMP"><td class="ta-l">{{ r.nombre }}</td><td>{{ r.contacto }}</td><td>{{ r.noContacto }}</td><td class="tot">{{ r.total }}</td></tr>
+            <tr *ngIf="!resumenMP.length" class="ar-vacio"><td colspan="4">Sin registros</td></tr>
+          </tbody>
+          <tfoot *ngIf="resumenMP.length"><tr><td class="ta-l">TOTAL</td><td>{{ totMP.contacto }}</td><td>{{ totMP.noContacto }}</td><td class="tot">{{ totMP.total }}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+    <!-- Derivaciones -->
+    <div class="ar-card">
+      <div class="ar-head dv"><mat-icon>call_split</mat-icon> Derivaciones</div>
+      <div class="ar-scroll">
+        <table class="ar-table">
+          <thead><tr><th class="ta-l">Asesor</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let r of resumenDV"><td class="ta-l">{{ r.nombre }}</td><td class="tot">{{ r.total }}</td></tr>
+            <tr *ngIf="!resumenDV.length" class="ar-vacio"><td colspan="2">Sin registros</td></tr>
+          </tbody>
+          <tfoot *ngIf="resumenDV.length"><tr><td class="ta-l">TOTAL</td><td class="tot">{{ totDV }}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Botón para mostrar/ocultar el detalle (grillas grandes) -->
+<div class="detalle-toggle">
+  <button class="cgs-btn" (click)="toggleDetalle()">
+    <mat-icon>{{ mostrarDetalle ? 'expand_less' : 'expand_more' }}</mat-icon>
+    {{ mostrarDetalle ? 'Ocultar detalle' : 'Ver detalle' }}
+  </button>
+</div>
+
+<div class="grid-container" *ngIf="mostrarDetalle">
   <div class="grid-overlay" *ngIf="isLoading">
     <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
   </div>
