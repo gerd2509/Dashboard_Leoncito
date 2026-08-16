@@ -1,8 +1,16 @@
 :host { display: block; position: relative; }
 
-/* Parte superior estática: header + KPIs + resumen/tablas por asesor + toggle.
-   Queda fija (sticky) mientras el detalle de abajo scrollea. */
-.cgs-top { position: sticky; top: 0; z-index: 20; background: #EEF2F8; padding-bottom: 6px; }
+/* Parte superior ESTÁTICA: solo header + KPIs. Queda fija (flujo normal) y todo lo
+   demás (resumen/tablas por asesor + detalle) scrollea dentro de .cgs-scroll. */
+.cgs-top { background: #EEF2F8; padding-bottom: 6px; }
+
+/* Zona scrolleable: ocupa el alto restante del viewport → solo esta parte se mueve,
+   el header+KPIs no. Así no hay "bleed" del contenido por encima al scrollear. */
+.cgs-scroll { overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 285px); padding-right: 4px; }
+.cgs-scroll::-webkit-scrollbar { width: 8px; }
+.cgs-scroll::-webkit-scrollbar-track { background: transparent; }
+.cgs-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
+.cgs-scroll::-webkit-scrollbar-thumb:hover { background: #1A5FAD; }
 
 /* Overlay de carga sobre TODO el módulo (no un bloque que empuje los cards). */
 .cgs-loading {
