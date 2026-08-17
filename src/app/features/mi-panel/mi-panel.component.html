@@ -29,7 +29,7 @@
 
     <!-- ══════════ MI SUELDO (Call / Realzza) — primero, debajo del saludo ══════════ -->
     <!-- ══════════ SUELDO ESTIMADO — VENDEDOR DE SEDE ══════════ -->
-    <section class="mp-panel sueldo" *ngIf="esSedeVendedor && !error" [class.open]="abiertos['sueldo']">
+    <section class="mp-panel sueldo" *ngIf="mostrarSueldoSede && esSedeVendedor && !error" [class.open]="abiertos['sueldo']">
       <button class="mp-panel-head" type="button" (click)="togglePanel('sueldo')">
         <span class="ph-ico" style="background:linear-gradient(135deg,#2E7D32,#43A047);"><mat-icon>savings</mat-icon></span>
         <span class="ph-title">Mi sueldo estimado</span>

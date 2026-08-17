@@ -57,6 +57,9 @@ export class MiPanelComponent implements OnInit {
     const c = (this.canal || '').toLowerCase();
     return c !== 'call' && c !== 'realzza';
   }
+  /** Oculto temporalmente el sueldo estimado del vendedor de SEDE hasta definir una
+   *  mejor forma de mostrar lo que ganarían solo de sedes. Poner en true para reactivar. */
+  readonly mostrarSueldoSede = false;
 
   // Popup para ampliar un gráfico. '' = cerrado.
   popupChart = '';
@@ -208,7 +211,7 @@ export class MiPanelComponent implements OnInit {
     if (!this.vendedor) { this.sinVendedor = true; return; }
     this.cargar();
     this.cargarGestiones();
-    if (this.esSedeVendedor) this.initSueldoSede();
+    if (this.esSedeVendedor && this.mostrarSueldoSede) this.initSueldoSede();
   }
 
   // ── Sueldo estimado del vendedor de sede (endpoint /ventas-sedes/sueldo) ──
