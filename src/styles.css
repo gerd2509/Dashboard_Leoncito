@@ -188,20 +188,9 @@ body {
   color: #1A5FAD !important;
 }
 
-/* Desplegable de los dx-select-box (motivos de contacto, etc.): cuando la lista es
-   larga y el campo está abajo en móvil, DevExtreme lo abría hacia arriba y se cortaba
-   (no se veían todas las opciones). Limitar la altura del popup y dar SCROLL interno →
-   así se ven todas las opciones y siempre entra en pantalla (arriba o abajo). */
-.dx-dropdowneditor-overlay .dx-overlay-content,
-.dx-selectbox-popup-wrapper .dx-overlay-content,
-.dx-dropdowneditor-overlay .dx-popup-content,
-.dx-selectbox-popup-wrapper .dx-popup-content {
-  max-height: 50vh !important;
-}
-.dx-dropdowneditor-overlay .dx-list,
-.dx-selectbox-popup-wrapper .dx-list {
-  max-height: 48vh !important;
-}
+/* La altura del desplegable de los dx-select-box se limita globalmente vía
+   dropDownOptions.maxHeight (ver main.ts) para que DevExtreme lo abra HACIA ABAJO
+   (cabe debajo del campo) con scroll interno, en vez de hacia arriba en móvil. */
 
 /* Popups con cabecera fija + cuerpo scrolleable: el contenido no scrollea, solo
    su .*-body interno. Reporte del supervisor y detalle de maduración de leads. */
