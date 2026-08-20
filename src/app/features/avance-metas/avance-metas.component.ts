@@ -218,7 +218,8 @@ export class AvanceMetasComponent implements OnInit {
 
     this.general = [...gen.values()].map(f => { f.total = f.propio + f.aliado; f.pct = f.meta > 0 ? Math.round((f.total / f.meta) * 100) : 0; return f; })
       .sort((a, b) => b.total - a.total);
-    this.motos = [...mot.values()].map(f => { f.totalOps = f.propioOps + f.aliadoOps; f.totalMonto = f.propioMonto + f.aliadoMonto; f.pct = f.meta > 0 ? Math.round((f.totalMonto / f.meta) * 100) : 0; return f; })
+    // Motos: la META es en # de OPERACIONES → el % avance se calcula sobre total de operaciones.
+    this.motos = [...mot.values()].map(f => { f.totalOps = f.propioOps + f.aliadoOps; f.totalMonto = f.propioMonto + f.aliadoMonto; f.pct = f.meta > 0 ? Math.round((f.totalOps / f.meta) * 100) : 0; return f; })
       .sort((a, b) => b.totalMonto - a.totalMonto);
 
     this.recalcTotales();
@@ -228,7 +229,7 @@ export class AvanceMetasComponent implements OnInit {
     this.totGen = this.general.reduce((s, f) => ({ propio: s.propio + f.propio, aliado: s.aliado + f.aliado, total: s.total + f.total, meta: s.meta + f.meta, pct: 0 }), { propio: 0, aliado: 0, total: 0, meta: 0, pct: 0 });
     this.totGen.pct = this.totGen.meta > 0 ? Math.round((this.totGen.total / this.totGen.meta) * 100) : 0;
     this.totMot = this.motos.reduce((s, f) => ({ ops: s.ops + f.totalOps, monto: s.monto + f.totalMonto, meta: s.meta + f.meta, pct: 0 }), { ops: 0, monto: 0, meta: 0, pct: 0 });
-    this.totMot.pct = this.totMot.meta > 0 ? Math.round((this.totMot.monto / this.totMot.meta) * 100) : 0;
+    this.totMot.pct = this.totMot.meta > 0 ? Math.round((this.totMot.ops / this.totMot.meta) * 100) : 0;   // % sobre # operaciones
   }
 
   // ── Edición de meta en la propia tabla ──
@@ -239,8 +240,8 @@ export class AvanceMetasComponent implements OnInit {
     this.ventas.guardarMetaAvance('general:' + f.sedeNorm, f.meta).subscribe({ error: () => {} });
   }
   onMetaMotos(f: FilaMotos, valor: any): void {
-    f.meta = Number(valor) || 0;
-    f.pct = f.meta > 0 ? Math.round((f.totalMonto / f.meta) * 100) : 0;
+    f.meta = Number(valor) || 0;   // meta en # de operaciones
+    f.pct = f.meta > 0 ? Math.round((f.totalOps / f.meta) * 100) : 0;
     this.recalcTotales();
     this.ventas.guardarMetaAvance('motos:' + f.sedeNorm, f.meta).subscribe({ error: () => {} });
   }

@@ -112,7 +112,7 @@
         <thead>
           <tr>
             <th rowspan="2" class="ta-l">Sede</th>
-            <th rowspan="2">Meta (S/)</th>
+            <th rowspan="2">Meta (# op.)</th>
             <th colspan="2" class="grp">Crédito propio</th>
             <th colspan="2" class="grp alt">Créditos aliados</th>
             <th colspan="2" class="grp">Total</th>
@@ -141,7 +141,7 @@
         <tfoot *ngIf="motos.length">
           <tr>
             <td class="ta-l">TOTAL</td>
-            <td class="meta">{{ soles(totMot.meta) }}</td>
+            <td class="meta">{{ totMot.meta }}</td>
             <td colspan="4"></td>
             <td class="tot">{{ totMot.ops }}</td>
             <td class="tot">{{ soles(totMot.monto) }}</td>
