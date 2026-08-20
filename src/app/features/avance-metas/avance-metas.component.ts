@@ -202,15 +202,17 @@ export class AvanceMetasComponent implements OnInit {
       if (norm) this.sedeNetoTotal[norm] = (this.sedeNetoTotal[norm] || 0) + (Number(r.neto) || 0);
       // Por ahora solo Realzza, Lambayeque y Ferreñafe (SEDES_MOSTRAR).
       if (!norm || !this.SEDES_MOSTRAR.includes(norm)) continue;
+      // Créditos = TODOS los productos (créditos + motos) por ENTIDAD:
+      //   propio = LEONCITO ; aliado = GLOBAL GO / BRILLA / EFECTIVA / etc. (≠ LEONCITO).
+      let g = gen.get(norm);
+      if (!g) { g = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propio: 0, aliado: 0, total: 0, meta: this.metas['general:' + norm] || 0, pct: 0 }; gen.set(norm, g); }
+      if (r.clase === 'PROPIO') g.propio += r.neto; else g.aliado += r.neto;
+      // Motos = subconjunto (solo productos moto), mismo split por entidad.
       if (r.es_moto) {
         let f = mot.get(norm);
         if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propioOps: 0, propioMonto: 0, aliadoOps: 0, aliadoMonto: 0, totalOps: 0, totalMonto: 0, meta: this.metas['motos:' + norm] || 0, pct: 0 }; mot.set(norm, f); }
         if (r.clase === 'PROPIO') { f.propioOps += r.ops; f.propioMonto += r.neto; }
         else { f.aliadoOps += r.ops; f.aliadoMonto += r.neto; }
-      } else {
-        let f = gen.get(norm);
-        if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propio: 0, aliado: 0, total: 0, meta: this.metas['general:' + norm] || 0, pct: 0 }; gen.set(norm, f); }
-        if (r.clase === 'PROPIO') f.propio += r.neto; else f.aliado += r.neto;
       }
     }
 
