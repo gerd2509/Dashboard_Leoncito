@@ -166,15 +166,10 @@ export class AvanceMetasComponent implements OnInit {
       const total = Math.round(this.sedeNetoTotal[norm] || 0);   // neto real (créditos + motos)
       const factor = brutoTotal > 0 ? total / brutoTotal : 0;
       const fuentes = fuentesBruto.map(f => ({ fuente: f.fuente, neto: Math.round(f.bruto * factor) })).sort((a, b) => b.neto - a.neto);
-      const cuota = this.metas['fuente:' + norm] || 0;   // cuota editable propia de este cuadro
+      const cuota = this.metas['general:' + norm] || 0;   // MISMA cuota general de la sede (compartida con Créditos)
       out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), cuota, total, pct: cuota > 0 ? Math.round((total / cuota) * 100) : 0, fuentes });
     });
     this.sedesFuente = out.filter(s => s.fuentes.length);
-  }
-  onMetaFuente(s: { sedeNorm: string; total: number; cuota: number; pct: number }, valor: any): void {
-    s.cuota = Number(valor) || 0;
-    s.pct = s.cuota > 0 ? Math.round((s.total / s.cuota) * 100) : 0;
-    this.ventas.guardarMetaAvance('fuente:' + s.sedeNorm, s.cuota).subscribe({ error: () => {} });
   }
 
   private color(norm: string): string { return this.coloresSede[norm] || '#1A5FAD'; }
@@ -223,12 +218,19 @@ export class AvanceMetasComponent implements OnInit {
   }
 
   // ── Edición de meta en la propia tabla ──
-  onMetaGeneral(f: FilaGeneral, valor: any): void {
-    f.meta = Number(valor) || 0;
-    f.pct = f.meta > 0 ? Math.round((f.total / f.meta) * 100) : 0;
+  // La cuota GENERAL de la sede es única (clave 'general:<sede>') y se comparte entre el
+  // cuadro de Créditos y el de Ventas por Fuente → editarla en cualquiera actualiza ambos.
+  private setMetaGeneral(norm: string, meta: number): void {
+    this.metas['general:' + norm] = meta;
+    const g = this.general.find(x => x.sedeNorm === norm);
+    if (g) { g.meta = meta; g.pct = meta > 0 ? Math.round((g.total / meta) * 100) : 0; }
+    const sf = this.sedesFuente.find(x => x.sedeNorm === norm);
+    if (sf) { sf.cuota = meta; sf.pct = meta > 0 ? Math.round((sf.total / meta) * 100) : 0; }
     this.recalcTotales();
-    this.ventas.guardarMetaAvance('general:' + f.sedeNorm, f.meta).subscribe({ error: () => {} });
+    this.ventas.guardarMetaAvance('general:' + norm, meta).subscribe({ error: () => {} });
   }
+  onMetaGeneral(f: FilaGeneral, valor: any): void { this.setMetaGeneral(f.sedeNorm, Number(valor) || 0); }
+  onMetaFuente(s: { sedeNorm: string }, valor: any): void { this.setMetaGeneral(s.sedeNorm, Number(valor) || 0); }
   onMetaMotos(f: FilaMotos, valor: any): void {
     f.meta = Number(valor) || 0;
     f.pct = f.meta > 0 ? Math.round((f.totalMonto / f.meta) * 100) : 0;
