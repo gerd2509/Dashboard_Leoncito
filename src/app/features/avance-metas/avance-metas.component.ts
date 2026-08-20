@@ -49,12 +49,12 @@ export class AvanceMetasComponent implements OnInit {
 
   private metas: Record<string, number> = {};
   private readonly SEDES_FUENTE = ['lambayeque', 'ferrenafe'];   // sedes con derivación/atribución
-  private readonly SEDES_MOSTRAR = ['lambayeque', 'ferrenafe'];  // Créditos/Motos: por ahora solo estas 2
+  private readonly SEDES_MOSTRAR = ['realzza', 'lambayeque', 'ferrenafe'];  // Créditos/Motos: Realzza + estas 2
 
   private readonly coloresSede: Record<string, string> = {
     motupe: '#1565C0', olmos: '#00695C', ferrenafe: '#6A1B9A', jayanca: '#E65100',
     mochumi: '#2E7D32', morrope: '#AD1457', lambayeque: '#283593', oyotun: '#558B2F',
-    cayalti: '#00838F', chongoyape: '#4E342E',
+    cayalti: '#00838F', chongoyape: '#4E342E', realzza: '#455A64',
   };
 
   constructor(private fb: UntypedFormBuilder) {
@@ -156,10 +156,15 @@ export class AvanceMetasComponent implements OnInit {
       const netos = this.netoPorClave(porSede[i] || [], r => (r.fuente || r.atrib_fuente_sede || 'SIN FUENTE').toString().trim().toUpperCase() || 'SIN FUENTE', anio, mes);
       const fuentes = [...netos.entries()].map(([fuente, v]) => ({ fuente, neto: v.neto })).filter(f => f.neto !== 0).sort((a, b) => b.neto - a.neto);
       const total = fuentes.reduce((s, f) => s + f.neto, 0);
-      const cuota = this.metas['general:' + norm] || 0;
+      const cuota = this.metas['fuente:' + norm] || 0;   // cuota editable propia de este cuadro
       out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), cuota, total, pct: cuota > 0 ? Math.round((total / cuota) * 100) : 0, fuentes });
     });
     this.sedesFuente = out.filter(s => s.fuentes.length);
+  }
+  onMetaFuente(s: { sedeNorm: string; total: number; cuota: number; pct: number }, valor: any): void {
+    s.cuota = Number(valor) || 0;
+    s.pct = s.cuota > 0 ? Math.round((s.total / s.cuota) * 100) : 0;
+    this.ventas.guardarMetaAvance('fuente:' + s.sedeNorm, s.cuota).subscribe({ error: () => {} });
   }
 
   private color(norm: string): string { return this.coloresSede[norm] || '#1A5FAD'; }
@@ -170,12 +175,13 @@ export class AvanceMetasComponent implements OnInit {
   private construir(rows: { sede: string; clase: string; es_moto: boolean; neto: number; ops: number }[]): void {
     const gen = new Map<string, FilaGeneral>();
     const mot = new Map<string, FilaMotos>();
-    const nombre = (norm: string) => this.sedeConfig.getConfig(norm)?.nombre ?? norm;
+    const nombre = (norm: string) => norm === 'realzza' ? 'Realzza' : (this.sedeConfig.getConfig(norm)?.nombre ?? norm);
 
     for (const r of rows) {
-      const norm = this.normSede(r.sede);
-      // Solo sedes físicas del config y, por ahora, solo las de SEDES_MOSTRAR (Lambayeque/Ferreñafe).
-      if (!norm || !this.sedeConfig.getConfig(norm) || !this.SEDES_MOSTRAR.includes(norm)) continue;
+      let norm = this.normSede(r.sede);
+      if (norm.includes('realzza')) norm = 'realzza';   // "SEDE REALZZA STORE" → Realzza
+      // Por ahora solo Realzza, Lambayeque y Ferreñafe (SEDES_MOSTRAR).
+      if (!norm || !this.SEDES_MOSTRAR.includes(norm)) continue;
       if (r.es_moto) {
         let f = mot.get(norm);
         if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propioOps: 0, propioMonto: 0, aliadoOps: 0, aliadoMonto: 0, totalOps: 0, totalMonto: 0, meta: this.metas['motos:' + norm] || 0, pct: 0 }; mot.set(norm, f); }

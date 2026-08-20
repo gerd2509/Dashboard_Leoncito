@@ -48,7 +48,7 @@
             <tr class="grp-sede">
               <td class="ta-l"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td>
               <td class="tot">{{ soles(s.total) }}</td>
-              <td>{{ soles(s.cuota) }}</td>
+              <td class="meta"><input type="number" class="meta-in" [value]="s.cuota || ''" (change)="onMetaFuente(s, $any($event.target).value)" placeholder="0" /></td>
               <td><span class="pct" [class]="claseAvance(s.pct)">{{ s.pct }}%</span></td>
             </tr>
             <tr *ngFor="let f of s.fuentes" class="sub-fuente">
