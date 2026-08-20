@@ -42,17 +42,20 @@
     <div class="am-cardhead fte"><mat-icon>call_split</mat-icon> Sedes — Ventas por Fuente Generadora <em>(Lambayeque / Ferreñafe · neto vs cuota de sede)</em></div>
     <div class="am-scroll">
       <table class="am-table">
-        <thead><tr><th class="ta-l">Sede / Fuente</th><th>Neto (S/)</th><th>Cuota sede (S/)</th><th>% Avance</th></tr></thead>
+        <thead><tr><th class="ta-l">Sede / Fuente</th><th>Neto (S/)</th><th>Cuota (S/)</th><th>% Avance</th></tr></thead>
         <tbody>
           <ng-container *ngFor="let s of sedesFuente">
             <tr class="grp-sede">
               <td class="ta-l"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td>
               <td class="tot">{{ soles(s.total) }}</td>
-              <td class="meta"><input type="number" class="meta-in" [value]="s.cuota || ''" (change)="onMetaFuente(s, $any($event.target).value)" placeholder="0" /></td>
+              <td class="tot">{{ soles(s.cuotaTotal) }}</td>
               <td><span class="pct" [class]="claseAvance(s.pct)">{{ s.pct }}%</span></td>
             </tr>
             <tr *ngFor="let f of s.fuentes" class="sub-fuente">
-              <td class="ta-l fue">{{ f.fuente }}</td><td>{{ soles(f.neto) }}</td><td></td><td></td>
+              <td class="ta-l fue">{{ f.fuente }}</td>
+              <td>{{ soles(f.neto) }}</td>
+              <td class="meta"><input type="number" class="meta-in" [value]="f.cuota || ''" (change)="onMetaFuenteTipo(s, f, $any($event.target).value)" placeholder="0" /></td>
+              <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
             </tr>
           </ng-container>
           <tr *ngIf="!sedesFuente.length" class="vacio"><td colspan="4">Sin atribución por fuente (requiere derivación cruzada, ago-2026+). La cuota de sede se toma del cuadro de Créditos.</td></tr>

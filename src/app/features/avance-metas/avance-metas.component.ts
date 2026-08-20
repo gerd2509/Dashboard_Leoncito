@@ -45,7 +45,7 @@ export class AvanceMetasComponent implements OnInit {
   // Realzza por fuente generadora (tipo_base) + sedes por fuente (derivación).
   realzza: { fuente: string; meta: number; neto: number; pct: number }[] = [];
   totRz = { meta: 0, neto: 0, pct: 0 };
-  sedesFuente: { sede: string; sedeNorm: string; color: string; cuota: number; total: number; pct: number; fuentes: { fuente: string; neto: number }[] }[] = [];
+  sedesFuente: { sede: string; sedeNorm: string; color: string; cuotaTotal: number; total: number; pct: number; fuentes: { fuente: string; neto: number; cuota: number; pct: number }[] }[] = [];
 
   private metas: Record<string, number> = {};
   private sedeNetoTotal: Record<string, number> = {};   // neto REAL por sede (créditos + motos, del endpoint con netting)
@@ -165,11 +165,23 @@ export class AvanceMetasComponent implements OnInit {
       const brutoTotal = fuentesBruto.reduce((s, f) => s + f.bruto, 0);
       const total = Math.round(this.sedeNetoTotal[norm] || 0);   // neto real (créditos + motos)
       const factor = brutoTotal > 0 ? total / brutoTotal : 0;
-      const fuentes = fuentesBruto.map(f => ({ fuente: f.fuente, neto: Math.round(f.bruto * factor) })).sort((a, b) => b.neto - a.neto);
-      const cuota = this.metas['general:' + norm] || 0;   // MISMA cuota general de la sede (compartida con Créditos)
-      out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), cuota, total, pct: cuota > 0 ? Math.round((total / cuota) * 100) : 0, fuentes });
+      // Cuota EDITABLE por cada fuente (clave 'fuente:<sede>:<fuente>'). El total de sede = suma.
+      const fuentes = fuentesBruto.map(f => {
+        const neto = Math.round(f.bruto * factor);
+        const cuota = this.metas['fuente:' + norm + ':' + f.fuente] || 0;
+        return { fuente: f.fuente, neto, cuota, pct: cuota > 0 ? Math.round((neto / cuota) * 100) : 0 };
+      }).sort((a, b) => b.neto - a.neto);
+      const cuotaTotal = fuentes.reduce((s, f) => s + f.cuota, 0);
+      out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), cuotaTotal, total, pct: cuotaTotal > 0 ? Math.round((total / cuotaTotal) * 100) : 0, fuentes });
     });
     this.sedesFuente = out.filter(s => s.fuentes.length);
+  }
+  onMetaFuenteTipo(s: { sedeNorm: string; total: number; cuotaTotal: number; pct: number; fuentes: { neto: number; cuota: number; pct: number }[] }, f: { fuente: string; neto: number; cuota: number; pct: number }, valor: any): void {
+    f.cuota = Number(valor) || 0;
+    f.pct = f.cuota > 0 ? Math.round((f.neto / f.cuota) * 100) : 0;
+    s.cuotaTotal = s.fuentes.reduce((a, x) => a + x.cuota, 0);
+    s.pct = s.cuotaTotal > 0 ? Math.round((s.total / s.cuotaTotal) * 100) : 0;
+    this.ventas.guardarMetaAvance('fuente:' + s.sedeNorm + ':' + f.fuente, f.cuota).subscribe({ error: () => {} });
   }
 
   private color(norm: string): string { return this.coloresSede[norm] || '#1A5FAD'; }
@@ -218,19 +230,12 @@ export class AvanceMetasComponent implements OnInit {
   }
 
   // ── Edición de meta en la propia tabla ──
-  // La cuota GENERAL de la sede es única (clave 'general:<sede>') y se comparte entre el
-  // cuadro de Créditos y el de Ventas por Fuente → editarla en cualquiera actualiza ambos.
-  private setMetaGeneral(norm: string, meta: number): void {
-    this.metas['general:' + norm] = meta;
-    const g = this.general.find(x => x.sedeNorm === norm);
-    if (g) { g.meta = meta; g.pct = meta > 0 ? Math.round((g.total / meta) * 100) : 0; }
-    const sf = this.sedesFuente.find(x => x.sedeNorm === norm);
-    if (sf) { sf.cuota = meta; sf.pct = meta > 0 ? Math.round((sf.total / meta) * 100) : 0; }
+  onMetaGeneral(f: FilaGeneral, valor: any): void {
+    f.meta = Number(valor) || 0;
+    f.pct = f.meta > 0 ? Math.round((f.total / f.meta) * 100) : 0;
     this.recalcTotales();
-    this.ventas.guardarMetaAvance('general:' + norm, meta).subscribe({ error: () => {} });
+    this.ventas.guardarMetaAvance('general:' + f.sedeNorm, f.meta).subscribe({ error: () => {} });
   }
-  onMetaGeneral(f: FilaGeneral, valor: any): void { this.setMetaGeneral(f.sedeNorm, Number(valor) || 0); }
-  onMetaFuente(s: { sedeNorm: string }, valor: any): void { this.setMetaGeneral(s.sedeNorm, Number(valor) || 0); }
   onMetaMotos(f: FilaMotos, valor: any): void {
     f.meta = Number(valor) || 0;
     f.pct = f.meta > 0 ? Math.round((f.totalMonto / f.meta) * 100) : 0;
