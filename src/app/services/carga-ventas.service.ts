@@ -106,6 +106,22 @@ export class CargaVentasService {
     return this.http.get<{ sede: string; anio: number; mes: number; ventas: number; nc: number; inc: number; neto: number }[]>(`${this.root}/ventas/evolutivo`);
   }
 
+  // ── Avance de Metas (módulo nuevo) ──
+  /** Avance por sede: monto NETO + # ops por (sede, clase PROPIO/ALIADO, es_moto). */
+  obtenerAvanceSedes(anio: number, mes?: number): Observable<{ sede: string; clase: 'PROPIO' | 'ALIADO'; es_moto: boolean; neto: number; ops: number }[]> {
+    let params = new HttpParams().set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/avance-sedes`, { params });
+  }
+  /** Metas editables del módulo Avance de Metas → { <clave>: meta }. */
+  obtenerMetasAvance(): Observable<Record<string, number>> {
+    return this.http.get<Record<string, number>>(`${this.root}/metas-avance`);
+  }
+  /** Guarda (upsert) una meta editada directamente en el módulo. */
+  guardarMetaAvance(clave: string, meta: number): Observable<any> {
+    return this.http.put(`${this.root}/metas-avance`, { clave, meta });
+  }
+
   /** Todas las ventas de un vendedor (para "Mi Panel"). Opcional: filtrar por año/mes. */
   obtenerVentasPorVendedor(vendedor: string, opts?: { anio?: number; mes?: number }): Observable<any[]> {
     let params = new HttpParams().set('vendedor', vendedor);

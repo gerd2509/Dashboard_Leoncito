@@ -1,0 +1,108 @@
+
+<div class="am-head">
+  <span class="am-title"><mat-icon>flag</mat-icon>
+    <div><b>Avance de Metas</b><small>Avance (monto neto) vs meta por sede — crédito propio (LEONCITO) y aliados</small></div>
+  </span>
+  <div class="am-actions">
+    <form class="am-filtros" [formGroup]="form">
+      <dx-select-box width="110" formControlName="anio" [dataSource]="anios" label="Año" labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()" />
+      <dx-select-box width="150" formControlName="mes" [dataSource]="meses" displayExpr="t" valueExpr="v" label="Mes" labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()" />
+    </form>
+    <button class="am-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Actualizar</button>
+  </div>
+</div>
+
+<div class="am-wrap">
+  <div class="am-overlay" *ngIf="isLoading">
+    <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando avance…" icon="flag"></app-loading-overlay>
+  </div>
+
+  <!-- ══════════ GENERAL: créditos por sede ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead cred"><mat-icon>account_balance</mat-icon> Créditos por sede — Meta vs Avance <em>(propio / aliados)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead>
+          <tr>
+            <th rowspan="2" class="ta-l">Sede</th>
+            <th rowspan="2">Meta (S/)</th>
+            <th colspan="2" class="grp">Avance</th>
+            <th rowspan="2">Total (S/)</th>
+            <th rowspan="2">% Avance</th>
+          </tr>
+          <tr><th class="sub">Crédito propio</th><th class="sub">Créditos aliados</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of general">
+            <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
+            <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaGeneral(f, $any($event.target).value)" placeholder="0" /></td>
+            <td>{{ soles(f.propio) }}</td>
+            <td>{{ soles(f.aliado) }}</td>
+            <td class="tot">{{ soles(f.total) }}</td>
+            <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
+          </tr>
+          <tr *ngIf="!general.length" class="vacio"><td colspan="6">Sin datos para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="general.length">
+          <tr>
+            <td class="ta-l">TOTAL</td>
+            <td class="meta">{{ soles(totGen.meta) }}</td>
+            <td>{{ soles(totGen.propio) }}</td>
+            <td>{{ soles(totGen.aliado) }}</td>
+            <td class="tot">{{ soles(totGen.total) }}</td>
+            <td><span class="pct" [class]="claseAvance(totGen.pct)">{{ totGen.pct }}%</span></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ MOTOS por sede ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por sede — Meta vs Avance <em>(propio / aliados · # operaciones y monto)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead>
+          <tr>
+            <th rowspan="2" class="ta-l">Sede</th>
+            <th rowspan="2">Meta (S/)</th>
+            <th colspan="2" class="grp">Crédito propio</th>
+            <th colspan="2" class="grp alt">Créditos aliados</th>
+            <th colspan="2" class="grp">Total</th>
+            <th rowspan="2">% Avance</th>
+          </tr>
+          <tr>
+            <th class="sub"># op.</th><th class="sub">Monto (S/)</th>
+            <th class="sub"># op.</th><th class="sub">Monto (S/)</th>
+            <th class="sub"># op.</th><th class="sub">Monto (S/)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of motos">
+            <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
+            <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaMotos(f, $any($event.target).value)" placeholder="0" /></td>
+            <td>{{ f.propioOps }}</td>
+            <td>{{ soles(f.propioMonto) }}</td>
+            <td>{{ f.aliadoOps }}</td>
+            <td>{{ soles(f.aliadoMonto) }}</td>
+            <td class="tot">{{ f.totalOps }}</td>
+            <td class="tot">{{ soles(f.totalMonto) }}</td>
+            <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
+          </tr>
+          <tr *ngIf="!motos.length" class="vacio"><td colspan="9">Sin motos para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="motos.length">
+          <tr>
+            <td class="ta-l">TOTAL</td>
+            <td class="meta">{{ soles(totMot.meta) }}</td>
+            <td colspan="4"></td>
+            <td class="tot">{{ totMot.ops }}</td>
+            <td class="tot">{{ soles(totMot.monto) }}</td>
+            <td><span class="pct" [class]="claseAvance(totMot.pct)">{{ totMot.pct }}%</span></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
