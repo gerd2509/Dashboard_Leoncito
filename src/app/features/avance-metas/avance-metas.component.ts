@@ -48,6 +48,8 @@ export class AvanceMetasComponent implements OnInit {
   sedesFuente: { sede: string; sedeNorm: string; color: string; cuota: number; total: number; pct: number; fuentes: { fuente: string; neto: number }[] }[] = [];
 
   private metas: Record<string, number> = {};
+  private sedeNetoTotal: Record<string, number> = {};   // neto REAL por sede (créditos + motos, del endpoint con netting)
+  private rzSinTipo = 0;                                 // neto de las NC "sin tipo" de Realzza (no se muestra, pero suma al total)
   private readonly SEDES_FUENTE = ['lambayeque', 'ferrenafe'];   // sedes con derivación/atribución
   private readonly SEDES_MOSTRAR = ['realzza', 'lambayeque', 'ferrenafe'];  // Créditos/Motos: Realzza + estas 2
 
@@ -126,6 +128,8 @@ export class AvanceMetasComponent implements OnInit {
       if (k) metaMap.set(k, (metaMap.get(k) || 0) + (Number(m.meta) || 0));
     }
     const netos = this.netoPorClave(rows, r => (r.tipo_base || 'SIN TIPO').toString().trim().toUpperCase(), anio, mes, false);
+    // Las NC "sin tipo" NO se muestran pero SÍ restan del total (neto real).
+    this.rzSinTipo = netos.get('SIN TIPO')?.neto || 0;
     this.realzza = [...new Set([...netos.keys(), ...metaMap.keys()])]
       .filter(k => k && k !== 'SIN TIPO')   // NC / sin tipo no se muestra
       .map(k => {
@@ -138,7 +142,8 @@ export class AvanceMetasComponent implements OnInit {
   }
 
   private recalcRz(): void {
-    const meta = this.realzza.reduce((s, f) => s + f.meta, 0), neto = this.realzza.reduce((s, f) => s + f.neto, 0);
+    const meta = this.realzza.reduce((s, f) => s + f.meta, 0);
+    const neto = this.realzza.reduce((s, f) => s + f.neto, 0) + this.rzSinTipo;   // + NC sin tipo
     this.totRz = { meta, neto, pct: meta > 0 ? Math.round((neto / meta) * 100) : 0 };
   }
   onMetaRealzza(f: { fuente: string; meta: number; neto: number; pct: number }, valor: any): void {
@@ -151,11 +156,16 @@ export class AvanceMetasComponent implements OnInit {
   private construirSedesFuente(porSede: any[][], anio: number, mes: number): void {
     const out: any[] = [];
     this.SEDES_FUENTE.forEach((norm, i) => {
-      // El endpoint /ventas-sedes/atribucion devuelve la fuente ya resuelta en `fuente`
-      // (atrib_fuente_sede + fallback a la derivación). Vacío = sin derivación cruzada aún.
-      const netos = this.netoPorClave(porSede[i] || [], r => (r.fuente || r.atrib_fuente_sede || 'SIN FUENTE').toString().trim().toUpperCase() || 'SIN FUENTE', anio, mes);
-      const fuentes = [...netos.entries()].map(([fuente, v]) => ({ fuente, neto: v.neto })).filter(f => f.neto !== 0).sort((a, b) => b.neto - a.neto);
-      const total = fuentes.reduce((s, f) => s + f.neto, 0);
+      // El endpoint /ventas-sedes/atribucion da la fuente resuelta en `fuente` pero el monto es
+      // BRUTO (sin restar NC/incaut.). El neto REAL de la sede lo tenemos de /avance-sedes
+      // (créditos + motos, con netting). Se toma ese neto como total y se ESCALA el desglose por
+      // fuente proporcionalmente → el total cuadra exacto y las proporciones se conservan.
+      const brutos = this.netoPorClave(porSede[i] || [], r => (r.fuente || r.atrib_fuente_sede || 'SIN FUENTE').toString().trim().toUpperCase() || 'SIN FUENTE', anio, mes);
+      const fuentesBruto = [...brutos.entries()].map(([fuente, v]) => ({ fuente, bruto: v.neto })).filter(f => f.bruto > 0);
+      const brutoTotal = fuentesBruto.reduce((s, f) => s + f.bruto, 0);
+      const total = Math.round(this.sedeNetoTotal[norm] || 0);   // neto real (créditos + motos)
+      const factor = brutoTotal > 0 ? total / brutoTotal : 0;
+      const fuentes = fuentesBruto.map(f => ({ fuente: f.fuente, neto: Math.round(f.bruto * factor) })).sort((a, b) => b.neto - a.neto);
       const cuota = this.metas['fuente:' + norm] || 0;   // cuota editable propia de este cuadro
       out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), cuota, total, pct: cuota > 0 ? Math.round((total / cuota) * 100) : 0, fuentes });
     });
@@ -176,10 +186,13 @@ export class AvanceMetasComponent implements OnInit {
     const gen = new Map<string, FilaGeneral>();
     const mot = new Map<string, FilaMotos>();
     const nombre = (norm: string) => norm === 'realzza' ? 'Realzza' : (this.sedeConfig.getConfig(norm)?.nombre ?? norm);
+    this.sedeNetoTotal = {};
 
     for (const r of rows) {
       let norm = this.normSede(r.sede);
       if (norm.includes('realzza')) norm = 'realzza';   // "SEDE REALZZA STORE" → Realzza
+      // Neto REAL por sede (créditos + motos) para cuadrar el cuadro de fuente.
+      if (norm) this.sedeNetoTotal[norm] = (this.sedeNetoTotal[norm] || 0) + (Number(r.neto) || 0);
       // Por ahora solo Realzza, Lambayeque y Ferreñafe (SEDES_MOSTRAR).
       if (!norm || !this.SEDES_MOSTRAR.includes(norm)) continue;
       if (r.es_moto) {
