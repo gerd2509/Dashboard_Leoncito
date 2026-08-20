@@ -17,6 +17,50 @@
     <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando avance…" icon="flag"></app-loading-overlay>
   </div>
 
+  <!-- ══════════ REALZZA por fuente generadora (tipo_base) ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead rz"><mat-icon>storefront</mat-icon> Realzza — Ventas por Fuente Generadora <em>(tipo de base · neto vs cuota)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead><tr><th class="ta-l">Fuente generadora</th><th>Meta (S/)</th><th>Neto (S/)</th><th>% Avance</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let f of realzza">
+            <td class="ta-l">{{ f.fuente }}</td>
+            <td>{{ soles(f.meta) }}</td>
+            <td class="tot">{{ soles(f.neto) }}</td>
+            <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
+          </tr>
+          <tr *ngIf="!realzza.length" class="vacio"><td colspan="4">Sin datos de Realzza para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="realzza.length"><tr><td class="ta-l">TOTAL</td><td>{{ soles(totRz.meta) }}</td><td class="tot">{{ soles(totRz.neto) }}</td><td><span class="pct" [class]="claseAvance(totRz.pct)">{{ totRz.pct }}%</span></td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ SEDES por fuente generadora (derivación) ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead fte"><mat-icon>call_split</mat-icon> Sedes — Ventas por Fuente Generadora <em>(Lambayeque / Ferreñafe · neto vs cuota de sede)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead><tr><th class="ta-l">Sede / Fuente</th><th>Neto (S/)</th><th>Cuota sede (S/)</th><th>% Avance</th></tr></thead>
+        <tbody>
+          <ng-container *ngFor="let s of sedesFuente">
+            <tr class="grp-sede">
+              <td class="ta-l"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td>
+              <td class="tot">{{ soles(s.total) }}</td>
+              <td>{{ soles(s.cuota) }}</td>
+              <td><span class="pct" [class]="claseAvance(s.pct)">{{ s.pct }}%</span></td>
+            </tr>
+            <tr *ngFor="let f of s.fuentes" class="sub-fuente">
+              <td class="ta-l fue">{{ f.fuente }}</td><td>{{ soles(f.neto) }}</td><td></td><td></td>
+            </tr>
+          </ng-container>
+          <tr *ngIf="!sedesFuente.length" class="vacio"><td colspan="4">Sin atribución por fuente (requiere derivación cruzada, ago-2026+). La cuota de sede se toma del cuadro de Créditos.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ══════════ GENERAL: créditos por sede ══════════ -->
   <div class="am-card">
     <div class="am-cardhead cred"><mat-icon>account_balance</mat-icon> Créditos por sede — Meta vs Avance <em>(propio / aliados)</em></div>

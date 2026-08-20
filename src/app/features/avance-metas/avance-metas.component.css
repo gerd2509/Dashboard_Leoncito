@@ -18,6 +18,13 @@
 .am-cardhead { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 800; color: #fff; padding: 12px 16px; background: #283593; }
 .am-cardhead.cred { background: #1A5FAD; }
 .am-cardhead.moto { background: #EF6C00; }
+.am-cardhead.rz { background: #6A1B9A; }
+.am-cardhead.fte { background: #00838F; }
+
+/* Sedes por fuente: fila de sede (subtotal) + sub-filas de fuente */
+.am-table tr.grp-sede td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 2px solid #d5e0ee; }
+.am-table tr.sub-fuente td { color: #5a6b80; }
+.am-table tr.sub-fuente td.fue { padding-left: 30px; font-weight: 600; color: #46586c; text-align: left; }
 .am-cardhead em { font-style: normal; font-weight: 600; opacity: .85; font-size: 12px; }
 .am-cardhead mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
