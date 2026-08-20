@@ -75,23 +75,26 @@ export class AvanceMetasComponent implements OnInit {
   }
 
   private color(norm: string): string { return this.coloresSede[norm] || '#1A5FAD'; }
+  /** El campo `sede` de ventas viene como "SEDE RELENOR <NOMBRE>"; se normaliza y se le
+   *  quita ese prefijo para matchear el config/color/meta (ej. → "lambayeque"). */
+  private normSede(s: string): string { return this.sedeConfig.normalizar(s).replace(/^sederelenor/, ''); }
 
   private construir(rows: { sede: string; clase: string; es_moto: boolean; neto: number; ops: number }[]): void {
     const gen = new Map<string, FilaGeneral>();
     const mot = new Map<string, FilaMotos>();
-    const nombre = (s: string) => this.sedeConfig.getConfig(s)?.nombre ?? s;
+    const nombre = (norm: string) => this.sedeConfig.getConfig(norm)?.nombre ?? norm;
 
     for (const r of rows) {
-      const norm = this.sedeConfig.normalizar(r.sede);
+      const norm = this.normSede(r.sede);
       if (!norm) continue;
       if (r.es_moto) {
         let f = mot.get(norm);
-        if (!f) { f = { sede: nombre(r.sede), sedeNorm: norm, color: this.color(norm), propioOps: 0, propioMonto: 0, aliadoOps: 0, aliadoMonto: 0, totalOps: 0, totalMonto: 0, meta: this.metas['motos:' + norm] || 0, pct: 0 }; mot.set(norm, f); }
+        if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propioOps: 0, propioMonto: 0, aliadoOps: 0, aliadoMonto: 0, totalOps: 0, totalMonto: 0, meta: this.metas['motos:' + norm] || 0, pct: 0 }; mot.set(norm, f); }
         if (r.clase === 'PROPIO') { f.propioOps += r.ops; f.propioMonto += r.neto; }
         else { f.aliadoOps += r.ops; f.aliadoMonto += r.neto; }
       } else {
         let f = gen.get(norm);
-        if (!f) { f = { sede: nombre(r.sede), sedeNorm: norm, color: this.color(norm), propio: 0, aliado: 0, total: 0, meta: this.metas['general:' + norm] || 0, pct: 0 }; gen.set(norm, f); }
+        if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propio: 0, aliado: 0, total: 0, meta: this.metas['general:' + norm] || 0, pct: 0 }; gen.set(norm, f); }
         if (r.clase === 'PROPIO') f.propio += r.neto; else f.aliado += r.neto;
       }
     }
