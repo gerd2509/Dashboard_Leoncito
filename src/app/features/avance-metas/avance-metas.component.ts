@@ -86,7 +86,8 @@ export class AvanceMetasComponent implements OnInit {
 
     for (const r of rows) {
       const norm = this.normSede(r.sede);
-      if (!norm) continue;
+      // Solo sedes físicas del config (excluye Realzza store, incautados, oficina principal, etc.).
+      if (!norm || !this.sedeConfig.getConfig(norm)) continue;
       if (r.es_moto) {
         let f = mot.get(norm);
         if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propioOps: 0, propioMonto: 0, aliadoOps: 0, aliadoMonto: 0, totalOps: 0, totalMonto: 0, meta: this.metas['motos:' + norm] || 0, pct: 0 }; mot.set(norm, f); }
