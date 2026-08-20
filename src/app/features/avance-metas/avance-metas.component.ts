@@ -49,6 +49,7 @@ export class AvanceMetasComponent implements OnInit {
 
   private metas: Record<string, number> = {};
   private readonly SEDES_FUENTE = ['lambayeque', 'ferrenafe'];   // sedes con derivación/atribución
+  private readonly SEDES_MOSTRAR = ['lambayeque', 'ferrenafe'];  // Créditos/Motos: por ahora solo estas 2
 
   private readonly coloresSede: Record<string, string> = {
     motupe: '#1565C0', olmos: '#00695C', ferrenafe: '#6A1B9A', jayanca: '#E65100',
@@ -125,12 +126,26 @@ export class AvanceMetasComponent implements OnInit {
       if (k) metaMap.set(k, (metaMap.get(k) || 0) + (Number(m.meta) || 0));
     }
     const netos = this.netoPorClave(rows, r => (r.tipo_base || 'SIN TIPO').toString().trim().toUpperCase(), anio, mes, false);
-    this.realzza = [...new Set([...netos.keys(), ...metaMap.keys()])].map(k => {
-      const neto = netos.get(k)?.neto || 0; const meta = metaMap.get(k) || 0;
-      return { fuente: k, meta, neto, pct: meta > 0 ? Math.round((neto / meta) * 100) : 0 };
-    }).filter(f => f.neto !== 0 || f.meta > 0).sort((a, b) => b.neto - a.neto);
+    this.realzza = [...new Set([...netos.keys(), ...metaMap.keys()])]
+      .filter(k => k && k !== 'SIN TIPO')   // NC / sin tipo no se muestra
+      .map(k => {
+        const neto = netos.get(k)?.neto || 0;
+        // Meta editable manual (metas_avance 'realzza:<tipo_base>') con default del maestro meta_tipo_base.
+        const meta = this.metas['realzza:' + k] ?? metaMap.get(k) ?? 0;
+        return { fuente: k, meta, neto, pct: meta > 0 ? Math.round((neto / meta) * 100) : 0 };
+      }).filter(f => f.neto !== 0 || f.meta > 0).sort((a, b) => b.neto - a.neto);
+    this.recalcRz();
+  }
+
+  private recalcRz(): void {
     const meta = this.realzza.reduce((s, f) => s + f.meta, 0), neto = this.realzza.reduce((s, f) => s + f.neto, 0);
     this.totRz = { meta, neto, pct: meta > 0 ? Math.round((neto / meta) * 100) : 0 };
+  }
+  onMetaRealzza(f: { fuente: string; meta: number; neto: number; pct: number }, valor: any): void {
+    f.meta = Number(valor) || 0;
+    f.pct = f.meta > 0 ? Math.round((f.neto / f.meta) * 100) : 0;
+    this.recalcRz();
+    this.ventas.guardarMetaAvance('realzza:' + f.fuente, f.meta).subscribe({ error: () => {} });
   }
 
   private construirSedesFuente(porSede: any[][], anio: number, mes: number): void {
@@ -159,8 +174,8 @@ export class AvanceMetasComponent implements OnInit {
 
     for (const r of rows) {
       const norm = this.normSede(r.sede);
-      // Solo sedes físicas del config (excluye Realzza store, incautados, oficina principal, etc.).
-      if (!norm || !this.sedeConfig.getConfig(norm)) continue;
+      // Solo sedes físicas del config y, por ahora, solo las de SEDES_MOSTRAR (Lambayeque/Ferreñafe).
+      if (!norm || !this.sedeConfig.getConfig(norm) || !this.SEDES_MOSTRAR.includes(norm)) continue;
       if (r.es_moto) {
         let f = mot.get(norm);
         if (!f) { f = { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), propioOps: 0, propioMonto: 0, aliadoOps: 0, aliadoMonto: 0, totalOps: 0, totalMonto: 0, meta: this.metas['motos:' + norm] || 0, pct: 0 }; mot.set(norm, f); }

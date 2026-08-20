@@ -26,7 +26,7 @@
         <tbody>
           <tr *ngFor="let f of realzza">
             <td class="ta-l">{{ f.fuente }}</td>
-            <td>{{ soles(f.meta) }}</td>
+            <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaRealzza(f, $any($event.target).value)" placeholder="0" /></td>
             <td class="tot">{{ soles(f.neto) }}</td>
             <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
           </tr>
