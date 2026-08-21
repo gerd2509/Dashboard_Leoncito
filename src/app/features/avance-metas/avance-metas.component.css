@@ -20,6 +20,8 @@
 .am-cardhead.moto { background: #EF6C00; }
 .am-cardhead.rz { background: #6A1B9A; }
 .am-cardhead.fte { background: #00838F; }
+.am-cardhead.vend { background: #3949AB; }
+.meta-in.mad { width: 58px; text-align: center; }
 
 /* Sedes por fuente: fila de sede (subtotal) + sub-filas de fuente */
 .am-table tr.grp-sede td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 2px solid #d5e0ee; }

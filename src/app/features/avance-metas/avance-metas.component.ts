@@ -47,6 +47,9 @@ export class AvanceMetasComponent implements OnInit {
   totRz = { meta: 0, neto: 0, pct: 0 };
   sedesFuente: { sede: string; sedeNorm: string; color: string; cuotaTotal: number; total: number; pct: number; fuentes: { fuente: string; neto: number; cuota: number; pct: number }[] }[] = [];
 
+  // Por vendedor (nivel de madurez editable + meta + avance leoncito/aliados), por sede.
+  vendedores: { sede: string; sedeNorm: string; color: string; filas: { vendedor: string; redes: number; trad: number; meta: number; leoncito: number; aliados: number; total: number; pct: number }[] }[] = [];
+
   private metas: Record<string, number> = {};
   private sedeNetoTotal: Record<string, number> = {};   // neto REAL por sede (créditos + motos, del endpoint con netting)
   private rzSinTipo = 0;                                 // neto de las NC "sin tipo" de Realzza (no se muestra, pero suma al total)
@@ -91,7 +94,51 @@ export class AvanceMetasComponent implements OnInit {
         lastValueFrom(this.ventas.listarAtribucionSede(s, anio, mes || undefined)).catch(() => [] as any[])));
       this.construirSedesFuente(porSede, anio, mes);
     } catch (e) { console.error('Error sedes fuente:', e); this.sedesFuente = []; }
+    // 4) Por vendedor (Realzza / Lambayeque / Ferreñafe)
+    try {
+      const vr = await lastValueFrom(this.ventas.obtenerAvanceVendedor(anio, mes || undefined));
+      this.construirVendedores(vr || []);
+    } catch (e) { console.error('Error vendedores:', e); this.vendedores = []; }
     this.isLoading = false;
+  }
+
+  private construirVendedores(rows: { sede: string; vendedor: string; clase: string; neto: number }[]): void {
+    const bySede = new Map<string, Map<string, { leoncito: number; aliados: number }>>();
+    for (const r of rows) {
+      let norm = this.normSede(r.sede);
+      if (norm.includes('realzza')) norm = 'realzza';
+      if (!this.SEDES_MOSTRAR.includes(norm)) continue;
+      if (!bySede.has(norm)) bySede.set(norm, new Map());
+      const vm = bySede.get(norm)!;
+      const v = (r.vendedor || '').trim(); if (!v) continue;
+      if (!vm.has(v)) vm.set(v, { leoncito: 0, aliados: 0 });
+      const o = vm.get(v)!;
+      if (r.clase === 'PROPIO') o.leoncito += r.neto; else o.aliados += r.neto;
+    }
+    const nombre = (norm: string) => norm === 'realzza' ? 'Realzza' : (this.sedeConfig.getConfig(norm)?.nombre ?? norm);
+    this.vendedores = this.SEDES_MOSTRAR.map(norm => {
+      const vm = bySede.get(norm); if (!vm) return null as any;
+      const filas = [...vm.entries()].map(([vendedor, o]) => {
+        const meta = this.metas['metavend:' + norm + ':' + vendedor] || 0;
+        const total = o.leoncito + o.aliados;
+        return {
+          vendedor, redes: this.metas['madredes:' + norm + ':' + vendedor] || 0, trad: this.metas['madtrad:' + norm + ':' + vendedor] || 0,
+          meta, leoncito: o.leoncito, aliados: o.aliados, total, pct: meta > 0 ? Math.round((total / meta) * 100) : 0,
+        };
+      }).sort((a, b) => b.total - a.total);
+      return { sede: nombre(norm), sedeNorm: norm, color: this.color(norm), filas };
+    }).filter(s => s && s.filas.length);
+  }
+
+  onMadurez(norm: string, fila: { vendedor: string; redes: number; trad: number }, tipo: 'redes' | 'trad', valor: any): void {
+    const v = Math.max(0, Math.min(10, Number(valor) || 0));   // escala 1..10
+    if (tipo === 'redes') fila.redes = v; else fila.trad = v;
+    this.ventas.guardarMetaAvance((tipo === 'redes' ? 'madredes:' : 'madtrad:') + norm + ':' + fila.vendedor, v).subscribe({ error: () => {} });
+  }
+  onMetaVendedor(norm: string, fila: { vendedor: string; meta: number; total: number; pct: number }, valor: any): void {
+    fila.meta = Number(valor) || 0;
+    fila.pct = fila.meta > 0 ? Math.round((fila.total / fila.meta) * 100) : 0;
+    this.ventas.guardarMetaAvance('metavend:' + norm + ':' + fila.vendedor, fila.meta).subscribe({ error: () => {} });
   }
 
   private esNC(e: any): boolean { return /NOTA DE/.test((e || '').toString().toUpperCase()); }

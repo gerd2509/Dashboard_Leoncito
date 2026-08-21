@@ -152,4 +152,43 @@
     </div>
   </div>
 
+  <!-- ══════════ Vendedores: madurez + meta + avance leoncito/aliados ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead vend"><mat-icon>person</mat-icon> Vendedores — Madurez, Meta y Avance <em>(Realzza / Lambayeque / Ferreñafe)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead>
+          <tr>
+            <th rowspan="2" class="ta-l">Vendedor</th>
+            <th colspan="2" class="grp">Nivel de madurez (1–10)</th>
+            <th rowspan="2">Meta (S/)</th>
+            <th colspan="2" class="grp alt">Avance de meta</th>
+            <th rowspan="2">Total (S/)</th>
+            <th rowspan="2">% Avance</th>
+          </tr>
+          <tr>
+            <th class="sub">Redes</th><th class="sub">Tradicional</th>
+            <th class="sub">Leoncito</th><th class="sub">Aliados</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let s of vendedores">
+            <tr class="grp-sede"><td class="ta-l" colspan="8"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td></tr>
+            <tr *ngFor="let f of s.filas">
+              <td class="ta-l fue">{{ f.vendedor }}</td>
+              <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.redes || ''" (change)="onMadurez(s.sedeNorm, f, 'redes', $any($event.target).value)" placeholder="–" /></td>
+              <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.trad || ''" (change)="onMadurez(s.sedeNorm, f, 'trad', $any($event.target).value)" placeholder="–" /></td>
+              <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaVendedor(s.sedeNorm, f, $any($event.target).value)" placeholder="0" /></td>
+              <td>{{ soles(f.leoncito) }}</td>
+              <td>{{ soles(f.aliados) }}</td>
+              <td class="tot">{{ soles(f.total) }}</td>
+              <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
+            </tr>
+          </ng-container>
+          <tr *ngIf="!vendedores.length" class="vacio"><td colspan="8">Sin datos de vendedores para el periodo</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>

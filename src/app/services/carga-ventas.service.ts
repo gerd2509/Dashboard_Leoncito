@@ -113,6 +113,12 @@ export class CargaVentasService {
     if (mes) params = params.set('mes', mes);
     return this.http.get<any[]>(`${this.root}/avance-sedes`, { params });
   }
+  /** Avance por VENDEDOR: neto por (sede, vendedor, clase PROPIO/ALIADO). */
+  obtenerAvanceVendedor(anio: number, mes?: number): Observable<{ sede: string; vendedor: string; clase: 'PROPIO' | 'ALIADO'; neto: number }[]> {
+    let params = new HttpParams().set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/avance-vendedor`, { params });
+  }
   /** Metas editables del módulo Avance de Metas → { <clave>: meta }. */
   obtenerMetasAvance(): Observable<Record<string, number>> {
     return this.http.get<Record<string, number>>(`${this.root}/metas-avance`);
