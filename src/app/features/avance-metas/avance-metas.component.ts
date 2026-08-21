@@ -150,11 +150,11 @@ export class AvanceMetasComponent implements OnInit {
     if (!activos || !activos.length) {
       return [...vm.entries()].map(([v, o]) => this.mkFila(v, norm, o)).sort((a, b) => b.total - a.total);
     }
-    // Lambayeque / Ferreñafe: de las que tienen ventas, deja solo las VIGENTES (ACTIVO) del Maestro CAP.
-    const activosSet = new Set(activos.map(n => this.canon(n)));
-    return [...vm.entries()]
-      .filter(([v]) => activosSet.has(this.canon(v)))
-      .map(([v, o]) => this.mkFila(v, norm, o))
+    // Lambayeque / Ferreñafe: lista COMPLETA de asesoras VIGENTES (ACTIVO) del CAP, con sus ventas (0 si no vendieron
+    // este periodo). Así no se cae ninguna activa —p.ej. Perlita— y no aparecen las que renunciaron.
+    const vmCanon = new Map([...vm.entries()].map(([k, v]) => [this.canon(k), v]));
+    return activos
+      .map(v => this.mkFila(v, norm, vmCanon.get(this.canon(v)) || { leoncito: 0, aliados: 0 }))
       .sort((a, b) => b.total - a.total);
   }
 
