@@ -35,7 +35,7 @@ const G_CELULAR = 'CELULAR GESTIONADO';
 const G_ESTADO = 'ESTADO DE GESTIÓN';
 const G_FECHA = 'Marca temporal';
 
-// Columnas de la gestión SEDES (getSheetDataSedes).
+// Columnas de la gestión SEDES (tabla `gestion` de BD vía getGestionSedesDB; mismas cabeceras que la hoja).
 const GS_SEDE = 'TIENDA SEDE';
 const GS_DNI = 'DNI CLIENTE';
 const GS_CELULAR = 'N° CELULAR ACTUALIZADO';
@@ -331,15 +331,17 @@ export class AvanceCarteraComponent implements OnInit {
     return { porDni, porTel };
   }
 
-  /** Gestión SEDES → un índice (DNI/teléfono) POR CADA sede (TIENDA SEDE). */
+  /** Gestión SEDES → un índice (DNI/teléfono) POR CADA sede (TIENDA SEDE).
+   *  Fuente = tabla `gestion` de BD (lo migrado al "Sincronizar" en Control Gestión Sede
+   *  + lo registrado directo por plataforma), NO el Google Sheet. */
   private async cargarGestionSedes(): Promise<Map<string, IndiceGestion>> {
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
-    // Solo el mes seleccionado (el sheet de sedes es enorme → filtrar en backend).
+    // Solo el mes seleccionado (la BD filtra por marca_temporal) → payload mínimo.
     const desde = new Date(anio, mes, 1);
     const hasta = new Date(anio, mes + 1, 0);
     let data: any[] = [];
     try {
-      data = await lastValueFrom(this.sheets.getSheetDataSedes({ desde, hasta }));
+      data = await lastValueFrom(this.sheets.getGestionSedesDB({ desde, hasta }));
     } catch {
       throw new Error('No se pudo cargar la gestión SEDES (revisa la conexión al servidor).');
     }
