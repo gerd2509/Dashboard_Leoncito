@@ -48,7 +48,9 @@ export class AvanceMetasComponent implements OnInit {
   sedesFuente: { sede: string; sedeNorm: string; color: string; cuotaTotal: number; total: number; pct: number; fuentes: { fuente: string; neto: number; cuota: number; pct: number }[] }[] = [];
 
   // Por vendedor (nivel de madurez editable + meta + avance leoncito/aliados), por sede.
-  vendedores: { sede: string; sedeNorm: string; color: string; filas: { vendedor: string; redes: number; trad: number; meta: number; leoncito: number; aliados: number; total: number; pct: number }[]; tot: { leoncito: number; aliados: number; meta: number; total: number; pct: number } }[] = [];
+  vendedores: { sede: string; sedeNorm: string; color: string; filas: { vendedor: string; redes: number; trad: number; meta: number; leoncito: number; aliados: number; total: number; pct: number }[]; tot: { leoncito: number; aliados: number; meta: number; total: number; pct: number; redesProm: number; tradProm: number } }[] = [];
+  // Resumen POR SEDE (consolida la tabla de vendedores): madurez = promedio, avance = suma.
+  porSede: { sede: string; sedeNorm: string; color: string; redesProm: number; tradProm: number; meta: number; leoncito: number; aliados: number; total: number; pct: number }[] = [];
   totFuente = { neto: 0, cuota: 0, pct: 0 };   // gran total del cuadro Sedes por fuente
 
   private metas: Record<string, number> = {};
@@ -105,10 +107,20 @@ export class AvanceMetasComponent implements OnInit {
     this.isLoading = false;
   }
 
-  private totSeccion(filas: { leoncito: number; aliados: number; meta: number; total: number }[]) {
+  private totSeccion(filas: { leoncito: number; aliados: number; meta: number; total: number; redes: number; trad: number }[]) {
     const leoncito = filas.reduce((s, f) => s + f.leoncito, 0), aliados = filas.reduce((s, f) => s + f.aliados, 0);
     const meta = filas.reduce((s, f) => s + f.meta, 0), total = filas.reduce((s, f) => s + f.total, 0);
-    return { leoncito, aliados, meta, total, pct: meta > 0 ? Math.round((total / meta) * 100) : 0 };
+    const cr = filas.filter(f => f.redes > 0), ct = filas.filter(f => f.trad > 0);   // promedio de lo ingresado
+    const redesProm = cr.length ? Math.round(cr.reduce((s, f) => s + f.redes, 0) / cr.length * 10) / 10 : 0;
+    const tradProm = ct.length ? Math.round(ct.reduce((s, f) => s + f.trad, 0) / ct.length * 10) / 10 : 0;
+    return { leoncito, aliados, meta, total, pct: meta > 0 ? Math.round((total / meta) * 100) : 0, redesProm, tradProm };
+  }
+  private sincronizarPorSede(): void {
+    this.porSede = this.vendedores.map(s => ({
+      sede: s.sede, sedeNorm: s.sedeNorm, color: s.color,
+      redesProm: s.tot.redesProm, tradProm: s.tot.tradProm, meta: s.tot.meta,
+      leoncito: s.tot.leoncito, aliados: s.tot.aliados, total: s.tot.total, pct: s.tot.pct,
+    }));
   }
   private filasVendedor(vm: Map<string, { leoncito: number; aliados: number }>, norm: string) {
     return [...vm.entries()].map(([vendedor, o]) => {
@@ -177,17 +189,21 @@ export class AvanceMetasComponent implements OnInit {
       if (filas.length) out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), filas, tot: this.totSeccion(filas) });
     }
     this.vendedores = out;
+    this.sincronizarPorSede();
   }
 
-  onMadurez(norm: string, fila: { vendedor: string; redes: number; trad: number }, tipo: 'redes' | 'trad', valor: any): void {
+  onMadurez(sec: { sedeNorm: string; filas: any[]; tot: any }, fila: { vendedor: string; redes: number; trad: number }, tipo: 'redes' | 'trad', valor: any): void {
     const v = Math.max(0, Math.min(10, Number(valor) || 0));   // escala 1..10
     if (tipo === 'redes') fila.redes = v; else fila.trad = v;
-    this.ventas.guardarMetaAvance((tipo === 'redes' ? 'madredes:' : 'madtrad:') + norm + ':' + fila.vendedor, v).subscribe({ error: () => {} });
+    sec.tot = this.totSeccion(sec.filas);
+    this.sincronizarPorSede();
+    this.ventas.guardarMetaAvance((tipo === 'redes' ? 'madredes:' : 'madtrad:') + sec.sedeNorm + ':' + fila.vendedor, v).subscribe({ error: () => {} });
   }
   onMetaVendedor(sec: { sedeNorm: string; filas: any[]; tot: any }, fila: { vendedor: string; meta: number; total: number; pct: number }, valor: any): void {
     fila.meta = Number(valor) || 0;
     fila.pct = fila.meta > 0 ? Math.round((fila.total / fila.meta) * 100) : 0;
     sec.tot = this.totSeccion(sec.filas);
+    this.sincronizarPorSede();
     this.ventas.guardarMetaAvance('metavend:' + sec.sedeNorm + ':' + fila.vendedor, fila.meta).subscribe({ error: () => {} });
   }
 

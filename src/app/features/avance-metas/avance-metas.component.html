@@ -185,8 +185,8 @@
             <tr class="grp-sede"><td class="ta-l" colspan="8"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td></tr>
             <tr *ngFor="let f of s.filas">
               <td class="ta-l fue">{{ f.vendedor }}</td>
-              <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.redes || ''" (change)="onMadurez(s.sedeNorm, f, 'redes', $any($event.target).value)" placeholder="–" /></td>
-              <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.trad || ''" (change)="onMadurez(s.sedeNorm, f, 'trad', $any($event.target).value)" placeholder="–" /></td>
+              <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.redes || ''" (change)="onMadurez(s, f, 'redes', $any($event.target).value)" placeholder="–" /></td>
+              <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.trad || ''" (change)="onMadurez(s, f, 'trad', $any($event.target).value)" placeholder="–" /></td>
               <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaVendedor(s, f, $any($event.target).value)" placeholder="0" /></td>
               <td>{{ soles(f.leoncito) }}</td>
               <td>{{ soles(f.aliados) }}</td>
@@ -195,7 +195,7 @@
             </tr>
             <tr class="grp-tot">
               <td class="ta-l">Total {{ s.sede }}</td>
-              <td></td><td></td>
+              <td>{{ s.tot.redesProm || '–' }}</td><td>{{ s.tot.tradProm || '–' }}</td>
               <td>{{ soles(s.tot.meta) }}</td>
               <td>{{ soles(s.tot.leoncito) }}</td>
               <td>{{ soles(s.tot.aliados) }}</td>
@@ -204,6 +204,42 @@
             </tr>
           </ng-container>
           <tr *ngIf="!vendedores.length" class="vacio"><td colspan="8">Sin datos de vendedores para el periodo</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ Resumen POR SEDE (consolida vendedores) ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead sede2"><mat-icon>store</mat-icon> Resumen por sede — Madurez (promedio), Meta y Avance <em>(consolidado de la tabla de vendedores)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead>
+          <tr>
+            <th rowspan="2" class="ta-l">Sede</th>
+            <th colspan="2" class="grp">Nivel de madurez (prom.)</th>
+            <th rowspan="2">Meta (S/)</th>
+            <th colspan="2" class="grp alt">Avance de meta</th>
+            <th rowspan="2">Total (S/)</th>
+            <th rowspan="2">% Avance</th>
+          </tr>
+          <tr>
+            <th class="sub">Redes</th><th class="sub">Tradicional</th>
+            <th class="sub">Leoncito</th><th class="sub">Aliados</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of porSede">
+            <td class="ta-l"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td>
+            <td>{{ s.redesProm || '–' }}</td>
+            <td>{{ s.tradProm || '–' }}</td>
+            <td>{{ soles(s.meta) }}</td>
+            <td>{{ soles(s.leoncito) }}</td>
+            <td>{{ soles(s.aliados) }}</td>
+            <td class="tot">{{ soles(s.total) }}</td>
+            <td><span class="pct" [class]="claseAvance(s.pct)">{{ s.pct }}%</span></td>
+          </tr>
+          <tr *ngIf="!porSede.length" class="vacio"><td colspan="8">Sin datos</td></tr>
         </tbody>
       </table>
     </div>
