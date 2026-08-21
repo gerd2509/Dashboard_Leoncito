@@ -17,6 +17,7 @@
     <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando avance…" icon="flag"></app-loading-overlay>
   </div>
 
+  <div class="am-pair">
   <!-- ══════════ REALZZA por fuente generadora (tipo_base) ══════════ -->
   <div class="am-card">
     <div class="am-cardhead rz"><mat-icon>storefront</mat-icon> Realzza — Ventas por Fuente Generadora <em>(tipo de base · neto vs cuota)</em></div>
@@ -58,11 +59,19 @@
               <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
             </tr>
           </ng-container>
-          <tr *ngIf="!sedesFuente.length" class="vacio"><td colspan="4">Sin atribución por fuente (requiere derivación cruzada, ago-2026+). La cuota de sede se toma del cuadro de Créditos.</td></tr>
+          <tr *ngIf="!sedesFuente.length" class="vacio"><td colspan="4">Sin atribución por fuente (requiere derivación cruzada, ago-2026+).</td></tr>
         </tbody>
+        <tfoot *ngIf="sedesFuente.length"><tr>
+          <td class="ta-l">TOTAL</td>
+          <td class="tot">{{ soles(totFuente.neto) }}</td>
+          <td class="tot">{{ soles(totFuente.cuota) }}</td>
+          <td><span class="pct" [class]="claseAvance(totFuente.pct)">{{ totFuente.pct }}%</span></td>
+        </tr></tfoot>
       </table>
     </div>
   </div>
+
+  </div><!-- /.am-pair -->
 
   <!-- ══════════ GENERAL: créditos por sede ══════════ -->
   <div class="am-card">
@@ -178,11 +187,20 @@
               <td class="ta-l fue">{{ f.vendedor }}</td>
               <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.redes || ''" (change)="onMadurez(s.sedeNorm, f, 'redes', $any($event.target).value)" placeholder="–" /></td>
               <td class="meta"><input type="number" min="0" max="10" class="meta-in mad" [value]="f.trad || ''" (change)="onMadurez(s.sedeNorm, f, 'trad', $any($event.target).value)" placeholder="–" /></td>
-              <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaVendedor(s.sedeNorm, f, $any($event.target).value)" placeholder="0" /></td>
+              <td class="meta"><input type="number" class="meta-in" [value]="f.meta || ''" (change)="onMetaVendedor(s, f, $any($event.target).value)" placeholder="0" /></td>
               <td>{{ soles(f.leoncito) }}</td>
               <td>{{ soles(f.aliados) }}</td>
               <td class="tot">{{ soles(f.total) }}</td>
               <td><span class="pct" [class]="claseAvance(f.pct)">{{ f.pct }}%</span></td>
+            </tr>
+            <tr class="grp-tot">
+              <td class="ta-l">Total {{ s.sede }}</td>
+              <td></td><td></td>
+              <td>{{ soles(s.tot.meta) }}</td>
+              <td>{{ soles(s.tot.leoncito) }}</td>
+              <td>{{ soles(s.tot.aliados) }}</td>
+              <td class="tot">{{ soles(s.tot.total) }}</td>
+              <td><span class="pct" [class]="claseAvance(s.tot.pct)">{{ s.tot.pct }}%</span></td>
             </tr>
           </ng-container>
           <tr *ngIf="!vendedores.length" class="vacio"><td colspan="8">Sin datos de vendedores para el periodo</td></tr>

@@ -48,7 +48,8 @@ export class AvanceMetasComponent implements OnInit {
   sedesFuente: { sede: string; sedeNorm: string; color: string; cuotaTotal: number; total: number; pct: number; fuentes: { fuente: string; neto: number; cuota: number; pct: number }[] }[] = [];
 
   // Por vendedor (nivel de madurez editable + meta + avance leoncito/aliados), por sede.
-  vendedores: { sede: string; sedeNorm: string; color: string; filas: { vendedor: string; redes: number; trad: number; meta: number; leoncito: number; aliados: number; total: number; pct: number }[] }[] = [];
+  vendedores: { sede: string; sedeNorm: string; color: string; filas: { vendedor: string; redes: number; trad: number; meta: number; leoncito: number; aliados: number; total: number; pct: number }[]; tot: { leoncito: number; aliados: number; meta: number; total: number; pct: number } }[] = [];
+  totFuente = { neto: 0, cuota: 0, pct: 0 };   // gran total del cuadro Sedes por fuente
 
   private metas: Record<string, number> = {};
   private rzRows: any[] = [];                            // filas del /ventas-realzza/modulo (para vendedor CALL)
@@ -104,6 +105,11 @@ export class AvanceMetasComponent implements OnInit {
     this.isLoading = false;
   }
 
+  private totSeccion(filas: { leoncito: number; aliados: number; meta: number; total: number }[]) {
+    const leoncito = filas.reduce((s, f) => s + f.leoncito, 0), aliados = filas.reduce((s, f) => s + f.aliados, 0);
+    const meta = filas.reduce((s, f) => s + f.meta, 0), total = filas.reduce((s, f) => s + f.total, 0);
+    return { leoncito, aliados, meta, total, pct: meta > 0 ? Math.round((total / meta) * 100) : 0 };
+  }
   private filasVendedor(vm: Map<string, { leoncito: number; aliados: number }>, norm: string) {
     return [...vm.entries()].map(([vendedor, o]) => {
       const meta = this.metas['metavend:' + norm + ':' + vendedor] || 0;
@@ -144,7 +150,7 @@ export class AvanceMetasComponent implements OnInit {
       if (clase === 'PROPIO') o.leoncito += neto; else o.aliados += neto;
     });
     const filas = this.filasVendedor(vm, 'realzza');
-    return filas.length ? { sede: 'Realzza', sedeNorm: 'realzza', color: this.color('realzza'), filas } : null;
+    return filas.length ? { sede: 'Realzza', sedeNorm: 'realzza', color: this.color('realzza'), filas, tot: this.totSeccion(filas) } : null;
   }
 
   private construirVendedores(vr: { sede: string; vendedor: string; clase: string; neto: number }[], anio: number, mes: number): void {
@@ -168,7 +174,7 @@ export class AvanceMetasComponent implements OnInit {
     for (const norm of ['lambayeque', 'ferrenafe']) {
       const vm = bySede.get(norm); if (!vm) continue;
       const filas = this.filasVendedor(vm, norm);
-      if (filas.length) out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), filas });
+      if (filas.length) out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), filas, tot: this.totSeccion(filas) });
     }
     this.vendedores = out;
   }
@@ -178,10 +184,11 @@ export class AvanceMetasComponent implements OnInit {
     if (tipo === 'redes') fila.redes = v; else fila.trad = v;
     this.ventas.guardarMetaAvance((tipo === 'redes' ? 'madredes:' : 'madtrad:') + norm + ':' + fila.vendedor, v).subscribe({ error: () => {} });
   }
-  onMetaVendedor(norm: string, fila: { vendedor: string; meta: number; total: number; pct: number }, valor: any): void {
+  onMetaVendedor(sec: { sedeNorm: string; filas: any[]; tot: any }, fila: { vendedor: string; meta: number; total: number; pct: number }, valor: any): void {
     fila.meta = Number(valor) || 0;
     fila.pct = fila.meta > 0 ? Math.round((fila.total / fila.meta) * 100) : 0;
-    this.ventas.guardarMetaAvance('metavend:' + norm + ':' + fila.vendedor, fila.meta).subscribe({ error: () => {} });
+    sec.tot = this.totSeccion(sec.filas);
+    this.ventas.guardarMetaAvance('metavend:' + sec.sedeNorm + ':' + fila.vendedor, fila.meta).subscribe({ error: () => {} });
   }
 
   private esNC(e: any): boolean { return /NOTA DE/.test((e || '').toString().toUpperCase()); }
@@ -265,12 +272,19 @@ export class AvanceMetasComponent implements OnInit {
       out.push({ sede: this.sedeConfig.getConfig(norm)?.nombre ?? norm, sedeNorm: norm, color: this.color(norm), cuotaTotal, total, pct: cuotaTotal > 0 ? Math.round((total / cuotaTotal) * 100) : 0, fuentes });
     });
     this.sedesFuente = out.filter(s => s.fuentes.length);
+    this.recalcTotFuente();
+  }
+  private recalcTotFuente(): void {
+    const neto = this.sedesFuente.reduce((s, x) => s + x.total, 0);
+    const cuota = this.sedesFuente.reduce((s, x) => s + x.cuotaTotal, 0);
+    this.totFuente = { neto, cuota, pct: cuota > 0 ? Math.round((neto / cuota) * 100) : 0 };
   }
   onMetaFuenteTipo(s: { sedeNorm: string; total: number; cuotaTotal: number; pct: number; fuentes: { neto: number; cuota: number; pct: number }[] }, f: { fuente: string; neto: number; cuota: number; pct: number }, valor: any): void {
     f.cuota = Number(valor) || 0;
     f.pct = f.cuota > 0 ? Math.round((f.neto / f.cuota) * 100) : 0;
     s.cuotaTotal = s.fuentes.reduce((a, x) => a + x.cuota, 0);
     s.pct = s.cuotaTotal > 0 ? Math.round((s.total / s.cuotaTotal) * 100) : 0;
+    this.recalcTotFuente();
     this.ventas.guardarMetaAvance('fuente:' + s.sedeNorm + ':' + f.fuente, f.cuota).subscribe({ error: () => {} });
   }
 

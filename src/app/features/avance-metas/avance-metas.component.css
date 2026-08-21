@@ -12,6 +12,11 @@
 .am-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
 .am-wrap { position: relative; display: flex; flex-direction: column; gap: 22px; }
+/* Dos tablas por fila (Realzza + Sedes por fuente) */
+.am-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 980px) { .am-pair { grid-template-columns: 1fr; } }
+/* Fila de subtotal por sede (Vendedores) */
+.am-table tr.grp-tot td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 1.5px solid #d5e0ee; }
 .am-overlay { position: absolute; inset: 0; background: rgba(238,242,248,.8); display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; z-index: 10; border-radius: 12px; }
 
 .am-card { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(20,50,90,.05); }
