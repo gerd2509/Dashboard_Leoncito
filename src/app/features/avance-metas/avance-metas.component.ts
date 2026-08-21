@@ -56,10 +56,8 @@ export class AvanceMetasComponent implements OnInit {
   totFuente = { neto: 0, cuota: 0, pct: 0 };   // gran total del cuadro Sedes por fuente
 
   private metas: Record<string, number> = {};
-  // Asesores VIGENTES (ACTIVO) del Maestro CAP por sede → solo estos se listan en la tabla de vendedores.
+  // Asesoras VIGENTES (ACTIVO) del Maestro CAP por sede (solo Lambayeque/Ferreñafe) → filtra la tabla de vendedores.
   private capActivos: Record<string, string[]> = {};
-  // Buckets de atribución (no son asesores del CAP) que sí se listan en Realzza.
-  private readonly BUCKETS_ESP = ['CALL', 'SIN DERIVACIÓN'];
   private rzRows: any[] = [];                            // filas del /ventas-realzza/modulo (para vendedor CALL)
   private sedeNetoTotal: Record<string, number> = {};   // neto REAL por sede (créditos + motos, del endpoint con netting)
   private rzSinTipo = 0;                                 // neto de las NC "sin tipo" de Realzza (no se muestra, pero suma al total)
@@ -107,13 +105,13 @@ export class AvanceMetasComponent implements OnInit {
     } catch (e) { console.error('Error sedes fuente:', e); this.sedesFuente = []; }
     // 4) Por vendedor (Realzza / Lambayeque / Ferreñafe) — solo asesores VIGENTES (ACTIVO) del Maestro CAP.
     try {
-      const [vr, capR, capL, capF] = await Promise.all([
+      const [vr, capL, capF] = await Promise.all([
         lastValueFrom(this.ventas.obtenerAvanceVendedor(anio, mes || undefined)),
-        this.cap.vendedoresActivos('REALZZA STORE').catch(() => [] as string[]),  // Realzza = sede "REALZZA STORE" en el CAP
         this.cap.vendedoresActivos('lambayeque').catch(() => [] as string[]),
         this.cap.vendedoresActivos('ferrenafe').catch(() => [] as string[]),
       ]);
-      this.capActivos = { realzza: capR, lambayeque: capL, ferrenafe: capF };
+      // Solo Lambayeque/Ferreñafe se filtran por CAP. Realzza queda con su lógica original (CALL + asesoras con ventas).
+      this.capActivos = { lambayeque: capL, ferrenafe: capF };
       this.construirVendedores(vr || [], anio, mes);
     } catch (e) { console.error('Error vendedores:', e); this.vendedores = []; }
     this.isLoading = false;
@@ -148,15 +146,15 @@ export class AvanceMetasComponent implements OnInit {
   }
   private filasVendedor(vm: Map<string, { leoncito: number; aliados: number }>, norm: string) {
     const activos = this.capActivos[norm];
-    // Sin CAP disponible → comportamiento anterior (todos los vendedores con ventas), para no dejar la tabla vacía.
+    // Realzza (y fallback si el CAP no carga): comportamiento original → todos los vendedores con ventas (incluye CALL / SIN DERIVACIÓN).
     if (!activos || !activos.length) {
       return [...vm.entries()].map(([v, o]) => this.mkFila(v, norm, o)).sort((a, b) => b.total - a.total);
     }
-    const vmCanon = new Map([...vm.entries()].map(([k, v]) => [this.canon(k), v]));
-    const nombres = [...activos];                                          // asesores VIGENTES del CAP (aunque no vendan este mes)
-    this.BUCKETS_ESP.forEach(b => { if (vm.has(b)) nombres.push(b); });    // Realzza: CALL / SIN DERIVACIÓN (atribución)
-    return nombres
-      .map(v => this.mkFila(v, norm, vmCanon.get(this.canon(v)) || { leoncito: 0, aliados: 0 }))
+    // Lambayeque / Ferreñafe: de las que tienen ventas, deja solo las VIGENTES (ACTIVO) del Maestro CAP.
+    const activosSet = new Set(activos.map(n => this.canon(n)));
+    return [...vm.entries()]
+      .filter(([v]) => activosSet.has(this.canon(v)))
+      .map(([v, o]) => this.mkFila(v, norm, o))
       .sort((a, b) => b.total - a.total);
   }
 
