@@ -3,6 +3,7 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
@@ -26,6 +27,7 @@ interface FilaMotos {
 export class AvanceMetasComponent implements OnInit {
   private ventas = inject(CargaVentasService);
   protected sedeConfig = inject(SedeConfigService);
+  private cap = inject(CapSedesService);
 
   form: UntypedFormGroup;
   isLoading = false;
@@ -54,6 +56,10 @@ export class AvanceMetasComponent implements OnInit {
   totFuente = { neto: 0, cuota: 0, pct: 0 };   // gran total del cuadro Sedes por fuente
 
   private metas: Record<string, number> = {};
+  // Asesores VIGENTES (ACTIVO) del Maestro CAP por sede → solo estos se listan en la tabla de vendedores.
+  private capActivos: Record<string, string[]> = {};
+  // Buckets de atribución (no son asesores del CAP) que sí se listan en Realzza.
+  private readonly BUCKETS_ESP = ['CALL', 'SIN DERIVACIÓN'];
   private rzRows: any[] = [];                            // filas del /ventas-realzza/modulo (para vendedor CALL)
   private sedeNetoTotal: Record<string, number> = {};   // neto REAL por sede (créditos + motos, del endpoint con netting)
   private rzSinTipo = 0;                                 // neto de las NC "sin tipo" de Realzza (no se muestra, pero suma al total)
@@ -99,9 +105,15 @@ export class AvanceMetasComponent implements OnInit {
         lastValueFrom(this.ventas.listarAtribucionSede(s, anio, mes || undefined)).catch(() => [] as any[])));
       this.construirSedesFuente(porSede, anio, mes);
     } catch (e) { console.error('Error sedes fuente:', e); this.sedesFuente = []; }
-    // 4) Por vendedor (Realzza / Lambayeque / Ferreñafe)
+    // 4) Por vendedor (Realzza / Lambayeque / Ferreñafe) — solo asesores VIGENTES (ACTIVO) del Maestro CAP.
     try {
-      const vr = await lastValueFrom(this.ventas.obtenerAvanceVendedor(anio, mes || undefined));
+      const [vr, capR, capL, capF] = await Promise.all([
+        lastValueFrom(this.ventas.obtenerAvanceVendedor(anio, mes || undefined)),
+        this.cap.vendedoresActivos('REALZZA STORE').catch(() => [] as string[]),  // Realzza = sede "REALZZA STORE" en el CAP
+        this.cap.vendedoresActivos('lambayeque').catch(() => [] as string[]),
+        this.cap.vendedoresActivos('ferrenafe').catch(() => [] as string[]),
+      ]);
+      this.capActivos = { realzza: capR, lambayeque: capL, ferrenafe: capF };
       this.construirVendedores(vr || [], anio, mes);
     } catch (e) { console.error('Error vendedores:', e); this.vendedores = []; }
     this.isLoading = false;
@@ -122,15 +134,30 @@ export class AvanceMetasComponent implements OnInit {
       leoncito: s.tot.leoncito, aliados: s.tot.aliados, total: s.tot.total, pct: s.tot.pct,
     }));
   }
+  /** Nombre canónico para cruzar CAP ↔ ventas (mayúsculas, sin tildes, espacios colapsados). */
+  private canon(s: any): string {
+    return (s || '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  private mkFila(vendedor: string, norm: string, o: { leoncito: number; aliados: number }) {
+    const meta = this.metas['metavend:' + norm + ':' + vendedor] || 0;
+    const total = o.leoncito + o.aliados;
+    return {
+      vendedor, redes: this.metas['madredes:' + norm + ':' + vendedor] || 0, trad: this.metas['madtrad:' + norm + ':' + vendedor] || 0,
+      meta, leoncito: o.leoncito, aliados: o.aliados, total, pct: meta > 0 ? Math.round((total / meta) * 100) : 0,
+    };
+  }
   private filasVendedor(vm: Map<string, { leoncito: number; aliados: number }>, norm: string) {
-    return [...vm.entries()].map(([vendedor, o]) => {
-      const meta = this.metas['metavend:' + norm + ':' + vendedor] || 0;
-      const total = o.leoncito + o.aliados;
-      return {
-        vendedor, redes: this.metas['madredes:' + norm + ':' + vendedor] || 0, trad: this.metas['madtrad:' + norm + ':' + vendedor] || 0,
-        meta, leoncito: o.leoncito, aliados: o.aliados, total, pct: meta > 0 ? Math.round((total / meta) * 100) : 0,
-      };
-    }).sort((a, b) => b.total - a.total);
+    const activos = this.capActivos[norm];
+    // Sin CAP disponible → comportamiento anterior (todos los vendedores con ventas), para no dejar la tabla vacía.
+    if (!activos || !activos.length) {
+      return [...vm.entries()].map(([v, o]) => this.mkFila(v, norm, o)).sort((a, b) => b.total - a.total);
+    }
+    const vmCanon = new Map([...vm.entries()].map(([k, v]) => [this.canon(k), v]));
+    const nombres = [...activos];                                          // asesores VIGENTES del CAP (aunque no vendan este mes)
+    this.BUCKETS_ESP.forEach(b => { if (vm.has(b)) nombres.push(b); });    // Realzza: CALL / SIN DERIVACIÓN (atribución)
+    return nombres
+      .map(v => this.mkFila(v, norm, vmCanon.get(this.canon(v)) || { leoncito: 0, aliados: 0 }))
+      .sort((a, b) => b.total - a.total);
   }
 
   // Realzza: misma lógica de Ventas Realzza → CALL (tipo_base='CALL') y "SIN DERIVACIÓN" son
