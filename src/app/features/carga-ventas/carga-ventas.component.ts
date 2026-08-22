@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { HttpEventType } from '@angular/common/http';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { AuthService } from '../../services/auth.service';
@@ -25,7 +25,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
   templateUrl: './carga-ventas.component.html',
   styleUrl: './carga-ventas.component.css',
 })
-export class CargaVentasComponent implements OnInit {
+export class CargaVentasComponent implements OnInit, OnDestroy {
   private srv = inject(CargaVentasService);
   private auth = inject(AuthService);
 
@@ -74,8 +74,17 @@ export class CargaVentasComponent implements OnInit {
   estado: EstadoVentas | null = null;
   cargandoEstado = false;
 
+  // Sondeo del margen procesado en segundo plano.
+  private prevCreado: string | null = null;
+  private pollTimer: any = null;
+  private pollHasta = 0;
+
   ngOnInit(): void {
     this.cargarEstado();
+  }
+
+  ngOnDestroy(): void {
+    if (this.pollTimer) clearTimeout(this.pollTimer);
   }
 
   get opcionActual(): OpcionCarga {
@@ -110,11 +119,14 @@ export class CargaVentasComponent implements OnInit {
 
   subir(): void {
     if (!this.archivo || this.subiendo) return;
+    if (this.pollTimer) { clearTimeout(this.pollTimer); this.pollTimer = null; }
     this.subiendo = true;
     this.procesando = false;
     this.progreso = 0;
     this.resultado = null;
     this.error = '';
+    // Marca temporal de la última carga ANTES de subir (para detectar cuándo terminó la nueva).
+    this.prevCreado = this.estado?.ultimaCarga?.creado_en ?? null;
 
     const nombre = this.auth.getUsuario()?.nombre ?? '';
     this.srv.importar(this.tipo, this.archivo, nombre).subscribe({
@@ -133,9 +145,19 @@ export class CargaVentasComponent implements OnInit {
           this.progreso = 100;
           this.procesando = true;
         } else if (ev.type === HttpEventType.Response) {
+          const body = ev.body as ResultadoCargaVentas;
+          // Margen (u otros pesados): el backend procesa en segundo plano y responde al
+          // instante → seguimos consultando /estado hasta que termine (evita timeouts).
+          if (body && body.procesando) {
+            this.progreso = 100;
+            this.procesando = true;
+            this.pollHasta = Date.now() + 8 * 60 * 1000;   // hasta 8 min
+            this.archivo = null;
+            this.sondearProcesamiento();
+            return;
+          }
           this.subiendo = false;
           this.procesando = false;
-          const body = ev.body as ResultadoCargaVentas;
           if (body && body.success) {
             this.resultado = body;
             this.archivo = null;
@@ -150,6 +172,36 @@ export class CargaVentasComponent implements OnInit {
         this.procesando = false;
         this.error = err?.error?.message
           ?? 'No se pudo subir el archivo. Revisa tu conexión o el tamaño del archivo.';
+      },
+    });
+  }
+
+  /** Consulta /estado cada 3s mientras el backend procesa el margen en segundo plano. */
+  private sondearProcesamiento(): void {
+    this.srv.estado(this.tipo).subscribe({
+      next: (e) => {
+        this.estado = e;
+        const creado = e.ultimaCarga?.creado_en ?? null;
+        const listo = creado && creado !== this.prevCreado;   // apareció una carga nueva
+        if (e.error) {                                        // el job falló en background
+          this.subiendo = false; this.procesando = false;
+          this.error = e.error;
+        } else if (listo && !e.procesando) {                  // terminó OK
+          this.subiendo = false; this.procesando = false;
+          this.resultado = {
+            success: true, filas: e.ultimaCarga!.filas, codigos: e.ultimaCarga!.codigos,
+            reemplazados: e.ultimaCarga!.reemplazados, updated_at: e.updated_at ?? '',
+          };
+        } else if (Date.now() > this.pollHasta) {             // demasiado tiempo → aviso
+          this.subiendo = false; this.procesando = false;
+          this.error = 'La carga sigue procesándose. Vuelve a abrir esta pantalla en unos minutos para ver el resultado.';
+        } else {
+          this.pollTimer = setTimeout(() => this.sondearProcesamiento(), 3000);
+        }
+      },
+      error: () => {                                          // error de red al consultar → reintenta
+        if (Date.now() > this.pollHasta) { this.subiendo = false; this.procesando = false; return; }
+        this.pollTimer = setTimeout(() => this.sondearProcesamiento(), 4000);
       },
     });
   }

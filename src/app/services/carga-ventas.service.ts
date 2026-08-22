@@ -16,6 +16,7 @@ export interface ResultadoCargaVentas {
   reemplazados?: number;  // margen (filas reemplazadas)
   updated_at: string;
   message?: string;
+  procesando?: boolean;   // margen: el backend procesa en segundo plano → hay que consultar /estado
 }
 
 /** Estado de la tabla destino (GET .../estado). */
@@ -33,6 +34,8 @@ export interface EstadoVentas {
     reemplazados?: number;
     creado_en: string;
   } | null;
+  procesando?: boolean;      // margen: hay una carga corriendo en segundo plano
+  error?: string | null;     // margen: mensaje de la última carga que falló en background
 }
 
 /**
