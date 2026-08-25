@@ -277,10 +277,6 @@ export class VentasComponent implements OnInit {
     };
   }
 
-  /** DNI/documento del cliente vacío → venta a nombre de empresa (RUC), no cruzable por DNI. */
-  private dniVacio(v: any): boolean {
-    return !((v.DocIdentidad ?? '').toString().replace(/\D/g, ''));
-  }
   /** ¿Es una NOTA DE CRÉDITO? Nunca cuenta en Call (ni total, ni bonos, ni por asesor). */
   private esNotaCredito(v: any): boolean {
     const e = (v.EstadoVenta ?? '').toString().trim().toUpperCase();
@@ -289,7 +285,7 @@ export class VentasComponent implements OnInit {
   /** ¿La venta cuenta al monto del asesor? (no es huérfana sin derivación). */
   private cuentaAlAsesor(v: any): boolean {
     if (!v.SinDerivacion || v.Extranjero) return true;
-    return this.dniVacio(v) && v.AtribManual;   // RUC/empresa atribuida a mano → sí cuenta
+    return !!v.AtribManual;   // atribución manual → siempre cuenta al vendedor asignado
   }
 
   configuracionesIniciales(): void {
