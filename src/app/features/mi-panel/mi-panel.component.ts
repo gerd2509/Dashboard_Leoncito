@@ -618,14 +618,13 @@ export class MiPanelComponent implements OnInit {
         // Las ventas SIN derivación (ago-2026+) NO se reflejan en el panel del vendedor:
         // suman al global del canal pero no impactan su monto/tablas/sueldo. Excepciones que
         // SÍ cuentan: las CALL (tipo_base='CALL'), las marcadas "extranjero" (carnet de
-        // extranjería) y las de DNI vacío (RUC/empresa) atribuidas a mano — no cruzan por DNI.
-        const dniVacio = (r: any) => !((r.doc_identidad ?? '').toString().replace(/\D/g, ''));
+        // extranjería) y las atribuidas a mano (asesor_manual) — con o sin DNI.
         this.todas = (rows || [])
           // Call: las NOTAS DE CRÉDITO NUNCA cuentan (ni suman ni restan). En Realzza sí
           // se conservan porque restan del neto en su mes de afectación.
           .filter(r => !(this.esCall && this.esNotaCred(r)))
           .filter(r => !(r.sin_derivacion && !r.extranjero
-              && !(dniVacio(r) && r.asesor_manual)
+              && !r.asesor_manual
               && (r.tipo_base || '').toString().trim().toUpperCase() !== 'CALL'))
           .map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
         this.aplicar();
