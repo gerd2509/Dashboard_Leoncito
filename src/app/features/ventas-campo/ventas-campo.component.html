@@ -335,7 +335,7 @@
 <!-- ══════════ Ventas por PLAZO (cuotas) — Realzza ══════════ -->
 <div class="section-header">
     <mat-icon>schedule</mat-icon>
-    Ventas por Plazo — Corto (1–6 meses) / Largo (7–12 meses)
+    Ventas por Plazo — Corto (1–6) / Largo (7–12) · nº de operaciones
 </div>
 <dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
     [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
@@ -356,7 +356,7 @@
 
 <div class="section-header">
     <mat-icon>calendar_month</mat-icon>
-    Detalle por Cuotas (0–12 meses) — nº de ventas por vendedor
+    Detalle por Cuotas (0–12 meses) — nº de operaciones por vendedor
 </div>
 <dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
     [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
@@ -392,6 +392,69 @@
         <dxi-total-item column="c11" summaryType="sum" displayFormat="{0}"></dxi-total-item>
         <dxi-total-item column="c12" summaryType="sum" displayFormat="{0}"></dxi-total-item>
         <dxi-total-item column="Total" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
+<!-- ══════════ Ventas por PLAZO — monto consolidado ══════════ -->
+<div class="section-header">
+    <mat-icon>schedule</mat-icon>
+    Ventas por Plazo — Corto (1–6) / Largo (7–12) · monto consolidado (S/)
+</div>
+<dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+    (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [width]="190" />
+    <dxi-column dataField="mContado" caption="CONTADO (0)" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+    <dxi-column dataField="mCorto" caption="CORTO PLAZO (1–6)" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+    <dxi-column dataField="mLargo" caption="LARGO PLAZO (7–12)" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+    <dxi-column dataField="mTotal" caption="TOTAL (0–12)" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+    <dxo-summary>
+        <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+        <dxi-total-item column="mContado" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mCorto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mLargo" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
+<div class="section-header">
+    <mat-icon>calendar_month</mat-icon>
+    Detalle por Cuotas (0–12 meses) — monto consolidado (S/) por vendedor
+</div>
+<dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+    (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [width]="190" />
+    <dxi-column dataField="mc0" caption="0" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc1" caption="1" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc2" caption="2" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc3" caption="3" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc4" caption="4" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc5" caption="5" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc6" caption="6" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc7" caption="7" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc8" caption="8" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc9" caption="9" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc10" caption="10" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc11" caption="11" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mc12" caption="12" alignment="center" dataType="number" [format]="'#,##0'" />
+    <dxi-column dataField="mTotal" caption="TOTAL" alignment="center" dataType="number" [format]="'S/ #,##0'" />
+    <dxo-summary>
+        <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+        <dxi-total-item column="mc0" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc1" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc2" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc3" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc4" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc5" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc6" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc7" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc8" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc9" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc10" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc11" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mc12" summaryType="sum" displayFormat="{0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="mTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
     </dxo-summary>
 </dx-data-grid>
 

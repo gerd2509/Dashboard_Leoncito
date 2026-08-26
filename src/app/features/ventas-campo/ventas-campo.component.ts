@@ -1026,18 +1026,19 @@ export class VentasCampoComponent implements OnInit {
       const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
       let r = map.get(nombre);
       if (!r) {
-        r = { Vendedor: nombre, Contado: 0, Corto: 0, Largo: 0, Total: 0 };
-        for (let i = 0; i <= 12; i++) r['c' + i] = 0;
+        r = { Vendedor: nombre, Contado: 0, Corto: 0, Largo: 0, Total: 0, mContado: 0, mCorto: 0, mLargo: 0, mTotal: 0 };
+        for (let i = 0; i <= 12; i++) { r['c' + i] = 0; r['mc' + i] = 0; }
         map.set(nombre, r);
       }
       let cuota = Number(v.Cuotas);
       if (isNaN(cuota) || cuota < 0) cuota = 0;
       if (cuota > 12) cuota = 12;
-      r['c' + cuota]++;
-      r.Total++;
-      if (cuota === 0) r.Contado++;
-      else if (cuota <= 6) r.Corto++;
-      else r.Largo++;
+      const monto = Number(v.MontoConsolidado) || 0;
+      r['c' + cuota]++; r['mc' + cuota] += monto;
+      r.Total++; r.mTotal += monto;
+      if (cuota === 0) { r.Contado++; r.mContado += monto; }
+      else if (cuota <= 6) { r.Corto++; r.mCorto += monto; }
+      else { r.Largo++; r.mLargo += monto; }
     }
     this.ventasPorPlazo = [...map.values()].sort((a, b) => b.Total - a.Total);
   }
