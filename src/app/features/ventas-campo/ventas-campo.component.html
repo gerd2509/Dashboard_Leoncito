@@ -332,6 +332,69 @@
 </dx-data-grid>
 
 <!-- ===== FILA: AVANCE VENDEDOR + TIPO DE PAGO ===== -->
+<!-- ══════════ Ventas por PLAZO (cuotas) — Realzza ══════════ -->
+<div class="section-header">
+    <mat-icon>schedule</mat-icon>
+    Ventas por Plazo — Corto (1–6 meses) / Largo (7–12 meses)
+</div>
+<dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+    (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [minWidth]="130" />
+    <dxi-column dataField="Contado" caption="CONTADO (0)" alignment="center" dataType="number" [width]="120" />
+    <dxi-column dataField="Corto" caption="CORTO PLAZO (1–6)" alignment="center" dataType="number" />
+    <dxi-column dataField="Largo" caption="LARGO PLAZO (7–12)" alignment="center" dataType="number" />
+    <dxi-column dataField="Total" caption="TOTAL (0–12)" alignment="center" dataType="number" [width]="120" />
+    <dxo-summary>
+        <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+        <dxi-total-item column="Contado" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="Corto" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="Largo" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="Total" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
+<div class="section-header">
+    <mat-icon>calendar_month</mat-icon>
+    Detalle por Cuotas (0–12 meses) — nº de ventas por vendedor
+</div>
+<dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+    (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
+    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [minWidth]="130" />
+    <dxi-column dataField="c0" caption="0" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c1" caption="1" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c2" caption="2" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c3" caption="3" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c4" caption="4" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c5" caption="5" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c6" caption="6" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c7" caption="7" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c8" caption="8" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c9" caption="9" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c10" caption="10" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c11" caption="11" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="c12" caption="12" alignment="center" dataType="number" [width]="54" />
+    <dxi-column dataField="Total" caption="TOTAL" alignment="center" dataType="number" [width]="80" />
+    <dxo-summary>
+        <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
+        <dxi-total-item column="c0" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c1" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c2" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c3" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c4" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c5" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c6" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c7" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c8" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c9" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c10" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c11" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="c12" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="Total" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+    </dxo-summary>
+</dx-data-grid>
+
 <div class="tabla-row-2">
     <div>
         <div class="section-header">

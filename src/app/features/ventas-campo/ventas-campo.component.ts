@@ -79,6 +79,7 @@ export class VentasCampoComponent implements OnInit {
   columnasDiasMes: string[] = [];
 
   resumenPorVendedor: any[] = [];
+  ventasPorPlazo: any[] = [];   // por vendedor: # ventas por nº de cuotas (0–12) + corto/largo plazo
   ventasPorSemana: any[] = [];
   ventasPorEntidad: any[] = [];
   motosPorEntidad: any[] = [];
@@ -605,6 +606,7 @@ export class VentasCampoComponent implements OnInit {
     this.aplicarAjustesEvolutivo();
     this.generarChartData();
     this.generarResumenPorVendedor();
+    this.generarVentasPorPlazo();
     this.generarVentasPorSemana();
     this.generarVentasPorEntidad();
     this.generarMotosPorEntidad();
@@ -1013,6 +1015,31 @@ export class VentasCampoComponent implements OnInit {
 
     this.resumenPorVendedor = rows.sort((a, b) => b.MontoNeto - a.MontoNeto);
     this.maxMontoVendedor = this.resumenPorVendedor.length > 0 ? this.resumenPorVendedor[0].MontoVentas : 1;
+  }
+
+  /** Ventas por PLAZO (nº de cuotas 0–12) por vendedor. Contado = 0, Corto plazo = 1–6,
+   *  Largo plazo = 7–12. Cuenta # de ventas (no monto), sobre el avance por vendedor
+   *  (misma lógica CALL / sin derivación que el resumen). */
+  generarVentasPorPlazo(): void {
+    const map = new Map<string, any>();
+    for (const v of this.filtroVentasAvance) {
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
+      let r = map.get(nombre);
+      if (!r) {
+        r = { Vendedor: nombre, Contado: 0, Corto: 0, Largo: 0, Total: 0 };
+        for (let i = 0; i <= 12; i++) r['c' + i] = 0;
+        map.set(nombre, r);
+      }
+      let cuota = Number(v.Cuotas);
+      if (isNaN(cuota) || cuota < 0) cuota = 0;
+      if (cuota > 12) cuota = 12;
+      r['c' + cuota]++;
+      r.Total++;
+      if (cuota === 0) r.Contado++;
+      else if (cuota <= 6) r.Corto++;
+      else r.Largo++;
+    }
+    this.ventasPorPlazo = [...map.values()].sort((a, b) => b.Total - a.Total);
   }
 
   private entidadDisplay(e: string): string {
