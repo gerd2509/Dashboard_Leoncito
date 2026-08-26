@@ -332,7 +332,7 @@ export class VentasCampoComponent implements OnInit {
           ClienteVenta: margenCliente.get(id) || r.cliente_venta || '', DocIdentidad: (r.doc_identidad || '').toString().trim(),
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(), EstadoVenta: r.estado_venta,
           AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito,
-          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems,
+          TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems, Cuotas: r.cuotas,
           SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
           DiaAF: this.parseNumber(r.dia_af), MesAF: this.parseNumber(r.mes_af), AñoAF: this.parseNumber(r.anio_af),
         });
@@ -1018,27 +1018,41 @@ export class VentasCampoComponent implements OnInit {
   }
 
   /** Ventas por PLAZO (nº de cuotas 0–12) por vendedor. Contado = 0, Corto plazo = 1–6,
-   *  Largo plazo = 7–12. Cuenta # de ventas (no monto), sobre el avance por vendedor
-   *  (misma lógica CALL / sin derivación que el resumen). */
+   *  Largo plazo = 7–12. El CONTEO son # de ventas (no-NC); el MONTO es NETO (bruto +
+   *  NC del mismo mes − todas las NC por su mes de afectación), igual que el resumen por
+   *  vendedor → el mTotal por vendedor cuadra con su Monto Neto y el gran total con el neto global. */
   generarVentasPorPlazo(): void {
     const map = new Map<string, any>();
-    for (const v of this.filtroVentasAvance) {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
+    const cuotaDe = (x: any) => { let c = Number(x.Cuotas); if (isNaN(c) || c < 0) c = 0; if (c > 12) c = 12; return c; };
+    const fila = (nombre: string) => {
       let r = map.get(nombre);
       if (!r) {
         r = { Vendedor: nombre, Contado: 0, Corto: 0, Largo: 0, Total: 0, mContado: 0, mCorto: 0, mLargo: 0, mTotal: 0 };
         for (let i = 0; i <= 12; i++) { r['c' + i] = 0; r['mc' + i] = 0; }
         map.set(nombre, r);
       }
-      let cuota = Number(v.Cuotas);
-      if (isNaN(cuota) || cuota < 0) cuota = 0;
-      if (cuota > 12) cuota = 12;
-      const monto = Number(v.MontoConsolidado) || 0;
-      r['c' + cuota]++; r['mc' + cuota] += monto;
-      r.Total++; r.mTotal += monto;
-      if (cuota === 0) { r.Contado++; r.mContado += monto; }
-      else if (cuota <= 6) { r.Corto++; r.mCorto += monto; }
-      else { r.Largo++; r.mLargo += monto; }
+      return r;
+    };
+    // Suma ops y/o monto al bucket de cuota correspondiente.
+    const sumar = (r: any, cuota: number, ops: number, monto: number) => {
+      r['c' + cuota] += ops; r['mc' + cuota] += monto;
+      r.Total += ops; r.mTotal += monto;
+      if (cuota === 0) { r.Contado += ops; r.mContado += monto; }
+      else if (cuota <= 6) { r.Corto += ops; r.mCorto += monto; }
+      else { r.Largo += ops; r.mLargo += monto; }
+    };
+    // Ventas (no-NC): 1 operación + su monto bruto.
+    for (const v of this.filtroVentasAvance) {
+      sumar(fila(this.resolverNombreVendedor(v.Vendedor, v.TipoBase)), cuotaDe(v), 1, Number(v.MontoConsolidado) || 0);
+    }
+    // NC (por avance, excluye orfandad): mismo mes SUMAN al monto; TODAS restan (por AF).
+    // Efecto neto: solo restan las arrastradas. No tocan el conteo de operaciones.
+    for (const nc of this.filtroNotasCredito) {
+      if (this.esVentaOrfana(nc)) continue;
+      const r = fila(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
+      const cuota = cuotaDe(nc), m = nc.MontoConsolidado || 0;
+      if (nc.ventaDelMes) sumar(r, cuota, 0, m);   // NC del mismo mes → suma
+      sumar(r, cuota, 0, -m);                       // todas las NC → resta
     }
     this.ventasPorPlazo = [...map.values()].sort((a, b) => b.Total - a.Total);
   }
