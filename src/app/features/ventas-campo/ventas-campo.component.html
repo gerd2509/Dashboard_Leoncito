@@ -338,13 +338,13 @@
     Ventas por Plazo — Corto (1–6 meses) / Largo (7–12 meses)
 </div>
 <dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
-    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="false"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
     (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
-    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [width]="190" />
-    <dxi-column dataField="Contado" caption="CONTADO (0)" alignment="center" dataType="number" [width]="160" />
-    <dxi-column dataField="Corto" caption="CORTO PLAZO (1–6)" alignment="center" dataType="number" [width]="160" />
-    <dxi-column dataField="Largo" caption="LARGO PLAZO (7–12)" alignment="center" dataType="number" [width]="160" />
-    <dxi-column dataField="Total" caption="TOTAL (0–12)" alignment="center" dataType="number" [width]="160" />
+    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [width]="190" />
+    <dxi-column dataField="Contado" caption="CONTADO (0)" alignment="center" dataType="number" />
+    <dxi-column dataField="Corto" caption="CORTO PLAZO (1–6)" alignment="center" dataType="number" />
+    <dxi-column dataField="Largo" caption="LARGO PLAZO (7–12)" alignment="center" dataType="number" />
+    <dxi-column dataField="Total" caption="TOTAL (0–12)" alignment="center" dataType="number" />
     <dxo-summary>
         <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
         <dxi-total-item column="Contado" summaryType="sum" displayFormat="{0}"></dxi-total-item>
@@ -359,23 +359,23 @@
     Detalle por Cuotas (0–12 meses) — nº de ventas por vendedor
 </div>
 <dx-data-grid [dataSource]="ventasPorPlazo" [showBorders]="true" [showColumnLines]="true"
-    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="false"
+    [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
     (onCellPrepared)="onCellPreparedResumen($event)" [hoverStateEnabled]="true">
-    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [width]="190" />
-    <dxi-column dataField="c0" caption="0" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c1" caption="1" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c2" caption="2" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c3" caption="3" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c4" caption="4" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c5" caption="5" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c6" caption="6" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c7" caption="7" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c8" caption="8" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c9" caption="9" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c10" caption="10" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c11" caption="11" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="c12" caption="12" alignment="center" dataType="number" [width]="64" />
-    <dxi-column dataField="Total" caption="TOTAL" alignment="center" dataType="number" [width]="90" />
+    <dxi-column dataField="Vendedor" caption="VENDEDOR" alignment="left" [fixed]="true" [width]="190" />
+    <dxi-column dataField="c0" caption="0" alignment="center" dataType="number" />
+    <dxi-column dataField="c1" caption="1" alignment="center" dataType="number" />
+    <dxi-column dataField="c2" caption="2" alignment="center" dataType="number" />
+    <dxi-column dataField="c3" caption="3" alignment="center" dataType="number" />
+    <dxi-column dataField="c4" caption="4" alignment="center" dataType="number" />
+    <dxi-column dataField="c5" caption="5" alignment="center" dataType="number" />
+    <dxi-column dataField="c6" caption="6" alignment="center" dataType="number" />
+    <dxi-column dataField="c7" caption="7" alignment="center" dataType="number" />
+    <dxi-column dataField="c8" caption="8" alignment="center" dataType="number" />
+    <dxi-column dataField="c9" caption="9" alignment="center" dataType="number" />
+    <dxi-column dataField="c10" caption="10" alignment="center" dataType="number" />
+    <dxi-column dataField="c11" caption="11" alignment="center" dataType="number" />
+    <dxi-column dataField="c12" caption="12" alignment="center" dataType="number" />
+    <dxi-column dataField="Total" caption="TOTAL" alignment="center" dataType="number" />
     <dxo-summary>
         <dxi-total-item alignment="left" column="Vendedor" displayFormat="TOTAL"></dxi-total-item>
         <dxi-total-item column="c0" summaryType="sum" displayFormat="{0}"></dxi-total-item>
