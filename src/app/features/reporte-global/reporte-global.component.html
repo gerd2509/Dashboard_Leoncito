@@ -1,0 +1,100 @@
+
+<div class="am-head">
+  <span class="am-title"><mat-icon>public</mat-icon>
+    <div><b>Reporte Global</b><small>Consolidado por sede — aliados por entidad, motos y margen por línea real (monto neto)</small></div>
+  </span>
+  <div class="am-actions">
+    <form class="am-filtros" [formGroup]="form">
+      <dx-select-box width="110" formControlName="anio" [dataSource]="anios" label="Año" labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()" />
+      <dx-select-box width="150" formControlName="mes" [dataSource]="meses" displayExpr="t" valueExpr="v" label="Mes" labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()" />
+    </form>
+    <button class="am-btn" (click)="cargar()"><mat-icon>refresh</mat-icon> Actualizar</button>
+    <button class="am-btn" (click)="exportar()"><mat-icon>download</mat-icon> Exportar</button>
+  </div>
+</div>
+
+<div class="am-wrap">
+  <div class="am-overlay" *ngIf="isLoading">
+    <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando reporte global…" icon="public"></app-loading-overlay>
+  </div>
+
+  <!-- ══════════ KPIs ══════════ -->
+  <div class="rg-kpis">
+    <div class="rg-kpi"><div class="rg-k-ico" style="background:#1A5FAD"><mat-icon>payments</mat-icon></div>
+      <div><b>{{ soles(kNetoGlobal) }}</b><small>Venta neta global</small></div></div>
+    <div class="rg-kpi"><div class="rg-k-ico" style="background:#00838F"><mat-icon>groups</mat-icon></div>
+      <div><b>{{ soles(kAliadosNeto) }}</b><small>Ventas por aliados · {{ kAliadosPct }}% del global</small></div></div>
+    <div class="rg-kpi"><div class="rg-k-ico" style="background:#EF6C00"><mat-icon>two_wheeler</mat-icon></div>
+      <div><b>{{ kMotosGGOps | number }}</b><small>Motos GLOBAL GO ({{ soles(kMotosGGNeto) }})</small></div></div>
+    <div class="rg-kpi"><div class="rg-k-ico" style="background:#2E7D32"><mat-icon>trending_up</mat-icon></div>
+      <div><b>{{ soles(kMargenTotal) }}</b><small>Margen total (líneas)</small></div></div>
+  </div>
+
+  <!-- ══════════ ALIADOS por entidad × sede ══════════ -->
+  <div class="am-pair">
+    <div class="am-card">
+      <div class="am-cardhead fte"><mat-icon>groups</mat-icon> Aliados por Entidad × Sede <em>(# operaciones)</em></div>
+      <div class="am-scroll">
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: aliadosOps, moneda: false }"></ng-container>
+      </div>
+    </div>
+    <div class="am-card">
+      <div class="am-cardhead cred"><mat-icon>groups</mat-icon> Aliados por Entidad × Sede <em>(monto neto S/)</em></div>
+      <div class="am-scroll">
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: aliadosMonto, moneda: true }"></ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ MOTOS por sede (GG vs propio) ══════════ -->
+  <div class="am-pair">
+    <div class="am-card">
+      <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(# operaciones)</em></div>
+      <div class="am-scroll">
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosOps, moneda: false }"></ng-container>
+      </div>
+    </div>
+    <div class="am-card">
+      <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(monto neto S/)</em></div>
+      <div class="am-scroll">
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMonto, moneda: true }"></ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ MARGEN por línea real × sede ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead vend"><mat-icon>table_chart</mat-icon> Ventas por Línea Real × Sede <em>(monto S/ · desde margen)</em></div>
+    <div class="am-scroll">
+      <ng-container *ngTemplateOutlet="tabla; context: { $implicit: margenLinea, moneda: true }"></ng-container>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ Plantilla reutilizable de tabla pivote ══════════ -->
+<ng-template #tabla let-p let-moneda="moneda">
+  <table class="am-table" *ngIf="p">
+    <thead>
+      <tr>
+        <th class="ta-l">Sede</th>
+        <th *ngFor="let c of p.cols">{{ c.label }}</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let f of p.filas">
+        <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
+        <td *ngFor="let c of p.cols">{{ moneda ? soles(f.valores[c.key]) : (f.valores[c.key] | number) }}</td>
+        <td class="tot">{{ moneda ? soles(f.total) : (f.total | number) }}</td>
+      </tr>
+      <tr *ngIf="!p.filas.length" class="vacio"><td [attr.colspan]="p.cols.length + 2">Sin datos para el periodo</td></tr>
+    </tbody>
+    <tfoot *ngIf="p.filas.length">
+      <tr>
+        <td class="ta-l">TOTAL</td>
+        <td *ngFor="let c of p.cols">{{ moneda ? soles(p.totales[c.key]) : (p.totales[c.key] | number) }}</td>
+        <td class="tot">{{ moneda ? soles(p.totalGeneral) : (p.totalGeneral | number) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+</ng-template>

@@ -21,6 +21,7 @@ import { AgendamientosKommoComponent } from "../features/agendamientos/agendamie
 import { ControlGestionSedeComponent } from "../features/control-gestion-sede/control-gestion-sede.component";
 import { CierreGestionSedesComponent } from "../features/cierre-gestion-sedes/cierre-gestion-sedes.component";
 import { AvanceMetasComponent } from "../features/avance-metas/avance-metas.component";
+import { ReporteGlobalComponent } from "../features/reporte-global/reporte-global.component";
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
 import { GestionDerivacionesSedeComponent } from "../features/Gestion/gestion-derivaciones-sede/gestion-derivaciones-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
@@ -91,6 +92,7 @@ interface MenuItem {
     ControlGestionSedeComponent,
     CierreGestionSedesComponent,
     AvanceMetasComponent,
+    ReporteGlobalComponent,
     GestionSedeComponent,
     GestionDerivacionesSedeComponent,
     GestionCallSedesComponent,
@@ -180,6 +182,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'COMPARATIVO',  icon: 'balance',    modulo: 'ventas-comparativo' },
         { label: 'EVOLUTIVO',    icon: 'balance',    modulo: 'evolucion-tipo-cliente' },
         { label: 'AVANCE DE METAS', icon: 'flag',    modulo: 'avance-metas' },
+        { label: 'REPORTE GLOBAL', icon: 'public',  modulo: 'reporte-global' },
         { label: 'PLAZO AV',     icon: 'storefront', modulo: 'ventas-plazo-av' }
       ]
     },

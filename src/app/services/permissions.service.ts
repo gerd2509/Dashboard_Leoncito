@@ -74,6 +74,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'ventas-comparativo',           label: 'Ventas — Comparativo',         grupo: 'Ventas' },
   { key: 'evolucion-tipo-cliente',       label: 'Ventas — Evolutivo',           grupo: 'Ventas' },
   { key: 'avance-metas',                 label: 'Avance de Metas',              grupo: 'Ventas' },
+  { key: 'reporte-global',               label: 'Reporte Global',               grupo: 'Ventas' },
   { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV',              grupo: 'Ventas' },
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',         grupo: 'Control & Sedes', sedeScoped: true },
@@ -108,7 +109,7 @@ const CALL_MODULES = [
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
-  'avance-metas',
+  'avance-metas', 'reporte-global',
 ];
 const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
@@ -147,7 +148,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'almacenero-zona':    [...ALMACENERO_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v33';
+const STORAGE_KEY = 'gd_permissions_v34';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

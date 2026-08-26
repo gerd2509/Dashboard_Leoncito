@@ -126,6 +126,20 @@ export class CargaVentasService {
   obtenerMetasAvance(): Observable<Record<string, number>> {
     return this.http.get<Record<string, number>>(`${this.root}/metas-avance`);
   }
+
+  // ── Reporte Global (módulo nuevo) ──
+  /** Neto + # ops por (sede, entidad, es_moto). Aliados = entidad ≠ LEONCITO. */
+  obtenerReporteGlobal(anio: number, mes?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]> {
+    let params = new HttpParams().set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/reporte-global`, { params });
+  }
+  /** Ventas/margen por (sede, línea real) desde margen_ventas. */
+  obtenerMargenLineaSede(anio: number, mes?: number): Observable<{ sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]> {
+    let params = new HttpParams().set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/margen-linea-sede`, { params });
+  }
   /** Guarda (upsert) una meta editada directamente en el módulo. */
   guardarMetaAvance(clave: string, meta: number): Observable<any> {
     return this.http.put(`${this.root}/metas-avance`, { clave, meta });
