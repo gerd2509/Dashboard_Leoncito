@@ -13,23 +13,24 @@
   </div>
 </div>
 
+<!-- ══════════ KPIs (estáticos) ══════════ -->
+<div class="rg-kpis">
+  <div class="rg-kpi"><div class="rg-k-ico" style="background:#1A5FAD"><mat-icon>payments</mat-icon></div>
+    <div><b>{{ soles(kNetoGlobal) }}</b><small>Venta neta global</small></div></div>
+  <div class="rg-kpi"><div class="rg-k-ico" style="background:#00838F"><mat-icon>groups</mat-icon></div>
+    <div><b>{{ soles(kAliadosNeto) }}</b><small>Ventas por aliados · {{ kAliadosPct }}% del global</small></div></div>
+  <div class="rg-kpi"><div class="rg-k-ico" style="background:#EF6C00"><mat-icon>two_wheeler</mat-icon></div>
+    <div><b>{{ kMotosGGOps | number }}</b><small>Motos GLOBAL GO ({{ soles(kMotosGGNeto) }})</small></div></div>
+  <div class="rg-kpi"><div class="rg-k-ico" style="background:#2E7D32"><mat-icon>trending_up</mat-icon></div>
+    <div><b>{{ soles(kMargenTotal) }}</b><small>Margen total (líneas)</small></div></div>
+</div>
+
 <div class="am-wrap">
   <div class="am-overlay" *ngIf="isLoading">
     <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando reporte global…" icon="public"></app-loading-overlay>
   </div>
 
-  <!-- ══════════ KPIs ══════════ -->
-  <div class="rg-kpis">
-    <div class="rg-kpi"><div class="rg-k-ico" style="background:#1A5FAD"><mat-icon>payments</mat-icon></div>
-      <div><b>{{ soles(kNetoGlobal) }}</b><small>Venta neta global</small></div></div>
-    <div class="rg-kpi"><div class="rg-k-ico" style="background:#00838F"><mat-icon>groups</mat-icon></div>
-      <div><b>{{ soles(kAliadosNeto) }}</b><small>Ventas por aliados · {{ kAliadosPct }}% del global</small></div></div>
-    <div class="rg-kpi"><div class="rg-k-ico" style="background:#EF6C00"><mat-icon>two_wheeler</mat-icon></div>
-      <div><b>{{ kMotosGGOps | number }}</b><small>Motos GLOBAL GO ({{ soles(kMotosGGNeto) }})</small></div></div>
-    <div class="rg-kpi"><div class="rg-k-ico" style="background:#2E7D32"><mat-icon>trending_up</mat-icon></div>
-      <div><b>{{ soles(kMargenTotal) }}</b><small>Margen total (líneas)</small></div></div>
-  </div>
-
+  <div class="rg-scroll">
   <!-- ══════════ ALIADOS por entidad × sede ══════════ -->
   <div class="am-pair">
     <div class="am-card">
@@ -69,6 +70,30 @@
       <ng-container *ngTemplateOutlet="tabla; context: { $implicit: margenLinea, moneda: true }"></ng-container>
     </div>
   </div>
+
+  <!-- ══════════ MARGEN % por sede ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead marg"><mat-icon>percent</mat-icon> Margen por Sede <em>(margen S/ y % sobre ventas)</em></div>
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead><tr><th class="ta-l">Sede</th><th>Ventas (S/)</th><th>Margen (S/)</th><th>Margen %</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let f of margenSede">
+            <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
+            <td>{{ soles(f.ventas) }}</td>
+            <td class="tot">{{ soles(f.margen) }}</td>
+            <td><span class="pct" [class]="claseMargen(f.pct)">{{ f.pct }}%</span></td>
+          </tr>
+          <tr *ngIf="!margenSede.length" class="vacio"><td colspan="4">Sin datos para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="margenSede.length">
+          <tr><td class="ta-l">TOTAL</td><td>{{ soles(totMargenSede.ventas) }}</td><td class="tot">{{ soles(totMargenSede.margen) }}</td>
+            <td><span class="pct" [class]="claseMargen(totMargenSede.pct)">{{ totMargenSede.pct }}%</span></td></tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+  </div><!-- /.rg-scroll -->
 </div>
 
 <!-- ══════════ Plantilla reutilizable de tabla pivote ══════════ -->

@@ -39,6 +39,9 @@ export class ReporteGlobalComponent implements OnInit {
   motosOps: Pivot | null = null;
   motosMonto: Pivot | null = null;
   margenLinea: Pivot | null = null;
+  // Margen % por sede (ventas vs margen).
+  margenSede: { sedeKey: string; sede: string; color: string; ventas: number; margen: number; pct: number }[] = [];
+  totMargenSede = { ventas: 0, margen: 0, pct: 0 };
 
   // KPIs
   kNetoGlobal = 0;
@@ -169,6 +172,22 @@ export class ReporteGlobalComponent implements OnInit {
       return { sedeKey: info.key, sede: info.nombre, col: r.linea_real, value: r.valor_venta || 0 };
     });
     this.margenLinea = this.buildPivot(entradas, cols);
+
+    // Margen % por sede = margen_total / valor_venta (cuánto margen deja cada sede).
+    const bySede = new Map<string, { sede: string; color: string; ventas: number; margen: number }>();
+    for (const r of rows) {
+      const info = this.sedeInfo(r.sede);
+      let f = bySede.get(info.key);
+      if (!f) { f = { sede: info.nombre, color: this.color(info.key), ventas: 0, margen: 0 }; bySede.set(info.key, f); }
+      f.ventas += r.valor_venta || 0;
+      f.margen += r.margen_total || 0;
+    }
+    this.margenSede = [...bySede.entries()]
+      .map(([k, f]) => ({ sedeKey: k, ...f, pct: f.ventas > 0 ? Math.round((f.margen / f.ventas) * 1000) / 10 : 0 }))
+      .sort((a, b) => b.margen - a.margen);
+    const tv = this.margenSede.reduce((s, f) => s + f.ventas, 0);
+    const tm = this.margenSede.reduce((s, f) => s + f.margen, 0);
+    this.totMargenSede = { ventas: tv, margen: tm, pct: tv > 0 ? Math.round((tm / tv) * 1000) / 10 : 0 };
   }
 
   private tituloLinea(l: string): string {
@@ -177,6 +196,7 @@ export class ReporteGlobalComponent implements OnInit {
   }
 
   soles(n: number): string { return 'S/ ' + (Math.round(n || 0)).toLocaleString('es-PE'); }
+  claseMargen(pct: number): string { return pct >= 20 ? 'ok' : pct >= 10 ? 'warn' : 'low'; }
 
   // ── Export Excel ──
   async exportar(): Promise<void> {
@@ -187,7 +207,18 @@ export class ReporteGlobalComponent implements OnInit {
     if (this.aliadosMonto) this.hojaPivot(wb, 'Aliados (monto)', this.aliadosMonto, true);
     if (this.motosOps) this.hojaPivot(wb, 'Motos (ops)', this.motosOps, false);
     if (this.motosMonto) this.hojaPivot(wb, 'Motos (monto)', this.motosMonto, true);
-    if (this.margenLinea) this.hojaPivot(wb, 'Margen x Linea', this.margenLinea, true);
+    if (this.margenLinea) this.hojaPivot(wb, 'Ventas x Linea', this.margenLinea, true);
+    if (this.margenSede.length) {
+      const ws = wb.addWorksheet('Margen x Sede');
+      const hr = ws.addRow(['Sede', 'Ventas', 'Margen', 'Margen %']);
+      hr.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3949AB' } }; });
+      this.margenSede.forEach(f => ws.addRow([f.sede, Math.round(f.ventas), Math.round(f.margen), f.pct]));
+      const tr = ws.addRow(['TOTAL', Math.round(this.totMargenSede.ventas), Math.round(this.totMargenSede.margen), this.totMargenSede.pct]);
+      tr.eachCell(cell => { cell.font = { bold: true }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3FB' } }; });
+      ws.getColumn(2).numFmt = '#,##0'; ws.getColumn(3).numFmt = '#,##0'; ws.getColumn(4).numFmt = '0.0"%"';
+      ws.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 14; });
+      ws.views = [{ state: 'frozen', ySplit: 1 }];
+    }
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     FileSaver.saveAs(blob, `Reporte_Global_${suf}.xlsx`);
