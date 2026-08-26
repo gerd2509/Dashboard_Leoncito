@@ -160,7 +160,9 @@ export class ReporteGlobalComponent implements OnInit {
     this.motosMonto = this.buildPivot(montoMoto, motoCols);
   }
 
-  private construirMargen(rows: { sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]): void {
+  private construirMargen(rowsAll: { sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]): void {
+    // Excluye sedes no reconocidas ("Otras": oficinas / incautados / La Victoria) de ambos cuadros.
+    const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
     this.kMargenTotal = rows.reduce((s, r) => s + (r.margen_total || 0), 0);
     // Columnas = líneas reales, ordenadas por monto total desc.
     const totalPorLinea = new Map<string, number>();
