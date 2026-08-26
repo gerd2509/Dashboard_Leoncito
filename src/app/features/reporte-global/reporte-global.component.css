@@ -14,6 +14,9 @@
 .am-wrap { position: relative; }
 /* Cabecera (am-head) + KPIs quedan estáticos; solo las tablas scrollean aquí dentro. */
 .rg-scroll { display: flex; flex-direction: column; gap: 22px; overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 250px); padding-right: 4px; }
+/* Sin esto los cards (flex-shrink:1) se encogen para caber en el max-height y, como
+   .am-card tiene overflow:hidden, recortan sus filas → solo se veía el encabezado. */
+.rg-scroll > * { flex: 0 0 auto; }
 .rg-scroll::-webkit-scrollbar { width: 8px; }
 .rg-scroll::-webkit-scrollbar-track { background: transparent; }
 .rg-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
