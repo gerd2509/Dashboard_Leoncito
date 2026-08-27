@@ -136,6 +136,15 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .mini-bar .av-medio { background: #f0a30a; }
 .mini-bar .av-bajo { background: var(--no); }
 
+/* Encabezado del detalle por asesor + botón Regresar */
+.asesor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.asesor-head h3 { margin: 0; }
+.btn-regresar { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--borde);
+  background: #fff; color: var(--azul); font-weight: 700; font-size: 13px; padding: 8px 14px;
+  border-radius: 9px; cursor: pointer; }
+.btn-regresar:hover { background: #eef5fc; }
+.btn-regresar mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
 /* Cuadro consolidado "Gestión de Base de Datos" */
 .consolidado { margin-top: 22px; }
 .consol-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }

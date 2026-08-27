@@ -183,7 +183,12 @@
 
       <!-- Tabla por asesor (Call / Realzza, o Piso con sede seleccionada) -->
       <div class="tabla-asesores" *ngIf="!esPiso || sedeDetalle">
-        <h3>Avance por asesor <small *ngIf="esPiso && sedeDetalle">— {{ nombreSedeDetalle }}</small></h3>
+        <div class="asesor-head">
+          <h3>Avance por asesor <small *ngIf="esPiso && sedeDetalle">— {{ nombreSedeDetalle }}</small></h3>
+          <button *ngIf="esPiso && sedeDetalle" class="btn-regresar" (click)="sedeDetalle = ''; onSedeDetalleChanged()">
+            <mat-icon>arrow_back</mat-icon> Regresar
+          </button>
+        </div>
         <div class="tabla-scroll">
           <table>
             <thead>
