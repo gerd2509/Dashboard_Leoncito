@@ -97,8 +97,8 @@ export class AvanceCarteraComponent implements OnInit {
   private auth = inject(AuthService);
   private ventasSrv = inject(CargaVentasService);
 
-  // Consolidado Piso: ventas (BD) + metas por sede, cargados junto con la cartera.
-  private ventasPorSede = new Map<string, { ops: number; monto: number }>();
+  // Consolidado Piso: ventas de la BASE (por DNI del cliente en la cartera) + metas.
+  private ventasPorDni = new Map<string, { ops: number; monto: number }>();
   private gestionesTotalPorSede = new Map<string, number>();
   private metasCartera: Record<string, number> = {};
 
@@ -386,30 +386,29 @@ export class AvanceCarteraComponent implements OnInit {
     return porSede;
   }
 
-  /** Piso: trae ventas (tabla `ventas` vía reporte-global) y metas por sede del mes. */
+  /** Piso: ventas de la BASE = ventas (tabla `ventas`) de los DNIs de la cartera. Se
+   *  indexa por DNI y luego se atribuye a la sede a la que la cartera asignó ese cliente.
+   *  Además trae las metas por sede del mes. */
   private async cargarVentasYMetasSede(): Promise<void> {
     const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
-    this.ventasPorSede = new Map();
+    this.ventasPorDni = new Map();
     try {
-      const rows = await lastValueFrom(this.ventasSrv.obtenerReporteGlobal(anio, mes));
+      const rows = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
       for (const r of (rows || [])) {
-        const key = this.normSedeVentas(r.sede);
-        if (!key) continue;
-        const cur = this.ventasPorSede.get(key) || { ops: 0, monto: 0 };
-        cur.ops += r.ops || 0; cur.monto += r.neto || 0;
-        this.ventasPorSede.set(key, cur);
+        const est = (r.estado_venta || '').toString().toUpperCase();
+        if (/NOTA DE/.test(est) || /INCAUTAC/.test(est)) continue;   // solo ventas efectivas
+        const monto = Number(r.monto_consolidado) || 0;
+        if (monto <= 0) continue;
+        const dni = this.soloDigitos(String(r.doc_identidad ?? ''));
+        if (!dni) continue;
+        const cur = this.ventasPorDni.get(dni) || { ops: 0, monto: 0 };
+        cur.ops += 1; cur.monto += monto;
+        this.ventasPorDni.set(dni, cur);
       }
     } catch { /* sin ventas → el cuadro muestra 0 */ }
     try {
       this.metasCartera = (await lastValueFrom(this.ventasSrv.obtenerMetasAvance())) || {};
     } catch { this.metasCartera = {}; }
-  }
-
-  /** Normaliza la sede de la tabla ventas ("SEDE RELENOR X") a la clave de sede. */
-  private normSedeVentas(raw: string): string {
-    const n = this.sedeCfg.normalizar(raw || '');
-    if (n.includes('realzza')) return 'realzza';
-    return n.replace(/^sederelenor/, '');
   }
 
   private mapEstado(raw: any): EstadoCliente {
@@ -444,6 +443,9 @@ export class AvanceCarteraComponent implements OnInit {
       r.asignados++;
       if (c.estado === 'PENDIENTE') r.pendientes++;
       else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
+      // Ventas de la BASE: si este cliente (por DNI) compró, suma a la sede a la que fue asignado.
+      const s = c.dni ? this.ventasPorDni.get(c.dni) : null;
+      if (s) { r.nVentas += s.ops; r.monto += s.monto; }
     }
     // Enriquecer con ventas (BD), gestiones totales, metas y derivados (Proyección / % Meta).
     const hoy = new Date();
@@ -454,8 +456,6 @@ export class AvanceCarteraComponent implements OnInit {
       r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0;
       r.gestionesTotal = this.gestionesTotalPorSede.get(r.sedeKey) || 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
-      const vt = this.ventasPorSede.get(r.sedeKey) || { ops: 0, monto: 0 };
-      r.nVentas = vt.ops; r.monto = vt.monto;
       r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
       r.meta = this.metasCartera['cartera:' + r.sedeKey] || 0;
       r.proyeccion = Math.round(r.monto / diasTrans * diasMes);
