@@ -140,7 +140,8 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .consolidado { margin-top: 22px; }
 .tabla-consol { min-width: 980px; }
 .tabla-consol td.mono { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tabla-consol tfoot td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 2px solid #d5e0ee; }
+.tabla-consol tfoot td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 2px solid #d5e0ee; text-align: center; padding: 9px 12px; }
+.tabla-consol tfoot td.left { text-align: left; }
 .tabla-consol .vacio td { text-align: center; color: #9db1c7; font-style: italic; padding: 16px; }
 .meta-cell { padding: 4px 8px !important; }
 .meta-in { width: 108px; text-align: right; border: 1px solid var(--borde); border-radius: 7px;
