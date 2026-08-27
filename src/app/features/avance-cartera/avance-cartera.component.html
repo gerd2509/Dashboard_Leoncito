@@ -176,7 +176,7 @@
       <!-- Cuadro consolidado "Gestión de Base de Datos — Asignados Totales" (Piso global) -->
       <div class="tabla-asesores consolidado" *ngIf="esPiso && !sedeDetalle">
         <div class="consol-head">
-          <h3>Gestión de Base de Datos — Asignados Totales <small>(ventas de la base · meta editable)</small></h3>
+          <h3>Gestión de Base de Datos — {{ tipoClienteSel || 'Asignados Totales' }} <small>(ventas de la base · meta editable)</small></h3>
           <div class="consol-filtro">
             <span>Tipo de cliente:</span>
             <dx-select-box width="220" [dataSource]="['Todos'].concat(tiposClienteDisponibles)"

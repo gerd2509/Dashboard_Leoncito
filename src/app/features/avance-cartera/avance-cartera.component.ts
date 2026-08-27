@@ -484,16 +484,27 @@ export class AvanceCarteraComponent implements OnInit {
     this.resumenSedes = this.buildSedes(clientes);
     // Lista estable para el combo de detalle (evita re-render del dx-select-box).
     this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
-    // Tipos de cliente disponibles + consolidado (filtrable por tipo).
-    this.tiposClienteDisponibles = [...new Set(this.clientes.map(c => c.tipoCliente || 'SIN TIPO'))].sort();
+    // Grupos de tipo de cliente disponibles + consolidado (filtrable por grupo).
+    this.tiposClienteDisponibles = [...new Set(this.clientes.map(c => this.grupoTipo(c.tipoCliente)))].sort();
     if (this.tipoClienteSel && !this.tiposClienteDisponibles.includes(this.tipoClienteSel)) this.tipoClienteSel = '';
     this.aplicarTipoCliente();
   }
 
-  /** Recalcula el cuadro consolidado según el tipo de cliente seleccionado ('' = todos). */
+  /** Agrupa el valor crudo de TipoCliente en el nombre de cuadro (como el Excel):
+   *  NUEVO → Afiliaciones · Reenganche/Cancelado → Lover A · Dormidos/No Vigentes → Lover B. */
+  private grupoTipo(tipo: string): string {
+    const t = (tipo || '').toString().toUpperCase();
+    if (!t || t === 'SIN TIPO') return 'SIN TIPO';
+    if (/NUEVO|AFILIAC/.test(t)) return 'AFILIACIONES (Nuevos)';
+    if (/LOVER\s*A|REENGANCHE|CANCELAD/.test(t)) return 'LOVER A — Reenganche / Cancelado';
+    if (/LOVER\s*B|DORMIDO|NO\s*VIGENTE/.test(t)) return 'LOVER B — Dormidos / No Vigentes';
+    return t;   // cualquier otro valor se muestra tal cual
+  }
+
+  /** Recalcula el cuadro consolidado según el grupo de tipo de cliente ('' = todos). */
   aplicarTipoCliente(): void {
     const sub = this.tipoClienteSel
-      ? this.clientes.filter(c => (c.tipoCliente || 'SIN TIPO') === this.tipoClienteSel)
+      ? this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === this.tipoClienteSel)
       : this.clientes;
     this.consolidado = this.buildSedes(sub);
   }
