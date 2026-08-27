@@ -175,9 +175,9 @@
 
       <!-- Cuadros consolidados "Gestión de Base de Datos" (Piso global): general + uno por grupo -->
       <ng-container *ngIf="esPiso && !sedeDetalle">
-        <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: 'Asignados Totales', filas: consolidado }"></ng-container>
+        <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: 'Asignados Totales', filas: consolidado, intensidad: true }"></ng-container>
         <ng-container *ngFor="let g of consolidadoGrupos">
-          <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: g.grupo, filas: g.filas }"></ng-container>
+          <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: g.grupo, filas: g.filas, intensidad: false }"></ng-container>
         </ng-container>
       </ng-container>
 
@@ -228,7 +228,7 @@
 </div>
 
 <!-- ══════════ Plantilla reutilizable del cuadro consolidado ══════════ -->
-<ng-template #consolTabla let-titulo="titulo" let-filas="filas">
+<ng-template #consolTabla let-titulo="titulo" let-filas="filas" let-showInt="intensidad">
   <div class="tabla-asesores consolidado">
     <h3>Gestión de Base de Datos — {{ titulo }} <small>(ventas de la base · meta editable)</small></h3>
     <div class="tabla-scroll">
@@ -237,7 +237,7 @@
           <tr>
             <th class="left">Sede</th>
             <th>N° Asignados</th><th>N° Gestionados</th><th>Sin Gestionar</th>
-            <th>Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
+            <th *ngIf="showInt">Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
             <th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
           </tr>
         </thead>
@@ -247,7 +247,7 @@
             <td>{{ r.asignados }}</td>
             <td>{{ r.gestionados }}</td>
             <td class="c-alerta">{{ r.pendientes }}</td>
-            <td>{{ r.intensidad | number:'1.2-2' }}</td>
+            <td *ngIf="showInt">{{ r.intensidad | number:'1.2-2' }}</td>
             <td>{{ r.nVentas }}</td>
             <td class="mono">{{ soles(r.monto) }}</td>
             <td class="mono">{{ soles(r.ticket) }}</td>
@@ -258,7 +258,7 @@
             <td class="mono">{{ soles(r.proyeccion) }}</td>
             <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
           </tr>
-          <tr *ngIf="!filas.length" class="vacio"><td colspan="11">Sin datos para el periodo</td></tr>
+          <tr *ngIf="!filas.length" class="vacio"><td [attr.colspan]="showInt ? 11 : 10">Sin datos para el periodo</td></tr>
         </tbody>
         <tfoot *ngIf="filas.length">
           <tr>
@@ -266,7 +266,7 @@
             <td>{{ tot(filas).asignados }}</td>
             <td>{{ tot(filas).gestionados }}</td>
             <td>{{ tot(filas).pendientes }}</td>
-            <td>{{ tot(filas).intensidad | number:'1.2-2' }}</td>
+            <td *ngIf="showInt">{{ tot(filas).intensidad | number:'1.2-2' }}</td>
             <td>{{ tot(filas).nVentas }}</td>
             <td class="mono">{{ soles(tot(filas).monto) }}</td>
             <td class="mono">{{ soles(tot(filas).ticket) }}</td>
