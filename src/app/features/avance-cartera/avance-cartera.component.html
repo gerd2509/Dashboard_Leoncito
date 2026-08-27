@@ -177,7 +177,7 @@
       <ng-container *ngIf="esPiso && !sedeDetalle">
         <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: 'Asignados Totales', filas: consolidado, intensidad: true }"></ng-container>
         <ng-container *ngFor="let g of consolidadoGrupos">
-          <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: g.grupo, filas: g.filas, intensidad: false }"></ng-container>
+          <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: g.grupo, filas: g.filas, intensidad: true }"></ng-container>
         </ng-container>
       </ng-container>
 
