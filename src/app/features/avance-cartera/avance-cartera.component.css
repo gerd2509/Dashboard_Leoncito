@@ -138,6 +138,9 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 
 /* Cuadro consolidado "Gestión de Base de Datos" */
 .consolidado { margin-top: 22px; }
+.consol-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.consol-head h3 { margin: 0; }
+.consol-filtro { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: #46586c; }
 .tabla-consol { min-width: 980px; }
 .tabla-consol td.mono { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tabla-consol tfoot td { background: #eef3fb; font-weight: 800; color: #1E3A5F; border-top: 2px solid #d5e0ee; text-align: center; padding: 9px 12px; }

@@ -175,7 +175,16 @@
 
       <!-- Cuadro consolidado "Gestión de Base de Datos — Asignados Totales" (Piso global) -->
       <div class="tabla-asesores consolidado" *ngIf="esPiso && !sedeDetalle">
-        <h3>Gestión de Base de Datos — Asignados Totales <small>(ventas y monto neto desde BD · meta editable)</small></h3>
+        <div class="consol-head">
+          <h3>Gestión de Base de Datos — Asignados Totales <small>(ventas de la base · meta editable)</small></h3>
+          <div class="consol-filtro">
+            <span>Tipo de cliente:</span>
+            <dx-select-box width="220" [dataSource]="['Todos'].concat(tiposClienteDisponibles)"
+              [value]="tipoClienteSel || 'Todos'"
+              (onValueChanged)="tipoClienteSel = ($event.value === 'Todos' ? '' : $event.value); aplicarTipoCliente()"
+              stylingMode="outlined"></dx-select-box>
+          </div>
+        </div>
         <div class="tabla-scroll">
           <table class="tabla-consol">
             <thead>
@@ -187,7 +196,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of resumenSedes">
+              <tr *ngFor="let r of consolidado">
                 <td class="left">{{ r.sede }}</td>
                 <td>{{ r.asignados }}</td>
                 <td>{{ r.gestionados }}</td>
@@ -203,9 +212,9 @@
                 <td class="mono">{{ soles(r.proyeccion) }}</td>
                 <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
               </tr>
-              <tr *ngIf="!resumenSedes.length" class="vacio"><td colspan="11">Sin datos para el periodo</td></tr>
+              <tr *ngIf="!consolidado.length" class="vacio"><td colspan="11">Sin datos para el periodo</td></tr>
             </tbody>
-            <tfoot *ngIf="resumenSedes.length">
+            <tfoot *ngIf="consolidado.length">
               <tr>
                 <td class="left">Total general</td>
                 <td>{{ totalConsolidado.asignados }}</td>

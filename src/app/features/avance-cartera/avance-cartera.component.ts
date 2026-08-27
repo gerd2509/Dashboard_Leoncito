@@ -29,6 +29,10 @@ const CANDIDATOS_ASESOR = [
   'ASESOR REALZZA', 'ASIGNACION REALZZA',
 ];
 const CANDIDATOS_ZONA = ['ZONA', 'ZONAS', 'SEDE', 'TIENDA', 'TIENDA SEDE'];
+const CANDIDATOS_TIPO_CLIENTE = [
+  'TIPO CLIENTE', 'TIPO DE CLIENTE', 'TIPOCLIENTE', 'TIPO_CLIENTE', 'TIPO DE CLIENTES',
+  'CLIENTE TIPO', 'TIPO CLIENTES', 'SEGMENTO', 'SEGMENTO CLIENTE',
+];
 
 // Columnas de la gestión Call / Realzza (form).
 const G_DNI = 'DNI CLIENTE';
@@ -55,6 +59,7 @@ interface ClienteCartera {
   diaGestion: number | null;
   sedeKey: string;
   sedeNombre: string;
+  tipoCliente: string;   // Piso: tipo de cliente (columna del Excel) para separar el consolidado
   raw: Record<string, any>;
 }
 
@@ -101,6 +106,10 @@ export class AvanceCarteraComponent implements OnInit {
   private ventasPorDni = new Map<string, { ops: number; monto: number }>();
   private gestionesTotalPorSede = new Map<string, number>();
   private metasCartera: Record<string, number> = {};
+  // Consolidado + split por tipo de cliente (columna del Excel).
+  consolidado: ResumenSede[] = [];
+  tiposClienteDisponibles: string[] = [];
+  tipoClienteSel = '';   // '' = todos
 
   // ── Modo / estado UI ──
   modo: Modo | null = null;
@@ -234,10 +243,14 @@ export class AvanceCarteraComponent implements OnInit {
 
     // Modo Piso: la columna ZONA/SEDE indica a qué sede pertenece cada cartera.
     let zonaHeader: string | undefined;
+    let tipoHeader: string | undefined;
     if (this.modo === 'piso') {
       zonaHeader = this.buscarHeader(this.headersOriginales, CANDIDATOS_ZONA)
         ?? this.buscarHeaderIncluye(this.headersOriginales, ['zona', 'sede', 'tienda']);
       if (!zonaHeader) throw new Error('No se encontró la columna ZONA/SEDE en el archivo (necesaria para separar por sede).');
+      // Opcional: columna de tipo de cliente para separar el consolidado (si no existe, todo = "SIN TIPO").
+      tipoHeader = this.buscarHeader(this.headersOriginales, CANDIDATOS_TIPO_CLIENTE)
+        ?? this.buscarHeaderIncluye(this.headersOriginales, ['tipocliente', 'tipodecliente', 'segmento']);
     }
 
     // Índices de gestión del mes seleccionado.
@@ -279,10 +292,13 @@ export class AvanceCarteraComponent implements OnInit {
         fechaGestion = ultima.fecha;
       }
 
+      const tipoCliente = tipoHeader
+        ? ((fila[tipoHeader] ?? '').toString().trim().toUpperCase() || 'SIN TIPO')
+        : 'SIN TIPO';
       return {
         dni, asesor, telefonos, estado, fechaGestion,
         diaGestion: fechaGestion ? fechaGestion.getDate() : null,
-        sedeKey, sedeNombre, raw: fila,
+        sedeKey, sedeNombre, tipoCliente, raw: fila,
       };
     });
 
@@ -434,7 +450,8 @@ export class AvanceCarteraComponent implements OnInit {
     return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
   }
 
-  private construirResumenSedes(clientes: ClienteCartera[]): void {
+  /** Arma el resumen por sede (asignados/gestionados + ventas de la base + metas/derivados). */
+  private buildSedes(clientes: ClienteCartera[]): ResumenSede[] {
     const map = new Map<string, ResumenSede>();
     for (const c of clientes) {
       const key = c.sedeKey || 'sin-sede';
@@ -447,7 +464,6 @@ export class AvanceCarteraComponent implements OnInit {
       const s = c.dni ? this.ventasPorDni.get(c.dni) : null;
       if (s) { r.nVentas += s.ops; r.monto += s.monto; }
     }
-    // Enriquecer con ventas (BD), gestiones totales, metas y derivados (Proyección / % Meta).
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
     const diasMes = new Date(this.fecha.getFullYear(), this.fecha.getMonth() + 1, 0).getDate();
@@ -457,18 +473,34 @@ export class AvanceCarteraComponent implements OnInit {
       r.gestionesTotal = this.gestionesTotalPorSede.get(r.sedeKey) || 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
       r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
-      r.meta = this.metasCartera['cartera:' + r.sedeKey] || 0;
+      r.meta = this.metasCartera['cartera:' + r.sedeKey] || 0;   // meta por SEDE (no por tipo)
       r.proyeccion = Math.round(r.monto / diasTrans * diasMes);
       r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
     });
-    this.resumenSedes = Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+    return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+  }
+
+  private construirResumenSedes(clientes: ClienteCartera[]): void {
+    this.resumenSedes = this.buildSedes(clientes);
     // Lista estable para el combo de detalle (evita re-render del dx-select-box).
     this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
+    // Tipos de cliente disponibles + consolidado (filtrable por tipo).
+    this.tiposClienteDisponibles = [...new Set(this.clientes.map(c => c.tipoCliente || 'SIN TIPO'))].sort();
+    if (this.tipoClienteSel && !this.tiposClienteDisponibles.includes(this.tipoClienteSel)) this.tipoClienteSel = '';
+    this.aplicarTipoCliente();
+  }
+
+  /** Recalcula el cuadro consolidado según el tipo de cliente seleccionado ('' = todos). */
+  aplicarTipoCliente(): void {
+    const sub = this.tipoClienteSel
+      ? this.clientes.filter(c => (c.tipoCliente || 'SIN TIPO') === this.tipoClienteSel)
+      : this.clientes;
+    this.consolidado = this.buildSedes(sub);
   }
 
   /** Total consolidado (fila "Total general" del cuadro por sede). */
   get totalConsolidado() {
-    const s = this.resumenSedes;
+    const s = this.consolidado;
     const asignados = s.reduce((a, r) => a + r.asignados, 0);
     const gestionados = s.reduce((a, r) => a + r.gestionados, 0);
     const gestionesTotal = s.reduce((a, r) => a + r.gestionesTotal, 0);
