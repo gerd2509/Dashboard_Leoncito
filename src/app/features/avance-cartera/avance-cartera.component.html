@@ -173,6 +173,57 @@
         </div>
       </div>
 
+      <!-- Cuadro consolidado "Gestión de Base de Datos — Asignados Totales" (Piso global) -->
+      <div class="tabla-asesores consolidado" *ngIf="esPiso && !sedeDetalle">
+        <h3>Gestión de Base de Datos — Asignados Totales <small>(ventas y monto neto desde BD · meta editable)</small></h3>
+        <div class="tabla-scroll">
+          <table class="tabla-consol">
+            <thead>
+              <tr>
+                <th class="left">Sede</th>
+                <th>N° Asignados</th><th>N° Gestionados</th><th>Sin Gestionar</th>
+                <th>Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
+                <th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of resumenSedes">
+                <td class="left">{{ r.sede }}</td>
+                <td>{{ r.asignados }}</td>
+                <td>{{ r.gestionados }}</td>
+                <td class="c-alerta">{{ r.pendientes }}</td>
+                <td>{{ r.intensidad | number:'1.2-2' }}</td>
+                <td>{{ r.nVentas }}</td>
+                <td class="mono">{{ soles(r.monto) }}</td>
+                <td class="mono">{{ soles(r.ticket) }}</td>
+                <td class="meta-cell">
+                  <input type="number" class="meta-in" [value]="r.meta || ''" placeholder="0"
+                    (change)="onMetaCartera(r, $any($event.target).value)" />
+                </td>
+                <td class="mono">{{ soles(r.proyeccion) }}</td>
+                <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
+              </tr>
+              <tr *ngIf="!resumenSedes.length" class="vacio"><td colspan="11">Sin datos para el periodo</td></tr>
+            </tbody>
+            <tfoot *ngIf="resumenSedes.length">
+              <tr>
+                <td class="left">Total general</td>
+                <td>{{ totalConsolidado.asignados }}</td>
+                <td>{{ totalConsolidado.gestionados }}</td>
+                <td>{{ totalConsolidado.pendientes }}</td>
+                <td>{{ totalConsolidado.intensidad | number:'1.2-2' }}</td>
+                <td>{{ totalConsolidado.nVentas }}</td>
+                <td class="mono">{{ soles(totalConsolidado.monto) }}</td>
+                <td class="mono">{{ soles(totalConsolidado.ticket) }}</td>
+                <td class="mono">{{ soles(totalConsolidado.meta) }}</td>
+                <td class="mono">{{ soles(totalConsolidado.proyeccion) }}</td>
+                <td><b [class]="claseMeta(totalConsolidado.avanceMeta)" class="pct-badge">{{ totalConsolidado.avanceMeta }}%</b></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
       <!-- Tabla por asesor (Call / Realzza, o Piso con sede seleccionada) -->
       <div class="tabla-asesores" *ngIf="!esPiso || sedeDetalle">
         <h3>Avance por asesor <small *ngIf="esPiso && sedeDetalle">— {{ nombreSedeDetalle }}</small></h3>

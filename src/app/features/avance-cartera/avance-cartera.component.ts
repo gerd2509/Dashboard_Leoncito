@@ -8,6 +8,7 @@ import * as FileSaver from 'file-saver';
 import { SheetsService } from '../../services/service-google.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { AuthService } from '../../services/auth.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
 
 /** Columnas de teléfono a considerar de la cartera importada. */
 const COLUMNAS_TELEFONO = [
@@ -67,6 +68,15 @@ interface ResumenSede {
   sedeKey: string; sede: string;
   asignados: number; gestionados: number;
   contacto: number; noContacto: number; pendientes: number; avance: number;
+  // Consolidado "Gestión de Base de Datos" (Piso): ventas (BD) + metas + derivados.
+  gestionesTotal: number;   // # de gestiones registradas (con repeticiones) de la sede
+  intensidad: number;       // gestiones ÷ clientes gestionados
+  nVentas: number;          // # de ventas (tabla ventas) de la sede
+  monto: number;            // monto neto vendido de la sede
+  ticket: number;           // monto ÷ nVentas
+  meta: number;             // meta editable por sede
+  proyeccion: number;       // monto proyectado a fin de mes
+  avanceMeta: number;       // % monto ÷ meta
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
@@ -85,6 +95,12 @@ export class AvanceCarteraComponent implements OnInit {
   private sheets = inject(SheetsService);
   private sedeCfg = inject(SedeConfigService);
   private auth = inject(AuthService);
+  private ventasSrv = inject(CargaVentasService);
+
+  // Consolidado Piso: ventas (BD) + metas por sede, cargados junto con la cartera.
+  private ventasPorSede = new Map<string, { ops: number; monto: number }>();
+  private gestionesTotalPorSede = new Map<string, number>();
+  private metasCartera: Record<string, number> = {};
 
   // ── Modo / estado UI ──
   modo: Modo | null = null;
@@ -227,6 +243,8 @@ export class AvanceCarteraComponent implements OnInit {
     // Índices de gestión del mes seleccionado.
     const idxGlobal = this.modo === 'piso' ? null : await this.cargarGestion();
     const idxPorSede = this.modo === 'piso' ? await this.cargarGestionSedes() : null;
+    // Piso: ventas (BD) + metas por sede para el cuadro consolidado.
+    if (this.modo === 'piso') await this.cargarVentasYMetasSede();
 
     const clientes: ClienteCartera[] = filas.map(fila => {
       const dni = this.soloDigitos(String(fila[dniHeader] ?? ''));
@@ -347,6 +365,7 @@ export class AvanceCarteraComponent implements OnInit {
     }
 
     const porSede = new Map<string, IndiceGestion>();
+    this.gestionesTotalPorSede = new Map();
     let count = 0;
     for (const item of data) {
       const fecha = this.parseMarcaTemporal(item[GS_FECHA]);
@@ -355,6 +374,7 @@ export class AvanceCarteraComponent implements OnInit {
       if (!sedeKey) continue;
       const estado = this.mapEstado(item[GS_ESTADO]);
       count++;
+      this.gestionesTotalPorSede.set(sedeKey, (this.gestionesTotalPorSede.get(sedeKey) || 0) + 1);
       if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map() });
       const idx = porSede.get(sedeKey)!;
       const dni = this.soloDigitos(String(item[GS_DNI] ?? ''));
@@ -364,6 +384,32 @@ export class AvanceCarteraComponent implements OnInit {
     }
     this.gestionesMes = count;
     return porSede;
+  }
+
+  /** Piso: trae ventas (tabla `ventas` vía reporte-global) y metas por sede del mes. */
+  private async cargarVentasYMetasSede(): Promise<void> {
+    const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
+    this.ventasPorSede = new Map();
+    try {
+      const rows = await lastValueFrom(this.ventasSrv.obtenerReporteGlobal(anio, mes));
+      for (const r of (rows || [])) {
+        const key = this.normSedeVentas(r.sede);
+        if (!key) continue;
+        const cur = this.ventasPorSede.get(key) || { ops: 0, monto: 0 };
+        cur.ops += r.ops || 0; cur.monto += r.neto || 0;
+        this.ventasPorSede.set(key, cur);
+      }
+    } catch { /* sin ventas → el cuadro muestra 0 */ }
+    try {
+      this.metasCartera = (await lastValueFrom(this.ventasSrv.obtenerMetasAvance())) || {};
+    } catch { this.metasCartera = {}; }
+  }
+
+  /** Normaliza la sede de la tabla ventas ("SEDE RELENOR X") a la clave de sede. */
+  private normSedeVentas(raw: string): string {
+    const n = this.sedeCfg.normalizar(raw || '');
+    if (n.includes('realzza')) return 'realzza';
+    return n.replace(/^sederelenor/, '');
   }
 
   private mapEstado(raw: any): EstadoCliente {
@@ -394,16 +440,60 @@ export class AvanceCarteraComponent implements OnInit {
     for (const c of clientes) {
       const key = c.sedeKey || 'sin-sede';
       let r = map.get(key);
-      if (!r) { r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0 }; map.set(key, r); }
+      if (!r) { r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, meta: 0, proyeccion: 0, avanceMeta: 0 }; map.set(key, r); }
       r.asignados++;
       if (c.estado === 'PENDIENTE') r.pendientes++;
       else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
     }
-    map.forEach(r => { r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0; });
+    // Enriquecer con ventas (BD), gestiones totales, metas y derivados (Proyección / % Meta).
+    const hoy = new Date();
+    const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
+    const diasMes = new Date(this.fecha.getFullYear(), this.fecha.getMonth() + 1, 0).getDate();
+    const diasTrans = esMesActual ? Math.max(1, hoy.getDate()) : diasMes;
+    map.forEach(r => {
+      r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0;
+      r.gestionesTotal = this.gestionesTotalPorSede.get(r.sedeKey) || 0;
+      r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
+      const vt = this.ventasPorSede.get(r.sedeKey) || { ops: 0, monto: 0 };
+      r.nVentas = vt.ops; r.monto = vt.monto;
+      r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
+      r.meta = this.metasCartera['cartera:' + r.sedeKey] || 0;
+      r.proyeccion = Math.round(r.monto / diasTrans * diasMes);
+      r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
+    });
     this.resumenSedes = Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
     // Lista estable para el combo de detalle (evita re-render del dx-select-box).
     this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
   }
+
+  /** Total consolidado (fila "Total general" del cuadro por sede). */
+  get totalConsolidado() {
+    const s = this.resumenSedes;
+    const asignados = s.reduce((a, r) => a + r.asignados, 0);
+    const gestionados = s.reduce((a, r) => a + r.gestionados, 0);
+    const gestionesTotal = s.reduce((a, r) => a + r.gestionesTotal, 0);
+    const nVentas = s.reduce((a, r) => a + r.nVentas, 0);
+    const monto = s.reduce((a, r) => a + r.monto, 0);
+    const meta = s.reduce((a, r) => a + r.meta, 0);
+    const proyeccion = s.reduce((a, r) => a + r.proyeccion, 0);
+    const pendientes = s.reduce((a, r) => a + r.pendientes, 0);
+    return {
+      asignados, gestionados, gestionesTotal, nVentas, monto, meta, proyeccion, pendientes,
+      intensidad: gestionados > 0 ? Math.round((gestionesTotal / gestionados) * 100) / 100 : 0,
+      ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
+      avanceMeta: meta > 0 ? Math.round((monto / meta) * 100) : 0,
+    };
+  }
+
+  /** Edita la meta de una sede (persiste en metas_avance_sede, clave cartera:<sede>). */
+  onMetaCartera(r: ResumenSede, valor: any): void {
+    r.meta = Number(String(valor).replace(/[^0-9.]/g, '')) || 0;
+    r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
+    this.metasCartera['cartera:' + r.sedeKey] = r.meta;
+    this.ventasSrv.guardarMetaAvance('cartera:' + r.sedeKey, r.meta).subscribe({ error: () => {} });
+  }
+  claseMeta(pct: number): string { return pct >= 80 ? 'av-ok' : pct >= 40 ? 'av-medio' : 'av-bajo'; }
+  soles(n: number): string { return 'S/ ' + Math.round(n || 0).toLocaleString('es-PE'); }
 
   private calcularGlobales(clientes: ClienteCartera[]): void {
     this.totalCartera = clientes.length;
