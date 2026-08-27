@@ -173,65 +173,13 @@
         </div>
       </div>
 
-      <!-- Cuadro consolidado "Gestión de Base de Datos — Asignados Totales" (Piso global) -->
-      <div class="tabla-asesores consolidado" *ngIf="esPiso && !sedeDetalle">
-        <div class="consol-head">
-          <h3>Gestión de Base de Datos — {{ tipoClienteSel || 'Asignados Totales' }} <small>(ventas de la base · meta editable)</small></h3>
-          <div class="consol-filtro">
-            <span>Tipo de cliente:</span>
-            <dx-select-box width="220" [dataSource]="['Todos'].concat(tiposClienteDisponibles)"
-              [value]="tipoClienteSel || 'Todos'"
-              (onValueChanged)="tipoClienteSel = ($event.value === 'Todos' ? '' : $event.value); aplicarTipoCliente()"
-              stylingMode="outlined"></dx-select-box>
-          </div>
-        </div>
-        <div class="tabla-scroll">
-          <table class="tabla-consol">
-            <thead>
-              <tr>
-                <th class="left">Sede</th>
-                <th>N° Asignados</th><th>N° Gestionados</th><th>Sin Gestionar</th>
-                <th>Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
-                <th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of consolidado">
-                <td class="left">{{ r.sede }}</td>
-                <td>{{ r.asignados }}</td>
-                <td>{{ r.gestionados }}</td>
-                <td class="c-alerta">{{ r.pendientes }}</td>
-                <td>{{ r.intensidad | number:'1.2-2' }}</td>
-                <td>{{ r.nVentas }}</td>
-                <td class="mono">{{ soles(r.monto) }}</td>
-                <td class="mono">{{ soles(r.ticket) }}</td>
-                <td class="meta-cell">
-                  <input type="number" class="meta-in" [value]="r.meta || ''" placeholder="0"
-                    (change)="onMetaCartera(r, $any($event.target).value)" />
-                </td>
-                <td class="mono">{{ soles(r.proyeccion) }}</td>
-                <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
-              </tr>
-              <tr *ngIf="!consolidado.length" class="vacio"><td colspan="11">Sin datos para el periodo</td></tr>
-            </tbody>
-            <tfoot *ngIf="consolidado.length">
-              <tr>
-                <td class="left">Total general</td>
-                <td>{{ totalConsolidado.asignados }}</td>
-                <td>{{ totalConsolidado.gestionados }}</td>
-                <td>{{ totalConsolidado.pendientes }}</td>
-                <td>{{ totalConsolidado.intensidad | number:'1.2-2' }}</td>
-                <td>{{ totalConsolidado.nVentas }}</td>
-                <td class="mono">{{ soles(totalConsolidado.monto) }}</td>
-                <td class="mono">{{ soles(totalConsolidado.ticket) }}</td>
-                <td class="mono">{{ soles(totalConsolidado.meta) }}</td>
-                <td class="mono">{{ soles(totalConsolidado.proyeccion) }}</td>
-                <td><b [class]="claseMeta(totalConsolidado.avanceMeta)" class="pct-badge">{{ totalConsolidado.avanceMeta }}%</b></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
+      <!-- Cuadros consolidados "Gestión de Base de Datos" (Piso global): general + uno por grupo -->
+      <ng-container *ngIf="esPiso && !sedeDetalle">
+        <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: 'Asignados Totales', filas: consolidado }"></ng-container>
+        <ng-container *ngFor="let g of consolidadoGrupos">
+          <ng-container *ngTemplateOutlet="consolTabla; context: { titulo: g.grupo, filas: g.filas }"></ng-container>
+        </ng-container>
+      </ng-container>
 
       <!-- Tabla por asesor (Call / Realzza, o Piso con sede seleccionada) -->
       <div class="tabla-asesores" *ngIf="!esPiso || sedeDetalle">
@@ -278,3 +226,56 @@
 
   </ng-container>
 </div>
+
+<!-- ══════════ Plantilla reutilizable del cuadro consolidado ══════════ -->
+<ng-template #consolTabla let-titulo="titulo" let-filas="filas">
+  <div class="tabla-asesores consolidado">
+    <h3>Gestión de Base de Datos — {{ titulo }} <small>(ventas de la base · meta editable)</small></h3>
+    <div class="tabla-scroll">
+      <table class="tabla-consol">
+        <thead>
+          <tr>
+            <th class="left">Sede</th>
+            <th>N° Asignados</th><th>N° Gestionados</th><th>Sin Gestionar</th>
+            <th>Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
+            <th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of filas">
+            <td class="left">{{ r.sede }}</td>
+            <td>{{ r.asignados }}</td>
+            <td>{{ r.gestionados }}</td>
+            <td class="c-alerta">{{ r.pendientes }}</td>
+            <td>{{ r.intensidad | number:'1.2-2' }}</td>
+            <td>{{ r.nVentas }}</td>
+            <td class="mono">{{ soles(r.monto) }}</td>
+            <td class="mono">{{ soles(r.ticket) }}</td>
+            <td class="meta-cell">
+              <input type="number" class="meta-in" [value]="r.meta || ''" placeholder="0"
+                (change)="onMetaCartera(r, $any($event.target).value)" />
+            </td>
+            <td class="mono">{{ soles(r.proyeccion) }}</td>
+            <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
+          </tr>
+          <tr *ngIf="!filas.length" class="vacio"><td colspan="11">Sin datos para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="filas.length">
+          <tr>
+            <td class="left">Total general</td>
+            <td>{{ tot(filas).asignados }}</td>
+            <td>{{ tot(filas).gestionados }}</td>
+            <td>{{ tot(filas).pendientes }}</td>
+            <td>{{ tot(filas).intensidad | number:'1.2-2' }}</td>
+            <td>{{ tot(filas).nVentas }}</td>
+            <td class="mono">{{ soles(tot(filas).monto) }}</td>
+            <td class="mono">{{ soles(tot(filas).ticket) }}</td>
+            <td class="mono">{{ soles(tot(filas).meta) }}</td>
+            <td class="mono">{{ soles(tot(filas).proyeccion) }}</td>
+            <td><b [class]="claseMeta(tot(filas).avanceMeta)" class="pct-badge">{{ tot(filas).avanceMeta }}%</b></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</ng-template>

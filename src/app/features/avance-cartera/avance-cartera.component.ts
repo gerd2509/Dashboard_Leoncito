@@ -79,9 +79,10 @@ interface ResumenSede {
   nVentas: number;          // # de ventas (tabla ventas) de la sede
   monto: number;            // monto neto vendido de la sede
   ticket: number;           // monto ÷ nVentas
-  meta: number;             // meta editable por sede
+  meta: number;             // meta editable por sede (y grupo de tipo)
   proyeccion: number;       // monto proyectado a fin de mes
   avanceMeta: number;       // % monto ÷ meta
+  metaKey: string;          // clave de persistencia de la meta (cartera:[grupo:]<sede>)
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
@@ -106,10 +107,9 @@ export class AvanceCarteraComponent implements OnInit {
   private ventasPorDni = new Map<string, { ops: number; monto: number }>();
   private gestionesTotalPorSede = new Map<string, number>();
   private metasCartera: Record<string, number> = {};
-  // Consolidado + split por tipo de cliente (columna del Excel).
+  // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
   consolidado: ResumenSede[] = [];
-  tiposClienteDisponibles: string[] = [];
-  tipoClienteSel = '';   // '' = todos
+  consolidadoGrupos: { grupo: string; filas: ResumenSede[] }[] = [];
 
   // ── Modo / estado UI ──
   modo: Modo | null = null;
@@ -450,13 +450,14 @@ export class AvanceCarteraComponent implements OnInit {
     return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
   }
 
-  /** Arma el resumen por sede (asignados/gestionados + ventas de la base + metas/derivados). */
-  private buildSedes(clientes: ClienteCartera[]): ResumenSede[] {
+  /** Arma el resumen por sede (asignados/gestionados + ventas de la base + metas/derivados).
+   *  `metaPrefix` = prefijo de la clave de meta (para tener metas por grupo de tipo). */
+  private buildSedes(clientes: ClienteCartera[], metaPrefix: string): ResumenSede[] {
     const map = new Map<string, ResumenSede>();
     for (const c of clientes) {
       const key = c.sedeKey || 'sin-sede';
       let r = map.get(key);
-      if (!r) { r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, meta: 0, proyeccion: 0, avanceMeta: 0 }; map.set(key, r); }
+      if (!r) { r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, meta: 0, proyeccion: 0, avanceMeta: 0, metaKey: '' }; map.set(key, r); }
       r.asignados++;
       if (c.estado === 'PENDIENTE') r.pendientes++;
       else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
@@ -473,7 +474,8 @@ export class AvanceCarteraComponent implements OnInit {
       r.gestionesTotal = this.gestionesTotalPorSede.get(r.sedeKey) || 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
       r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
-      r.meta = this.metasCartera['cartera:' + r.sedeKey] || 0;   // meta por SEDE (no por tipo)
+      r.metaKey = metaPrefix + (r.sedeKey || 'sin-sede');
+      r.meta = this.metasCartera[r.metaKey] || 0;
       r.proyeccion = Math.round(r.monto / diasTrans * diasMes);
       r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
     });
@@ -481,13 +483,17 @@ export class AvanceCarteraComponent implements OnInit {
   }
 
   private construirResumenSedes(clientes: ClienteCartera[]): void {
-    this.resumenSedes = this.buildSedes(clientes);
-    // Lista estable para el combo de detalle (evita re-render del dx-select-box).
+    this.resumenSedes = this.buildSedes(clientes, 'cartera:');
     this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
-    // Grupos de tipo de cliente disponibles + consolidado (filtrable por grupo).
-    this.tiposClienteDisponibles = [...new Set(this.clientes.map(c => this.grupoTipo(c.tipoCliente)))].sort();
-    if (this.tipoClienteSel && !this.tiposClienteDisponibles.includes(this.tipoClienteSel)) this.tipoClienteSel = '';
-    this.aplicarTipoCliente();
+    // Cuadro consolidado general (Todos) + un cuadro separado por cada grupo de tipo de cliente.
+    this.consolidado = this.buildSedes(this.clientes, 'cartera:');
+    const grupos = [...new Set(this.clientes.map(c => this.grupoTipo(c.tipoCliente)))].sort();
+    this.consolidadoGrupos = (grupos.length > 1 || (grupos.length === 1 && grupos[0] !== 'SIN TIPO'))
+      ? grupos.map(g => ({
+          grupo: g,
+          filas: this.buildSedes(this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === g), 'cartera:' + g + ':'),
+        }))
+      : [];   // si no hay tipos reales, no muestra cuadros por grupo
   }
 
   /** Agrupa el valor crudo de TipoCliente en el nombre de cuadro (como el Excel):
@@ -501,17 +507,8 @@ export class AvanceCarteraComponent implements OnInit {
     return t;   // cualquier otro valor se muestra tal cual
   }
 
-  /** Recalcula el cuadro consolidado según el grupo de tipo de cliente ('' = todos). */
-  aplicarTipoCliente(): void {
-    const sub = this.tipoClienteSel
-      ? this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === this.tipoClienteSel)
-      : this.clientes;
-    this.consolidado = this.buildSedes(sub);
-  }
-
-  /** Total consolidado (fila "Total general" del cuadro por sede). */
-  get totalConsolidado() {
-    const s = this.consolidado;
+  /** Fila "Total general" de un cuadro (se recalcula al vuelo; datos pequeños). */
+  tot(s: ResumenSede[]) {
     const asignados = s.reduce((a, r) => a + r.asignados, 0);
     const gestionados = s.reduce((a, r) => a + r.gestionados, 0);
     const gestionesTotal = s.reduce((a, r) => a + r.gestionesTotal, 0);
@@ -528,12 +525,12 @@ export class AvanceCarteraComponent implements OnInit {
     };
   }
 
-  /** Edita la meta de una sede (persiste en metas_avance_sede, clave cartera:<sede>). */
+  /** Edita la meta de una sede (persiste con la clave del cuadro: cartera:[grupo:]<sede>). */
   onMetaCartera(r: ResumenSede, valor: any): void {
     r.meta = Number(String(valor).replace(/[^0-9.]/g, '')) || 0;
     r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
-    this.metasCartera['cartera:' + r.sedeKey] = r.meta;
-    this.ventasSrv.guardarMetaAvance('cartera:' + r.sedeKey, r.meta).subscribe({ error: () => {} });
+    this.metasCartera[r.metaKey] = r.meta;
+    this.ventasSrv.guardarMetaAvance(r.metaKey, r.meta).subscribe({ error: () => {} });
   }
   claseMeta(pct: number): string { return pct >= 80 ? 'av-ok' : pct >= 40 ? 'av-medio' : 'av-bajo'; }
   soles(n: number): string { return 'S/ ' + Math.round(n || 0).toLocaleString('es-PE'); }
