@@ -451,8 +451,9 @@ export class AvanceCarteraComponent implements OnInit {
   }
 
   /** Arma el resumen por sede (asignados/gestionados + ventas de la base + metas/derivados).
-   *  `metaPrefix` = prefijo de la clave de meta (para tener metas por grupo de tipo). */
-  private buildSedes(clientes: ClienteCartera[], metaPrefix: string): ResumenSede[] {
+   *  `metaPrefix` = prefijo de la clave de meta (por mes y grupo); `legacyPrefix` = clave
+   *  anterior (sin mes) usada como respaldo para no perder lo ya cargado. */
+  private buildSedes(clientes: ClienteCartera[], metaPrefix: string, legacyPrefix: string): ResumenSede[] {
     const map = new Map<string, ResumenSede>();
     for (const c of clientes) {
       const key = c.sedeKey || 'sin-sede';
@@ -474,8 +475,9 @@ export class AvanceCarteraComponent implements OnInit {
       r.gestionesTotal = this.gestionesTotalPorSede.get(r.sedeKey) || 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
       r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
-      r.metaKey = metaPrefix + (r.sedeKey || 'sin-sede');
-      r.meta = this.metasCartera[r.metaKey] || 0;
+      const sk = r.sedeKey || 'sin-sede';
+      r.metaKey = metaPrefix + sk;   // se guarda por mes
+      r.meta = this.metasCartera[r.metaKey] || (legacyPrefix ? this.metasCartera[legacyPrefix + sk] : 0) || 0;   // respaldo: clave anterior
       r.proyeccion = Math.round(r.monto / diasTrans * diasMes);
       r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
     });
@@ -483,15 +485,23 @@ export class AvanceCarteraComponent implements OnInit {
   }
 
   private construirResumenSedes(clientes: ClienteCartera[]): void {
-    this.resumenSedes = this.buildSedes(clientes, 'cartera:');
+    // Prefijo por MES seleccionado → las metas se guardan por mes (cada mes independiente).
+    const ym = `${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
+    // Respaldo de las metas ya cargadas (clave sin mes): solo se usa en el mes en curso,
+    // para no perder lo puesto; los demás meses arrancan limpios.
+    const hoy = new Date();
+    const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
+    const legacy = esMesActual ? 'cartera:' : '';
+    const legacyG = (g: string) => esMesActual ? 'cartera:' + g + ':' : '';
+    this.resumenSedes = this.buildSedes(clientes, `cartera:${ym}:`, legacy);
     this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
     // Cuadro consolidado general (Todos) + un cuadro separado por cada grupo de tipo de cliente.
-    this.consolidado = this.buildSedes(this.clientes, 'cartera:');
+    this.consolidado = this.buildSedes(this.clientes, `cartera:${ym}:`, legacy);
     const grupos = [...new Set(this.clientes.map(c => this.grupoTipo(c.tipoCliente)))].sort();
     this.consolidadoGrupos = (grupos.length > 1 || (grupos.length === 1 && grupos[0] !== 'SIN TIPO'))
       ? grupos.map(g => ({
           grupo: g,
-          filas: this.buildSedes(this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === g), 'cartera:' + g + ':'),
+          filas: this.buildSedes(this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === g), `cartera:${ym}:${g}:`, legacyG(g)),
         }))
       : [];   // si no hay tipos reales, no muestra cuadros por grupo
   }
