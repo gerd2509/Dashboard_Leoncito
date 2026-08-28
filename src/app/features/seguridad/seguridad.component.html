@@ -225,6 +225,12 @@
               <span><mat-icon>key</mat-icon> Módulos que verán los {{ bulkNuevos }} usuarios</span>
               <button type="button" class="bulk-perm-reset" (click)="resetBulkModulos()"><mat-icon>restart_alt</mat-icon> Default</button>
             </div>
+            <div class="perm-presets">
+              <span class="pp-lbl">Paquetes rápidos:</span>
+              <button type="button" class="pp-btn call" (click)="presetBulk('call')"><mat-icon>headset_mic</mat-icon> Solo CALL Center</button>
+              <button type="button" class="pp-btn rz" (click)="presetBulk('realzza')"><mat-icon>storefront</mat-icon> Solo Realzza</button>
+              <button type="button" class="pp-btn ambos" (click)="presetBulk('ambos')"><mat-icon>done_all</mat-icon> Call + Realzza</button>
+            </div>
             <div class="perm-grupo" *ngFor="let g of grupos">
               <div class="perm-grupo-h">
                 <span><mat-icon>folder_open</mat-icon> {{ g }}</span>
@@ -284,6 +290,12 @@
     <div class="perm-sub">
       Qué pantallas puede ver <b>{{ permUsuario?.nombre || permUsuario?.usuario }}</b>.
       <span class="perm-default" *ngIf="permEsDefault"><mat-icon>info</mat-icon> Usando el default de su rol/perfil (aún sin permisos propios).</span>
+    </div>
+    <div class="perm-presets">
+      <span class="pp-lbl">Paquetes rápidos:</span>
+      <button type="button" class="pp-btn call" (click)="presetPerm('call')"><mat-icon>headset_mic</mat-icon> Solo CALL Center</button>
+      <button type="button" class="pp-btn rz" (click)="presetPerm('realzza')"><mat-icon>storefront</mat-icon> Solo Realzza</button>
+      <button type="button" class="pp-btn ambos" (click)="presetPerm('ambos')"><mat-icon>done_all</mat-icon> Call + Realzza</button>
     </div>
     <div class="modal-body perm-body">
       <div class="perm-grupo" *ngFor="let g of grupos">

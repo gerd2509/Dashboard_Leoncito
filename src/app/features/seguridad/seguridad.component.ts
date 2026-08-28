@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import {
   PermissionsService, ModuleConfig, RolPerfilCombinacion,
-  COMBINACIONES, ALL_MODULES, PERFILES, Perfil,
+  COMBINACIONES, ALL_MODULES, PERFILES, Perfil, CALL_MODULES, REALZZA_MODULES,
 } from '../../services/permissions.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { UsuariosService, UsuarioDB } from '../../services/usuarios.service';
@@ -150,6 +150,12 @@ export class SeguridadComponent implements OnInit {
     for (const m of this.modulosDe(grupo)) { if (on) this.permSel.add(m.key); else this.permSel.delete(m.key); }
     this.permEsDefault = false;
   }
+  /** Preset: deja seleccionado SOLO el paquete elegido (Call / Realzza / ambos). */
+  presetPerm(tipo: 'call' | 'realzza' | 'ambos'): void {
+    const keys = tipo === 'call' ? CALL_MODULES : tipo === 'realzza' ? REALZZA_MODULES : [...CALL_MODULES, ...REALZZA_MODULES];
+    this.permSel = new Set(keys);
+    this.permEsDefault = false;
+  }
 
   guardarPermisos(): void {
     if (!this.permUsuario) return;
@@ -228,6 +234,10 @@ export class SeguridadComponent implements OnInit {
   estaBulkPerm(key: string): boolean { return this.bulkModulos.has(key); }
   toggleBulkPerm(key: string): void {
     if (this.bulkModulos.has(key)) this.bulkModulos.delete(key); else this.bulkModulos.add(key);
+  }
+  presetBulk(tipo: 'call' | 'realzza' | 'ambos'): void {
+    const keys = tipo === 'call' ? CALL_MODULES : tipo === 'realzza' ? REALZZA_MODULES : [...CALL_MODULES, ...REALZZA_MODULES];
+    this.bulkModulos = new Set(keys);
   }
   todosGrupoBulk(grupo: string, on: boolean): void {
     for (const m of this.modulosDe(grupo)) { if (on) this.bulkModulos.add(m.key); else this.bulkModulos.delete(m.key); }

@@ -104,14 +104,15 @@ export const ALL_MODULES: ModuleConfig[] = [
 ];
 
 // ─── Permisos por defecto: clave = rol-perfil ─────────────────────────────────
-const CALL_MODULES = [
+// Exportados para usarlos como "presets" al asignar módulos en Seguridad.
+export const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'gestion-derivaciones-sede', 'control-gestion-sede', 'cierre-gestion-sedes', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
   'avance-metas', 'reporte-global',
 ];
-const REALZZA_MODULES = [
+export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
   'registro-kommo', 'gestion-kommo',

@@ -709,6 +709,17 @@ td.col-modulo {
 /* ── Modal: permisos por usuario ── */
 .perm-box { max-width: 700px; }
 .perm-sub { padding: 12px 20px 0; font-size: 13px; color: #46586c; }
+/* Paquetes rápidos (presets Call / Realzza) */
+.perm-presets { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 20px 0; }
+.perm-presets .pp-lbl { font-size: 12px; font-weight: 800; color: #46586c; text-transform: uppercase; letter-spacing: .3px; }
+.pp-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; background: #fff;
+  color: #1A5FAD; font-weight: 700; font-size: 12.5px; padding: 7px 13px; border-radius: 8px; cursor: pointer; }
+.pp-btn:hover { background: #eef5fc; }
+.pp-btn mat-icon { font-size: 17px; width: 17px; height: 17px; }
+.pp-btn.rz { color: #6A1B9A; border-color: #e0cced; }
+.pp-btn.rz:hover { background: #f6eefb; }
+.pp-btn.ambos { color: #2E7D32; border-color: #cfe6cf; }
+.pp-btn.ambos:hover { background: #eef7ee; }
 .perm-default { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; color: #E65100; font-weight: 700; }
 .perm-default mat-icon { font-size: 16px; width: 16px; height: 16px; }
 .perm-body { max-height: 62vh; overflow-y: auto; }
