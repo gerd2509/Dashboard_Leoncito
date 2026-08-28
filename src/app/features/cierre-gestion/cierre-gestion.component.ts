@@ -150,11 +150,13 @@ export class CierreGestionComponent implements OnInit {
     // { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
+    { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
     // { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
     { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
     // { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
     // { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
+    { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
     { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' },
     { value: 'CC26', viewValue: 'RUIZ SAMPEN LUCRECIA NOEMI' }
   ];
@@ -170,20 +172,18 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
     { value: 'RZ8', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
     { value: 'RZ9', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
+    { value: 'RZ10', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' },
     { value: 'RZ11', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
-    { value: 'RZ12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' },
-    // Pasaron de Call a Realzza (mantienen su código CC).
-    { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' }
+    { value: 'RZ12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' }
   ];
 
   asesores1 = this.asesoresCall;
 
   // ── Sublistas fijas para KOMMO (se muestran siempre, tengan o no registros) ──
-  // Leoncito / Call KOMMO: KAREN, ESMERALDA, BRENDA, FABRICIO, NOEMI (Kelly/Anita pasaron a Realzza)
-  private readonly kommoCallIds = ['CC5', 'CC15', 'CC12', 'CC22', 'CC26'];
-  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH + KELLY, ANITA
-  private readonly kommoRealzzaIds = ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8', 'CC8', 'CC21'];
+  // Leoncito / Call KOMMO: KAREN, ESMERALDA, KELLY, BRENDA, FABRICIO
+  private readonly kommoCallIds = ['CC5', 'CC15', 'CC8', 'CC12', 'CC22', 'CC26'];
+  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH
+  private readonly kommoRealzzaIds = ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8'];
 
   get asesoresKommoCall() {
     return this.kommoCallIds

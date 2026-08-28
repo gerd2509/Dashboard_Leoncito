@@ -8,9 +8,11 @@ export const ASESORES_CALL: AsesorRef[] = [
   { value: 'CC1',  nombre: 'MORETO DELGADO PATRICIA ESTEFANY' },
   { value: 'CC5',  nombre: 'QUISPE FONSECA KAREN AIMEE' },
   { value: 'CC6',  nombre: 'MORALES ÑIQUE MARIA CANDELARIA' },
+  { value: 'CC8',  nombre: 'CHANTA CAMPOS KELLY KARINTIA' },
   { value: 'CC12', nombre: 'BERNAL BAZAN BRENDA NICOL' },
   { value: 'CC15', nombre: 'TORRES ALVARADO JUDY ESMERALDA' },
   { value: 'CC19', nombre: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
+  { value: 'CC21', nombre: 'CHANAME SOTO ANITA NOEMI' },
   { value: 'CC22', nombre: 'BERNAL BAZAN FABRICIO ROLANDO' },
   { value: 'CC26', nombre: 'RUIZ SAMPEN LUCRECIA NOEMI' },
 ];
@@ -25,11 +27,9 @@ export const ASESORES_REALZZA: AsesorRef[] = [
   { value: 'RZ7', nombre: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
   { value: 'RZ8', nombre: 'BUSTAMANTE CHALAN ANA RUT' },
   { value: 'RZ9', nombre: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
+  { value: 'RZ10', nombre: 'GUILLEN MACKUADO AURORA FERNANDA' },
   { value: 'RZ11', nombre: 'PEREZ TINEO WILLIAM HUMBERTO' },
   { value: 'RZ12', nombre: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' },
-  // Pasaron de Call a Realzza (mantienen su código CC).
-  { value: 'CC8',  nombre: 'CHANTA CAMPOS KELLY KARINTIA' },
-  { value: 'CC21', nombre: 'CHANAME SOTO ANITA NOEMI' },
 ];
 
 /** Nombres (solo) de un canal Call/Realzza. */
