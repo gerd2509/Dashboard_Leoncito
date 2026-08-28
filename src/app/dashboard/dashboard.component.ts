@@ -319,7 +319,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!u) return [];
     if (u.rol === 'admin') return this.menuItems;
 
-    const esGlobal = u.sede.toLowerCase() === 'todas';
+    const esGlobal = ['todas', 'call'].includes(u.sede.toLowerCase());
     const nombreSede = esGlobal ? 'Sedes' : (this.sedeConfig.getConfig(u.sede)?.nombre ?? u.sede);
     const sedeUpper = nombreSede.toUpperCase();
 

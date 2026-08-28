@@ -69,7 +69,7 @@ export class EvolucionRegistrosComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const u = this.auth.getUsuario();
-    const esGlobal = !u || u.rol === 'admin' || (u.sede || '').toLowerCase() === 'todas';
+    const esGlobal = !u || u.rol === 'admin' || ['todas', 'call'].includes((u.sede || '').toLowerCase());
 
     const todas: SedeCall[] = this.sedeCfg.getSedesCall().map(s => {
       const cfg = this.sedeCfg.getConfig(s.key);

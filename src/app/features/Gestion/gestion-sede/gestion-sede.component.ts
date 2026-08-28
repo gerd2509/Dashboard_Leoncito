@@ -51,7 +51,7 @@ export class GestionSedeComponent implements OnInit {
   async ngOnInit() {
     // Determinar sedes disponibles según el usuario
     const u = this.auth.getUsuario();
-    const esGlobal = !u || u.rol === 'admin' || u.sede.toLowerCase() === 'todas';
+    const esGlobal = !u || u.rol === 'admin' || ['todas', 'call'].includes(u.sede.toLowerCase());
 
     if (esGlobal) {
       this.sedesDisponibles = this.sedeConfig.getSedesParaCombo();

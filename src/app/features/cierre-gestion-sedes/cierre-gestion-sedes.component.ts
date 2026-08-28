@@ -85,7 +85,7 @@ export class CierreGestionSedesComponent implements OnInit {
 
   async ngOnInit() {
     const u = this.auth.getUsuario();
-    this.esAdmin = !u || u.rol === 'admin' || (u.sede || '').toLowerCase() === 'todas';
+    this.esAdmin = !u || u.rol === 'admin' || ['todas', 'call'].includes((u.sede || '').toLowerCase());
 
     if (this.esAdmin) {
       this.sedesDisponibles = [{ key: 'todas', nombre: 'Todas las sedes' }, ...this.sedeConfig.getSedesParaCombo()];

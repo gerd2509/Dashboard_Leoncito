@@ -320,9 +320,9 @@ export class SedeConfigService {
     return [...keys];
   }
 
-  // ¿Alguno de los tokens del usuario representa "todas las sedes"?
+  // ¿Alguno de los tokens del usuario representa "todas las sedes"? ('todas' o 'call' = scope global de Call)
   incluyeTodas(tokens: string[]): boolean {
-    return (tokens || []).some(t => this.normalizar(t) === 'todas');
+    return (tokens || []).some(t => { const n = this.normalizar(t); return n === 'todas' || n === 'call'; });
   }
 
   existeSede(sede: string): boolean {

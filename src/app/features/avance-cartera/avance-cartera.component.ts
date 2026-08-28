@@ -119,7 +119,7 @@ export class AvanceCarteraComponent implements OnInit {
   ngOnInit(): void {
     const u = this.auth.getUsuario();
     const sede = this.sedeCfg.normalizar(u?.sede ?? '');
-    const esAdmin = !u || u.rol === 'admin' || sede === 'todas';
+    const esAdmin = !u || u.rol === 'admin' || sede === 'todas' || sede === 'call';
 
     if (esAdmin) {
       this.modosPermitidos = ['call', 'realzza', 'piso'];

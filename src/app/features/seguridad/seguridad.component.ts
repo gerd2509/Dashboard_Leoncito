@@ -185,6 +185,7 @@ export class SeguridadComponent implements OnInit {
 
     this.sedeOptions = [
       { value: 'todas', label: 'Todas' },
+      { value: 'call', label: 'Call Center (todas las sedes)' },
       { value: 'realzza', label: 'Realzza' },
       // Gerencia por zona (ve solo Control Gestión Sede de esa zona).
       { value: 'centro', label: 'Zona Centro' },
@@ -362,18 +363,19 @@ export class SeguridadComponent implements OnInit {
     return `${label(sel[0])}, ${label(sel[1])}${sel.length > 2 ? ` +${sel.length - 2}` : ''}`;
   }
 
-  /** Marca/desmarca una sede en la lista. "Todas" es exclusiva: al marcarla se
-   *  limpia el resto; al marcar una específica se quita "Todas". */
+  /** Marca/desmarca una sede en la lista. "Todas" y "Call" son EXCLUSIVAS (scope global
+   *  de call): al marcarlas se limpia el resto; al marcar una sede específica se quitan. */
   toggleSede(value: string): void {
     let sel = [...this.form.sedes];
     const marcada = sel.includes(value);
+    const METAS = ['todas', 'call'];
 
-    if (value === 'todas') {
-      sel = marcada ? [] : ['todas'];
+    if (METAS.includes(value)) {
+      sel = marcada ? [] : [value];
     } else if (marcada) {
       sel = sel.filter(s => s !== value);
     } else {
-      sel = [...sel.filter(s => s !== 'todas'), value];
+      sel = [...sel.filter(s => !METAS.includes(s)), value];
     }
 
     if (!sel.length) sel = ['todas'];

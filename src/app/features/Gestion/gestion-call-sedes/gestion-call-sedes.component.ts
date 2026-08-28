@@ -59,7 +59,7 @@ export class GestionCallSedesComponent implements OnInit {
   // admin / sede 'todas' → selector; usuario de sede → fijo a su sede
   private configurarSedeSegunUsuario() {
     const u = this.auth.getUsuario();
-    this.esAdmin = !u || u.rol === 'admin' || this.sedeCfg.normalizar(u.sede) === 'todas';
+    this.esAdmin = !u || u.rol === 'admin' || ['todas', 'call'].includes(this.sedeCfg.normalizar(u.sede));
 
     if (this.esAdmin) {
       this.sedesDisponibles = this.sedeCfg.getSedesCall();
