@@ -11,6 +11,9 @@ export type Canal = 'LEONCITO' | 'REALZZA';
 export function canalDeUsuario(u: any): '' | Canal {
   const rol = (u?.rol || '').toString().toLowerCase();
   if (rol === 'admin') return '';
+  // Supervisor/gerente GENERAL (sede "Todas") → ve AMBOS canales (Leoncito + Realzza),
+  // igual que admin. (La sede "Call" sí queda solo en Leoncito.)
+  if ((u?.sede || '').toString().trim().toLowerCase() === 'todas') return '';
   // Caso especial BRENDA: sus VENTAS son Realzza, pero en KOMMO/gestión trabaja
   // como Leoncito (Call) — igual que su override de gestiones en Mi Panel. Solo ella.
   const ident = [(u?.usuario || ''), (u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
