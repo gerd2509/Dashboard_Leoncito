@@ -8,6 +8,10 @@ export type Canal = 'LEONCITO' | 'REALZZA';
  * Se usa para acotar el Registro KOMMO (qué puede registrar) y Gestión Kommo
  * (qué puede ver/editar): Call solo Leoncito, Realzza solo Realzza.
  */
+// Módulos que revelan que el usuario maneja un canal (para decidir su vista de KOMMO).
+const MODS_REALZZA = ['gestion-campo', 'ventas-campo', 'actividad-realzza', 'control-supervisor', 'gestion-supervisor', 'registro-supervisor', 'cierre'];
+const MODS_CALL = ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes', 'control-call-sedes', 'atribucion-call', 'ventas-sedes'];
+
 export function canalDeUsuario(u: any): '' | Canal {
   const rol = (u?.rol || '').toString().toLowerCase();
   if (rol === 'admin') return '';
@@ -18,6 +22,16 @@ export function canalDeUsuario(u: any): '' | Canal {
   // como Leoncito (Call) — igual que su override de gestiones en Mi Panel. Solo ella.
   const ident = [(u?.usuario || ''), (u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
   if (ident.includes('BERNAL BAZAN BRENDA') || ident.includes('CC_BRENDA')) return 'LEONCITO';
+  // Por PERMISOS propios: si tiene módulos de AMBOS canales → ve los dos (como Henry).
+  // Solo de Realzza → REALZZA; solo de Call → LEONCITO.
+  const mods = Array.isArray(u?.modulos) ? u.modulos : null;
+  if (mods && mods.length) {
+    const tR = mods.some((m: string) => MODS_REALZZA.includes(m));
+    const tC = mods.some((m: string) => MODS_CALL.includes(m));
+    if (tR && tC) return '';
+    if (tR && !tC) return 'REALZZA';
+    if (tC && !tR) return 'LEONCITO';
+  }
   const campos = [rol, (u?.canal || ''), (u?.sede || '')].join(' ').toLowerCase();
   if (campos.includes('realzza')) return 'REALZZA';
   return 'LEONCITO';
