@@ -759,6 +759,7 @@ export class VentasSedesComponent implements OnInit {
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNC.keys(), ...mapINC.keys()]).forEach(fu => {
+      if (fu === 'SIN FUENTE') return;   // solo se muestran las fuentes con atribución
       const data = mapVentas.get(fu) || { monto: 0, ops: 0 };
       const montoNC = Math.round(mapNC.get(fu) || 0);
       const montoINC = Math.round(mapINC.get(fu) || 0);
