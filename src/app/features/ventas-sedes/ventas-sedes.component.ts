@@ -433,6 +433,7 @@ export class VentasSedesComponent implements OnInit {
           AsesorVenta: '',
           Entidad: row.entidad,
           TipoCredito: row.tipo_credito,
+          Fuente: (row.atrib_fuente_sede || '').toString().trim().toUpperCase(),
           DiaAF: this.parseNumber(row.dia_af),
           MesAF: this.parseNumber(row.mes_af),
           AñoAF: this.parseNumber(row.anio_af),
@@ -739,41 +740,35 @@ export class VentasSedesComponent implements OnInit {
    * de Realzza por tipo de base, pero por fuente. Solo aparece si hay ventas atribuidas.
    */
   private generarVentasPorFuente(): void {
-    const esDesde = (a: number, m: number) => a > 2026 || (a === 2026 && m >= 8);
-    const mapV = new Map<string, { monto: number; ops: number }>();
-    for (const v of this.filtroVentas) {
-      const fu = (v.Fuente || '').toString().trim().toUpperCase();
-      if (!fu) continue;
-      const f = v.FECHAVENTA as Date;
-      if (!f || !esDesde(f.getFullYear(), f.getMonth() + 1)) continue;
-      const cur = mapV.get(fu) || { monto: 0, ops: 0 };
-      mapV.set(fu, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
-    }
-    // NC por fuente (por su mes de AF; solo ago-2026+). Todas restan del neto;
-    // las del MISMO mes (venta CV del mes) además se suman al total (netean a 0).
-    const mapNC = new Map<string, number>();
-    const mapNCMismo = new Map<string, number>();
-    for (const nc of this.filtroNotasCredito) {
-      const fu = (nc.Fuente || '').toString().trim().toUpperCase();
-      if (!fu) continue;
-      const a = nc.AñoAF > 0 ? nc.AñoAF : (nc.FECHAVENTA as Date)?.getFullYear();
-      const m = nc.MesAF > 0 ? nc.MesAF : ((nc.FECHAVENTA as Date)?.getMonth() + 1);
-      if (!esDesde(a, m)) continue;
-      mapNC.set(fu, (mapNC.get(fu) || 0) + (nc.MontoConsolidado || 0));
-      if (nc.ventaDelMes) mapNCMismo.set(fu, (mapNCMismo.get(fu) || 0) + (nc.MontoConsolidado || 0));
-    }
-    const fuentes = new Set<string>([...mapV.keys(), ...mapNC.keys()]);
+    // Mismo neteo que "Ventas por Tipo Crédito" (NC + incautaciones), pero agrupado por
+    // fuente generadora. Las ventas/NC/INC SIN fuente van al bucket "SIN FUENTE" para que
+    // el total cuadre exactamente con el KPI de Monto Real (neto).
+    const fuenteKey = (v: any): string => ((v.Fuente || '').toString().trim().toUpperCase() || 'SIN FUENTE');
+
+    const mapVentas = new Map<string, { monto: number; ops: number }>();
+    this.filtroVentas.forEach(v => {
+      const fu = fuenteKey(v);
+      const cur = mapVentas.get(fu) || { monto: 0, ops: 0 };
+      mapVentas.set(fu, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+
+    const mapNCMismo = this.agruparNCMismoMes(fuenteKey);
+    const mapINCMismo = this.agruparINCMismoMes(fuenteKey);
+    const mapNC = this.agruparNCTodas(fuenteKey);
+    const mapINC = this.agruparINCTodas(fuenteKey);
+
     const rows: any[] = [];
-    fuentes.forEach(fu => {
-      const d = mapV.get(fu) || { monto: 0, ops: 0 };
-      const ncM = mapNC.get(fu) || 0;
-      const montoVentas = Math.round(d.monto + (mapNCMismo.get(fu) || 0));
+    new Set<string>([...mapVentas.keys(), ...mapNC.keys(), ...mapINC.keys()]).forEach(fu => {
+      const data = mapVentas.get(fu) || { monto: 0, ops: 0 };
+      const montoNC = Math.round(mapNC.get(fu) || 0);
+      const montoINC = Math.round(mapINC.get(fu) || 0);
+      const montoVentas = Math.round(data.monto + (mapNCMismo.get(fu) || 0) + (mapINCMismo.get(fu) || 0));
       rows.push({
         Fuente: fu,
         MontoVentas: montoVentas,
-        MontoNeto: montoVentas - Math.round(ncM),
-        NroOps: d.ops,
-        TicketPromedio: d.ops > 0 ? Math.round(d.monto / d.ops) : 0,
+        MontoNeto: montoVentas - montoNC - montoINC,
+        NroOps: data.ops,
+        TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0,
       });
     });
