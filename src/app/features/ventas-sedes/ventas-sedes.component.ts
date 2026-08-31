@@ -743,7 +743,7 @@ export class VentasSedesComponent implements OnInit {
     // Mismo neteo que "Ventas por Tipo Crédito" (NC + incautaciones), pero agrupado por
     // fuente generadora. Las ventas/NC/INC SIN fuente van al bucket "SIN FUENTE" para que
     // el total cuadre exactamente con el KPI de Monto Real (neto).
-    const fuenteKey = (v: any): string => ((v.Fuente || '').toString().trim().toUpperCase() || 'SIN FUENTE');
+    const fuenteKey = (v: any): string => ((v.Fuente || '').toString().trim().toUpperCase() || 'SIN FUENTE ASIGNADA');
 
     const mapVentas = new Map<string, { monto: number; ops: number }>();
     this.filtroVentas.forEach(v => {
@@ -759,7 +759,6 @@ export class VentasSedesComponent implements OnInit {
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNC.keys(), ...mapINC.keys()]).forEach(fu => {
-      if (fu === 'SIN FUENTE') return;   // solo se muestran las fuentes con atribución
       const data = mapVentas.get(fu) || { monto: 0, ops: 0 };
       const montoNC = Math.round(mapNC.get(fu) || 0);
       const montoINC = Math.round(mapINC.get(fu) || 0);
