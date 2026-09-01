@@ -766,7 +766,12 @@ export class MiPanelComponent implements OnInit {
     }
     const hoy = new Date();
     const actual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-    set.add(actual);   // siempre se puede consultar el mes en curso, aunque aún no venda
+    // Ofrecer SIEMPRE los últimos 6 meses (aunque no haya ventas ese mes → se ve el sueldo
+    // base), para poder consultar meses anteriores desde el panel del vendedor.
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      set.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
     this.mesesSueldo = [...set].sort((a, b) => b.localeCompare(a)).map(v => ({ value: v, label: this.formatMes(v) }));
     if (!this.sueldoMesSel || !set.has(this.sueldoMesSel)) {
       this.sueldoMesSel = set.has(actual) ? actual : (this.mesesSueldo[0]?.value || actual);
