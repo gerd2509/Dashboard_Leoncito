@@ -144,25 +144,30 @@ export class CierreGestionComponent implements OnInit {
     '#FFD700', '#1E90FF', '#32CD32', '#FF4500', '#8A2BE2', '#FF1493', '#00CED1', '#DC143C'
   ];
 
-  // LISTA ASESORES CALL CENTER
-  asesoresCall = [
+  // Pase Kelly (CC8) / Anita (CC21): son Call HASTA agosto-2026 y Realzza DESDE
+  // septiembre-2026. Se decide según el mes seleccionado (fechaGestion) para no
+  // afectar agosto. Aurora (RZ10) salió de Realzza.
+  private readonly KELLY = { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' };
+  private readonly ANITA = { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' };
+  private get kellyAnitaRealzza(): boolean {
+    const f: Date = this.formCierreGestion?.value?.fechaGestion || new Date();
+    const a = f.getFullYear(), m = f.getMonth() + 1;
+    return a > 2026 || (a === 2026 && m >= 9);
+  }
+
+  // LISTA ASESORES CALL CENTER (base, sin Kelly/Anita → se agregan por fecha)
+  private asesoresCallBase = [
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
-    // { value: 'CC3', viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
-    { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    // { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
     { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
-    // { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
-    // { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
-    { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
     { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' },
     { value: 'CC26', viewValue: 'RUIZ SAMPEN LUCRECIA NOEMI' }
   ];
 
-  // LISTA ASESORES REALZZA
-  asesoresRealzza = [
+  // LISTA ASESORES REALZZA (base, sin Aurora RZ10; Kelly/Anita se agregan por fecha)
+  private asesoresRealzzaBase = [
     { value: 'RZ1', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
     { value: 'RZ2', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
     { value: 'RZ3', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
@@ -172,18 +177,31 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
     { value: 'RZ8', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
     { value: 'RZ9', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
-    { value: 'RZ10', viewValue: 'GUILLEN MACKUADO AURORA FERNANDA' },
     { value: 'RZ11', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
     { value: 'RZ12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' }
   ];
 
-  asesores1 = this.asesoresCall;
+  // Listas efectivas según el mes seleccionado.
+  get asesoresCall() {
+    return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, this.KELLY, this.ANITA];
+  }
+  get asesoresRealzza() {
+    return this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, this.KELLY, this.ANITA] : this.asesoresRealzzaBase;
+  }
 
-  // ── Sublistas fijas para KOMMO (se muestran siempre, tengan o no registros) ──
-  // Leoncito / Call KOMMO: KAREN, ESMERALDA, KELLY, BRENDA, FABRICIO
-  private readonly kommoCallIds = ['CC5', 'CC15', 'CC8', 'CC12', 'CC22', 'CC26'];
-  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH
-  private readonly kommoRealzzaIds = ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8'];
+  // ── Sublistas KOMMO (mismo corte por fecha) ──
+  // Call KOMMO: KAREN, ESMERALDA, BRENDA, FABRICIO, NOEMI (+KELLY hasta ago)
+  private get kommoCallIds() {
+    return this.kellyAnitaRealzza
+      ? ['CC5', 'CC15', 'CC12', 'CC22', 'CC26']
+      : ['CC5', 'CC15', 'CC8', 'CC12', 'CC22', 'CC26'];
+  }
+  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH (+KELLY,ANITA desde sep)
+  private get kommoRealzzaIds() {
+    return this.kellyAnitaRealzza
+      ? ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8', 'CC8', 'CC21']
+      : ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8'];
+  }
 
   get asesoresKommoCall() {
     return this.kommoCallIds
