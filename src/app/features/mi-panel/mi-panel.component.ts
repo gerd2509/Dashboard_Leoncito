@@ -820,15 +820,32 @@ export class MiPanelComponent implements OnInit {
     this.calcularSimulacion();
   }
 
-  /** Bono (comisión) según el monto vendido, con la tabla del canal del asesor. */
+  // Asesoras que pasaron de Call a Realzza (corte sep-2026): su canal para CARGAR ventas
+  // es realzza (ahí viven sus ventas), pero el SUELDO se calcula con reglas Call hasta
+  // agosto-2026 y Realzza desde septiembre-2026, según el mes elegido.
+  private readonly TRANSICION_SUELDO: Record<string, { anio: number; mes: number }> = {
+    'CHANTA CAMPOS KELLY KARINTIA': { anio: 2026, mes: 9 },
+    'CHANAME SOTO ANITA NOEMI': { anio: 2026, mes: 9 },
+  };
+  /** ¿El sueldo del mes elegido usa reglas CALL? (respeta el corte de Kelly/Anita). */
+  private get esCallSueldo(): boolean {
+    const t = this.TRANSICION_SUELDO[(this.vendedor || '').toUpperCase().trim()];
+    if (t) {
+      const [ay, am] = (this.sueldoMesSel || '').split('-').map(Number);
+      if (ay && am) return ay < t.anio || (ay === t.anio && am < t.mes);   // antes del corte → Call
+    }
+    return this.esCall;
+  }
+  /** Bono (comisión) según el monto vendido, con la tabla del canal (por fecha si aplica). */
   private bonoPorMonto(monto: number): number {
-    const tabla = this.esCall ? this.bonosCall : this.bonosRealzza;
-    const min = this.esCall ? 15000 : 10000;
+    const call = this.esCallSueldo;
+    const tabla = call ? this.bonosCall : this.bonosRealzza;
+    const min = call ? 15000 : 10000;
     return monto >= min ? (tabla.find(t => monto >= t.monto)?.bono || 0) : 0;
   }
   /** Tarifa por moto: Call siempre 125; Realzza 125 si son ≥5, si no 100. */
   private tarifaPorMotos(motos: number): number {
-    return this.esCall ? 125 : (motos >= 5 ? 125 : 100);
+    return this.esCallSueldo ? 125 : (motos >= 5 ? 125 : 100);
   }
 
   /** Simulación editable: recalcula comisión + motos + total con los valores que ingresa el asesor. */
