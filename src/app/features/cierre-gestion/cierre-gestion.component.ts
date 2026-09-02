@@ -162,8 +162,7 @@ export class CierreGestionComponent implements OnInit {
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
-    { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' },
-    { value: 'CC26', viewValue: 'RUIZ SAMPEN LUCRECIA NOEMI' }
+    { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' }
   ];
 
   // LISTA ASESORES REALZZA (base, sin Aurora RZ10; Kelly/Anita se agregan por fecha)
@@ -193,8 +192,8 @@ export class CierreGestionComponent implements OnInit {
   // Call KOMMO: KAREN, ESMERALDA, BRENDA, FABRICIO, NOEMI (+KELLY hasta ago)
   private get kommoCallIds() {
     return this.kellyAnitaRealzza
-      ? ['CC5', 'CC15', 'CC12', 'CC22', 'CC26']
-      : ['CC5', 'CC15', 'CC8', 'CC12', 'CC22', 'CC26'];
+      ? ['CC5', 'CC15', 'CC12']
+      : ['CC5', 'CC15', 'CC8', 'CC12'];
   }
   // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH (+KELLY,ANITA desde sep)
   private get kommoRealzzaIds() {
@@ -225,7 +224,7 @@ export class CierreGestionComponent implements OnInit {
     'CC1':  'PATRICIA', 'CC3':  'FELICITA', 'CC5':  'KAREN',   'CC6':  'MARIA',
     'CC8':  'KELLY',    'CC11': 'ARIADNE',  'CC12': 'BRENDA',  'CC13': 'FRANCIS',
     'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
-    'CC26': 'NOEMI',
+    'CC26': 'NOEMI',    'CC19': 'JUANA',
     // Realzza
     'RZ1':  'ERNESTO',  'RZ2':  'NATALY',   'RZ3':  'TATIANA', 'RZ4':  'YUDITH',
     'RZ5':  'ANYELA',   'RZ6':  'FELICITA', 'RZ7': 'MERLY', 'RZ8': 'ANA RUT', 'RZ9': 'DENNIS', 'RZ10': 'AURORA',
