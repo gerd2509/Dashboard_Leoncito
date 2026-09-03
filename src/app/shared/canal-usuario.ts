@@ -18,10 +18,10 @@ export function canalDeUsuario(u: any): '' | Canal {
   // Supervisor/gerente GENERAL (sede "Todas") → ve AMBOS canales (Leoncito + Realzza),
   // igual que admin. (La sede "Call" sí queda solo en Leoncito.)
   if ((u?.sede || '').toString().trim().toLowerCase() === 'todas') return '';
-  // Caso especial BRENDA: sus VENTAS son Realzza, pero en KOMMO/gestión trabaja
-  // como Leoncito (Call) — igual que su override de gestiones en Mi Panel. Solo ella.
+  // Caso especial BRENDA: trabajó como Leoncito (Call) en KOMMO/gestión HASTA agosto-2026.
+  // DESDE septiembre-2026 pasa a Realzza → se respeta su canal real (ya no se fuerza a Call).
   const ident = [(u?.usuario || ''), (u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
-  if (ident.includes('BERNAL BAZAN BRENDA') || ident.includes('CC_BRENDA')) return 'LEONCITO';
+  if ((ident.includes('BERNAL BAZAN BRENDA') || ident.includes('CC_BRENDA')) && new Date() < new Date(2026, 8, 1)) return 'LEONCITO';
   // Por PERMISOS propios: si tiene módulos de AMBOS canales → ve los dos (como Henry).
   // Solo de Realzza → REALZZA; solo de Call → LEONCITO.
   const mods = Array.isArray(u?.modulos) ? u.modulos : null;

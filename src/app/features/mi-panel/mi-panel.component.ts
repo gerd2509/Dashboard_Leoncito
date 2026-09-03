@@ -250,10 +250,17 @@ export class MiPanelComponent implements OnInit {
   //   clave = vendedor (el de ventas)  →  { canal de gestión, nombre en el sheet de gestión }
   private readonly overrideGestion: Record<string, { canal: string; nombre: string }> = {
     'BERNAL BAZAN BRENDA NICOLL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
+    'BERNAL BAZAN BRENDA NICOL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
   };
+  /** Override de gestión vigente: BRENDA gestionaba en Call HASTA agosto-2026; desde
+   *  septiembre-2026 pasó a Realzza → ya no se aplica (usa su canal real). */
+  private overrideVigente(): { canal: string; nombre: string } | undefined {
+    if (new Date() >= new Date(2026, 8, 1)) return undefined;
+    return this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+  }
   /** Canal a usar SOLO para las gestiones (respeta el override; si no, el canal real). */
   private get canalGestion(): string {
-    const o = this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+    const o = this.overrideVigente();
     return o ? o.canal : (this.canal || '').toLowerCase();
   }
   /** Nombre del asesor a usar SOLO para las gestiones (respeta el override). */
@@ -318,7 +325,7 @@ export class MiPanelComponent implements OnInit {
     // Las gestiones respetan el override híbrido (p.ej. BRENDA: ventas Realzza,
     // gestiones Call con el nombre del sheet Call).
     const canal = this.canalGestion;
-    const o = this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+    const o = this.overrideVigente();
     this.nombreGestion = o ? o.nombre : this.vendedor;
     this.gestAplica = true;                       // aplica a todo vendedor con nombre
     this.gestSede = (canal !== 'call' && canal !== 'realzza');

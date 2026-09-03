@@ -144,23 +144,24 @@ export class CierreGestionComponent implements OnInit {
     '#FFD700', '#1E90FF', '#32CD32', '#FF4500', '#8A2BE2', '#FF1493', '#00CED1', '#DC143C'
   ];
 
-  // Pase Kelly (CC8) / Anita (CC21): son Call HASTA agosto-2026 y Realzza DESDE
-  // septiembre-2026. Se decide según el mes seleccionado (fechaGestion) para no
+  // Pase Kelly (CC8) / Anita (CC21) / Brenda (CC12): son Call HASTA agosto-2026 y Realzza
+  // DESDE septiembre-2026. Se decide según el mes seleccionado (fechaGestion) para no
   // afectar agosto. Aurora (RZ10) salió de Realzza.
   private readonly KELLY = { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' };
   private readonly ANITA = { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' };
+  private readonly BRENDA = { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' };
+  private get TRANSICION() { return [this.KELLY, this.ANITA, this.BRENDA]; }
   private get kellyAnitaRealzza(): boolean {
     const f: Date = this.formCierreGestion?.value?.fechaGestion || new Date();
     const a = f.getFullYear(), m = f.getMonth() + 1;
     return a > 2026 || (a === 2026 && m >= 9);
   }
 
-  // LISTA ASESORES CALL CENTER (base, sin Kelly/Anita → se agregan por fecha)
+  // LISTA ASESORES CALL CENTER (base, sin los que pasan a Realzza por fecha)
   private asesoresCallBase = [
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
-    { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
     { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' }
   ];
@@ -180,25 +181,25 @@ export class CierreGestionComponent implements OnInit {
     { value: 'RZ12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' }
   ];
 
-  // Listas efectivas según el mes seleccionado.
+  // Listas efectivas según el mes seleccionado (Kelly/Anita/Brenda por fecha).
   get asesoresCall() {
-    return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, this.KELLY, this.ANITA];
+    return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, ...this.TRANSICION];
   }
   get asesoresRealzza() {
-    return this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, this.KELLY, this.ANITA] : this.asesoresRealzzaBase;
+    return this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, ...this.TRANSICION] : this.asesoresRealzzaBase;
   }
 
   // ── Sublistas KOMMO (mismo corte por fecha) ──
-  // Call KOMMO: KAREN, ESMERALDA, BRENDA, FABRICIO, NOEMI (+KELLY hasta ago)
+  // Call KOMMO: KAREN, ESMERALDA (+KELLY, BRENDA hasta ago)
   private get kommoCallIds() {
     return this.kellyAnitaRealzza
-      ? ['CC5', 'CC15', 'CC12']
+      ? ['CC5', 'CC15']
       : ['CC5', 'CC15', 'CC8', 'CC12'];
   }
-  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH (+KELLY,ANITA desde sep)
+  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH (+KELLY, ANITA, BRENDA desde sep)
   private get kommoRealzzaIds() {
     return this.kellyAnitaRealzza
-      ? ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8', 'CC8', 'CC21']
+      ? ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8', 'CC8', 'CC21', 'CC12']
       : ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8'];
   }
 

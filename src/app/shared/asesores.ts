@@ -8,7 +8,6 @@ export const ASESORES_CALL: AsesorRef[] = [
   { value: 'CC1',  nombre: 'MORETO DELGADO PATRICIA ESTEFANY' },
   { value: 'CC5',  nombre: 'QUISPE FONSECA KAREN AIMEE' },
   { value: 'CC6',  nombre: 'MORALES ÑIQUE MARIA CANDELARIA' },
-  { value: 'CC12', nombre: 'BERNAL BAZAN BRENDA NICOL' },
   { value: 'CC15', nombre: 'TORRES ALVARADO JUDY ESMERALDA' },
   { value: 'CC19', nombre: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
   { value: 'CC22', nombre: 'BERNAL BAZAN FABRICIO ROLANDO' },
@@ -30,6 +29,7 @@ export const ASESORES_REALZZA: AsesorRef[] = [
   // Pasaron de Call a Realzza (desde sep-2026; mantienen código CC).
   { value: 'CC8',  nombre: 'CHANTA CAMPOS KELLY KARINTIA' },
   { value: 'CC21', nombre: 'CHANAME SOTO ANITA NOEMI' },
+  { value: 'CC12', nombre: 'BERNAL BAZAN BRENDA NICOL' },
 ];
 
 /** Nombres (solo) de un canal Call/Realzza. */
