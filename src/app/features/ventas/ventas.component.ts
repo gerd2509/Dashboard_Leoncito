@@ -417,6 +417,8 @@ export class VentasComponent implements OnInit {
       if (fv < fechaInicio || fv > fechaFin) return false;
       const asesor = (v.AsesorVenta || '').toString().trim().toUpperCase();
       if (asesor === 'NAS') return false;                       // NAS no cuenta en Call
+      // BRENDA (CC12) pasó a Realzza: en Ventas Call figura SOLO hasta agosto-2026.
+      if (asesor === 'CC12' && fv >= new Date(2026, 8, 1)) return false;
       if (this.esNotaCredito(v)) return false;                  // las NC NUNCA cuentan en Call
       if ((this.parseNumber(v.MontoConsolidado) || 0) <= 0) return false;  // solo montos > 0
       if (selectedAsesor && asesor !== selectedAsesor) return false;
