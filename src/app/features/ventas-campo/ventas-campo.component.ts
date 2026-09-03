@@ -199,6 +199,8 @@ export class VentasCampoComponent implements OnInit {
     'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS',
     'PEREZ TINEO WILLIAM HUMBERTO': 'WILLIAM',
     'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO': 'JESUS',
+    'CHANAME SOTO ANITA NOEMI': 'ANITA',
+    'CHANTA CAMPOS KELLY KARINTIA': 'KELLY',
   };
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
