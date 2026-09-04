@@ -228,9 +228,9 @@ export class RegistroGestionComponent implements OnInit {
     // no solo por la sede (p.ej. KAREN es Call con sede 'todas'). El admin sí elige.
     const ident = [(u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
     if (rol !== 'admin') {
-      // BRENDA: aunque su login sea Realzza, en gestión normal trabaja como Call
-      // (igual que su override en KOMMO / Mi Panel). Solo ella.
-      if (ident.includes('BERNAL BAZAN BRENDA')) {
+      // BRENDA: hasta ago-2026 registraba como Call; desde sep-2026 pasa a Realzza
+      // (mismo corte que su override en KOMMO / Mi Panel / Cierre). Solo ella.
+      if (ident.includes('BERNAL BAZAN BRENDA') && new Date() < new Date(2026, 8, 1)) {
         this.canal = 'call';
         this.call.asesor = asesor;
         return;
