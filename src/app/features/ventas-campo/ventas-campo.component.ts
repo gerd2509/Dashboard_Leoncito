@@ -365,7 +365,26 @@ export class VentasCampoComponent implements OnInit {
       Ventas: e.neto,
     }));
     this.seriesEvolutivoMain = ['Ventas'];
-    this.seriesEvolutivoTrend = [];
+    this.agregarLineaTendencia();
+  }
+
+  /**
+   * Agrega a `dataEvolutivo` una columna `Tendencia` con la recta de crecimiento
+   * (regresión lineal por mínimos cuadrados sobre el neto mensual) y la activa
+   * como serie punteada. Necesita ≥2 puntos; si no, no dibuja línea.
+   */
+  private agregarLineaTendencia(): void {
+    const ys = this.dataEvolutivo.map(d => Number(d.Ventas) || 0);
+    const n = ys.length;
+    if (n < 2) { this.seriesEvolutivoTrend = []; return; }
+    let sx = 0, sy = 0, sxy = 0, sxx = 0;
+    ys.forEach((y, x) => { sx += x; sy += y; sxy += x * y; sxx += x * x; });
+    const denom = n * sxx - sx * sx;
+    if (denom === 0) { this.seriesEvolutivoTrend = []; return; }
+    const pendiente = (n * sxy - sx * sy) / denom;
+    const intercepto = (sy - pendiente * sx) / n;
+    this.dataEvolutivo.forEach((d, x) => { d.Tendencia = intercepto + pendiente * x; });
+    this.seriesEvolutivoTrend = ['Tendencia'];
   }
 
   async importar(event: Event) {
@@ -757,6 +776,7 @@ export class VentasCampoComponent implements OnInit {
         Ventas: Math.round(monto)
       };
     });
+    this.agregarLineaTendencia();
   }
 
   /**
@@ -1317,7 +1337,7 @@ export class VentasCampoComponent implements OnInit {
       };
     });
     this.seriesEvolutivoMain = ['Ventas'];
-    this.seriesEvolutivoTrend = [];
+    this.agregarLineaTendencia();
   }
 
   generarVentasPorLineaReal(): void {
