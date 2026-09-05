@@ -252,11 +252,19 @@ export class MiPanelComponent implements OnInit {
     'BERNAL BAZAN BRENDA NICOLL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
     'BERNAL BAZAN BRENDA NICOL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
   };
-  /** Override de gestión vigente: BRENDA gestionaba en Call HASTA agosto-2026; desde
-   *  septiembre-2026 pasó a Realzza → ya no se aplica (usa su canal real). */
+  /** Override de CANAL de gestión vigente: BRENDA gestionaba en Call HASTA agosto-2026;
+   *  desde septiembre-2026 pasó a Realzza → ya no se aplica (usa su canal real). */
   private overrideVigente(): { canal: string; nombre: string } | undefined {
     if (new Date() >= new Date(2026, 8, 1)) return undefined;
     return this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+  }
+  /** Nombre canónico para HACER MATCH de gestiones. Independiente de la fecha: la data
+   *  (gestion_call de ago y gestion_realzza desde sep) usa 'BERNAL BAZAN BRENDA NICOL'
+   *  (una L) mientras el vendedor puede venir con otra ortografía → si no se corrige,
+   *  el filtro exacto no encuentra nada y el panel sale en 0. */
+  private nombreParaGestion(): string {
+    const o = this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
+    return o ? o.nombre : this.vendedor;
   }
   /** Canal a usar SOLO para las gestiones (respeta el override; si no, el canal real). */
   private get canalGestion(): string {
@@ -325,8 +333,7 @@ export class MiPanelComponent implements OnInit {
     // Las gestiones respetan el override híbrido (p.ej. BRENDA: ventas Realzza,
     // gestiones Call con el nombre del sheet Call).
     const canal = this.canalGestion;
-    const o = this.overrideVigente();
-    this.nombreGestion = o ? o.nombre : this.vendedor;
+    this.nombreGestion = this.nombreParaGestion();
     this.gestAplica = true;                       // aplica a todo vendedor con nombre
     this.gestSede = (canal !== 'call' && canal !== 'realzza');
     this.gestCargando = true;
