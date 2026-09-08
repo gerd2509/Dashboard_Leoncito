@@ -18,8 +18,89 @@
       </button>
     </div>
 
-    <!-- ══ GESTIÓN ══ -->
-    <div class="rs-grid" *ngIf="tipo === 'GESTION'">
+    <!-- Subtipo (solo Market Place) — visible en ambos modos -->
+    <div class="rs-subtabs rs-subtabs-top" *ngIf="tipo === 'MARKET_PLACE'">
+      <button [class.active]="mpSubtipo === 'MARKET PLACE PLATAFORMA'" (click)="setMpSubtipo('MARKET PLACE PLATAFORMA')">Market Place Plataforma</button>
+      <button [class.active]="mpSubtipo === 'KOMMO PLATAFORMA'" (click)="setMpSubtipo('KOMMO PLATAFORMA')">Kommo Plataforma</button>
+    </div>
+
+    <!-- Toggle de modo: seleccionar gestión (rápido) vs manual -->
+    <div class="rs-modo" *ngIf="aplicaRapido">
+      <button [class.active]="modoRapido" (click)="setModo(true)"><mat-icon>touch_app</mat-icon> Seleccionar gestión</button>
+      <button [class.active]="!modoRapido" (click)="setModo(false)"><mat-icon>edit</mat-icon> Manual</button>
+    </div>
+
+    <!-- ══ SELECCIÓN RÁPIDA (Gestión Realzza / KOMMO plataforma) ══ -->
+    <div class="rs-rapido" *ngIf="usandoRapido">
+      <div class="rs-rapido-filtros">
+        <div class="rs-field">
+          <label>Día</label>
+          <dx-date-box [(value)]="gestFecha" type="date" displayFormat="dd/MM/yyyy" [max]="hoy"
+            (onValueChanged)="cambioFechaLista()" stylingMode="outlined" [openOnFieldClick]="true"></dx-date-box>
+        </div>
+        <div class="rs-field">
+          <label>Asesor</label>
+          <dx-select-box [dataSource]="asesoresEnLista" [(value)]="filtroAsesorLista" placeholder="Todos"
+            [searchEnabled]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rs-field rs-modo-checks">
+          <dx-check-box text="Solo no controladas" [(value)]="ocultarControladas"></dx-check-box>
+          <button class="rs-mini" (click)="siguienteAlAzar()" [disabled]="listaCargando"><mat-icon>casino</mat-icon> Al azar</button>
+          <button class="rs-mini ghost" (click)="cargarListaRapida()" [disabled]="listaCargando"><mat-icon>refresh</mat-icon> Actualizar</button>
+        </div>
+      </div>
+
+      <div class="rs-rapido-info">
+        <span *ngIf="!listaCargando">{{ listaFiltrada.length }} gestión(es) · {{ pendientesCount }} pendiente(s)</span>
+        <span *ngIf="listaCargando">Cargando…</span>
+      </div>
+
+      <dx-data-grid [dataSource]="listaFiltrada" [showBorders]="true" [hoverStateEnabled]="true"
+        keyExpr="key" [selectedRowKeys]="seleccion ? [seleccion.key] : []"
+        (onSelectionChanged)="seleccionar($event.selectedRowsData[0] || null)"
+        [height]="300" class="rs-grid-lista">
+        <dxo-selection mode="single"></dxo-selection>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar DNI / asesor…"></dxo-search-panel>
+        <dxi-column dataField="asesor" caption="Asesor" [width]="180"></dxi-column>
+        <dxi-column dataField="dni" caption="DNI" [width]="100"></dxi-column>
+        <dxi-column dataField="celular" caption="Celular" [width]="100"></dxi-column>
+        <dxi-column dataField="tipoBase" caption="Tipo base" [width]="110"></dxi-column>
+        <dxi-column dataField="estadoAsesor" caption="Estado asesor" [width]="130"></dxi-column>
+        <dxi-column dataField="hora" caption="Hora" [width]="70"></dxi-column>
+        <dxi-column dataField="controlada" caption="Control" [width]="90" cellTemplate="ctrlTpl"></dxi-column>
+        <div *dxTemplate="let c of 'ctrlTpl'">
+          <span class="rs-chip" [class.done]="c.data.controlada">{{ c.data.controlada ? '✔ Hecho' : 'Pendiente' }}</span>
+        </div>
+      </dx-data-grid>
+
+      <!-- Panel del control del supervisor sobre la gestión elegida -->
+      <div class="rs-sel" *ngIf="seleccion; else sinSel">
+        <div class="rs-sel-head">
+          <mat-icon>person</mat-icon>
+          <div>
+            <b>{{ seleccion.asesor }}</b>
+            <span>DNI {{ seleccion.dni }}<ng-container *ngIf="seleccion.celular"> · Cel {{ seleccion.celular }}</ng-container> · {{ seleccion.tipoBase }}</span>
+          </div>
+        </div>
+        <div class="rs-field rs-full">
+          <label>¿El cliente contestó? <span class="req">*</span></label>
+          <dx-radio-group [items]="estados" [(value)]="g.estado_gestion" (onValueChanged)="touched()"
+            [isValid]="!(intento && !g.estado_gestion)" layout="horizontal"></dx-radio-group>
+        </div>
+        <div class="rs-field rs-full">
+          <label>Comentario</label>
+          <dx-text-area [(value)]="g.comentario" [height]="80"
+            placeholder="Observación del control (opcional)" stylingMode="outlined"></dx-text-area>
+        </div>
+      </div>
+      <ng-template #sinSel>
+        <div class="rs-sel-empty"><mat-icon>ads_click</mat-icon> Selecciona una gestión de la lista para registrar el control.</div>
+      </ng-template>
+    </div>
+
+    <!-- ══ GESTIÓN (manual) ══ -->
+    <div class="rs-grid" *ngIf="tipo === 'GESTION' && !usandoRapido">
       <div class="rs-field">
         <label>Asesor <span class="req">*</span></label>
         <dx-select-box [dataSource]="asesores" [(value)]="g.asesor" [isValid]="!(intento && invGAsesor)" (onValueChanged)="touched()"
@@ -54,16 +135,8 @@
       </div>
     </div>
 
-    <!-- ══ MARKET PLACE / KOMMO PLATAFORMA ══ -->
-    <div class="rs-grid" *ngIf="tipo === 'MARKET_PLACE'">
-      <!-- Selector de subtipo -->
-      <div class="rs-field rs-full">
-        <div class="rs-subtabs">
-          <button [class.active]="mpSubtipo === 'MARKET PLACE PLATAFORMA'" (click)="setMpSubtipo('MARKET PLACE PLATAFORMA')">Market Place Plataforma</button>
-          <button [class.active]="mpSubtipo === 'KOMMO PLATAFORMA'" (click)="setMpSubtipo('KOMMO PLATAFORMA')">Kommo Plataforma</button>
-        </div>
-      </div>
-
+    <!-- ══ MARKET PLACE / KOMMO PLATAFORMA (manual) ══ -->
+    <div class="rs-grid" *ngIf="tipo === 'MARKET_PLACE' && !usandoRapido">
       <!-- ── MARKET PLACE PLATAFORMA ── -->
       <ng-container *ngIf="mpSubtipo === 'MARKET PLACE PLATAFORMA'">
         <div class="rs-field rs-full">
