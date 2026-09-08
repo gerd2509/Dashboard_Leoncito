@@ -151,10 +151,15 @@ export class RegistroSupervisorComponent implements OnInit {
           rows.push(r);
         });
         this.gestionesRapidas = rows;
+        this.asesoresEnLista = Array.from(new Set(rows.map(r => r.asesor).filter(Boolean))).sort();
+        if (this.filtroAsesorLista && !this.asesoresEnLista.includes(this.filtroAsesorLista)) this.filtroAsesorLista = '';
+        this.aplicarFiltro();
         this.listaCargando = false;
       },
       error: () => {
         this.gestionesRapidas = [];
+        this.asesoresEnLista = [];
+        this.aplicarFiltro();
         this.listaCargando = false;
         this.toast('No se pudieron cargar las gestiones del día.', true);
       },
@@ -183,16 +188,21 @@ export class RegistroSupervisorComponent implements OnInit {
     };
   }
 
-  get asesoresEnLista(): string[] {
-    return Array.from(new Set(this.gestionesRapidas.map(r => r.asesor).filter(Boolean))).sort();
-  }
-  get listaFiltrada(): GestionRapida[] {
+  // Materializados (NO getters): un getter devolvería un array nuevo en cada ciclo
+  // de detección → la grilla resetearía su dataSource sin parar (filas en esqueleto)
+  // y el combo perdería la selección. Se recalculan solo al cambiar el filtro/datos.
+  asesoresEnLista: string[] = [];
+  listaFiltrada: GestionRapida[] = [];
+  pendientesCount = 0;
+
+  /** Recalcula la lista visible y contadores según los filtros actuales. */
+  aplicarFiltro(): void {
     let l = this.gestionesRapidas;
     if (this.filtroAsesorLista) l = l.filter(r => r.asesor === this.filtroAsesorLista);
     if (this.ocultarControladas) l = l.filter(r => !r.controlada);
-    return l;
+    this.listaFiltrada = l;
+    this.pendientesCount = this.gestionesRapidas.filter(r => !r.controlada).length;
   }
-  get pendientesCount(): number { return this.gestionesRapidas.filter(r => !r.controlada).length; }
 
   seleccionar(row: GestionRapida | null): void {
     this.seleccion = row;
@@ -403,6 +413,7 @@ export class RegistroSupervisorComponent implements OnInit {
         const row = this.gestionesRapidas.find(r => r.dni === sel.dni && this.norm(r.asesor) === this.norm(sel.asesor));
         if (row) row.controlada = true;
       }
+      this.aplicarFiltro();
       this.g = { asesor: '', tipo_base: '', dni_cliente: '', celular: '', estado_gestion: '', comentario: '' };
       this.seleccion = null;
       this.intento = false;

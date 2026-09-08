@@ -41,10 +41,11 @@
         <div class="rs-field">
           <label>Asesor</label>
           <dx-select-box [dataSource]="asesoresEnLista" [(value)]="filtroAsesorLista" placeholder="Todos"
-            [searchEnabled]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+            [searchEnabled]="true" [showClearButton]="true" stylingMode="outlined"
+            (onValueChanged)="aplicarFiltro()"></dx-select-box>
         </div>
         <div class="rs-field rs-modo-checks">
-          <dx-check-box text="Solo no controladas" [(value)]="ocultarControladas"></dx-check-box>
+          <dx-check-box text="Solo no controladas" [(value)]="ocultarControladas" (onValueChanged)="aplicarFiltro()"></dx-check-box>
           <button class="rs-mini" (click)="siguienteAlAzar()" [disabled]="listaCargando"><mat-icon>casino</mat-icon> Al azar</button>
           <button class="rs-mini ghost" (click)="cargarListaRapida()" [disabled]="listaCargando"><mat-icon>refresh</mat-icon> Actualizar</button>
         </div>
@@ -60,7 +61,8 @@
         (onSelectionChanged)="seleccionar($event.selectedRowsData[0] || null)"
         [height]="300" class="rs-grid-lista">
         <dxo-selection mode="single"></dxo-selection>
-        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxo-scrolling mode="standard" [useNative]="true"></dxo-scrolling>
+        <dxo-paging [enabled]="false"></dxo-paging>
         <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar DNI / asesor…"></dxo-search-panel>
         <dxi-column dataField="asesor" caption="Asesor" [width]="180"></dxi-column>
         <dxi-column dataField="dni" caption="DNI" [width]="100"></dxi-column>
