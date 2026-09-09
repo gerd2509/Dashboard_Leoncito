@@ -12,6 +12,8 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 interface ColPivot { key: string; label: string; }
 interface FilaPivot { sedeKey: string; sede: string; color: string; valores: Record<string, number>; total: number; }
 interface Pivot { cols: ColPivot[]; filas: FilaPivot[]; totales: Record<string, number>; totalGeneral: number; }
+interface RankVendedor { vendedor: string; propio: number; global: number; total: number; }
+interface RankSede { sedeKey: string; sede: string; color: string; vendedores: RankVendedor[]; propio: number; global: number; total: number; }
 
 @Component({
   selector: 'app-reporte-global',
@@ -38,6 +40,9 @@ export class ReporteGlobalComponent implements OnInit {
   aliadosMonto: Pivot | null = null;
   motosOps: Pivot | null = null;
   motosMonto: Pivot | null = null;
+  motosMarca: Pivot | null = null;   // motos por marca × sede (# motos)
+  motosTipo: Pivot | null = null;    // motos por tipo × sede (# motos)
+  rankingSedes: RankSede[] = [];     // ranking de vendedores por sede (propio/global)
   margenLinea: Pivot | null = null;
   // Margen % por sede (ventas vs margen).
   margenSede: { sedeKey: string; sede: string; color: string; ventas: number; margen: number; pct: number }[] = [];
@@ -82,15 +87,18 @@ export class ReporteGlobalComponent implements OnInit {
     this.isLoading = true;
     const { anio, mes } = this.form.value;
     try {
-      const [rows, margen] = await Promise.all([
+      const [rows, motos, margen] = await Promise.all([
         lastValueFrom(this.ventas.obtenerReporteGlobal(anio, mes || undefined)),
+        lastValueFrom(this.ventas.obtenerReporteGlobalMotos(anio, mes || undefined)),
         lastValueFrom(this.ventas.obtenerMargenLineaSede(anio, mes || undefined)),
       ]);
       this.construir(rows || []);
+      this.construirMotos(motos || []);
       this.construirMargen(margen || []);
     } catch (e) {
       console.error('Error reporte global:', e);
       this.aliadosOps = this.aliadosMonto = this.motosOps = this.motosMonto = this.margenLinea = null;
+      this.motosMarca = this.motosTipo = null; this.rankingSedes = [];
     }
     this.isLoading = false;
   }
@@ -160,6 +168,45 @@ export class ReporteGlobalComponent implements OnInit {
     this.motosMonto = this.buildPivot(montoMoto, motoCols);
   }
 
+  /** Tablas de motos: por marca × sede, por tipo × sede y ranking de vendedores por sede. */
+  private construirMotos(rows: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]): void {
+    // ── Motos por MARCA × sede (# motos) ──
+    const ordenMarca = ['WANXIN', 'SSENDA'];
+    const marcas = [...new Set(rows.map(r => r.marca))]
+      .sort((a, b) => (ordenMarca.indexOf(a) + 1 || 99) - (ordenMarca.indexOf(b) + 1 || 99) || a.localeCompare(b));
+    const marcaCols: ColPivot[] = marcas.map(m => ({ key: m, label: this.titulo(m) }));
+    const entMarca = rows.map(r => { const i = this.sedeInfo(r.sede); return { sedeKey: i.key, sede: i.nombre, col: r.marca, value: r.motos || 0 }; });
+    this.motosMarca = this.buildPivot(entMarca, marcaCols);
+
+    // ── Motos por TIPO × sede (# motos) — carguera ya viene reclasificada del backend ──
+    const ordenTipo = ['MOTO LINEAL', 'MOTOTAXI', 'MOTO CARGUERA'];
+    const tipos = [...new Set(rows.map(r => r.tipo))]
+      .sort((a, b) => (ordenTipo.indexOf(a) + 1 || 99) - (ordenTipo.indexOf(b) + 1 || 99) || a.localeCompare(b));
+    const tipoCols: ColPivot[] = tipos.map(t => ({ key: t, label: this.titulo(t) }));
+    const entTipo = rows.map(r => { const i = this.sedeInfo(r.sede); return { sedeKey: i.key, sede: i.nombre, col: r.tipo, value: r.motos || 0 }; });
+    this.motosTipo = this.buildPivot(entTipo, tipoCols);
+
+    // ── Ranking de vendedores por sede (propio / global) ──
+    const bySede = new Map<string, RankSede>();
+    for (const r of rows) {
+      const i = this.sedeInfo(r.sede);
+      let s = bySede.get(i.key);
+      if (!s) { s = { sedeKey: i.key, sede: i.nombre, color: this.color(i.key), vendedores: [], propio: 0, global: 0, total: 0 }; bySede.set(i.key, s); }
+      let v = s.vendedores.find(x => x.vendedor === r.vendedor);
+      if (!v) { v = { vendedor: r.vendedor, propio: 0, global: 0, total: 0 }; s.vendedores.push(v); }
+      const n = r.motos || 0;
+      if (r.credito === 'GLOBAL') { v.global += n; s.global += n; } else { v.propio += n; s.propio += n; }
+      v.total += n; s.total += n;
+    }
+    this.rankingSedes = [...bySede.values()].sort((a, b) => b.total - a.total);
+    this.rankingSedes.forEach(s => s.vendedores.sort((a, b) => b.total - a.total));
+  }
+
+  /** Título legible (WANXIN→Wanxin, MOTO CARGUERA→Moto Carguera, MOTOTAXI→Mototaxi). */
+  private titulo(s: string): string {
+    return (s || '').toString().trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) || '—';
+  }
+
   private construirMargen(rowsAll: { sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]): void {
     // Excluye sedes no reconocidas ("Otras": oficinas / incautados / La Victoria) de ambos cuadros.
     const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
@@ -209,6 +256,20 @@ export class ReporteGlobalComponent implements OnInit {
     if (this.aliadosMonto) this.hojaPivot(wb, 'Aliados (monto)', this.aliadosMonto, true);
     if (this.motosOps) this.hojaPivot(wb, 'Motos (ops)', this.motosOps, false);
     if (this.motosMonto) this.hojaPivot(wb, 'Motos (monto)', this.motosMonto, true);
+    if (this.motosMarca) this.hojaPivot(wb, 'Motos x Marca', this.motosMarca, false);
+    if (this.motosTipo) this.hojaPivot(wb, 'Motos x Tipo', this.motosTipo, false);
+    if (this.rankingSedes.length) {
+      const ws = wb.addWorksheet('Ranking Motos x Sede');
+      const hr = ws.addRow(['Sede', 'Vendedor', 'Propio', 'Global', 'Total']);
+      hr.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
+      for (const s of this.rankingSedes) {
+        s.vendedores.forEach(v => ws.addRow([s.sede, v.vendedor, v.propio, v.global, v.total]));
+        const sr = ws.addRow([`TOTAL ${s.sede}`, '', s.propio, s.global, s.total]);
+        sr.eachCell(cell => { cell.font = { bold: true }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3FB' } }; });
+      }
+      ws.columns.forEach((col, i) => { col.width = i <= 1 ? 24 : 10; });
+      ws.views = [{ state: 'frozen', ySplit: 1 }];
+    }
     if (this.margenLinea) this.hojaPivot(wb, 'Ventas x Linea', this.margenLinea, true);
     if (this.margenSede.length) {
       const ws = wb.addWorksheet('Margen x Sede');

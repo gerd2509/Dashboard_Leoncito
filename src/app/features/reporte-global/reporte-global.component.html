@@ -63,6 +63,50 @@
     </div>
   </div>
 
+  <!-- ══════════ MOTOS por MARCA / TIPO × sede (# motos) ══════════ -->
+  <div class="am-pair">
+    <div class="am-card">
+      <div class="am-cardhead moto"><mat-icon>sell</mat-icon> Motos por Marca × Sede <em>(# motos)</em></div>
+      <div class="am-scroll">
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMarca, moneda: false }"></ng-container>
+      </div>
+    </div>
+    <div class="am-card">
+      <div class="am-cardhead moto"><mat-icon>category</mat-icon> Motos por Tipo × Sede <em>(# motos · carguera = trimoto de carga)</em></div>
+      <div class="am-scroll">
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosTipo, moneda: false }"></ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ RANKING de vendedores de motos por sede ══════════ -->
+  <div class="am-card">
+    <div class="am-cardhead moto"><mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos · propio / global)</em></div>
+    <div class="am-scroll rg-rank">
+      <div class="rg-rank-sede" *ngFor="let s of rankingSedes">
+        <div class="rg-rank-title">
+          <span class="dot" [style.background]="s.color"></span>{{ s.sede }}
+          <span class="rg-rank-tot">{{ s.total | number }} motos · propio {{ s.propio | number }} · global {{ s.global | number }}</span>
+        </div>
+        <table class="am-table">
+          <thead><tr><th class="ta-l">Vendedor</th><th>Propio</th><th>Global</th><th>Total</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let v of s.vendedores; let idx = index">
+              <td class="ta-l"><span class="rg-rank-pos">{{ idx + 1 }}</span>{{ v.vendedor }}</td>
+              <td>{{ v.propio | number }}</td>
+              <td>{{ v.global | number }}</td>
+              <td class="tot">{{ v.total | number }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr><td class="ta-l">TOTAL</td><td>{{ s.propio | number }}</td><td>{{ s.global | number }}</td><td class="tot">{{ s.total | number }}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+      <div *ngIf="!rankingSedes.length" class="vacio rg-rank-vacio">Sin datos para el periodo</div>
+    </div>
+  </div>
+
   <!-- ══════════ MARGEN por línea real × sede ══════════ -->
   <div class="am-card">
     <div class="am-cardhead vend"><mat-icon>table_chart</mat-icon> Ventas por Línea Real × Sede <em>(monto S/ · desde margen)</em></div>

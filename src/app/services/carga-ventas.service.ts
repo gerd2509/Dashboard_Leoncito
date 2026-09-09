@@ -134,6 +134,12 @@ export class CargaVentasService {
     if (mes) params = params.set('mes', mes);
     return this.http.get<any[]>(`${this.root}/reporte-global`, { params });
   }
+  /** Motos a nivel detalle por (sede, credito PROPIO/GLOBAL, marca, tipo, vendedor) + # motos. */
+  obtenerReporteGlobalMotos(anio: number, mes?: number): Observable<{ sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]> {
+    let params = new HttpParams().set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/reporte-global-motos`, { params });
+  }
   /** Ventas/margen por (sede, línea real) desde margen_ventas. */
   obtenerMargenLineaSede(anio: number, mes?: number): Observable<{ sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]> {
     let params = new HttpParams().set('anio', anio);
