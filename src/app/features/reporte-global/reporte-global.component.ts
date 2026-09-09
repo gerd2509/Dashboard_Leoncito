@@ -126,7 +126,10 @@ export class ReporteGlobalComponent implements OnInit {
     return { cols, filas, totales, totalGeneral };
   }
 
-  private construir(rows: { sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]): void {
+  private construir(rowsAll: { sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]): void {
+    // Solo sedes reconocidas (10 físicas + Realzza). Se excluye "Otras" (oficina/online,
+    // incautados, La Victoria, variantes RETAIL) de todas las tablas y KPIs.
+    const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
     const norm = (e: string | null) => (e || '').toString().trim().toUpperCase();
     // KPIs base
     this.kNetoGlobal = rows.reduce((s, r) => s + (r.neto || 0), 0);
@@ -170,7 +173,9 @@ export class ReporteGlobalComponent implements OnInit {
   }
 
   /** Tablas de motos: por marca × sede, por tipo × sede y ranking de vendedores por sede. */
-  private construirMotos(rows: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]): void {
+  private construirMotos(rowsAll: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]): void {
+    // Solo sedes reconocidas (se excluye "Otras").
+    const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
     // ── Motos por MARCA × sede (# motos) ──
     const ordenMarca = ['WANXIN', 'SSENDA'];
     const marcas = [...new Set(rows.map(r => r.marca))]
