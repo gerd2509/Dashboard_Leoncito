@@ -244,6 +244,17 @@ export class ReporteGlobalComponent implements OnInit {
     return s.replace(/^LINEA\s+/i, '').replace(/\b\w/g, c => c.toUpperCase()) || 'Sin Línea';
   }
 
+  /** "APELLIDO1 APELLIDO2 NOMBRE1 …" → "Nombre1 Apellido1" (title case) para acortar el ranking. */
+  nombreRank(full: string): string {
+    const n = (full || '').trim();
+    if (!n || n.startsWith('(')) return n;
+    const p = n.split(/\s+/).filter(Boolean);
+    const cap = (w: string) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '');
+    if (p.length >= 3) return `${cap(p[2])} ${cap(p[0])}`;   // nombre + primer apellido
+    if (p.length === 2) return `${cap(p[0])} ${cap(p[1])}`;
+    return cap(p[0]);
+  }
+
   soles(n: number): string { return 'S/ ' + (Math.round(n || 0)).toLocaleString('es-PE'); }
   claseMargen(pct: number): string { return pct >= 20 ? 'ok' : pct >= 10 ? 'warn' : 'low'; }
 

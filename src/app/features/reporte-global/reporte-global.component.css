@@ -65,7 +65,7 @@
 
 /* Ranking de vendedores de motos por sede */
 .rg-rank { display: flex; flex-wrap: wrap; gap: 16px; }
-.rg-rank-sede { flex: 1 1 320px; min-width: 300px; border: 1px solid #e6edf6; border-radius: 10px; overflow: hidden; }
+.rg-rank-sede { flex: 1 1 300px; min-width: 280px; max-width: 360px; border: 1px solid #e6edf6; border-radius: 10px; overflow: hidden; }
 .rg-rank-title {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   background: #f3f7fc; padding: 8px 12px; font-weight: 800; color: #1E3A5F; font-size: 13.5px;
@@ -73,7 +73,14 @@
 .rg-rank-tot { margin-left: auto; font-weight: 600; font-size: 11.5px; color: #6b7a90; }
 .rg-rank-pos {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; margin-right: 7px; border-radius: 50%;
+  width: 20px; height: 20px; margin-right: 7px; border-radius: 50%; flex: 0 0 auto;
   background: #e4ebf6; color: #1E3A5F; font-size: 11px; font-weight: 800;
 }
 .rg-rank-vacio { padding: 16px; text-align: center; width: 100%; }
+
+/* Tabla del ranking: ancho fijo para que Propio/Global/Total siempre se vean */
+.rg-rank-sede .am-table { table-layout: fixed; width: 100%; }
+.rg-rank-sede .am-table th:not(.ta-l),
+.rg-rank-sede .am-table td:not(.ta-l) { width: 48px; text-align: center; padding-left: 2px; padding-right: 2px; font-size: 12px; }
+.rg-rank-sede .am-table td.ta-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rg-rank-sede .am-table td.ta-l .rg-rank-pos { vertical-align: middle; }

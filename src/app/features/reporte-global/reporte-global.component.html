@@ -92,7 +92,7 @@
           <thead><tr><th class="ta-l">Vendedor</th><th>Propio</th><th>Global</th><th>Total</th></tr></thead>
           <tbody>
             <tr *ngFor="let v of s.vendedores; let idx = index">
-              <td class="ta-l"><span class="rg-rank-pos">{{ idx + 1 }}</span>{{ v.vendedor }}</td>
+              <td class="ta-l" [title]="v.vendedor"><span class="rg-rank-pos">{{ idx + 1 }}</span>{{ nombreRank(v.vendedor) }}</td>
               <td>{{ v.propio | number }}</td>
               <td>{{ v.global | number }}</td>
               <td class="tot">{{ v.total | number }}</td>
