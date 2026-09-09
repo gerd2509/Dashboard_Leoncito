@@ -68,9 +68,21 @@
 .rg-rank-tabla .rg-c-pos { width: 40px; text-align: center; }
 .rg-rank-tabla .rg-c-num { width: 78px; text-align: center; }
 .rg-rank-tabla .rg-c-vend { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
-/* Banda de grupo por sede */
-.rg-rank-tabla tbody .rg-grp td { background: #eef4fb; font-weight: 800; color: #1E3A5F; font-size: 13px; border-top: 2px solid #d5e3f2; }
+/* Banda de grupo por sede (colapsable) */
+.rg-rank-tabla tbody .rg-grp { cursor: pointer; }
+.rg-rank-tabla tbody .rg-grp td { background: #eef4fb; font-weight: 800; color: #1E3A5F; font-size: 13px; border-top: 2px solid #d5e3f2; user-select: none; }
+.rg-rank-tabla tbody .rg-grp:hover td { background: #e3edf9; }
 .rg-rank-tabla tbody .rg-grp .tot { color: #1A5FAD; }
+.rg-chevron { font-size: 20px; height: 20px; width: 20px; vertical-align: middle; margin-right: 2px; color: #5b6b86; }
+.rg-grp-count { font-weight: 600; font-size: 11.5px; color: #6b7a90; margin-left: 6px; }
+/* Botón colapsar/expandir todas */
+.rg-toggle-all {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+  border: none; background: rgba(255,255,255,.22); color: #fff; cursor: pointer;
+  font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 8px;
+}
+.rg-toggle-all:hover { background: rgba(255,255,255,.32); }
+.rg-toggle-all mat-icon { font-size: 17px; height: 17px; width: 17px; }
 /* Medalla del top-3 */
 .rg-rank-pos {
   display: inline-flex; align-items: center; justify-content: center;

@@ -81,7 +81,13 @@
 
   <!-- ══════════ RANKING de vendedores de motos por sede (tabla única) ══════════ -->
   <div class="am-card">
-    <div class="am-cardhead moto"><mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos · propio / global)</em></div>
+    <div class="am-cardhead moto">
+      <mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos · propio / global)</em>
+      <button class="rg-toggle-all" *ngIf="rankingSedes.length" (click)="toggleTodas()">
+        <mat-icon>{{ colapsadas.size >= rankingSedes.length ? 'unfold_more' : 'unfold_less' }}</mat-icon>
+        {{ colapsadas.size >= rankingSedes.length ? 'Expandir todas' : 'Colapsar todas' }}
+      </button>
+    </div>
     <div class="am-scroll">
       <table class="am-table rg-rank-tabla">
         <thead>
@@ -94,19 +100,25 @@
           </tr>
         </thead>
         <tbody *ngFor="let s of rankingSedes">
-          <tr class="rg-grp">
-            <td class="ta-l" colspan="2"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td>
+          <tr class="rg-grp" (click)="toggleSede(s.sedeKey)">
+            <td class="ta-l" colspan="2">
+              <mat-icon class="rg-chevron">{{ estaColapsada(s.sedeKey) ? 'chevron_right' : 'expand_more' }}</mat-icon>
+              <span class="dot" [style.background]="s.color"></span>{{ s.sede }}
+              <span class="rg-grp-count">({{ s.vendedores.length }})</span>
+            </td>
             <td class="rg-c-num">{{ s.propio | number }}</td>
             <td class="rg-c-num">{{ s.global | number }}</td>
             <td class="rg-c-num tot">{{ s.total | number }}</td>
           </tr>
-          <tr *ngFor="let v of s.vendedores; let idx = index">
-            <td class="ta-l rg-c-pos"><span class="rg-rank-pos" [class.top]="idx < 3">{{ idx + 1 }}</span></td>
-            <td class="ta-l rg-c-vend" [title]="v.vendedor">{{ nombreRank(v.vendedor) }}</td>
-            <td class="rg-c-num">{{ v.propio | number }}</td>
-            <td class="rg-c-num">{{ v.global | number }}</td>
-            <td class="rg-c-num tot">{{ v.total | number }}</td>
-          </tr>
+          <ng-container *ngIf="!estaColapsada(s.sedeKey)">
+            <tr *ngFor="let v of s.vendedores; let idx = index">
+              <td class="ta-l rg-c-pos"><span class="rg-rank-pos" [class.top]="idx < 3">{{ idx + 1 }}</span></td>
+              <td class="ta-l rg-c-vend" [title]="v.vendedor">{{ nombreRank(v.vendedor) }}</td>
+              <td class="rg-c-num">{{ v.propio | number }}</td>
+              <td class="rg-c-num">{{ v.global | number }}</td>
+              <td class="rg-c-num tot">{{ v.total | number }}</td>
+            </tr>
+          </ng-container>
         </tbody>
         <tbody *ngIf="!rankingSedes.length"><tr class="vacio"><td colspan="5">Sin datos para el periodo</td></tr></tbody>
         <tfoot *ngIf="rankingSedes.length">

@@ -44,6 +44,14 @@ export class ReporteGlobalComponent implements OnInit {
   motosTipo: Pivot | null = null;    // motos por tipo × sede (# motos)
   rankingSedes: RankSede[] = [];     // ranking de vendedores por sede (propio/global)
   rankTot = { propio: 0, global: 0, total: 0 };
+  colapsadas = new Set<string>();    // sedes colapsadas en el ranking
+
+  toggleSede(key: string): void { this.colapsadas.has(key) ? this.colapsadas.delete(key) : this.colapsadas.add(key); }
+  estaColapsada(key: string): boolean { return this.colapsadas.has(key); }
+  toggleTodas(): void {
+    if (this.colapsadas.size < this.rankingSedes.length) this.rankingSedes.forEach(s => this.colapsadas.add(s.sedeKey));
+    else this.colapsadas.clear();
+  }
   margenLinea: Pivot | null = null;
   // Margen % por sede (ventas vs margen).
   margenSede: { sedeKey: string; sede: string; color: string; ventas: number; margen: number; pct: number }[] = [];
