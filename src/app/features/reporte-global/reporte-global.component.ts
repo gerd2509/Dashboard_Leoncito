@@ -43,6 +43,7 @@ export class ReporteGlobalComponent implements OnInit {
   motosMarca: Pivot | null = null;   // motos por marca × sede (# motos)
   motosTipo: Pivot | null = null;    // motos por tipo × sede (# motos)
   rankingSedes: RankSede[] = [];     // ranking de vendedores por sede (propio/global)
+  rankTot = { propio: 0, global: 0, total: 0 };
   margenLinea: Pivot | null = null;
   // Margen % por sede (ventas vs margen).
   margenSede: { sedeKey: string; sede: string; color: string; ventas: number; margen: number; pct: number }[] = [];
@@ -200,6 +201,11 @@ export class ReporteGlobalComponent implements OnInit {
     }
     this.rankingSedes = [...bySede.values()].sort((a, b) => b.total - a.total);
     this.rankingSedes.forEach(s => s.vendedores.sort((a, b) => b.total - a.total));
+    this.rankTot = {
+      propio: this.rankingSedes.reduce((s, x) => s + x.propio, 0),
+      global: this.rankingSedes.reduce((s, x) => s + x.global, 0),
+      total: this.rankingSedes.reduce((s, x) => s + x.total, 0),
+    };
   }
 
   /** Título legible (WANXIN→Wanxin, MOTO CARGUERA→Moto Carguera, MOTOTAXI→Mototaxi). */

@@ -79,31 +79,43 @@
     </div>
   </div>
 
-  <!-- ══════════ RANKING de vendedores de motos por sede ══════════ -->
+  <!-- ══════════ RANKING de vendedores de motos por sede (tabla única) ══════════ -->
   <div class="am-card">
     <div class="am-cardhead moto"><mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos · propio / global)</em></div>
-    <div class="am-scroll rg-rank">
-      <div class="rg-rank-sede" *ngFor="let s of rankingSedes">
-        <div class="rg-rank-title">
-          <span class="dot" [style.background]="s.color"></span>{{ s.sede }}
-          <span class="rg-rank-tot">{{ s.total | number }} motos · propio {{ s.propio | number }} · global {{ s.global | number }}</span>
-        </div>
-        <table class="am-table">
-          <thead><tr><th class="ta-l">Vendedor</th><th>Propio</th><th>Global</th><th>Total</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let v of s.vendedores; let idx = index">
-              <td class="ta-l" [title]="v.vendedor"><span class="rg-rank-pos">{{ idx + 1 }}</span>{{ nombreRank(v.vendedor) }}</td>
-              <td>{{ v.propio | number }}</td>
-              <td>{{ v.global | number }}</td>
-              <td class="tot">{{ v.total | number }}</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr><td class="ta-l">TOTAL</td><td>{{ s.propio | number }}</td><td>{{ s.global | number }}</td><td class="tot">{{ s.total | number }}</td></tr>
-          </tfoot>
-        </table>
-      </div>
-      <div *ngIf="!rankingSedes.length" class="vacio rg-rank-vacio">Sin datos para el periodo</div>
+    <div class="am-scroll">
+      <table class="am-table rg-rank-tabla">
+        <thead>
+          <tr>
+            <th class="ta-l rg-c-pos">#</th>
+            <th class="ta-l">Vendedor</th>
+            <th class="rg-c-num">Propio</th>
+            <th class="rg-c-num">Global</th>
+            <th class="rg-c-num">Total</th>
+          </tr>
+        </thead>
+        <tbody *ngFor="let s of rankingSedes">
+          <tr class="rg-grp">
+            <td class="ta-l" colspan="2"><span class="dot" [style.background]="s.color"></span>{{ s.sede }}</td>
+            <td class="rg-c-num">{{ s.propio | number }}</td>
+            <td class="rg-c-num">{{ s.global | number }}</td>
+            <td class="rg-c-num tot">{{ s.total | number }}</td>
+          </tr>
+          <tr *ngFor="let v of s.vendedores; let idx = index">
+            <td class="ta-l rg-c-pos"><span class="rg-rank-pos" [class.top]="idx < 3">{{ idx + 1 }}</span></td>
+            <td class="ta-l rg-c-vend" [title]="v.vendedor">{{ nombreRank(v.vendedor) }}</td>
+            <td class="rg-c-num">{{ v.propio | number }}</td>
+            <td class="rg-c-num">{{ v.global | number }}</td>
+            <td class="rg-c-num tot">{{ v.total | number }}</td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="!rankingSedes.length"><tr class="vacio"><td colspan="5">Sin datos para el periodo</td></tr></tbody>
+        <tfoot *ngIf="rankingSedes.length">
+          <tr><td class="ta-l" colspan="2">TOTAL GENERAL</td>
+            <td class="rg-c-num">{{ rankTot.propio | number }}</td>
+            <td class="rg-c-num">{{ rankTot.global | number }}</td>
+            <td class="rg-c-num tot">{{ rankTot.total | number }}</td></tr>
+        </tfoot>
+      </table>
     </div>
   </div>
 
