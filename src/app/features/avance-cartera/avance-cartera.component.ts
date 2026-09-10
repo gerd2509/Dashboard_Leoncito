@@ -76,9 +76,11 @@ interface ResumenSede {
   // Consolidado "Gestión de Base de Datos" (Piso): ventas (BD) + metas + derivados.
   gestionesTotal: number;   // # de gestiones registradas (con repeticiones) de la sede
   intensidad: number;       // gestiones ÷ clientes gestionados
-  nVentas: number;          // # de ventas (tabla ventas) de la sede
-  monto: number;            // monto neto vendido de la sede
+  nVentas: number;          // # de ventas (por codigo_cv) CERRADAS en la sede (de clientes de alguna base)
+  monto: number;            // monto vendido CERRADO en la sede
   ticket: number;           // monto ÷ nVentas
+  ventasEntran: number;     // ventas cerradas aquí cuyo cliente pertenecía a la base de OTRA sede
+  ventasSalen: number;      // ventas de clientes de ESTA base que se cerraron en OTRA sede
   meta: number;             // meta editable por sede (y grupo de tipo)
   proyeccion: number;       // monto proyectado a fin de mes
   avanceMeta: number;       // % monto ÷ meta
@@ -104,7 +106,8 @@ export class AvanceCarteraComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
 
   // Consolidado Piso: ventas de la BASE (por DNI del cliente en la cartera) + metas.
-  private ventasPorDni = new Map<string, { ops: number; monto: number }>();
+  // dni → (sedeKey donde se CERRÓ la venta → { ops, monto })
+  private ventasPorDni = new Map<string, Map<string, { ops: number; monto: number }>>();
   private gestionesTotalPorSede = new Map<string, number>();
   private metasCartera: Record<string, number> = {};
   // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
@@ -402,12 +405,14 @@ export class AvanceCarteraComponent implements OnInit {
     return porSede;
   }
 
-  /** Piso: ventas de la BASE = ventas (tabla `ventas`) de los DNIs de la cartera. Se
-   *  indexa por DNI y luego se atribuye a la sede a la que la cartera asignó ese cliente.
-   *  Además trae las metas por sede del mes. */
+  /** Piso: ventas de la BASE = ventas (tabla `ventas`) de los DNIs de la cartera, del mes,
+   *  efectivas (sin NC/incautación). Se indexa por DNI y, dentro de cada DNI, por la SEDE
+   *  DONDE SE CERRÓ la venta (no la de la base) — así la venta cuenta donde se cerró. Cada
+   *  venta se cuenta 1 vez por `codigo_cv` (si el cliente compró 2 → cuentan 2). */
   private async cargarVentasYMetasSede(): Promise<void> {
     const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
     this.ventasPorDni = new Map();
+    const vistos = new Set<string>();   // codigo_cv ya contados (evita duplicados)
     try {
       const rows = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
       for (const r of (rows || [])) {
@@ -417,14 +422,27 @@ export class AvanceCarteraComponent implements OnInit {
         if (monto <= 0) continue;
         const dni = this.soloDigitos(String(r.doc_identidad ?? ''));
         if (!dni) continue;
-        const cur = this.ventasPorDni.get(dni) || { ops: 0, monto: 0 };
+        const cv = String(r.codigo_cv ?? '');
+        if (cv && vistos.has(cv)) continue;            // 1 vez por codigo_cv
+        if (cv) vistos.add(cv);
+        const sedeVenta = this.sedeKeyVenta(String(r.sede ?? ''));   // sede donde se cerró
+        const porSede = this.ventasPorDni.get(dni) ?? new Map<string, { ops: number; monto: number }>();
+        const cur = porSede.get(sedeVenta) ?? { ops: 0, monto: 0 };
         cur.ops += 1; cur.monto += monto;
-        this.ventasPorDni.set(dni, cur);
+        porSede.set(sedeVenta, cur);
+        this.ventasPorDni.set(dni, porSede);
       }
     } catch { /* sin ventas → el cuadro muestra 0 */ }
     try {
       this.metasCartera = (await lastValueFrom(this.ventasSrv.obtenerMetasAvance())) || {};
     } catch { this.metasCartera = {}; }
+  }
+
+  /** Normaliza la sede de una venta al mismo esquema de clave que la cartera (quita el
+   *  prefijo 'SEDE RELENOR'). Las sedes no-piso (Realzza store / oficina) quedan con una
+   *  clave propia que NO coincide con ninguna sede piso → no se atribuyen al consolidado. */
+  private sedeKeyVenta(raw: string): string {
+    return this.sedeCfg.normalizar(raw || '').replace(/^sederelenor/, '');
   }
 
   private mapEstado(raw: any): EstadoCliente {
@@ -455,16 +473,38 @@ export class AvanceCarteraComponent implements OnInit {
    *  anterior (sin mes) usada como respaldo para no perder lo ya cargado. */
   private buildSedes(clientes: ClienteCartera[], metaPrefix: string, legacyPrefix: string): ResumenSede[] {
     const map = new Map<string, ResumenSede>();
+    const nuevaFila = (sedeKey: string, nombre: string): ResumenSede => ({
+      sedeKey, sede: nombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0,
+      pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0,
+      ventasEntran: 0, ventasSalen: 0, meta: 0, proyeccion: 0, avanceMeta: 0, metaKey: '',
+    });
+    // ── Base (cartera): asignados/gestionados por sede + DNIs únicos con su sede de base ──
+    const baseSedeDeDni = new Map<string, string>();   // dni → sedeKey de su base (1ª aparición → dedupe)
     for (const c of clientes) {
       const key = c.sedeKey || 'sin-sede';
       let r = map.get(key);
-      if (!r) { r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, meta: 0, proyeccion: 0, avanceMeta: 0, metaKey: '' }; map.set(key, r); }
+      if (!r) { r = nuevaFila(c.sedeKey, c.sedeNombre || 'SIN SEDE'); map.set(key, r); }
       r.asignados++;
       if (c.estado === 'PENDIENTE') r.pendientes++;
       else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
-      // Ventas de la BASE: si este cliente (por DNI) compró, suma a la sede a la que fue asignado.
-      const s = c.dni ? this.ventasPorDni.get(c.dni) : null;
-      if (s) { r.nVentas += s.ops; r.monto += s.monto; }
+      if (c.dni && !baseSedeDeDni.has(c.dni)) baseSedeDeDni.set(c.dni, key);   // DNI repetido → una sola vez
+    }
+    // ── Ventas: cada DNI (único) cuenta sus ventas EN LA SEDE DONDE SE CERRARON ──
+    for (const [dni, baseKey] of baseSedeDeDni) {
+      const porSede = this.ventasPorDni.get(dni);
+      if (!porSede) continue;
+      for (const [ventaKey, agg] of porSede) {
+        const cfgNombre = this.sedeCfg.getConfig(ventaKey)?.nombre;
+        if (!cfgNombre) continue;                        // solo sedes piso reconocidas (excluye Realzza/oficina)
+        let r = map.get(ventaKey);
+        if (!r) { r = nuevaFila(ventaKey, cfgNombre); map.set(ventaKey, r); }
+        r.nVentas += agg.ops; r.monto += agg.monto;
+        if (ventaKey !== baseKey) {
+          r.ventasEntran += agg.ops;                     // entró de la base de otra sede
+          const base = map.get(baseKey);
+          if (base) base.ventasSalen += agg.ops;         // salió: su base cerró en otra sede
+        }
+      }
     }
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
@@ -527,8 +567,11 @@ export class AvanceCarteraComponent implements OnInit {
     const meta = s.reduce((a, r) => a + r.meta, 0);
     const proyeccion = s.reduce((a, r) => a + r.proyeccion, 0);
     const pendientes = s.reduce((a, r) => a + r.pendientes, 0);
+    const ventasEntran = s.reduce((a, r) => a + r.ventasEntran, 0);
+    const ventasSalen = s.reduce((a, r) => a + r.ventasSalen, 0);
     return {
       asignados, gestionados, gestionesTotal, nVentas, monto, meta, proyeccion, pendientes,
+      ventasEntran, ventasSalen,
       intensidad: gestionados > 0 ? Math.round((gestionesTotal / gestionados) * 100) / 100 : 0,
       ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
       avanceMeta: meta > 0 ? Math.round((monto / meta) * 100) : 0,

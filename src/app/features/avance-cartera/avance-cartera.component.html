@@ -235,7 +235,7 @@
 <!-- ══════════ Plantilla reutilizable del cuadro consolidado ══════════ -->
 <ng-template #consolTabla let-titulo="titulo" let-filas="filas" let-showInt="intensidad">
   <div class="tabla-asesores consolidado">
-    <h3>Gestión de Base de Datos — {{ titulo }} <small>(ventas de la base · meta editable)</small></h3>
+    <h3>Gestión de Base de Datos — {{ titulo }} <small>(ventas contadas donde se CERRARON · <span class="cruce cruce-in">↙</span> entran de otra base · <span class="cruce cruce-out">↗</span> salen a otra sede)</small></h3>
     <div class="tabla-scroll">
       <table class="tabla-consol">
         <thead>
@@ -253,7 +253,11 @@
             <td>{{ r.gestionados }}</td>
             <td class="c-alerta">{{ r.pendientes }}</td>
             <td *ngIf="showInt">{{ r.intensidad | number:'1.2-2' }}</td>
-            <td>{{ r.nVentas }}</td>
+            <td>
+              {{ r.nVentas }}
+              <span *ngIf="r.ventasEntran" class="cruce cruce-in" title="Ventas cerradas en esta sede cuyo cliente pertenecía a la base de OTRA sede">↙{{ r.ventasEntran }}</span>
+              <span *ngIf="r.ventasSalen" class="cruce cruce-out" title="Ventas de clientes de ESTA base que se cerraron en OTRA sede">↗{{ r.ventasSalen }}</span>
+            </td>
             <td class="mono">{{ soles(r.monto) }}</td>
             <td class="mono">{{ soles(r.ticket) }}</td>
             <td class="meta-cell">
@@ -272,7 +276,11 @@
             <td>{{ tot(filas).gestionados }}</td>
             <td>{{ tot(filas).pendientes }}</td>
             <td *ngIf="showInt">{{ tot(filas).intensidad | number:'1.2-2' }}</td>
-            <td>{{ tot(filas).nVentas }}</td>
+            <td>
+              {{ tot(filas).nVentas }}
+              <span *ngIf="tot(filas).ventasEntran" class="cruce cruce-in" title="Total de ventas cerradas de la base de otra sede">↙{{ tot(filas).ventasEntran }}</span>
+              <span *ngIf="tot(filas).ventasSalen" class="cruce cruce-out" title="Total de ventas de estas bases cerradas en otra sede">↗{{ tot(filas).ventasSalen }}</span>
+            </td>
             <td class="mono">{{ soles(tot(filas).monto) }}</td>
             <td class="mono">{{ soles(tot(filas).ticket) }}</td>
             <td class="mono">{{ soles(tot(filas).meta) }}</td>
