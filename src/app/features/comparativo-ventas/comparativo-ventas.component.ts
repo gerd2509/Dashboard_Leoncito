@@ -141,7 +141,6 @@ export class ComparativoVentasComponent implements OnInit {
     if (!r.anio_af || !r.mes_af) return null;
     return new Date(+r.anio_af, (+r.mes_af || 1) - 1, +r.dia_af || 1);
   }
-  private soloDigitos(v: any): string { return (v ?? '').toString().replace(/\D/g, ''); }
   private esNotaCredito(estado: any): boolean { return this.normNom(estado).includes('NOTA DE'); }
 
   /** Carga desde BD según el canal (con overlay). */
@@ -182,13 +181,6 @@ export class ComparativoVentasComponent implements OnInit {
    *  Filtra al roster Realzza y, si hay mes elegido, al mes de atribución.
    */
   private movsRealzza(rows: any[]): any[] {
-    // Índice de ventas NO-NC por DNI (para detectar refacturación).
-    const porDni = new Map<string, any[]>();
-    for (const v of rows) {
-      if (this.esNotaCredito(v.estado_venta)) continue;
-      const dni = this.soloDigitos(v.doc_identidad); if (!dni) continue;
-      (porDni.get(dni) ?? porDni.set(dni, []).get(dni)!).push(v);
-    }
     const out: any[] = [];
     for (const r of rows) {
       const asesor = this.nombreAsesor(r);
@@ -196,7 +188,10 @@ export class ComparativoVentasComponent implements OnInit {
       if (monto <= 0) continue;
       const contacto = (r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE';
       if (this.esNotaCredito(r.estado_venta)) {
-        if (this.esRefacturada(r, porDni)) continue;                 // refacturada → no resta
+        // MISMA regla que el evolutivo del módulo: solo restan las NC ARRASTRADAS
+        // (mes de venta ≠ mes de afectación), en su mes de AF. Las del MISMO mes
+        // netean a 0 (la venta y su anulación ya están en el mismo mes) → no restan.
+        if (+r.anio_cv === +r.anio_af && +r.mes_cv === +r.mes_af) continue;
         const f = this.fechaAF(r); if (!f) continue;
         if (this.mes && +r.mes_af !== this.mes) continue;            // mes de AF
         out.push(this.mov(r, f, -monto, asesor, contacto));
@@ -206,14 +201,6 @@ export class ComparativoVentasComponent implements OnInit {
       }
     }
     return out;
-  }
-
-  /** NC refacturada: mismo mes CV=AF y el cliente tiene otra venta (no NC) ese mes con fecha ≥ la NC. */
-  private esRefacturada(r: any, porDni: Map<string, any[]>): boolean {
-    if (!(+r.anio_cv === +r.anio_af && +r.mes_cv === +r.mes_af)) return false;
-    const dni = this.soloDigitos(r.doc_identidad); if (!dni) return false;
-    return (porDni.get(dni) || []).some(v =>
-      v.codigo_cv !== r.codigo_cv && +v.anio_cv === +r.anio_cv && +v.mes_cv === +r.mes_cv && (+v.dia_cv || 0) >= (+r.dia_cv || 0));
   }
 
   /** Arma un movimiento con los campos que usan los gráficos. */
