@@ -106,7 +106,28 @@ export class ComparativoVentasComponent implements OnInit {
     // Roster Realzza = vendedores Realzza reales (ASESORES_REALZZA) + Brenda (excepción).
     this.nombresRealzzaRoster = [...ASESORES_REALZZA.map(a => a.nombre), this.BRENDA_REALZZA].sort();
     this.rosterRealzza = new Set(this.nombresRealzzaRoster.map(n => this.normNom(n)));
+    this.setRangosPorDefecto();
     this.cargarDatos();
+  }
+
+  /**
+   * Rangos por defecto del comparador A vs B (mismo tramo de días, mes a mes):
+   *  · A = mes ANTERIOR, del día 1 al día de hoy.
+   *  · B = mes ACTUAL, del día 1 al día de hoy.
+   * Se recalcula cada vez que se abre el módulo, así "hoy" avanza solo (ej. 10-ago vs
+   * 10-sep; mañana 11-ago vs 11-sep). El día se recorta al último del mes anterior.
+   */
+  private setRangosPorDefecto(): void {
+    const hoy = new Date();
+    const y = hoy.getFullYear(), m = hoy.getMonth(), d = hoy.getDate();
+    const prev = new Date(y, m - 1, 1);                       // 1er día del mes anterior (maneja el cambio de año)
+    const ultDiaPrev = new Date(prev.getFullYear(), prev.getMonth() + 1, 0).getDate();
+    this.formContacto.patchValue({
+      aInicio: new Date(prev.getFullYear(), prev.getMonth(), 1),
+      aFin: new Date(prev.getFullYear(), prev.getMonth(), Math.min(d, ultDiaPrev)),
+      bInicio: new Date(y, m, 1),
+      bFin: new Date(y, m, d),
+    });
   }
 
   /** Formato de monto: "S/ 430,986" (sin decimales, redondeado). */
@@ -146,7 +167,11 @@ export class ComparativoVentasComponent implements OnInit {
   /** Carga desde BD según el canal (con overlay). */
   cargarDatos(): void {
     this.cargando = true;
-    const done = (movs: any[]) => { this.dataVentas = movs; this.construirAsesores(); this.aplicarFiltros(); this.cargando = false; };
+    const done = (movs: any[]) => {
+      this.dataVentas = movs; this.construirAsesores(); this.aplicarFiltros();
+      this.compararRangosContacto();   // muestra por defecto A (mes pasado) vs B (mes actual)
+      this.cargando = false;
+    };
     const fail = () => { this.dataVentas = []; this.filtroVentas = []; this.recalcular(); this.cargando = false; };
     if (this.esRealzza) {
       // Realzza: neto REAL (igual que el evolutivo del módulo) desde `ventas` (afectaciones).
@@ -484,7 +509,7 @@ export class ComparativoVentasComponent implements OnInit {
 
   /** Quita la comparación y vuelve al monto por contacto del rango general. */
   limpiarComparacionContacto(): void {
-    this.formContacto.reset();
+    this.setRangosPorDefecto();          // deja los rangos por defecto listos para re-comparar
     this.comparandoContacto = false;
     this.generarChartContacto();
   }
