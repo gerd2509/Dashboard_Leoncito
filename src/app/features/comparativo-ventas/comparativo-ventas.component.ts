@@ -49,10 +49,12 @@ export class ComparativoVentasComponent implements OnInit {
     { v: 5, t: 'Mayo' }, { v: 6, t: 'Junio' }, { v: 7, t: 'Julio' }, { v: 8, t: 'Agosto' },
     { v: 9, t: 'Septiembre' }, { v: 10, t: 'Octubre' }, { v: 11, t: 'Noviembre' }, { v: 12, t: 'Diciembre' },
   ];
-  // Mapa CC → nombre de los asesores Call ACTUALES (sin Brenda CC12 → va a Realzza).
-  // Solo estos CC se consideran Call válidos (excluye CC viejos y "NAS").
+  // Mapa CC → nombre. Incluye TODOS los códigos conocidos (Call actuales + los
+  // transicionados CC8/CC21/CC12) para que en el histórico se muestren sus nombres.
+  // NO se usa ya para filtrar: el comparativo cuenta la data tal cual está en cada
+  // tabla de canal (ventas_call / ventas Realzza), sin recortar por el roster actual.
   private ccANombre = new Map<string, string>(
-    ASESORES_CALL.filter(a => a.value !== 'CC12').map(a => [a.value, a.nombre]));
+    [...ASESORES_CALL, ...ASESORES_REALZZA].map(a => [a.value, a.nombre]));
   get esRealzza(): boolean { return this.canal === 'realzza'; }
   /** Título del gráfico por origen: Call = CONTACTO; Realzza = TIPO DE BASE. */
   get contactoTitulo(): string { return this.esRealzza ? 'Ventas por Tipo de Base' : 'Ventas por Contacto (KOMMO / BD / …)'; }
@@ -156,12 +158,14 @@ export class ComparativoVentasComponent implements OnInit {
     }
   }
 
-  /** Movimientos Call: una venta neta (positiva) por su mes de venta. */
+  /** Movimientos Call: una venta neta (positiva) por su mes de venta. Cuenta TODAS
+   *  las ventas reales de `ventas_call` (que ya es data del canal Call), sin recortar
+   *  por el roster actual — así el histórico refleja lo real (p.ej. agosto de quienes
+   *  luego pasaron a Realzza sí suma en Call). */
   private movsCall(rows: any[]): any[] {
     const out: any[] = [];
     for (const r of rows) {
       if (!this.esVentaReal(r.estado_venta)) continue;            // fuera NC/incautación
-      if (!this.ccANombre.has((r.vendedor || '').toString().trim().toUpperCase())) continue;  // solo Call actual
       const monto = Number(r.monto_consolidado) || 0;
       if (monto <= 0) continue;
       out.push(this.mov(r, this.fechaDe(r), monto, this.nombreAsesor(r),
@@ -188,7 +192,6 @@ export class ComparativoVentasComponent implements OnInit {
     const out: any[] = [];
     for (const r of rows) {
       const asesor = this.nombreAsesor(r);
-      if (!this.rosterRealzza.has(this.normNom(asesor))) continue;   // solo asesores Realzza
       const monto = Number(r.monto_consolidado) || 0;
       if (monto <= 0) continue;
       const contacto = (r.tipo_base || '').toString().trim().toUpperCase() || 'SIN BASE';
@@ -222,12 +225,10 @@ export class ComparativoVentasComponent implements OnInit {
     };
   }
 
-  /** Dropdown de asesores = roster ACTUAL del canal (no de la data): Call = ASESORES_CALL
-   *  sin Brenda; Realzza = CAP activos (+ Brenda). */
+  /** Dropdown de asesores = los que REALMENTE vendieron en el periodo/canal cargado
+   *  (distinct de la data), así se pueden filtrar todos, incluidos los transicionados. */
   private construirAsesores(): void {
-    const nombres = this.esRealzza
-      ? this.nombresRealzzaRoster
-      : ASESORES_CALL.filter(a => a.value !== 'CC12').map(a => a.nombre).sort();
+    const nombres = [...new Set(this.dataVentas.map(v => (v.AsesorVenta || '').toString().trim()).filter(Boolean))].sort();
     this.asesores = [{ value: '', viewValue: 'Todos los asesores' },
       ...nombres.map(a => ({ value: a, viewValue: a }))];
   }
