@@ -4,8 +4,10 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { lastValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { SheetsService } from '../../services/service-google.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
 
 type Modo = 'call' | 'realzza';
+type Fuente = 'auto' | 'excel';
 
 // Candidatos de cabecera DNI en las hojas de cartera / ventas (la columna puede
 // venir como DNI, Dni, dni, DocIdentidad, Documento, etc.). La normalización iguala
@@ -56,6 +58,10 @@ interface Embudo {
   marketPlace?: number;
   hoja?: string;
   detalle?: DetalleAsesor[];   // detalle por asesor (si la cartera trae columna de asesor)
+  auto?: boolean;              // modo automático (asignados editable, sin etapas de gestión en algunos tipos)
+  metaKey?: string;            // clave para persistir los asignados (embudo:<canal>:<mes>:<tipo>)
+  gestionados?: number; contactados?: number; interesados?: number; ventas?: number;  // crudos (auto)
+  soloVentas?: boolean;        // true = tipo sin datos de gestión (p.ej. Market Place en Call)
 }
 
 // Estado agregado por DNI en una gestión.
@@ -74,8 +80,10 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 })
 export class EmbudosGestionComponent {
   private sheets = inject(SheetsService);
+  private ventasSrv = inject(CargaVentasService);
 
   modo: Modo | null = null;
+  fuente: Fuente = 'auto';        // 'auto' = cruza BD; 'excel' = sube carteras
   arrastrando = false;
   procesando = false;
   error = '';
@@ -99,8 +107,121 @@ export class EmbudosGestionComponent {
 
   get nombreModo(): string { return this.modo === 'realzza' ? 'Realzza' : 'Call'; }
 
-  seleccionarModo(m: Modo): void { this.modo = m; this.reiniciar(); }
+  seleccionarModo(m: Modo): void { this.modo = m; this.reiniciar(); if (this.fuente === 'auto') this.cargarAuto(); }
   volverModos(): void { this.modo = null; this.reiniciar(); }
+  setFuente(f: Fuente): void { if (this.fuente === f) return; this.fuente = f; this.reiniciar(); if (f === 'auto' && this.modo) this.cargarAuto(); }
+
+  // ── Modo AUTOMÁTICO: cruza la gestión + ventas del mes (sin Excel) ────────────
+  cargarAuto(): void {
+    if (!this.modo) return;
+    this.reiniciar();
+    this.procesando = true;
+    this.construirEmbudosAuto()
+      .then(() => { this.listo = true; })
+      .catch(err => { this.error = err?.message ?? 'No se pudieron cargar los embudos.'; })
+      .finally(() => { this.procesando = false; });
+  }
+
+  private rangoMes(): { desde: Date; hasta: Date } {
+    const y = this.fecha.getFullYear(), m = this.fecha.getMonth();
+    return { desde: new Date(y, m, 1), hasta: new Date(y, m + 1, 0) };
+  }
+  private normU(s: any): string { return (s ?? '').toString().trim().toUpperCase(); }
+  private soloDig(v: any): string { return (v ?? '').toString().replace(/\D/g, '').replace(/^0+/, ''); }
+  private labelTipo(t: string): string {
+    const m: Record<string, string> = { 'BBDD': 'Base de Datos', 'BBDD KOMMO': 'Base Kommo', 'KOMMO': 'Kommo', 'MARKET PLACE': 'Market Place' };
+    return m[t] || t.split(' ').map(w => (w ? w[0] + w.slice(1).toLowerCase() : '')).join(' ');
+  }
+  /** tipo de base de una fila de GESTIÓN según el canal. */
+  private tipoGestion(r: any): string {
+    if (this.modo === 'realzza') return this.normU(r['TIPO DE BASE']);
+    return this.normU(r['KOMMO']) === 'SI' ? 'KOMMO' : 'BBDD';   // Call: solo distingue Kommo / Base de Datos
+  }
+  /** tipo de base de una fila de VENTA según el canal. */
+  private tipoVenta(r: any): string {
+    if (this.modo === 'realzza') return this.normU(r.tipo_base) || 'SIN BASE';
+    const c = this.normU(r.contacto);                            // Call: se clasifica por 'contacto'
+    if (c === 'KOMMO') return 'KOMMO';
+    if (c === 'MARKET PLACE') return 'MARKET PLACE';
+    return 'BBDD';                                               // BD / nuevo / vacío → Base de Datos
+  }
+
+  private async construirEmbudosAuto(): Promise<void> {
+    const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
+    const rango = this.rangoMes();
+    const [ges, ven, metas] = await Promise.all([
+      lastValueFrom(this.modo === 'realzza' ? this.sheets.getSheetDataCampoRango(rango) : this.sheets.getSheetDataCallRango(rango)),
+      lastValueFrom(this.modo === 'realzza' ? this.ventasSrv.obtenerVentasRealzzaModulo(anio) : this.ventasSrv.obtenerVentasCanal('call', { anio, mes })),
+      lastValueFrom(this.ventasSrv.obtenerMetasAvance()).catch(() => ({} as Record<string, number>)),
+    ]);
+
+    // ── Gestión: DNIs únicos por tipo (gestionado / contactado / interesado) ──
+    const idx = new Map<string, Map<string, { c: boolean; i: boolean }>>();
+    for (const r of (ges || [])) {
+      const dni = this.soloDig(r['DNI CLIENTE']); if (!dni) continue;
+      const tipo = this.tipoGestion(r); if (!tipo) continue;
+      const c = this.normU(r['ESTADO DE GESTIÓN']) === 'CONTACTO';
+      const i = this.normU(r['RESULTADO DE GESTIÓN']) === 'INTERESADO';
+      let porDni = idx.get(tipo); if (!porDni) { porDni = new Map(); idx.set(tipo, porDni); }
+      const cur = porDni.get(dni) || { c: false, i: false };
+      cur.c = cur.c || c; cur.i = cur.i || i;
+      porDni.set(dni, cur);
+    }
+
+    // ── Ventas: # operaciones por tipo (efectivas, del mes) ──
+    const ventasTipo = new Map<string, number>();
+    for (const r of (ven || [])) {
+      if (this.modo === 'realzza' && +r.mes_cv !== mes) continue;     // modulo trae el año → acotar al mes
+      const est = this.normU(r.estado_venta);
+      if (est.includes('NOTA DE') || est.includes('INCAUTAC')) continue;
+      if ((Number(r.monto_consolidado) || 0) <= 0) continue;
+      const tipo = this.tipoVenta(r);
+      ventasTipo.set(tipo, (ventasTipo.get(tipo) || 0) + 1);
+    }
+
+    // ── Arma un embudo por cada tipo presente (gestión ∪ ventas) ──
+    const ym = `${anio}-${String(mes).padStart(2, '0')}`;
+    const orden = ['BBDD', 'BBDD KOMMO', 'KOMMO', 'MARKET PLACE'];
+    const tipos = [...new Set([...idx.keys(), ...ventasTipo.keys()])]
+      .sort((a, b) => (orden.indexOf(a) + 1 || 99) - (orden.indexOf(b) + 1 || 99) || a.localeCompare(b));
+
+    this.embudos = tipos.map((tipo, k) => {
+      const porDni = idx.get(tipo);
+      const gestionados = porDni ? porDni.size : 0;
+      let contactados = 0, interesados = 0;
+      porDni?.forEach(v => { if (v.c) contactados++; if (v.i) interesados++; });
+      const ventas = ventasTipo.get(tipo) || 0;
+      const metaKey = `embudo:${this.modo}:${ym}:${tipo}`;
+      const asignados = Math.round(metas[metaKey] || 0);
+      const emb: Embudo = {
+        titulo: this.labelTipo(tipo), color: this.paleta[k % this.paleta.length],
+        kommoLeads: false, auto: true, metaKey, asignados,
+        gestionados, contactados, interesados, ventas,
+        soloVentas: gestionados === 0 && ventas > 0,
+        etapas: this.etapasAuto(asignados, gestionados, contactados, interesados, ventas),
+      };
+      return emb;
+    });
+  }
+
+  private etapasAuto(asig: number, g: number, c: number, i: number, v: number): Etapa[] {
+    const ratio = (n: number) => (asig > 0 ? Math.round((n / asig) * 1000) / 10 : 0);
+    return [
+      { nombre: 'ASIGNADOS', op: asig, ratio: 100, codigo: '' },
+      { nombre: 'GESTIONADOS', op: g, ratio: ratio(g), codigo: 'RG' },
+      { nombre: 'CONTACTADOS', op: c, ratio: ratio(c), codigo: 'RCT' },
+      { nombre: 'INTERESADOS', op: i, ratio: ratio(i), codigo: 'RI' },
+      { nombre: 'TOTAL VENTAS', op: v, ratio: ratio(v), codigo: 'RV' },
+    ];
+  }
+
+  /** Edita los asignados de un embudo (auto) y persiste con metas-avance. */
+  onAsignadosAuto(emb: Embudo, valor: any): void {
+    const n = Math.max(0, Math.floor(Number(String(valor ?? '').replace(/[^0-9]/g, '')) || 0));
+    emb.asignados = n;
+    emb.etapas = this.etapasAuto(n, emb.gestionados || 0, emb.contactados || 0, emb.interesados || 0, emb.ventas || 0);
+    if (emb.metaKey) this.ventasSrv.guardarMetaAvance(emb.metaKey, n).subscribe({ error: () => {} });
+  }
 
   onDragOver(e: DragEvent): void { e.preventDefault(); this.arrastrando = true; }
   onDragLeave(e: DragEvent): void { e.preventDefault(); this.arrastrando = false; }

@@ -28,31 +28,59 @@
   </div>
 
   <ng-container *ngIf="modo">
-    <!-- Mes + carga -->
-    <div class="barra" *ngIf="!listo">
-      <div class="campo">
-        <label>Mes de gestión</label>
-        <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
-          [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
-      </div>
-      <span class="barra-nota"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Incluye una hoja <b>VENTAS</b>.</span>
+    <!-- Toggle de fuente: Automático (cruza BD) vs Subir Excel -->
+    <div class="fuente-tabs">
+      <button [class.active]="fuente === 'auto'" (click)="setFuente('auto')"><mat-icon>bolt</mat-icon> Automático (cruza BD)</button>
+      <button [class.active]="fuente === 'excel'" (click)="setFuente('excel')"><mat-icon>upload_file</mat-icon> Subir Excel</button>
     </div>
 
-    <div *ngIf="!listo" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
-         (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
-      <ng-container *ngIf="!procesando; else cargando">
-        <mat-icon class="dz-icon">cloud_upload</mat-icon>
-        <p class="dz-titulo">Arrastra el Excel de carteras aquí</p>
-        <p class="dz-sub">o</p>
-        <label class="btn-cargar"><mat-icon>folder_open</mat-icon> Seleccionar archivo
-          <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" /></label>
-        <p class="dz-formatos">Una hoja por cartera (con DNI) + una hoja <b>VENTAS</b> (DNI, CONTACTO KOMMO, MARKET PLACE).</p>
-      </ng-container>
-      <ng-template #cargando>
+    <!-- ═══ AUTOMÁTICO ═══ -->
+    <ng-container *ngIf="fuente === 'auto'">
+      <div class="barra">
+        <div class="campo">
+          <label>Mes</label>
+          <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
+            [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"
+            (onValueChanged)="cargarAuto()"></dx-date-box>
+        </div>
+        <button class="btn-cargar auto-refresh" (click)="cargarAuto()" [disabled]="procesando">
+          <mat-icon>refresh</mat-icon> Actualizar
+        </button>
+        <span class="barra-nota"><mat-icon>info</mat-icon> Un embudo por tipo de base. Ingresa los <b>ASIGNADOS</b> (se guardan por mes y tipo); el resto se cruza solo con la gestión y las ventas.</span>
+      </div>
+      <div *ngIf="procesando" class="dropzone procesando">
         <app-loading-overlay [inline]="true" [visible]="procesando" icon="filter_alt"
-          mensaje="Procesando embudos…" submensaje="Cruzando carteras por DNI…"></app-loading-overlay>
-      </ng-template>
-    </div>
+          mensaje="Cruzando gestión y ventas…" submensaje="Base {{ nombreModo }} — {{ fecha | date:'MMMM yyyy' }}"></app-loading-overlay>
+      </div>
+    </ng-container>
+
+    <!-- ═══ EXCEL ═══ -->
+    <ng-container *ngIf="fuente === 'excel'">
+      <div class="barra" *ngIf="!listo">
+        <div class="campo">
+          <label>Mes de gestión</label>
+          <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
+            [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
+        </div>
+        <span class="barra-nota"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Incluye una hoja <b>VENTAS</b>.</span>
+      </div>
+
+      <div *ngIf="!listo" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
+           (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+        <ng-container *ngIf="!procesando; else cargando">
+          <mat-icon class="dz-icon">cloud_upload</mat-icon>
+          <p class="dz-titulo">Arrastra el Excel de carteras aquí</p>
+          <p class="dz-sub">o</p>
+          <label class="btn-cargar"><mat-icon>folder_open</mat-icon> Seleccionar archivo
+            <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" /></label>
+          <p class="dz-formatos">Una hoja por cartera (con DNI) + una hoja <b>VENTAS</b> (DNI, CONTACTO KOMMO, MARKET PLACE).</p>
+        </ng-container>
+        <ng-template #cargando>
+          <app-loading-overlay [inline]="true" [visible]="procesando" icon="filter_alt"
+            mensaje="Procesando embudos…" submensaje="Cruzando carteras por DNI…"></app-loading-overlay>
+        </ng-template>
+      </div>
+    </ng-container>
 
     <div class="alerta-error" *ngIf="error">
       <mat-icon>error_outline</mat-icon><span>{{ error }}</span>
@@ -62,8 +90,12 @@
     <!-- Resultado: embudos -->
     <div class="resultado" *ngIf="listo">
       <div class="res-header">
-        <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
-        <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otro</button>
+        <div class="res-archivo">
+          <mat-icon>{{ fuente === 'auto' ? 'bolt' : 'description' }}</mat-icon>
+          <span *ngIf="fuente === 'auto'">Base {{ nombreModo }} — {{ fecha | date:'MMMM yyyy' }} (automático)</span>
+          <span *ngIf="fuente === 'excel'">{{ nombreArchivo }}</span>
+        </div>
+        <button *ngIf="fuente === 'excel'" class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otro</button>
       </div>
 
       <div class="embudos-grid">
@@ -73,6 +105,7 @@
             <span class="emb-mp" *ngIf="emb.kommoLeads && emb.marketPlace !== undefined">
               MARKET PLACE: {{ emb.marketPlace }}
             </span>
+            <span class="emb-mp" *ngIf="emb.soloVentas" title="La gestión de este canal no registra este tipo de base; solo se muestran asignados y ventas">sin gestión</span>
             <button class="emb-expand" *ngIf="emb.detalle?.length" (click)="abrirDetalle(emb)" title="Detalle por asesor">
               <mat-icon>groups</mat-icon>
             </button>
@@ -90,7 +123,11 @@
               <tbody>
                 <tr *ngFor="let e of emb.etapas" [class.total]="e.nombre === 'TOTAL VENTAS'">
                   <td class="left">{{ e.nombre }}</td>
-                  <td class="num">{{ e.op }}</td>
+                  <td class="num">
+                    <input *ngIf="emb.auto && e.nombre === 'ASIGNADOS'; else opTxt" class="asig-in" type="number" min="0"
+                      [value]="emb.asignados || ''" placeholder="0" (change)="onAsignadosAuto(emb, $any($event.target).value)" />
+                    <ng-template #opTxt>{{ e.op }}</ng-template>
+                  </td>
                   <td class="num">{{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</td>
                   <td class="cod">{{ e.codigo }}</td>
                 </tr>
