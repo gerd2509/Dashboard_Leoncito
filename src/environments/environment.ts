@@ -7,7 +7,8 @@ export const environment = {
   apiBase: 'https://api-unificada.onrender.com/sheets',
   // Microservicio de cruces/limpieza (limpiezaBD_sedes-service en Render) — NO unificado.
   // Vacío = procesa en el navegador. Con URL = usa el micro (con fallback local).
-  cruceBase: 'https://limpiezabd-sedes-service.onrender.com',
+  // Suspendido en Render → vacío para procesar SIEMPRE en el navegador (lógica actualizada).
+  cruceBase: '',
   ventasBase: 'https://api-unificada.onrender.com/ventas',
   gestionBase: 'https://api-unificada.onrender.com/gestion',
 };
