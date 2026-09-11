@@ -44,7 +44,7 @@ export class AtribucionCallComponent implements OnInit {
   sede: 'LAMBAYEQUE' | 'FERREÑAFE' = 'LAMBAYEQUE';
   // Fuente generadora (Sedes) = TIPO DE BASE de la derivación.
   readonly fuenteOpciones = [
-    'BBDD', 'REFERIDOS', 'TIENDA', 'CASERIOS', 'RECURRENTES NO ASIGNADOS', 'KOMMO', 'BBDD KOMMO',
+    'BBDD', 'CALL', 'REFERIDOS', 'TIENDA', 'CASERIOS', 'RECURRENTES NO ASIGNADOS', 'KOMMO', 'BBDD KOMMO',
     'MARKET PLACE', 'BRILLA', 'EFECTIVA', 'REDES SSENDA',
   ];
 
