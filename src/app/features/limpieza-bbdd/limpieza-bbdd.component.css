@@ -77,6 +77,7 @@
 }
 .modo-ico.sedes { background: linear-gradient(135deg, #1A5FAD, #2b7fd6); }
 .modo-ico.call  { background: linear-gradient(135deg, #1f9d55, #14823f); }
+.modo-ico.realzza { background: linear-gradient(135deg, #6A1B9A, #455A64); }
 .modo-ico mat-icon { font-size: 28px; width: 28px; height: 28px; }
 .modo-card h3 { margin: 0 0 6px; font-size: 17px; font-weight: 800; color: var(--texto); }
 .modo-card p { margin: 0; font-size: 13px; color: var(--gris); line-height: 1.4; }

@@ -24,13 +24,20 @@ const COLUMNAS_TELEFONO = [
 
 const COLUMNA_DNI = 'Dni';
 
-// Columnas del formulario de gestión Call Center (/data/call).
+// Fragmentos de cabecera que identifican una columna de TELÉFONOS (además de las
+// conocidas de arriba). Detecta cualquier columna de números aunque el nombre difiera.
+const FRAG_TEL = [
+  'celular', 'telefono', 'movil', 'fono', 'whatsapp', 'nextel', 'fax',
+  'provedorexterno', 'proveedorexterno', 'cel',
+];
+
+// Columnas del formulario de gestión (Call: /data/call · Realzza: /data/campo).
 const G_DNI = 'DNI CLIENTE';
 const G_CELULAR = 'CELULAR GESTIONADO';
 const G_ESTADO = 'ESTADO DE GESTIÓN';
 const G_FECHA = 'Marca temporal';
 
-type Modo = 'sedes' | 'call';
+type Modo = 'sedes' | 'call' | 'realzza';
 type Estado = 'CONTACTO' | 'NO CONTACTO' | 'SIN GESTION';
 
 interface FilaPreview {
@@ -124,6 +131,11 @@ export class LimpiezaBbddComponent {
     this.reiniciar();
   }
 
+  /** ¿El modo activo cruza con la gestión (Call/Realzza)? */
+  get esCruce(): boolean { return this.modo === 'call' || this.modo === 'realzza'; }
+  /** Etiqueta del canal de gestión del modo activo. */
+  get canalGestion(): string { return this.modo === 'realzza' ? 'Realzza' : 'Call Center'; }
+
   get puedeCargarCall(): boolean {
     return !!this.fechaInicio && !!this.fechaFin;
   }
@@ -144,7 +156,7 @@ export class LimpiezaBbddComponent {
   onDrop(evt: DragEvent): void {
     evt.preventDefault();
     this.arrastrando = false;
-    if (this.modo === 'call' && !this.puedeCargarCall) {
+    if (this.esCruce && !this.puedeCargarCall) {
       this.error = 'Selecciona el rango de fechas antes de cargar el archivo.';
       return;
     }
@@ -209,8 +221,8 @@ export class LimpiezaBbddComponent {
       if (!filas.length) {
         throw new Error('El archivo no contiene filas de datos.');
       }
-      if (this.modo === 'call') {
-        await this.limpiarCall(filas);
+      if (this.esCruce) {
+        await this.limpiarGestion(filas);
       } else {
         this.limpiarSedes(filas);
       }
@@ -301,13 +313,8 @@ export class LimpiezaBbddComponent {
 
     const headersOriginales = Object.keys(filas[0]);
     const dniHeader = this.buscarHeader(headersOriginales, COLUMNA_DNI);
-    const telHeaders = COLUMNAS_TELEFONO
-      .map((c) => this.buscarHeader(headersOriginales, c))
-      .filter((h): h is string => !!h);
+    const telHeaders = this.detectarTelHeaders(headersOriginales, dniHeader);
 
-    if (!dniHeader) {
-      throw new Error(`No se encontró la columna "${COLUMNA_DNI}" en el archivo.`);
-    }
     if (!telHeaders.length) {
       throw new Error('No se encontró ninguna columna de teléfonos para limpiar.');
     }
@@ -318,7 +325,9 @@ export class LimpiezaBbddComponent {
     let totalNumerosAntes = 0;
 
     filas.forEach((fila, idx) => {
-      const dniRaw = String(fila[dniHeader] ?? '').trim();
+      // Agrupa por DNI si existe la columna; si no, cada fila es su propio grupo
+      // (modo "solo teléfonos" sin DNI → igual dedupe los números de la fila).
+      const dniRaw = dniHeader ? String(fila[dniHeader] ?? '').trim() : '';
       const clave = dniRaw !== '' ? `dni:${dniRaw}` : `fila:${idx}`;
 
       let grupo = grupos.get(clave);
@@ -368,7 +377,7 @@ export class LimpiezaBbddComponent {
     this.maxNumerosPorDni = maxNumeros;
 
     this.preview = salida.slice(0, 8).map((f) => ({
-      dni: String(f[dniHeader] ?? ''),
+      dni: dniHeader ? String(f[dniHeader] ?? '') : '',
       numeros: colsNumero.map((c) => String(f[c] ?? '')).filter((v) => v !== ''),
     }));
 
@@ -378,24 +387,22 @@ export class LimpiezaBbddComponent {
   // ──────────────────────────────────────────────────────────────────────────
   // MODO CALL — consolida + cruza con la gestión Call Center (contacto/no contacto)
   // ──────────────────────────────────────────────────────────────────────────
-  private async limpiarCall(filas: Record<string, any>[]): Promise<void> {
+  private async limpiarGestion(filas: Record<string, any>[]): Promise<void> {
     this.totalFilasLeidas = filas.length;
 
     const headersOriginales = Object.keys(filas[0]);
     const dniHeader = this.buscarHeader(headersOriginales, COLUMNA_DNI);
-    const telHeaders = COLUMNAS_TELEFONO
-      .map((c) => this.buscarHeader(headersOriginales, c))
-      .filter((h): h is string => !!h);
+    const telHeaders = this.detectarTelHeaders(headersOriginales, dniHeader);
 
     if (!dniHeader) {
-      throw new Error(`No se encontró la columna "${COLUMNA_DNI}" en el archivo.`);
+      throw new Error(`No se encontró la columna "${COLUMNA_DNI}" en el archivo (necesaria para cruzar con la gestión).`);
     }
     if (!telHeaders.length) {
       throw new Error('No se encontró ninguna columna de teléfonos para limpiar.');
     }
 
-    // 1) Cargar la gestión Call Center y armar el índice DNI → número → estado.
-    const indiceGestion = await this.cargarGestionCall();
+    // 1) Cargar la gestión del canal (Call o Realzza) y armar índice DNI → número → estado.
+    const indiceGestion = await this.cargarGestion();
 
     // Columnas de teléfono en el ORDEN original del archivo (para reacomodar en su sitio).
     const telSet = new Set(telHeaders);
@@ -468,7 +475,7 @@ export class LimpiezaBbddComponent {
   // ──────────────────────────────────────────────────────────────────────────
   /** Filas base del modo activo (para leer los valores de la columna de filtro). */
   private filasBase(): Record<string, any>[] {
-    return this.modo === 'call' ? this.dnisCall.map((d) => d.base) : this.filasSalida;
+    return this.esCruce ? this.dnisCall.map((d) => d.base) : this.filasSalida;
   }
 
   /** Detecta la columna Sede/Zona y precarga los valores para el selector. */
@@ -492,8 +499,9 @@ export class LimpiezaBbddComponent {
     if (this.valoresFiltro.length) this.filtroValor = this.valoresFiltro[0];
   }
 
-  /** Trae la gestión Call Center del rango y arma DNI → (número → último estado). */
-  private async cargarGestionCall(): Promise<Map<string, Map<string, Estado>>> {
+  /** Trae la gestión del canal activo (Call o Realzza) del rango y arma
+   *  DNI → (número → último estado). Mismas columnas en ambos canales. */
+  private async cargarGestion(): Promise<Map<string, Map<string, Estado>>> {
     if (!this.fechaInicio || !this.fechaFin) {
       throw new Error('Selecciona el rango de fechas antes de procesar.');
     }
@@ -502,9 +510,13 @@ export class LimpiezaBbddComponent {
 
     let data: any[] = [];
     try {
-      data = await lastValueFrom(this.sheets.getSheetData()); // Google Form call
+      data = await lastValueFrom(
+        this.modo === 'realzza'
+          ? this.sheets.getSheetDataCampoRango({ desde, hasta })   // gestión Realzza
+          : this.sheets.getSheetDataCallRango({ desde, hasta }),   // gestión Call
+      );
     } catch {
-      throw new Error('No se pudo cargar la gestión Call Center (revisa la conexión al servidor).');
+      throw new Error(`No se pudo cargar la gestión ${this.canalGestion} (revisa la conexión al servidor).`);
     }
 
     // DNI → número → { fecha, estado }  (guardamos la última gestión por número)
@@ -571,14 +583,42 @@ export class LimpiezaBbddComponent {
     return headers.find((h) => norm(h) === objetivoNorm);
   }
 
+  /** Detecta TODAS las columnas de teléfonos: las conocidas (COLUMNAS_TELEFONO) + cualquier
+   *  cabecera cuyo nombre contenga un fragmento de teléfono (celular/telefono/movil/…), en
+   *  el orden original del archivo. Excluye la columna de DNI. */
+  private detectarTelHeaders(headers: string[], dniHeader?: string): string[] {
+    const norm = (s: string) => s.toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+    const conocidas = new Set(COLUMNAS_TELEFONO.map((c) => norm(c)));
+    return headers.filter((h) => {
+      if (dniHeader && h === dniHeader) return false;
+      const n = norm(h);
+      if (conocidas.has(n)) return true;
+      return FRAG_TEL.some((f) => n.includes(f));
+    });
+  }
+
   private extraerNumeros(valor: any): string[] {
     if (valor === null || valor === undefined) return [];
     const texto = String(valor).trim();
     if (!texto) return [];
-    return texto
-      .split(/[\/,;\n\r|]+/)
-      .map((p) => p.replace(/\D/g, ''))
-      .filter((p) => p.length > 0);
+    const out: string[] = [];
+    // Separa por / , ; | saltos de línea Y espacios/tabs (antes no partía por espacios,
+    // así "987654321 912345678" se pegaba en un solo número).
+    for (const parte of texto.split(/[\/,;\|\s]+/)) {
+      const d = parte.replace(/\D/g, '');
+      if (!d) continue;
+      for (const n of this.separarConcatenados(d)) out.push(n);
+    }
+    return out;
+  }
+
+  /** Separa dígitos pegados SIN separador. Conservador: si el largo es múltiplo de 9 y cada
+   *  bloque de 9 empieza en 9 (celulares Perú), los separa; si no, deja el número tal cual. */
+  private separarConcatenados(d: string): string[] {
+    if (d.length <= 11 || d.length % 9 !== 0) return [d];
+    const bloques: string[] = [];
+    for (let i = 0; i < d.length; i += 9) bloques.push(d.slice(i, i + 9));
+    return bloques.every((b) => b.startsWith('9')) ? bloques : [d];
   }
 
   private soloDigitos(v: string): string {
@@ -620,7 +660,7 @@ export class LimpiezaBbddComponent {
     const filtro = soloSeleccion && this.filtroCol && this.filtroValor
       ? { col: this.filtroCol, val: this.filtroValor }
       : null;
-    if (this.modo === 'call') return this.descargarCall(filtro);
+    if (this.esCruce) return this.descargarCall(filtro);
     return this.descargarSedes(filtro);
   }
 
@@ -715,7 +755,7 @@ export class LimpiezaBbddComponent {
     this.autoAncho(wsSin);
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     wsSin.views = [{ state: 'frozen', ySplit: 1 }];
-    await this.guardar(workbook, this.sufijoDescarga('_CALL_LIMPIA', filtro));
+    await this.guardar(workbook, this.sufijoDescarga(this.modo === 'realzza' ? '_REALZZA_LIMPIA' : '_CALL_LIMPIA', filtro));
   }
 
   private estilarCabecera(headerRow: any): void {
