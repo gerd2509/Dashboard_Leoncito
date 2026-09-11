@@ -28,8 +28,10 @@ const COLUMNA_DNI = 'Dni';
 // conocidas de arriba). Detecta cualquier columna de números aunque el nombre difiera.
 const FRAG_TEL = [
   'celular', 'telefono', 'movil', 'fono', 'whatsapp', 'nextel', 'fax',
-  'provedorexterno', 'proveedorexterno', 'cel',
+  'provedorexterno', 'proveedorexterno', 'cel', 'numero', 'numeros',
 ];
+// Cabeceras que NUNCA son teléfono (evita falsos positivos con DNI/documento).
+const FRAG_NO_TEL = ['documento', 'dni', 'docidentidad'];
 
 // Columnas del formulario de gestión (Call: /data/call · Realzza: /data/campo).
 const G_DNI = 'DNI CLIENTE';
@@ -592,6 +594,7 @@ export class LimpiezaBbddComponent {
     return headers.filter((h) => {
       if (dniHeader && h === dniHeader) return false;
       const n = norm(h);
+      if (FRAG_NO_TEL.some((f) => n.includes(f))) return false;   // documento/DNI → nunca
       if (conocidas.has(n)) return true;
       return FRAG_TEL.some((f) => n.includes(f));
     });
@@ -602,9 +605,8 @@ export class LimpiezaBbddComponent {
     const texto = String(valor).trim();
     if (!texto) return [];
     const out: string[] = [];
-    // Separa por / , ; | saltos de línea Y espacios/tabs (antes no partía por espacios,
-    // así "987654321 912345678" se pegaba en un solo número).
-    for (const parte of texto.split(/[\/,;\|\s]+/)) {
+    // Separa por / , ; | & · guiones y espacios/tabs (ej. "952385863 - 901852316").
+    for (const parte of texto.split(/[\s/,;|&·\-]+/)) {
       const d = parte.replace(/\D/g, '');
       if (!d) continue;
       for (const n of this.separarConcatenados(d)) out.push(n);
@@ -612,13 +614,15 @@ export class LimpiezaBbddComponent {
     return out;
   }
 
-  /** Separa dígitos pegados SIN separador. Conservador: si el largo es múltiplo de 9 y cada
-   *  bloque de 9 empieza en 9 (celulares Perú), los separa; si no, deja el número tal cual. */
+  /** Separa dígitos pegados SIN separador. Los celulares Perú son de 9 dígitos y empiezan
+   *  en 9; si un run largo (>11) se consume íntegro en bloques de 9 que empiezan en 9, se
+   *  separa en individuales. Si no calza limpio, deja el número tal cual (no lo corrompe). */
   private separarConcatenados(d: string): string[] {
-    if (d.length <= 11 || d.length % 9 !== 0) return [d];
+    if (d.length <= 11) return [d];
     const bloques: string[] = [];
-    for (let i = 0; i < d.length; i += 9) bloques.push(d.slice(i, i + 9));
-    return bloques.every((b) => b.startsWith('9')) ? bloques : [d];
+    let i = 0;
+    while (i + 9 <= d.length && d[i] === '9') { bloques.push(d.slice(i, i + 9)); i += 9; }
+    return (i === d.length && bloques.length > 1) ? bloques : [d];
   }
 
   private soloDigitos(v: string): string {
