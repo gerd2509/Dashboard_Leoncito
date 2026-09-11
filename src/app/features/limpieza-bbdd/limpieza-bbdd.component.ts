@@ -32,6 +32,9 @@ const FRAG_TEL = [
 ];
 // Cabeceras que NUNCA son teléfono (evita falsos positivos con DNI/documento).
 const FRAG_NO_TEL = ['documento', 'dni', 'docidentidad'];
+// Mínimo de dígitos para considerar un número como teléfono válido (los de 2-3 dígitos
+// son basura; los celulares Perú son de 9 y los fijos de 7). Subir a 9 si se quiere solo celulares.
+const MIN_TEL_DIGITOS = 6;
 
 // Columnas del formulario de gestión (Call: /data/call · Realzza: /data/campo).
 const G_DNI = 'DNI CLIENTE';
@@ -609,7 +612,9 @@ export class LimpiezaBbddComponent {
     for (const parte of texto.split(/[\s/,;|&·\-]+/)) {
       const d = parte.replace(/\D/g, '');
       if (!d) continue;
-      for (const n of this.separarConcatenados(d)) out.push(n);
+      for (const n of this.separarConcatenados(d)) {
+        if (n.length >= MIN_TEL_DIGITOS) out.push(n);   // descarta números demasiado cortos (2-3 díg.)
+      }
     }
     return out;
   }
