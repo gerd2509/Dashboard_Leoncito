@@ -28,7 +28,7 @@
         (onValueChanged)="fuente === 'auto' ? cargar() : null"></dx-date-box>
     </div>
     <button class="sg-btn" *ngIf="fuente === 'auto'" (click)="cargar()" [disabled]="procesando"><mat-icon>refresh</mat-icon> Actualizar</button>
-    <span class="sg-nota"><mat-icon>info</mat-icon> Solo gestiones con <b>CONTACTO</b>. Considera el historial (incluye meses previos): Día 1 = primer contacto real; <b>Últ. contacto</b> y <b>Días s/cont.</b> muestran la recencia. Hitos ±1 día por el <b>mismo asesor</b>; la venta cuenta si la cierra ese asesor.</span>
+    <span class="sg-nota"><mat-icon>info</mat-icon> Cuenta la gestión con <b>CONTACTO desde el inicio del seguimiento</b> (12/09/2026) en adelante. Día 1 = primer contacto; <b>Últ. contacto</b> y <b>Días s/cont.</b> muestran la recencia. Hitos ±1 día por el <b>mismo asesor</b>; la venta cuenta si la cierra ese asesor.</span>
   </div>
 
   <!-- Import (solo fuente Excel) -->

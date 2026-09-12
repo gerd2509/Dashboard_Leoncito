@@ -486,7 +486,10 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   cargarSeguimientoAlertas(): void {
     this.segCargando = true;
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const desde = new Date(hoy); desde.setDate(desde.getDate() - 35);   // ventana para calcular recencia
+    // El seguimiento arranca en SEG_INICIO (go-live): no se cuenta gestión anterior.
+    const SEG_INICIO = new Date(2026, 8, 12);   // 12-sep-2026 (igual que el módulo)
+    const win = new Date(hoy); win.setDate(win.getDate() - 35);
+    const desde = new Date(Math.max(win.getTime(), SEG_INICIO.getTime()));
     const yo = this.normNombre(this.nombreParaGestion() || this.vendedor);
     forkJoin({
       ges: this.sheets.getSheetDataCampoRango({ desde, hasta: hoy }),

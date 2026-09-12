@@ -63,6 +63,10 @@ export class Seguimiento135Component {
   fuente: Fuente = 'auto';
   fecha: Date = new Date();
 
+  // Fecha de INICIO del seguimiento: solo se cuenta la gestión de este día en adelante
+  // (se ignora todo lo anterior). Cambiar aquí si se quiere reiniciar el seguimiento.
+  private readonly SEG_INICIO = new Date(2026, 8, 12);   // 12-sep-2026
+
   arrastrando = false;
   procesando = false;
   error = '';
@@ -136,9 +140,8 @@ export class Seguimiento135Component {
     // Mes seleccionado (+8 días de colchón para el hito del día 7 de fin de mes).
     const mesIni = new Date(anio, mes - 1, 1);
     const mesFin = new Date(anio, mes, 8);
-    // Ventana AMPLIA: 60 días antes del mes → captura el historial de meses previos
-    // (para que un cliente gestionado el mes pasado NO aparezca como "sin gestionar").
-    const desde = new Date(anio, mes - 1, 1); desde.setDate(desde.getDate() - 60);
+    // El seguimiento arranca desde SEG_INICIO (hoy/go-live): se ignora toda gestión anterior.
+    const desde = new Date(Math.max(mesIni.getTime(), this.SEG_INICIO.getTime()));
     const hasta = mesFin;
     const hoyDia = this.soloDia(new Date());
 
@@ -194,11 +197,9 @@ export class Seguimiento135Component {
         universo.push({ dni, cliente: hNom ? (f[hNom] || '').toString().trim() : '', cel: celMatch ? celMatch[0] : '' });
       }
     } else {
-      // Auto: universo = clientes con contacto DENTRO del mes elegido (el historial previo
-      // se usa solo para calcular día 1 real y último contacto, no infla el conteo).
-      universo = [...idx.entries()]
-        .filter(([, e]) => e.rows.some((r) => r.fecha >= mesIni && r.fecha <= mesFin))
-        .map(([dni]) => ({ dni, cliente: '', cel: '' }));
+      // Auto: universo = todos los clientes con contacto desde SEG_INICIO (lo cargado ya
+      // está acotado a [inicio, fin]).
+      universo = [...idx.keys()].map((dni) => ({ dni, cliente: '', cel: '' }));
     }
 
     // Arma el seguimiento por cliente.
