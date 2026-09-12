@@ -28,7 +28,7 @@
         (onValueChanged)="fuente === 'auto' ? cargar() : null"></dx-date-box>
     </div>
     <button class="sg-btn" *ngIf="fuente === 'auto'" (click)="cargar()" [disabled]="procesando"><mat-icon>refresh</mat-icon> Actualizar</button>
-    <span class="sg-nota"><mat-icon>info</mat-icon> Solo cuentan gestiones con <b>CONTACTO</b>. Día 1 = primer contacto; hitos ±1 día por el <b>mismo asesor</b>; la venta cuenta si la cierra ese asesor.</span>
+    <span class="sg-nota"><mat-icon>info</mat-icon> Solo gestiones con <b>CONTACTO</b>. Considera el historial (incluye meses previos): Día 1 = primer contacto real; <b>Últ. contacto</b> y <b>Días s/cont.</b> muestran la recencia. Hitos ±1 día por el <b>mismo asesor</b>; la venta cuenta si la cierra ese asesor.</span>
   </div>
 
   <!-- Import (solo fuente Excel) -->
@@ -77,10 +77,13 @@
         <dxi-column dataField="d3" caption="Día 3" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
         <dxi-column dataField="d5" caption="Día 5" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
         <dxi-column dataField="d7" caption="Día 7" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="llamadas" caption="Contactos" dataType="number" [width]="100" alignment="center"></dxi-column>
-        <dxi-column dataField="venta" caption="Venta" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="estado" caption="Estado" [width]="130" alignment="center"></dxi-column>
+        <dxi-column dataField="llamadas" caption="Contactos" dataType="number" [width]="95" alignment="center"></dxi-column>
+        <dxi-column dataField="ultimoContacto" caption="Últ. contacto" dataType="date" format="dd/MM/yyyy" [width]="110"></dxi-column>
+        <dxi-column dataField="diasSinContacto" caption="Días s/cont." dataType="number" [width]="105" alignment="center" cellTemplate="diasTpl"></dxi-column>
+        <dxi-column dataField="venta" caption="Venta" [width]="85" cellTemplate="boolTpl" alignment="center"></dxi-column>
+        <dxi-column dataField="estado" caption="Estado" [width]="125" alignment="center"></dxi-column>
         <div *dxTemplate="let c of 'boolTpl'">{{ siNo(c.value) }}</div>
+        <div *dxTemplate="let c of 'diasTpl'">{{ c.value >= 999 ? '—' : c.value }}</div>
         <dxo-summary>
           <dxi-total-item column="dni" summaryType="count" displayFormat="{0} clientes"></dxi-total-item>
           <dxi-total-item column="llamadas" summaryType="sum" displayFormat="{0}"></dxi-total-item>

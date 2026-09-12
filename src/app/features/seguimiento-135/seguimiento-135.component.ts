@@ -26,9 +26,11 @@ interface Seg {
   d3: boolean;              // hubo gestión en la ventana del día 3 (±1)
   d5: boolean;              // día 5 (±1)
   d7: boolean;              // día 7 (±1)
-  llamadas: number;         // # de gestiones (intentos) del cliente
+  llamadas: number;         // # de contactos del cliente (historial cargado)
   venta: boolean;          // cerró venta (cruce por DNI)
   hitos: number;           // cuántos de d3/d5/d7 cumplió (0-3)
+  ultimoContacto: Date | null;  // fecha del ÚLTIMO contacto (incluye meses previos)
+  diasSinContacto: number;      // días desde el último contacto hasta hoy
   estado: string;          // SIN INICIAR / EN PROCESO / COMPLETO / CERRÓ VENTA
 }
 
@@ -130,9 +132,14 @@ export class Seguimiento135Component {
   // ── Núcleo ──────────────────────────────────────────────────────────────────
   private async construir(filasExcel: Record<string, any>[] | null): Promise<void> {
     const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
-    // Rango de gestión: mes + 8 días de colchón (para captar el hito del día 7 de fines de mes).
-    const desde = new Date(anio, mes - 1, 1);
-    const hasta = new Date(anio, mes, 8);
+    // Mes seleccionado (+8 días de colchón para el hito del día 7 de fin de mes).
+    const mesIni = new Date(anio, mes - 1, 1);
+    const mesFin = new Date(anio, mes, 8);
+    // Ventana AMPLIA: 60 días antes del mes → captura el historial de meses previos
+    // (para que un cliente gestionado el mes pasado NO aparezca como "sin gestionar").
+    const desde = new Date(anio, mes - 1, 1); desde.setDate(desde.getDate() - 60);
+    const hasta = mesFin;
+    const hoyDia = this.soloDia(new Date());
 
     const [ges, ven] = await Promise.all([
       lastValueFrom(this.canal === 'realzza' ? this.sheets.getSheetDataCampoRango({ desde, hasta }) : this.sheets.getSheetDataCallRango({ desde, hasta })),
@@ -186,7 +193,11 @@ export class Seguimiento135Component {
         universo.push({ dni, cliente: hNom ? (f[hNom] || '').toString().trim() : '', cel: celMatch ? celMatch[0] : '' });
       }
     } else {
-      universo = [...idx.keys()].map((dni) => ({ dni, cliente: '', cel: '' }));
+      // Auto: universo = clientes con contacto DENTRO del mes elegido (el historial previo
+      // se usa solo para calcular día 1 real y último contacto, no infla el conteo).
+      universo = [...idx.entries()]
+        .filter(([, e]) => e.rows.some((r) => r.fecha >= mesIni && r.fecha <= mesFin))
+        .map(([dni]) => ({ dni, cliente: '', cel: '' }));
     }
 
     // Arma el seguimiento por cliente.
@@ -197,14 +208,17 @@ export class Seguimiento135Component {
       if (!e || !e.rows.length) {
         // Sin gestión: no hay dueño; la venta (si la hay) fue sin seguimiento.
         const venta = !!ventasSet && ventasSet.size > 0;
-        return { dni, celular, cliente, asesor: '', fechaDia1: null, d3: false, d5: false, d7: false, llamadas: 0, venta, hitos: 0, estado: venta ? 'CERRÓ VENTA' : 'SIN INICIAR' };
+        return { dni, celular, cliente, asesor: '', fechaDia1: null, d3: false, d5: false, d7: false, llamadas: 0, venta, hitos: 0, ultimoContacto: null, diasSinContacto: 999, estado: venta ? 'CERRÓ VENTA' : 'SIN INICIAR' };
       }
-      // Dueño = asesor de la PRIMERA llamada. Los hitos y la venta solo cuentan si son de ÉL.
+      // Dueño = asesor de la PRIMERA llamada (real, incluye meses previos). Los hitos y la
+      // venta solo cuentan si son de ÉL.
       const rows = e.rows.slice().sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
       const duenoDisp = rows[0].asesor;
       const dueno = this.normNom(duenoDisp);
       const propias = rows.filter((r) => this.normNom(r.asesor) === dueno);
       const dia1 = propias[0].fecha;
+      const ultimo = rows[rows.length - 1].fecha;                       // último contacto (cualquier asesor)
+      const diasSinContacto = Math.round((hoyDia.getTime() - this.soloDia(ultimo).getTime()) / 86400000);
       const offset = (f: Date) => Math.floor((this.soloDia(f).getTime() - this.soloDia(dia1).getTime()) / 86400000);
       const enVentana = (lo: number, hi: number) => propias.some((r) => { const o = offset(r.fecha); return o >= lo && o <= hi; });
       const d3 = enVentana(1, 3);   // día 3 ±1
@@ -213,7 +227,7 @@ export class Seguimiento135Component {
       const hitos = (d3 ? 1 : 0) + (d5 ? 1 : 0) + (d7 ? 1 : 0);
       const venta = !!ventasSet && ventasSet.has(dueno);   // solo si el MISMO asesor cerró la venta
       const estado = venta ? 'CERRÓ VENTA' : (hitos === 3 ? 'COMPLETO' : 'EN PROCESO');
-      return { dni, celular, cliente, asesor: duenoDisp, fechaDia1: dia1, d3, d5, d7, llamadas: propias.length, venta, hitos, estado };
+      return { dni, celular, cliente, asesor: duenoDisp, fechaDia1: dia1, d3, d5, d7, llamadas: rows.length, venta, hitos, ultimoContacto: ultimo, diasSinContacto, estado };
     });
 
     this.filas = filas.sort((a, b) => (a.fechaDia1?.getTime() || 0) - (b.fechaDia1?.getTime() || 0));
@@ -278,6 +292,12 @@ export class Seguimiento135Component {
       e.cellElement.style.fontWeight = '700';
       e.cellElement.style.textAlign = 'center';
     }
+    if (campo === 'diasSinContacto') {
+      const d = Number(e.value);
+      const bg = d >= 999 ? '' : d <= 2 ? '#e7f6ea' : d <= 6 ? '#fff4e0' : '#fdeeee';
+      if (bg) e.cellElement.style.setProperty('background-color', bg, 'important');
+      e.cellElement.style.fontWeight = '700'; e.cellElement.style.textAlign = 'center';
+    }
     if (campo === 'estado') {
       const c: Record<string, string> = { 'CERRÓ VENTA': '#c8e6c9', 'COMPLETO': '#d7eaff', 'EN PROCESO': '#fff9c4', 'SIN INICIAR': '#ffcdd2' };
       if (c[e.value]) e.cellElement.style.setProperty('background-color', c[e.value], 'important');
@@ -290,10 +310,10 @@ export class Seguimiento135Component {
     const wb = new Workbook();
     const suf = `${this.nombreCanal}_${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
     const ws = wb.addWorksheet('Seguimiento 1-3-5-7');
-    const hr = ws.addRow(['DNI', 'Celular', 'Cliente', 'Asesor', 'Día 1', 'Día 3', 'Día 5', 'Día 7', 'N° llamadas', 'Venta', 'Estado']);
+    const hr = ws.addRow(['DNI', 'Celular', 'Cliente', 'Asesor', 'Día 1', 'Día 3', 'Día 5', 'Día 7', 'Contactos', 'Últ. contacto', 'Días s/cont.', 'Venta', 'Estado']);
     hr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
     for (const f of this.filas) {
-      ws.addRow([f.dni, f.celular, f.cliente, f.asesor, this.fmtFecha(f.fechaDia1), this.siNo(f.d3), this.siNo(f.d5), this.siNo(f.d7), f.llamadas, this.siNo(f.venta), f.estado]);
+      ws.addRow([f.dni, f.celular, f.cliente, f.asesor, this.fmtFecha(f.fechaDia1), this.siNo(f.d3), this.siNo(f.d5), this.siNo(f.d7), f.llamadas, this.fmtFecha(f.ultimoContacto), f.diasSinContacto >= 999 ? '' : f.diasSinContacto, this.siNo(f.venta), f.estado]);
     }
     ws.columns.forEach((c, i) => { c.width = i === 2 || i === 3 ? 26 : 12; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
