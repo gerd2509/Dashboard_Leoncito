@@ -89,6 +89,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'cierre',                       label: 'Cierre Gestión',               grupo: 'Análisis' },
   { key: 'avance-cartera',               label: 'Avance de Cartera',            grupo: 'Análisis' },
   { key: 'embudos-gestion',              label: 'Embudos de Gestión',           grupo: 'Análisis' },
+  { key: 'seguimiento-135',              label: 'Seguimiento 1-3-5-7',          grupo: 'Análisis' },
   { key: 'comparativo-cartera-ventas',   label: 'Comparativo Cartera Ventas Piso', grupo: 'Análisis' },
   { key: 'post-venta',                   label: 'Post Venta — Análisis',        grupo: 'Análisis' },
   { key: 'maduracion-leads',             label: 'Maduración de Leads',          grupo: 'Análisis' },
@@ -110,12 +111,12 @@ export const CALL_MODULES = [
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
-  'avance-metas', 'reporte-global',
+  'avance-metas', 'reporte-global', 'seguimiento-135',
 ];
 export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
-  'registro-kommo', 'gestion-kommo',
+  'registro-kommo', 'gestion-kommo', 'seguimiento-135',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
@@ -149,7 +150,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'almacenero-zona':    [...ALMACENERO_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v34';
+const STORAGE_KEY = 'gd_permissions_v35';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {

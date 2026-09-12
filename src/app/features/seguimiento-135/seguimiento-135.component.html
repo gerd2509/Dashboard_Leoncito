@@ -1,0 +1,110 @@
+<div class="sg-wrap">
+  <!-- Encabezado -->
+  <div class="sg-head">
+    <div class="sg-ico"><mat-icon>repeat</mat-icon></div>
+    <div>
+      <h2>Seguimiento 1-3-5-7</h2>
+      <p>Por cada cliente: primera llamada (Día 1) y si recibió seguimiento a los <b>3, 5 y 7 días</b> (±1), y si <b>cerró venta</b>. Base <b>{{ nombreCanal }}</b>.</p>
+    </div>
+    <button class="sg-btn" (click)="exportar()" *ngIf="listo && filas.length"><mat-icon>download</mat-icon> Exportar</button>
+  </div>
+
+  <!-- Controles -->
+  <div class="sg-tabs">
+    <button [class.active]="canal === 'call'" (click)="setCanal('call')"><mat-icon>call</mat-icon> Call</button>
+    <button [class.active]="canal === 'realzza'" (click)="setCanal('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
+  </div>
+
+  <div class="sg-tabs fuente">
+    <button [class.active]="fuente === 'auto'" (click)="setFuente('auto')"><mat-icon>bolt</mat-icon> Gestión del mes</button>
+    <button [class.active]="fuente === 'excel'" (click)="setFuente('excel')"><mat-icon>upload_file</mat-icon> Importar BBDD</button>
+  </div>
+
+  <div class="sg-bar">
+    <div class="sg-campo">
+      <label>Mes</label>
+      <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"
+        (onValueChanged)="fuente === 'auto' ? cargar() : null"></dx-date-box>
+    </div>
+    <button class="sg-btn" *ngIf="fuente === 'auto'" (click)="cargar()" [disabled]="procesando"><mat-icon>refresh</mat-icon> Actualizar</button>
+    <span class="sg-nota"><mat-icon>info</mat-icon> Día 1 = primera gestión del cliente. Hitos con ventana ±1 día. La venta se cruza por DNI.</span>
+  </div>
+
+  <!-- Import (solo fuente Excel) -->
+  <div *ngIf="fuente === 'excel' && !listo && !procesando" class="sg-drop"
+       [class.dragging]="arrastrando" (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+    <mat-icon class="dz-icon">cloud_upload</mat-icon>
+    <p class="dz-tit">Arrastra la BBDD (Excel) aquí</p>
+    <p class="dz-sub">o</p>
+    <label class="sg-btn"><mat-icon>folder_open</mat-icon> Seleccionar archivo
+      <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" /></label>
+    <p class="dz-fmt">Debe tener columna de <b>DNI</b> (opcional: Nombre/Cliente).</p>
+  </div>
+
+  <div *ngIf="procesando" class="sg-drop">
+    <app-loading-overlay [inline]="true" [visible]="procesando" icon="repeat"
+      mensaje="Calculando seguimiento…" [submensaje]="'Base ' + nombreCanal + ' — ' + (fecha | date:'MMMM yyyy')"></app-loading-overlay>
+  </div>
+
+  <div class="sg-error" *ngIf="error"><mat-icon>error_outline</mat-icon><span>{{ error }}</span></div>
+
+  <!-- Resultado -->
+  <ng-container *ngIf="listo">
+    <!-- KPIs -->
+    <div class="sg-kpis">
+      <div class="sg-kpi"><b>{{ kTotal }}</b><small>Clientes</small></div>
+      <div class="sg-kpi"><b>{{ kIniciados }}</b><small>Con seguimiento iniciado</small></div>
+      <div class="sg-kpi ok"><b>{{ kD3 }}</b><small>Día 3 cumplido</small></div>
+      <div class="sg-kpi ok"><b>{{ kD5 }}</b><small>Día 5 cumplido</small></div>
+      <div class="sg-kpi ok"><b>{{ kD7 }}</b><small>Día 7 cumplido</small></div>
+      <div class="sg-kpi dest"><b>{{ kCompletos }}</b><small>Completos (3-5-7)</small></div>
+      <div class="sg-kpi vta"><b>{{ kVentas }}</b><small>Cerraron venta · {{ kConversion }}%</small></div>
+    </div>
+
+    <!-- Detalle por cliente -->
+    <div class="sg-card">
+      <div class="sg-card-h"><mat-icon>groups</mat-icon> Seguimiento por cliente</div>
+      <dx-data-grid [dataSource]="filas" [showBorders]="true" [hoverStateEnabled]="true" [columnAutoWidth]="true"
+        [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" height="460" #grid>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar DNI / cliente / asesor…"></dxo-search-panel>
+        <dxo-header-filter [visible]="true"></dxo-header-filter>
+        <dxi-column dataField="dni" caption="DNI" [width]="100"></dxi-column>
+        <dxi-column dataField="cliente" caption="Cliente" [minWidth]="160"></dxi-column>
+        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="160"></dxi-column>
+        <dxi-column dataField="fechaDia1" caption="Día 1" dataType="date" format="dd/MM/yyyy" [width]="100"></dxi-column>
+        <dxi-column dataField="d3" caption="Día 3" [width]="80" cellTemplate="boolTpl"></dxi-column>
+        <dxi-column dataField="d5" caption="Día 5" [width]="80" cellTemplate="boolTpl"></dxi-column>
+        <dxi-column dataField="d7" caption="Día 7" [width]="80" cellTemplate="boolTpl"></dxi-column>
+        <dxi-column dataField="llamadas" caption="N° llamadas" dataType="number" [width]="100"></dxi-column>
+        <dxi-column dataField="venta" caption="Venta" [width]="80" cellTemplate="boolTpl"></dxi-column>
+        <dxi-column dataField="estado" caption="Estado" [width]="120"></dxi-column>
+        <div *dxTemplate="let c of 'boolTpl'">{{ siNo(c.value) }}</div>
+        <dxo-summary>
+          <dxi-total-item column="dni" summaryType="count" displayFormat="{0} clientes"></dxi-total-item>
+          <dxi-total-item column="llamadas" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        </dxo-summary>
+      </dx-data-grid>
+    </div>
+
+    <!-- Resumen por asesor -->
+    <div class="sg-card" *ngIf="porAsesor.length">
+      <div class="sg-card-h"><mat-icon>leaderboard</mat-icon> Cumplimiento por asesor</div>
+      <dx-data-grid [dataSource]="porAsesor" [showBorders]="true" [hoverStateEnabled]="true" [columnAutoWidth]="true"
+        [rowAlternationEnabled]="true" height="320">
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="200"></dxi-column>
+        <dxi-column dataField="clientes" caption="Clientes" dataType="number" [width]="95"></dxi-column>
+        <dxi-column dataField="d3" caption="Día 3" dataType="number" [width]="80"></dxi-column>
+        <dxi-column dataField="d5" caption="Día 5" dataType="number" [width]="80"></dxi-column>
+        <dxi-column dataField="d7" caption="Día 7" dataType="number" [width]="80"></dxi-column>
+        <dxi-column dataField="completos" caption="Completos" dataType="number" [width]="105"></dxi-column>
+        <dxi-column dataField="pctCompleto" caption="% Completo" dataType="number" [width]="110" cellTemplate="pctTpl" [sortOrder]="'desc'"></dxi-column>
+        <dxi-column dataField="ventas" caption="Ventas" dataType="number" [width]="85"></dxi-column>
+        <dxi-column dataField="pctVenta" caption="% Venta" dataType="number" [width]="95" cellTemplate="pctTpl"></dxi-column>
+        <div *dxTemplate="let c of 'pctTpl'">{{ c.value | number:'1.0-1' }}%</div>
+      </dx-data-grid>
+    </div>
+  </ng-container>
+</div>

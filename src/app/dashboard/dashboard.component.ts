@@ -34,6 +34,7 @@ import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
 import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.component";
 import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
 import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-gestion.component";
+import { Seguimiento135Component } from "../features/seguimiento-135/seguimiento-135.component";
 import { RegistroGestionComponent } from "../features/registro-gestion/registro-gestion.component";
 import { RegistroSupervisorComponent } from "../features/control-supervisor/registro-supervisor/registro-supervisor.component";
 import { ControlSupervisorComponent } from "../features/control-supervisor/control-supervisor.component";
@@ -105,6 +106,7 @@ interface MenuItem {
     PizarraMetasComponent,
     AvanceCarteraComponent,
     EmbudosGestionComponent,
+    Seguimiento135Component,
     RegistroGestionComponent,
     RegistroSupervisorComponent,
     ControlSupervisorComponent,
@@ -211,6 +213,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Cierre Gestión',        icon: 'done_all',       modulo: 'cierre' },
         { label: 'Avance de Cartera',     icon: 'trending_up',    modulo: 'avance-cartera' },
         { label: 'Embudos de Gestión',    icon: 'filter_alt',     modulo: 'embudos-gestion' },
+        { label: 'Seguimiento 1-3-5-7',   icon: 'repeat',         modulo: 'seguimiento-135' },
         { label: 'Comparativo Cartera Ventas Piso', icon: 'compare_arrows', modulo: 'comparativo-cartera-ventas' },
         { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' },
         { label: 'Maduración de Leads',   icon: 'hub',            modulo: 'maduracion-leads' }
