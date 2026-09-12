@@ -28,6 +28,29 @@
     </div>
 
     <!-- ══════════ SEGUIMIENTO 1-3-5-7 — clientes por llamar (Realzza) ══════════ -->
+    <!-- Modal bloqueante al iniciar sesión (con alarma) -->
+    <div class="mp-seg-modal-bg" *ngIf="segModal">
+      <div class="mp-seg-modal">
+        <div class="msm-ico"><mat-icon>notifications_active</mat-icon></div>
+        <h3>¡Tienes clientes por llamar hoy!</h3>
+        <div class="msm-num">{{ segAlertas.length }}</div>
+        <p class="msm-txt">
+          Seguimiento pendiente<span *ngIf="segVencidos"> · <b>{{ segVencidos }}</b> atrasado(s)</span>.
+          Realiza las llamadas (día 3 / 5 / 7) para no perder la venta.
+        </p>
+        <ul class="msm-list">
+          <li *ngFor="let a of segAlertas.slice(0, 5)">
+            <span class="msm-dia">Día {{ a.hito }}</span>
+            <span class="msm-dni">DNI {{ a.dni }}</span>
+            <span class="msm-tel">{{ a.celular || '—' }}</span>
+            <span class="msm-tag" [class.venc]="a.vencido">{{ a.vencido ? 'ATRASADO' : 'HOY' }}</span>
+          </li>
+        </ul>
+        <p class="msm-mas" *ngIf="segAlertas.length > 5">y {{ segAlertas.length - 5 }} más… (ver lista completa abajo)</p>
+        <button class="msm-ok" type="button" (click)="cerrarSegModal()"><mat-icon>check_circle</mat-icon> OK, entendido</button>
+      </div>
+    </div>
+
     <!-- Banner al iniciar sesión (descartable) -->
     <div class="mp-seg-banner" *ngIf="esRealzza && segBannerVisible && segAlertas.length">
       <mat-icon>notifications_active</mat-icon>

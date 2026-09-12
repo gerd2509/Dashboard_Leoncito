@@ -3,7 +3,6 @@ import { forkJoin } from 'rxjs';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
@@ -36,7 +35,6 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 export class MiPanelComponent implements OnInit {
   private auth = inject(AuthService);
   private ventasSvc = inject(CargaVentasService);
-  private snack = inject(MatSnackBar);
   private fb = inject(UntypedFormBuilder);
   private sedeCfg = inject(SedeConfigService);
   private sheets = inject(SheetsService);
@@ -159,7 +157,31 @@ export class MiPanelComponent implements OnInit {
   segAlertas: { dni: string; celular: string; hito: number; diasDesde: number; vencido: boolean }[] = [];
   segCargando = false;
   segBannerVisible = true;
+  segModal = false;   // modal bloqueante al iniciar sesión
   cerrarSegBanner(): void { this.segBannerVisible = false; }
+  cerrarSegModal(): void { this.segModal = false; }
+  get segVencidos(): number { return this.segAlertas.filter((x) => x.vencido).length; }
+
+  /** Alarma corta (3 pitidos) vía Web Audio; si el navegador bloquea el audio, falla en silencio. */
+  private reproducirAlarma(): void {
+    try {
+      const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const beep = (start: number, freq: number) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'square'; o.frequency.value = freq;
+        o.connect(g); g.connect(ctx.destination);
+        const t = ctx.currentTime + start;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        o.start(t); o.stop(t + 0.36);
+      };
+      beep(0, 880); beep(0.45, 880); beep(0.9, 1175);
+      setTimeout(() => { try { ctx.close(); } catch { /* noop */ } }, 2500);
+    } catch { /* audio bloqueado */ }
+  }
 
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
   gestAplica = false;    // solo canal call/realzza
@@ -467,12 +489,8 @@ export class MiPanelComponent implements OnInit {
         // Vencidos primero, luego por días transcurridos desc.
         this.segAlertas = alertas.sort((a, b) => Number(b.vencido) - Number(a.vencido) || b.diasDesde - a.diasDesde);
         this.segCargando = false;
-        // Toast abajo-derecha (se auto-desvanece o se cierra con ✕).
-        if (this.segAlertas.length) {
-          const venc = this.segAlertas.filter((x) => x.vencido).length;
-          const msg = `🔔 Tienes ${this.segAlertas.length} cliente(s) por llamar hoy (seguimiento)` + (venc ? ` · ${venc} atrasado(s)` : '');
-          this.snack.open(msg, '✕', { duration: 10000, horizontalPosition: 'end', verticalPosition: 'bottom', panelClass: 'toast-seg' });
-        }
+        // Modal bloqueante al centro + alarma (se cierra con OK).
+        if (this.segAlertas.length) { this.segModal = true; this.reproducirAlarma(); }
       },
       error: () => { this.segAlertas = []; this.segCargando = false; },
     });
