@@ -3,6 +3,7 @@ import { forkJoin } from 'rxjs';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
@@ -35,6 +36,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 export class MiPanelComponent implements OnInit {
   private auth = inject(AuthService);
   private ventasSvc = inject(CargaVentasService);
+  private snack = inject(MatSnackBar);
   private fb = inject(UntypedFormBuilder);
   private sedeCfg = inject(SedeConfigService);
   private sheets = inject(SheetsService);
@@ -465,6 +467,12 @@ export class MiPanelComponent implements OnInit {
         // Vencidos primero, luego por días transcurridos desc.
         this.segAlertas = alertas.sort((a, b) => Number(b.vencido) - Number(a.vencido) || b.diasDesde - a.diasDesde);
         this.segCargando = false;
+        // Toast abajo-derecha (se auto-desvanece o se cierra con ✕).
+        if (this.segAlertas.length) {
+          const venc = this.segAlertas.filter((x) => x.vencido).length;
+          const msg = `🔔 Tienes ${this.segAlertas.length} cliente(s) por llamar hoy (seguimiento)` + (venc ? ` · ${venc} atrasado(s)` : '');
+          this.snack.open(msg, '✕', { duration: 10000, horizontalPosition: 'end', verticalPosition: 'bottom', panelClass: 'toast-seg' });
+        }
       },
       error: () => { this.segAlertas = []; this.segCargando = false; },
     });

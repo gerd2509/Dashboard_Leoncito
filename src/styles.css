@@ -280,6 +280,10 @@ body {
 .toast-error .mdc-snackbar__label { color: #fff !important; font-weight: 600; }
 .toast-ok .mat-mdc-snack-bar-action,
 .toast-error .mat-mdc-snack-bar-action { color: #fff !important; }
+/* Toast de seguimiento (naranja) — abajo a la derecha */
+.toast-seg .mdc-snackbar__surface { background: linear-gradient(135deg, #E65100, #F9A825) !important; }
+.toast-seg .mdc-snackbar__label { color: #fff !important; font-weight: 700; }
+.toast-seg .mat-mdc-snack-bar-action { color: #fff !important; font-weight: 800; }
 
 /* ── Popup de EDICIÓN de gestiones (Call/Realzza): Cancelar (rojo) a la izquierda,
       Guardar (verde) a la derecha, con texto visible ── */
