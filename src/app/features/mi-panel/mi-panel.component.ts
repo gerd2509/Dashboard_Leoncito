@@ -161,16 +161,17 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   private segAlarmaCtx: any = null;
   private segAlarmaTimer: any = null;
   private segHablando = false;
+  private segAudio: HTMLAudioElement | null = null;
   cerrarSegBanner(): void { this.segBannerVisible = false; }
   cerrarSegModal(): void { this.segModal = false; this.detenerAlarma(); }
   get segVencidos(): number { return this.segAlertas.filter((x) => x.vencido).length; }
 
   ngOnDestroy(): void { this.detenerAlarma(); }
 
-  /** Melodía "1, 2, Freddy viene por ti" (Nightmare on Elm St.) sintetizada con Web Audio
-   *  (timbre de caja de música), en BUCLE hasta que se cierre el modal (OK). No es el audio
-   *  original (derechos/limitación técnica) pero es la melodía reconocible. Si el navegador
-   *  bloquea el audio, falla en silencio. */
+  /** Fondo de música de TERROR (sintetizado con Web Audio, original): dron grave ominoso +
+   *  intervalo disonante con trémolo + "stingers" que suben de golpe con latido, en BUCLE
+   *  hasta que se cierre el modal (OK → detenerAlarma). Si el navegador bloquea el audio,
+   *  falla en silencio. */
   private reproducirAlarma(): void {
     this.detenerAlarma();
     try {
@@ -178,61 +179,52 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       if (!Ctx) return;
       const ctx = new Ctx();
       this.segAlarmaCtx = ctx;
-      const N: Record<string, number> = { A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880 };
-      // "Uno, dos, Freddy viene por ti…" — frase descendente, tenebrosa.
-      const mel: [string, number][] = [
-        ['E5', 0.5], ['G5', 0.5],                          // uno, dos
-        ['A5', 0.5], ['G5', 0.5], ['E5', 0.5],             // Fre-ddy vie-ne
-        ['G5', 0.5], ['E5', 0.35], ['D5', 0.35], ['A4', 0.9], // por ti…
-        ['rest', 0.7],
-      ];
-      const nota = (freq: number, t: number, dur: number) => {
+      const master = ctx.createGain(); master.gain.value = 0.95; master.connect(ctx.destination);
+
+      // 1) Dron grave (sierras desafinadas) — rumor ominoso constante.
+      const drone = (freq: number, det: number, vol: number) => {
         const o = ctx.createOscillator(); const g = ctx.createGain();
-        o.type = 'triangle'; o.frequency.value = freq;
-        o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.13, t + 0.03);   // base suave (la voz va encima)
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.95);
-        o.start(t); o.stop(t + dur);
+        o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = det;
+        g.gain.value = vol; o.connect(g); g.connect(master); o.start();
       };
-      const tocar = () => {
+      drone(55, -7, 0.16); drone(55, 9, 0.16); drone(82.4, 4, 0.10);
+
+      // 2) Intervalo disonante agudo (tritono) con trémolo — tensión.
+      const diso = ctx.createGain(); diso.gain.value = 0.05; diso.connect(master);
+      const hi1 = ctx.createOscillator(); hi1.type = 'triangle'; hi1.frequency.value = 660;
+      const hi2 = ctx.createOscillator(); hi2.type = 'triangle'; hi2.frequency.value = 933;
+      hi1.connect(diso); hi2.connect(diso); hi1.start(); hi2.start();
+      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
+      lfo.frequency.value = 7; lfoG.gain.value = 0.05; lfo.connect(lfoG); lfoG.connect(diso.gain); lfo.start();
+
+      // 3) Stinger periódico: barrido que sube de golpe + latido doble.
+      const stinger = () => {
         if (!ctx || ctx.state === 'closed') return;
         if (ctx.state === 'suspended') { try { ctx.resume(); } catch { /* noop */ } }
-        let t = ctx.currentTime + 0.06;
-        for (const [n, d] of mel) { if (n !== 'rest') nota(N[n], t, d); t += d; }
+        const t = ctx.currentTime;
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(120, t);
+        o.frequency.exponentialRampToValueAtTime(1500, t + 0.9);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.5, t + 0.85);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.25);
+        const latido = (bt: number) => {
+          const bo = ctx.createOscillator(); const bg = ctx.createGain();
+          bo.type = 'sine'; bo.frequency.setValueAtTime(95, bt); bo.frequency.exponentialRampToValueAtTime(45, bt + 0.15);
+          bg.gain.setValueAtTime(0.0001, bt); bg.gain.exponentialRampToValueAtTime(0.55, bt + 0.03); bg.gain.exponentialRampToValueAtTime(0.0001, bt + 0.26);
+          bo.connect(bg); bg.connect(master); bo.start(bt); bo.stop(bt + 0.3);
+        };
+        latido(t + 1.4); latido(t + 1.75);
       };
-      tocar();
-      const totalMs = mel.reduce((s, [, d]) => s + d, 0) * 1000;
-      this.segAlarmaTimer = setInterval(tocar, totalMs);
+      stinger();
+      this.segAlarmaTimer = setInterval(stinger, 2600);
     } catch { /* audio bloqueado */ }
-    this.cantarFreddy();   // voz del navegador cantando/diciendo la letra
-  }
-
-  /** Voz del navegador (Web Speech) diciendo la letra en español, grave y lenta, en bucle
-   *  hasta cerrar el modal. No es una voz cantada de estudio; es síntesis de voz. */
-  private cantarFreddy(): void {
-    const ss = (window as any).speechSynthesis as SpeechSynthesis | undefined;
-    if (!ss) return;
-    this.segHablando = true;
-    const letra = 'Uno, dos, Freddy viene por ti. Tres, cuatro, cierra bien la puerta. '
-      + 'Cinco, seis, agarra un crucifijo. Siete, ocho, quédate despierto. Nueve, diez, nunca duermas otra vez.';
-    const decir = () => {
-      if (!this.segHablando) return;
-      try {
-        const u = new SpeechSynthesisUtterance(letra);
-        u.lang = 'es-ES'; u.pitch = 0.3; u.rate = 0.85; u.volume = 1;
-        const voces = ss.getVoices() || [];
-        const vEs = voces.find((v) => (v.lang || '').toLowerCase().startsWith('es'));
-        if (vEs) u.voice = vEs;
-        u.onend = () => { if (this.segHablando) setTimeout(decir, 600); };
-        ss.cancel(); ss.speak(u);
-      } catch { /* noop */ }
-    };
-    if ((ss.getVoices() || []).length) { decir(); }
-    else { ss.onvoiceschanged = () => { ss.onvoiceschanged = null; if (this.segHablando) decir(); }; setTimeout(() => { if (this.segHablando) decir(); }, 400); }
   }
 
   private detenerAlarma(): void {
+    if (this.segAudio) { try { this.segAudio.pause(); this.segAudio.currentTime = 0; } catch { /* noop */ } this.segAudio = null; }
     if (this.segAlarmaTimer) { clearInterval(this.segAlarmaTimer); this.segAlarmaTimer = null; }
     if (this.segAlarmaCtx) { try { this.segAlarmaCtx.close(); } catch { /* noop */ } this.segAlarmaCtx = null; }
     this.segHablando = false;
