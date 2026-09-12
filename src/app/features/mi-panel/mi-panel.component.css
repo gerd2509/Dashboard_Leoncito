@@ -281,3 +281,33 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mpd-row.mpd-head, .mpd-row.mpd-head5 { position: sticky; top: 0; background: #293964; color: #fff; font-weight: 700; font-size: 11.5px; border: none; }
 .mpd-row .vnc { color: #c0392b; font-weight: 700; }
 .mpd-vacio { padding: 16px; text-align: center; color: #8aa0b6; font-size: 13px; }
+
+/* ── Seguimiento 1-3-5-7: banner + lista de clientes por llamar ── */
+.mp-seg-banner {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 14px;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2); color: #7a3e00;
+  border: 1px solid #ffcc80; border-radius: 12px; padding: 11px 14px; font-size: 13.5px; font-weight: 600;
+}
+.mp-seg-banner mat-icon { color: #E65100; }
+.mp-seg-x { margin-left: auto; border: none; background: transparent; cursor: pointer; color: #a15b1a; display: inline-flex; }
+.mp-seg-x mat-icon { font-size: 20px; }
+
+.mp-seg-list { display: flex; flex-direction: column; gap: 8px; }
+.mp-seg-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border: 1px solid #ffe0b2; border-left: 5px solid #F9A825; border-radius: 10px; background: #fffdf7;
+}
+.mp-seg-item.vencido { border-left-color: #C62828; background: #fff6f6; }
+.mp-seg-dia {
+  flex: 0 0 auto; width: 54px; text-align: center; font-weight: 800; font-size: 13px;
+  color: #E65100; background: #fff3e0; border-radius: 8px; padding: 8px 4px;
+}
+.mp-seg-item.vencido .mp-seg-dia { color: #C62828; background: #fdecec; }
+.mp-seg-info { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+.mp-seg-dni, .mp-seg-tel { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; color: #33445f; font-weight: 700; }
+.mp-seg-tel { color: #1A5FAD; }
+.mp-seg-dni mat-icon, .mp-seg-tel mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.mp-seg-estado { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex: 0 0 auto; }
+.mp-seg-tag { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #fff3e0; color: #b26a00; }
+.mp-seg-tag.venc { background: #fdecec; color: #C62828; }
+.mp-seg-dd { font-size: 11px; color: #8a97ab; }

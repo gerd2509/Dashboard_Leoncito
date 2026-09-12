@@ -145,6 +145,7 @@ export class Seguimiento135Component {
     const colAsesor = this.canal === 'realzza' ? 'ASESOR REALZZA' : 'ASESOR CONTACT';
     const idx = new Map<string, { rows: { fecha: Date; asesor: string }[]; celular: string }>();
     for (const g of (ges || [])) {
+      if ((g['ESTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() !== 'CONTACTO') continue;  // solo contactos efectivos
       const dni = this.dig(g['DNI CLIENTE']); if (!dni) continue;
       const f = this.parseFecha(g['Marca temporal']); if (!f) continue;
       const raw = (g[colAsesor] || '').toString().trim().toUpperCase();

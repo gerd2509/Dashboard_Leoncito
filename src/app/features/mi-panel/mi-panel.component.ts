@@ -51,7 +51,7 @@ export class MiPanelComponent implements OnInit {
   form!: UntypedFormGroup;      // rango opcional { desde, hasta }
 
   // Paneles colapsables (acordeón). Abiertos por defecto: gestiones + resumen.
-  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, sueldo: true, graficos: false, analisis: false, evolucion: false, detalle: false };
+  abiertos: Record<string, boolean> = { gestiones: true, resumen: true, sueldo: true, seg: true, graficos: false, analisis: false, evolucion: false, detalle: false };
   /** ¿Es vendedor de sede? (canal distinto de call/realzza). */
   get esSedeVendedor(): boolean {
     const c = (this.canal || '').toLowerCase();
@@ -153,6 +153,12 @@ export class MiPanelComponent implements OnInit {
     { monto:  15000, bono:  100 }, { monto:  10000, bono:   50 },
   ];
 
+  // ── Alertas de seguimiento 1-3-5-7 (Realzza) — clientes por llamar hoy/atrasados ──
+  segAlertas: { dni: string; celular: string; hito: number; diasDesde: number; vencido: boolean }[] = [];
+  segCargando = false;
+  segBannerVisible = true;
+  cerrarSegBanner(): void { this.segBannerVisible = false; }
+
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
   gestAplica = false;    // solo canal call/realzza
   gestCargando = false;
@@ -211,6 +217,7 @@ export class MiPanelComponent implements OnInit {
     if (!this.vendedor) { this.sinVendedor = true; return; }
     this.cargar();
     this.cargarGestiones();
+    if (this.esRealzza) this.cargarSeguimientoAlertas();
     if (this.esSedeVendedor && this.mostrarSueldoSede) this.initSueldoSede();
   }
 
@@ -402,6 +409,66 @@ export class MiPanelComponent implements OnInit {
 
   /** Vuelve al día de hoy y recarga las gestiones. */
   gestVolverHoy(): void { this.gestFecha = new Date(); this.cargarGestiones(); }
+
+  /**
+   * Alertas de seguimiento 1-3-5-7 (Realzza): de MIS clientes (donde YO hice el 1er
+   * contacto), cuáles tienen un hito (día 3/5/7, ±1) PENDIENTE y que ya toca hoy o está
+   * atrasado, y aún no cerraron venta. Solo cuenta gestiones con CONTACTO (mismo criterio
+   * que el módulo Seguimiento). Recordatorio para que el asesor llame.
+   */
+  cargarSeguimientoAlertas(): void {
+    this.segCargando = true;
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const desde = new Date(hoy); desde.setDate(desde.getDate() - 16);   // colchón para día 7 + atrasos
+    const yo = this.normNombre(this.nombreParaGestion() || this.vendedor);
+    forkJoin({
+      ges: this.sheets.getSheetDataCampoRango({ desde, hasta: hoy }),
+      ven: this.ventasSvc.obtenerVentasCanal('realzza', { vendedor: this.vendedor }),
+    }).subscribe({
+      next: ({ ges, ven }) => {
+        // Mis contactos por DNI (solo CONTACTO, solo míos).
+        const parse = (s: any): Date | null => { const m = (s ?? '').toString().match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (!m) return null; const d = new Date(+m[3], +m[2] - 1, +m[1]); d.setHours(0, 0, 0, 0); return isNaN(d.getTime()) ? null : d; };
+        const porDni = new Map<string, { fechas: Date[]; cel: string }>();
+        for (const g of (ges || [])) {
+          if ((g['ESTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() !== 'CONTACTO') continue;
+          if (this.normNombre(g['ASESOR REALZZA']) !== yo) continue;
+          const dni = (g['DNI CLIENTE'] ?? '').toString().replace(/\D/g, '').replace(/^0+/, ''); if (!dni) continue;
+          const f = parse(g['Marca temporal']); if (!f) continue;
+          let e = porDni.get(dni); if (!e) { e = { fechas: [], cel: '' }; porDni.set(dni, e); }
+          e.fechas.push(f);
+          if (!e.cel) e.cel = (g['CELULAR GESTIONADO'] ?? '').toString().replace(/\D/g, '');
+        }
+        // DNIs que ya me compraron (no hace falta seguir).
+        const vendidos = new Set<string>();
+        for (const v of (ven || [])) {
+          const est = (v.estado_venta || '').toString().toUpperCase();
+          if (est.includes('NOTA DE') || est.includes('INCAUTAC') || (Number(v.monto_consolidado) || 0) <= 0) continue;
+          const dni = (v.doc_identidad ?? '').toString().replace(/\D/g, '').replace(/^0+/, ''); if (dni) vendidos.add(dni);
+        }
+        const hitos = [{ d: 3, t: 2 }, { d: 5, t: 4 }, { d: 7, t: 6 }];
+        const alertas: { dni: string; celular: string; hito: number; diasDesde: number; vencido: boolean }[] = [];
+        porDni.forEach((e, dni) => {
+          if (vendidos.has(dni)) return;
+          const fechas = e.fechas.sort((a, b) => a.getTime() - b.getTime());
+          const dia1 = fechas[0];
+          const off = Math.round((hoy.getTime() - dia1.getTime()) / 86400000);
+          if (off > 14) return;                                  // seguimiento demasiado viejo → se ignora
+          const cumplido = (t: number) => fechas.some((f) => { const o = Math.round((f.getTime() - dia1.getTime()) / 86400000); return o >= t - 1 && o <= t + 1; });
+          for (const h of hitos) {
+            if (cumplido(h.t)) continue;                         // ya llamó en ese hito → siguiente
+            if (off >= h.t - 1) {                                // ya toca (o se pasó)
+              alertas.push({ dni, celular: e.cel, hito: h.d, diasDesde: off, vencido: off > h.t + 1 });
+            }
+            break;                                               // solo el primer hito pendiente
+          }
+        });
+        // Vencidos primero, luego por días transcurridos desc.
+        this.segAlertas = alertas.sort((a, b) => Number(b.vencido) - Number(a.vencido) || b.diasDesde - a.diasDesde);
+        this.segCargando = false;
+      },
+      error: () => { this.segAlertas = []; this.segCargando = false; },
+    });
+  }
 
   /** Normaliza texto: minúsculas, sin tildes, sin espacios (para comparar). */
   private norm(s: any): string {

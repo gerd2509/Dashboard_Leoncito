@@ -27,6 +27,43 @@
       </div>
     </div>
 
+    <!-- ══════════ SEGUIMIENTO 1-3-5-7 — clientes por llamar (Realzza) ══════════ -->
+    <!-- Banner al iniciar sesión (descartable) -->
+    <div class="mp-seg-banner" *ngIf="esRealzza && segBannerVisible && segAlertas.length">
+      <mat-icon>notifications_active</mat-icon>
+      <span>Tienes <b>{{ segAlertas.length }}</b> cliente(s) por llamar hoy (seguimiento 1-3-5-7). Revisa la lista abajo.</span>
+      <button class="mp-seg-x" type="button" (click)="cerrarSegBanner()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <!-- Tarjeta con el detalle -->
+    <section class="mp-panel seg" *ngIf="esRealzza && (segAlertas.length || segCargando)" [class.open]="abiertos['seg']">
+      <button class="mp-panel-head" type="button" (click)="togglePanel('seg')">
+        <span class="ph-ico" style="background:linear-gradient(135deg,#E65100,#F9A825);"><mat-icon>repeat</mat-icon></span>
+        <span class="ph-title">Seguimiento — clientes por llamar</span>
+        <span class="ph-sum"><b>{{ segAlertas.length }}</b> por llamar</span>
+        <mat-icon class="ph-chev">expand_more</mat-icon>
+      </button>
+      <div class="mp-panel-bodywrap">
+        <div class="mp-panel-body">
+          <div *ngIf="segCargando" class="mp-hint">Calculando seguimiento…</div>
+          <div *ngIf="!segCargando && !segAlertas.length" class="mp-hint">¡Al día! No tienes clientes pendientes de llamada hoy. 🎉</div>
+          <div class="mp-seg-list" *ngIf="!segCargando && segAlertas.length">
+            <div class="mp-seg-item" *ngFor="let a of segAlertas" [class.vencido]="a.vencido">
+              <div class="mp-seg-dia">Día {{ a.hito }}</div>
+              <div class="mp-seg-info">
+                <div class="mp-seg-dni"><mat-icon>badge</mat-icon> {{ a.dni }}</div>
+                <div class="mp-seg-tel"><mat-icon>call</mat-icon> {{ a.celular || '—' }}</div>
+              </div>
+              <div class="mp-seg-estado">
+                <span class="mp-seg-tag" [class.venc]="a.vencido">{{ a.vencido ? 'ATRASADO' : 'HOY' }}</span>
+                <span class="mp-seg-dd">{{ a.diasDesde }}d desde 1ª llamada</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ══════════ MI SUELDO (Call / Realzza) — primero, debajo del saludo ══════════ -->
     <!-- ══════════ SUELDO ESTIMADO — VENDEDOR DE SEDE ══════════ -->
     <section class="mp-panel sueldo" *ngIf="mostrarSueldoSede && esSedeVendedor && !error" [class.open]="abiertos['sueldo']">

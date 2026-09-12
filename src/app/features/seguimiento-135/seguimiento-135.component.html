@@ -28,7 +28,7 @@
         (onValueChanged)="fuente === 'auto' ? cargar() : null"></dx-date-box>
     </div>
     <button class="sg-btn" *ngIf="fuente === 'auto'" (click)="cargar()" [disabled]="procesando"><mat-icon>refresh</mat-icon> Actualizar</button>
-    <span class="sg-nota"><mat-icon>info</mat-icon> Día 1 = primera gestión del cliente. Hitos con ventana ±1 día. La venta se cruza por DNI.</span>
+    <span class="sg-nota"><mat-icon>info</mat-icon> Solo cuentan gestiones con <b>CONTACTO</b>. Día 1 = primer contacto; hitos ±1 día por el <b>mismo asesor</b>; la venta cuenta si la cierra ese asesor.</span>
   </div>
 
   <!-- Import (solo fuente Excel) -->
@@ -77,7 +77,7 @@
         <dxi-column dataField="d3" caption="Día 3" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
         <dxi-column dataField="d5" caption="Día 5" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
         <dxi-column dataField="d7" caption="Día 7" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="llamadas" caption="N° llam." dataType="number" [width]="100" alignment="center"></dxi-column>
+        <dxi-column dataField="llamadas" caption="Contactos" dataType="number" [width]="100" alignment="center"></dxi-column>
         <dxi-column dataField="venta" caption="Venta" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
         <dxi-column dataField="estado" caption="Estado" [width]="130" alignment="center"></dxi-column>
         <div *dxTemplate="let c of 'boolTpl'">{{ siNo(c.value) }}</div>
