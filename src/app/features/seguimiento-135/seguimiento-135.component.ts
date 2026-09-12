@@ -18,6 +18,7 @@ type Fuente = 'auto' | 'excel';
 /** Seguimiento de un cliente bajo el método 1-3-5-7. */
 interface Seg {
   dni: string;
+  celular: string;
   cliente: string;
   asesor: string;
   fechaDia1: Date | null;   // 1ª gestión (día 1); null = sin iniciar
@@ -131,13 +132,14 @@ export class Seguimiento135Component {
 
     // Índice gestión por DNI: fechas + asesor.
     const colAsesor = this.canal === 'realzza' ? 'ASESOR REALZZA' : 'ASESOR CONTACT';
-    const idx = new Map<string, { fechas: Date[]; asesor: string }>();
+    const idx = new Map<string, { fechas: Date[]; asesor: string; celular: string }>();
     for (const g of (ges || [])) {
       const dni = this.dig(g['DNI CLIENTE']); if (!dni) continue;
       const f = this.parseFecha(g['Marca temporal']); if (!f) continue;
-      let e = idx.get(dni); if (!e) { e = { fechas: [], asesor: '' }; idx.set(dni, e); }
+      let e = idx.get(dni); if (!e) { e = { fechas: [], asesor: '', celular: '' }; idx.set(dni, e); }
       e.fechas.push(f);
       if (!e.asesor) e.asesor = (g[colAsesor] || '').toString().trim().toUpperCase();
+      if (!e.celular) e.celular = this.dig(g['CELULAR GESTIONADO']);
     }
 
     // Ventas efectivas por DNI (cerró venta).
@@ -151,29 +153,32 @@ export class Seguimiento135Component {
     }
 
     // Universo: Excel (DNIs importados) o los gestionados del mes.
-    let universo: { dni: string; cliente: string }[];
+    let universo: { dni: string; cliente: string; cel: string }[];
     if (filasExcel) {
       const headers = Object.keys(filasExcel[0]);
       const hDni = this.buscarHeader(headers, ['dni', 'documento', 'docidentidad']);
       const hNom = this.buscarHeader(headers, ['nombre', 'cliente', 'razonsocial']);
+      const hTel = this.buscarHeader(headers, ['celular', 'telefono', 'movil', 'numero', 'cel', 'fono']);
       if (!hDni) throw new Error('No se encontró la columna de DNI en el archivo.');
       const vistos = new Set<string>();
       universo = [];
       for (const f of filasExcel) {
         const dni = this.dig(f[hDni]); if (!dni || vistos.has(dni)) continue;
         vistos.add(dni);
-        universo.push({ dni, cliente: hNom ? (f[hNom] || '').toString().trim() : '' });
+        const celMatch = hTel ? (f[hTel] || '').toString().match(/\d{6,}/) : null;
+        universo.push({ dni, cliente: hNom ? (f[hNom] || '').toString().trim() : '', cel: celMatch ? celMatch[0] : '' });
       }
     } else {
-      universo = [...idx.keys()].map((dni) => ({ dni, cliente: '' }));
+      universo = [...idx.keys()].map((dni) => ({ dni, cliente: '', cel: '' }));
     }
 
     // Arma el seguimiento por cliente.
-    const filas: Seg[] = universo.map(({ dni, cliente }) => {
+    const filas: Seg[] = universo.map(({ dni, cliente, cel }) => {
       const g = idx.get(dni);
       const venta = ventaSet.has(dni);
+      const celular = (g && g.celular) || cel || '';
       if (!g || !g.fechas.length) {
-        return { dni, cliente, asesor: '', fechaDia1: null, d3: false, d5: false, d7: false, llamadas: 0, venta, hitos: 0, estado: venta ? 'CERRÓ VENTA' : 'SIN INICIAR' };
+        return { dni, celular, cliente, asesor: '', fechaDia1: null, d3: false, d5: false, d7: false, llamadas: 0, venta, hitos: 0, estado: venta ? 'CERRÓ VENTA' : 'SIN INICIAR' };
       }
       const fechas = g.fechas.slice().sort((a, b) => a.getTime() - b.getTime());
       const dia1 = fechas[0];
@@ -184,7 +189,7 @@ export class Seguimiento135Component {
       const d7 = enVentana(5, 7);   // día 7 ±1
       const hitos = (d3 ? 1 : 0) + (d5 ? 1 : 0) + (d7 ? 1 : 0);
       const estado = venta ? 'CERRÓ VENTA' : (hitos === 3 ? 'COMPLETO' : 'EN PROCESO');
-      return { dni, cliente, asesor: g.asesor, fechaDia1: dia1, d3, d5, d7, llamadas: fechas.length, venta, hitos, estado };
+      return { dni, celular, cliente, asesor: g.asesor, fechaDia1: dia1, d3, d5, d7, llamadas: fechas.length, venta, hitos, estado };
     });
 
     this.filas = filas.sort((a, b) => (a.fechaDia1?.getTime() || 0) - (b.fechaDia1?.getTime() || 0));
@@ -261,12 +266,12 @@ export class Seguimiento135Component {
     const wb = new Workbook();
     const suf = `${this.nombreCanal}_${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
     const ws = wb.addWorksheet('Seguimiento 1-3-5-7');
-    const hr = ws.addRow(['DNI', 'Cliente', 'Asesor', 'Día 1', 'Día 3', 'Día 5', 'Día 7', 'N° llamadas', 'Venta', 'Estado']);
+    const hr = ws.addRow(['DNI', 'Celular', 'Cliente', 'Asesor', 'Día 1', 'Día 3', 'Día 5', 'Día 7', 'N° llamadas', 'Venta', 'Estado']);
     hr.eachCell((c) => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
     for (const f of this.filas) {
-      ws.addRow([f.dni, f.cliente, f.asesor, this.fmtFecha(f.fechaDia1), this.siNo(f.d3), this.siNo(f.d5), this.siNo(f.d7), f.llamadas, this.siNo(f.venta), f.estado]);
+      ws.addRow([f.dni, f.celular, f.cliente, f.asesor, this.fmtFecha(f.fechaDia1), this.siNo(f.d3), this.siNo(f.d5), this.siNo(f.d7), f.llamadas, this.siNo(f.venta), f.estado]);
     }
-    ws.columns.forEach((c, i) => { c.width = i === 1 || i === 2 ? 26 : 12; });
+    ws.columns.forEach((c, i) => { c.width = i === 2 || i === 3 ? 26 : 12; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
 
     if (this.porAsesor.length) {

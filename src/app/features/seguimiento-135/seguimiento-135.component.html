@@ -68,8 +68,10 @@
       <dx-data-grid [dataSource]="filas" [showBorders]="true" [hoverStateEnabled]="true" [columnAutoWidth]="false"
         width="100%" [wordWrapEnabled]="false" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" height="460" #grid>
         <dxo-scrolling mode="virtual" [columnRenderingMode]="'standard'"></dxo-scrolling>
-        <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar DNI / asesor…"></dxo-search-panel>
+        <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar DNI / celular / asesor…"></dxo-search-panel>
+        <dxo-filter-row [visible]="true"></dxo-filter-row>
         <dxi-column dataField="dni" caption="DNI" [width]="120" [allowResizing]="true"></dxi-column>
+        <dxi-column dataField="celular" caption="Celular" [width]="120" [allowResizing]="true"></dxi-column>
         <dxi-column dataField="asesor" caption="Asesor" [minWidth]="240" [allowResizing]="true"></dxi-column>
         <dxi-column dataField="fechaDia1" caption="Día 1" dataType="date" format="dd/MM/yyyy" [width]="105"></dxi-column>
         <dxi-column dataField="d3" caption="Día 3" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
