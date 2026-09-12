@@ -32,21 +32,21 @@
     <div class="mp-seg-modal-bg" *ngIf="segModal">
       <!-- Franjas de alerta (arriba/abajo) — no tapan el modal del centro -->
       <div class="msm-franja top"><div class="msm-franja-txt"><span>⚠ ALERTA · SEGUIMIENTO PENDIENTE · CLIENTES POR LLAMAR </span><span>⚠ ALERTA · SEGUIMIENTO PENDIENTE · CLIENTES POR LLAMAR </span></div></div>
-      <div class="msm-franja bottom"><div class="msm-franja-txt rev"><span>⚠ REALIZA TUS LLAMADAS DÍA 3 · 5 · 7 · NO PIERDAS LA VENTA </span><span>⚠ REALIZA TUS LLAMADAS DÍA 3 · 5 · 7 · NO PIERDAS LA VENTA </span></div></div>
+      <div class="msm-franja bottom"><div class="msm-franja-txt rev"><span>⚠ CLIENTES SIN CONTACTO HACE VARIOS DÍAS · NO PIERDAS LA VENTA </span><span>⚠ CLIENTES SIN CONTACTO HACE VARIOS DÍAS · NO PIERDAS LA VENTA </span></div></div>
       <div class="mp-seg-modal">
         <div class="msm-ico"><mat-icon>notifications_active</mat-icon></div>
-        <h3>¡Tienes clientes por llamar hoy!</h3>
+        <h3>¡Tienes clientes por llamar!</h3>
         <div class="msm-num">{{ segAlertas.length }}</div>
         <p class="msm-txt">
-          Seguimiento pendiente<span *ngIf="segVencidos"> · <b>{{ segVencidos }}</b> atrasado(s)</span>.
-          Realiza las llamadas (día 3 / 5 / 7) para no perder la venta.
+          Sin contacto hace <b>3 días o más</b><span *ngIf="segVencidos"> · <b>{{ segVencidos }}</b> atrasado(s) (≥7 días)</span>.
+          Vuelve a llamarlos para no perder la venta.
         </p>
         <ul class="msm-list">
           <li *ngFor="let a of segAlertas.slice(0, 5)">
-            <span class="msm-dia">Día {{ a.hito }}</span>
+            <span class="msm-dia">{{ a.dias }}d</span>
             <span class="msm-dni">DNI {{ a.dni }}</span>
             <span class="msm-tel">{{ a.celular || '—' }}</span>
-            <span class="msm-tag" [class.venc]="a.vencido">{{ a.vencido ? 'ATRASADO' : 'HOY' }}</span>
+            <span class="msm-tag" [class.venc]="a.vencido">{{ a.vencido ? 'ATRASADO' : 'POR LLAMAR' }}</span>
           </li>
         </ul>
         <p class="msm-mas" *ngIf="segAlertas.length > 5">y {{ segAlertas.length - 5 }} más… (ver lista completa abajo)</p>
@@ -57,7 +57,7 @@
     <!-- Banner al iniciar sesión (descartable) -->
     <div class="mp-seg-banner" *ngIf="esRealzza && segBannerVisible && segAlertas.length">
       <mat-icon>notifications_active</mat-icon>
-      <span>Tienes <b>{{ segAlertas.length }}</b> cliente(s) por llamar hoy (seguimiento 1-3-5-7). Revisa la lista abajo.</span>
+      <span>Tienes <b>{{ segAlertas.length }}</b> cliente(s) sin contacto hace 3 días o más. Vuelve a llamarlos — revisa la lista abajo.</span>
       <button class="mp-seg-x" type="button" (click)="cerrarSegBanner()"><mat-icon>close</mat-icon></button>
     </div>
 
@@ -72,17 +72,17 @@
       <div class="mp-panel-bodywrap">
         <div class="mp-panel-body">
           <div *ngIf="segCargando" class="mp-hint">Calculando seguimiento…</div>
-          <div *ngIf="!segCargando && !segAlertas.length" class="mp-hint">¡Al día! No tienes clientes pendientes de llamada hoy. 🎉</div>
+          <div *ngIf="!segCargando && !segAlertas.length" class="mp-hint">¡Al día! No tienes clientes sin contacto hace 3+ días. 🎉</div>
           <div class="mp-seg-list" *ngIf="!segCargando && segAlertas.length">
             <div class="mp-seg-item" *ngFor="let a of segAlertas" [class.vencido]="a.vencido">
-              <div class="mp-seg-dia">Día {{ a.hito }}</div>
+              <div class="mp-seg-dia">{{ a.dias }}d</div>
               <div class="mp-seg-info">
                 <div class="mp-seg-dni"><mat-icon>badge</mat-icon> {{ a.dni }}</div>
                 <div class="mp-seg-tel"><mat-icon>call</mat-icon> {{ a.celular || '—' }}</div>
               </div>
               <div class="mp-seg-estado">
-                <span class="mp-seg-tag" [class.venc]="a.vencido">{{ a.vencido ? 'ATRASADO' : 'HOY' }}</span>
-                <span class="mp-seg-dd">{{ a.diasDesde }}d desde 1ª llamada</span>
+                <span class="mp-seg-tag" [class.venc]="a.vencido">{{ a.vencido ? 'ATRASADO' : 'POR LLAMAR' }}</span>
+                <span class="mp-seg-dd">{{ a.dias }} días sin contacto</span>
               </div>
             </div>
           </div>

@@ -154,7 +154,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   ];
 
   // ── Alertas de seguimiento 1-3-5-7 (Realzza) — clientes por llamar hoy/atrasados ──
-  segAlertas: { dni: string; celular: string; hito: number; diasDesde: number; vencido: boolean }[] = [];
+  segAlertas: { dni: string; celular: string; dias: number; vencido: boolean }[] = [];
   segCargando = false;
   segBannerVisible = true;
   segModal = false;   // modal bloqueante al iniciar sesión
@@ -486,7 +486,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   cargarSeguimientoAlertas(): void {
     this.segCargando = true;
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-    const desde = new Date(hoy); desde.setDate(desde.getDate() - 16);   // colchón para día 7 + atrasos
+    const desde = new Date(hoy); desde.setDate(desde.getDate() - 35);   // ventana para calcular recencia
     const yo = this.normNombre(this.nombreParaGestion() || this.vendedor);
     forkJoin({
       ges: this.sheets.getSheetDataCampoRango({ desde, hasta: hoy }),
@@ -512,29 +512,18 @@ export class MiPanelComponent implements OnInit, OnDestroy {
           if (est.includes('NOTA DE') || est.includes('INCAUTAC') || (Number(v.monto_consolidado) || 0) <= 0) continue;
           const dni = (v.doc_identidad ?? '').toString().replace(/\D/g, '').replace(/^0+/, ''); if (dni) vendidos.add(dni);
         }
-        const hitos = [{ d: 3, t: 2 }, { d: 5, t: 4 }, { d: 7, t: 6 }];
-        const alertas: { dni: string; celular: string; hito: number; diasDesde: number; vencido: boolean }[] = [];
+        // RECENCIA: recordar llamar a los clientes que llevan ≥3 días sin contacto (y ≤35,
+        // dentro de la ventana cargada) y que aún no compraron. Vencido = ≥7 días.
+        const alertas: { dni: string; celular: string; dias: number; vencido: boolean }[] = [];
         porDni.forEach((e, dni) => {
           if (vendidos.has(dni)) return;
-          const fechas = e.fechas.sort((a, b) => a.getTime() - b.getTime());
-          // Si ya la llamó HOY, no recordar (acaba de hacer el seguimiento). Se limpia
-          // en cuanto registra la gestión y recarga el panel.
-          const contactadaHoy = fechas.some((f) => Math.round((hoy.getTime() - f.getTime()) / 86400000) === 0);
-          if (contactadaHoy) return;
-          const dia1 = fechas[0];
-          const off = Math.round((hoy.getTime() - dia1.getTime()) / 86400000);
-          if (off > 14) return;                                  // seguimiento demasiado viejo → se ignora
-          const cumplido = (t: number) => fechas.some((f) => { const o = Math.round((f.getTime() - dia1.getTime()) / 86400000); return o >= t - 1 && o <= t + 1; });
-          for (const h of hitos) {
-            if (cumplido(h.t)) continue;                         // ya llamó en ese hito → siguiente
-            if (off >= h.t - 1) {                                // ya toca (o se pasó)
-              alertas.push({ dni, celular: e.cel, hito: h.d, diasDesde: off, vencido: off > h.t + 1 });
-            }
-            break;                                               // solo el primer hito pendiente
-          }
+          const ult = e.fechas.reduce((a, b) => (b > a ? b : a));               // último contacto
+          const dias = Math.round((hoy.getTime() - ult.getTime()) / 86400000);
+          if (dias < 3 || dias > 35) return;                                    // <3 = recién / >35 = fuera de ventana
+          alertas.push({ dni, celular: e.cel, dias, vencido: dias >= 7 });
         });
-        // Vencidos primero, luego por días transcurridos desc.
-        this.segAlertas = alertas.sort((a, b) => Number(b.vencido) - Number(a.vencido) || b.diasDesde - a.diasDesde);
+        // Más atrasados primero.
+        this.segAlertas = alertas.sort((a, b) => b.dias - a.dias);
         this.segCargando = false;
         // Modal bloqueante al centro + alarma (se cierra con OK).
         if (this.segAlertas.length) { this.segModal = true; this.reproducirAlarma(); }

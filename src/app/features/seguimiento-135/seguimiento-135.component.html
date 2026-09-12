@@ -54,11 +54,10 @@
     <!-- KPIs -->
     <div class="sg-kpis">
       <div class="sg-kpi"><b>{{ kTotal }}</b><small>Clientes</small></div>
-      <div class="sg-kpi"><b>{{ kIniciados }}</b><small>Con seguimiento iniciado</small></div>
-      <div class="sg-kpi ok"><b>{{ kD3 }}</b><small>Día 3 cumplido</small></div>
-      <div class="sg-kpi ok"><b>{{ kD5 }}</b><small>Día 5 cumplido</small></div>
-      <div class="sg-kpi ok"><b>{{ kD7 }}</b><small>Día 7 cumplido</small></div>
-      <div class="sg-kpi dest"><b>{{ kCompletos }}</b><small>Completos (3-5-7)</small></div>
+      <div class="sg-kpi ok"><b>{{ kAlDia }}</b><small>Al día (≤2 días)</small></div>
+      <div class="sg-kpi warn"><b>{{ kPorLlamar }}</b><small>Por llamar (3-6 días)</small></div>
+      <div class="sg-kpi bad"><b>{{ kAtrasado }}</b><small>Atrasados (≥7 días)</small></div>
+      <div class="sg-kpi dest"><b>{{ kCompletos }}</b><small>Completos 1-3-5-7</small></div>
       <div class="sg-kpi vta"><b>{{ kVentas }}</b><small>Cerraron venta · {{ kConversion }}%</small></div>
     </div>
 

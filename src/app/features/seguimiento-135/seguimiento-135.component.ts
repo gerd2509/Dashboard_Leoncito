@@ -74,6 +74,7 @@ export class Seguimiento135Component {
 
   // KPIs
   kTotal = 0; kIniciados = 0; kD3 = 0; kD5 = 0; kD7 = 0; kCompletos = 0; kVentas = 0; kConversion = 0;
+  kAlDia = 0; kPorLlamar = 0; kAtrasado = 0;
 
   @ViewChild(DxDataGridComponent, { static: false }) grid!: DxDataGridComponent;
 
@@ -226,7 +227,11 @@ export class Seguimiento135Component {
       const d7 = enVentana(5, 7);   // día 7 ±1
       const hitos = (d3 ? 1 : 0) + (d5 ? 1 : 0) + (d7 ? 1 : 0);
       const venta = !!ventasSet && ventasSet.has(dueno);   // solo si el MISMO asesor cerró la venta
-      const estado = venta ? 'CERRÓ VENTA' : (hitos === 3 ? 'COMPLETO' : 'EN PROCESO');
+      // Estado por RECENCIA (uniforme para leads nuevos y recurrentes).
+      const estado = venta ? 'CERRÓ VENTA'
+        : diasSinContacto <= 2 ? 'AL DÍA'
+          : diasSinContacto <= 6 ? 'POR LLAMAR'
+            : 'ATRASADO';
       return { dni, celular, cliente, asesor: duenoDisp, fechaDia1: dia1, d3, d5, d7, llamadas: rows.length, venta, hitos, ultimoContacto: ultimo, diasSinContacto, estado };
     });
 
@@ -245,6 +250,9 @@ export class Seguimiento135Component {
     this.kCompletos = f.filter((x) => x.hitos === 3).length;
     this.kVentas = f.filter((x) => x.venta).length;
     this.kConversion = this.kIniciados > 0 ? Math.round((this.kVentas / this.kIniciados) * 1000) / 10 : 0;
+    this.kAlDia = f.filter((x) => x.estado === 'AL DÍA').length;
+    this.kPorLlamar = f.filter((x) => x.estado === 'POR LLAMAR').length;
+    this.kAtrasado = f.filter((x) => x.estado === 'ATRASADO').length;
   }
 
   private calcularPorAsesor(): void {
@@ -299,7 +307,7 @@ export class Seguimiento135Component {
       e.cellElement.style.fontWeight = '700'; e.cellElement.style.textAlign = 'center';
     }
     if (campo === 'estado') {
-      const c: Record<string, string> = { 'CERRÓ VENTA': '#c8e6c9', 'COMPLETO': '#d7eaff', 'EN PROCESO': '#fff9c4', 'SIN INICIAR': '#ffcdd2' };
+      const c: Record<string, string> = { 'CERRÓ VENTA': '#c8e6c9', 'AL DÍA': '#e7f6ea', 'POR LLAMAR': '#fff4e0', 'ATRASADO': '#fdeeee', 'SIN INICIAR': '#ffcdd2' };
       if (c[e.value]) e.cellElement.style.setProperty('background-color', c[e.value], 'important');
       e.cellElement.style.fontWeight = '700'; e.cellElement.style.textAlign = 'center';
     }
