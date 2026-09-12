@@ -517,6 +517,10 @@ export class MiPanelComponent implements OnInit, OnDestroy {
         porDni.forEach((e, dni) => {
           if (vendidos.has(dni)) return;
           const fechas = e.fechas.sort((a, b) => a.getTime() - b.getTime());
+          // Si ya la llamó HOY, no recordar (acaba de hacer el seguimiento). Se limpia
+          // en cuanto registra la gestión y recarga el panel.
+          const contactadaHoy = fechas.some((f) => Math.round((hoy.getTime() - f.getTime()) / 86400000) === 0);
+          if (contactadaHoy) return;
           const dia1 = fechas[0];
           const off = Math.round((hoy.getTime() - dia1.getTime()) / 86400000);
           if (off > 14) return;                                  // seguimiento demasiado viejo → se ignora
