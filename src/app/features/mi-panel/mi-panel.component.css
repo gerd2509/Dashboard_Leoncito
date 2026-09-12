@@ -347,3 +347,34 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
   background: #2E7D32; color: #fff; font-weight: 800; font-size: 15px; padding: 13px;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: filter .15s; }
 .msm-ok:hover { filter: brightness(1.08); }
+
+/* ── Franjas de ALERTA (arriba/abajo) + animaciones extra ── */
+.msm-franja {
+  position: absolute; left: 0; right: 0; height: 46px; overflow: hidden;
+  background: repeating-linear-gradient(45deg, #E65100 0 22px, #201a12 22px 44px);
+  background-size: 62px 62px; animation: msm-stripes 1.1s linear infinite, msm-blink 1s steps(1) infinite;
+  box-shadow: 0 0 22px rgba(230,81,0,.7); display: flex; align-items: center;
+}
+.msm-franja.top { top: 0; border-bottom: 3px solid #FFD54F; }
+.msm-franja.bottom { bottom: 0; border-top: 3px solid #FFD54F; }
+@keyframes msm-stripes { from { background-position: 0 0; } to { background-position: 62px 0; } }
+@keyframes msm-blink { 0%,60% { filter: brightness(1); } 61%,100% { filter: brightness(1.5); } }
+.msm-franja-txt { display: flex; white-space: nowrap; animation: msm-marquee 16s linear infinite; }
+.msm-franja-txt.rev { animation-direction: reverse; }
+.msm-franja-txt span { padding-right: 40px; font-weight: 900; font-size: 15px; letter-spacing: 1px;
+  color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8), 0 0 6px rgba(0,0,0,.6); }
+@keyframes msm-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Fondo con pulso rojo/naranja */
+.mp-seg-modal-bg { animation: msm-fade .18s ease-out, msm-bgpulse 1.1s ease-in-out infinite alternate; }
+@keyframes msm-bgpulse { from { background: rgba(20,28,48,.6); } to { background: rgba(120,30,0,.66); } }
+
+/* Tarjeta con glow pulsante */
+.mp-seg-modal { animation: msm-pop .22s cubic-bezier(.2,.9,.3,1.2), msm-glow 1.1s ease-in-out infinite alternate; }
+@keyframes msm-glow {
+  from { box-shadow: 0 20px 60px rgba(0,0,0,.4), 0 0 0 0 rgba(230,81,0,.5); border-top-color: #E65100; }
+  to   { box-shadow: 0 20px 60px rgba(0,0,0,.4), 0 0 0 10px rgba(230,81,0,0); border-top-color: #FF9800; }
+}
+/* El número palpita */
+.msm-num { animation: msm-beat .55s ease-in-out infinite alternate; }
+@keyframes msm-beat { from { transform: scale(1); } to { transform: scale(1.12); } }

@@ -30,6 +30,9 @@
     <!-- ══════════ SEGUIMIENTO 1-3-5-7 — clientes por llamar (Realzza) ══════════ -->
     <!-- Modal bloqueante al iniciar sesión (con alarma) -->
     <div class="mp-seg-modal-bg" *ngIf="segModal">
+      <!-- Franjas de alerta (arriba/abajo) — no tapan el modal del centro -->
+      <div class="msm-franja top"><div class="msm-franja-txt"><span>⚠ ALERTA · SEGUIMIENTO PENDIENTE · CLIENTES POR LLAMAR </span><span>⚠ ALERTA · SEGUIMIENTO PENDIENTE · CLIENTES POR LLAMAR </span></div></div>
+      <div class="msm-franja bottom"><div class="msm-franja-txt rev"><span>⚠ REALIZA TUS LLAMADAS DÍA 3 · 5 · 7 · NO PIERDAS LA VENTA </span><span>⚠ REALIZA TUS LLAMADAS DÍA 3 · 5 · 7 · NO PIERDAS LA VENTA </span></div></div>
       <div class="mp-seg-modal">
         <div class="msm-ico"><mat-icon>notifications_active</mat-icon></div>
         <h3>¡Tienes clientes por llamar hoy!</h3>

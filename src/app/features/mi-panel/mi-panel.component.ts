@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
@@ -32,7 +32,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
   templateUrl: './mi-panel.component.html',
   styleUrl: './mi-panel.component.css',
 })
-export class MiPanelComponent implements OnInit {
+export class MiPanelComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
   private ventasSvc = inject(CargaVentasService);
   private fb = inject(UntypedFormBuilder);
@@ -158,29 +158,46 @@ export class MiPanelComponent implements OnInit {
   segCargando = false;
   segBannerVisible = true;
   segModal = false;   // modal bloqueante al iniciar sesión
+  private segAlarmaCtx: any = null;
+  private segAlarmaTimer: any = null;
   cerrarSegBanner(): void { this.segBannerVisible = false; }
-  cerrarSegModal(): void { this.segModal = false; }
+  cerrarSegModal(): void { this.segModal = false; this.detenerAlarma(); }
   get segVencidos(): number { return this.segAlertas.filter((x) => x.vencido).length; }
 
-  /** Alarma corta (3 pitidos) vía Web Audio; si el navegador bloquea el audio, falla en silencio. */
+  ngOnDestroy(): void { this.detenerAlarma(); }
+
+  /** Alarma en BUCLE (3 pitidos cada ~1.1s) hasta que se cierre el modal (OK). Web Audio;
+   *  si el navegador bloquea el audio, falla en silencio. */
   private reproducirAlarma(): void {
+    this.detenerAlarma();
     try {
       const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
-      const beep = (start: number, freq: number) => {
-        const o = ctx.createOscillator(); const g = ctx.createGain();
-        o.type = 'square'; o.frequency.value = freq;
-        o.connect(g); g.connect(ctx.destination);
-        const t = ctx.currentTime + start;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-        o.start(t); o.stop(t + 0.36);
+      this.segAlarmaCtx = ctx;
+      const patron = () => {
+        if (!ctx || ctx.state === 'closed') return;
+        if (ctx.state === 'suspended') { try { ctx.resume(); } catch { /* noop */ } }
+        const beep = (start: number, freq: number) => {
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = 'square'; o.frequency.value = freq;
+          o.connect(g); g.connect(ctx.destination);
+          const t = ctx.currentTime + start;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.32, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+          o.start(t); o.stop(t + 0.3);
+        };
+        beep(0, 880); beep(0.28, 880); beep(0.56, 1175);
       };
-      beep(0, 880); beep(0.45, 880); beep(0.9, 1175);
-      setTimeout(() => { try { ctx.close(); } catch { /* noop */ } }, 2500);
+      patron();
+      this.segAlarmaTimer = setInterval(patron, 1100);
     } catch { /* audio bloqueado */ }
+  }
+
+  private detenerAlarma(): void {
+    if (this.segAlarmaTimer) { clearInterval(this.segAlarmaTimer); this.segAlarmaTimer = null; }
+    if (this.segAlarmaCtx) { try { this.segAlarmaCtx.close(); } catch { /* noop */ } this.segAlarmaCtx = null; }
   }
 
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
