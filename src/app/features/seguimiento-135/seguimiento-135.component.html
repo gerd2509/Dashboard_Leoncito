@@ -66,19 +66,18 @@
     <div class="sg-card">
       <div class="sg-card-h"><mat-icon>groups</mat-icon> Seguimiento por cliente</div>
       <dx-data-grid [dataSource]="filas" [showBorders]="true" [hoverStateEnabled]="true" [columnAutoWidth]="false"
-        [wordWrapEnabled]="false" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" height="460" #grid>
+        width="100%" [wordWrapEnabled]="false" [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)" height="460" #grid>
         <dxo-scrolling mode="virtual" [columnRenderingMode]="'standard'"></dxo-scrolling>
         <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar DNI / asesor…"></dxo-search-panel>
-        <dxo-header-filter [visible]="true"></dxo-header-filter>
-        <dxi-column dataField="dni" caption="DNI" [width]="110" [allowResizing]="true"></dxi-column>
-        <dxi-column dataField="asesor" caption="Asesor" [width]="230" [allowResizing]="true"></dxi-column>
-        <dxi-column dataField="fechaDia1" caption="Día 1" dataType="date" format="dd/MM/yyyy" [width]="95"></dxi-column>
-        <dxi-column dataField="d3" caption="Día 3" [width]="75" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="d5" caption="Día 5" [width]="75" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="d7" caption="Día 7" [width]="75" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="llamadas" caption="N° llam." dataType="number" [width]="85" alignment="center"></dxi-column>
-        <dxi-column dataField="venta" caption="Venta" [width]="75" cellTemplate="boolTpl" alignment="center"></dxi-column>
-        <dxi-column dataField="estado" caption="Estado" [width]="120" alignment="center"></dxi-column>
+        <dxi-column dataField="dni" caption="DNI" [width]="120" [allowResizing]="true"></dxi-column>
+        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="240" [allowResizing]="true"></dxi-column>
+        <dxi-column dataField="fechaDia1" caption="Día 1" dataType="date" format="dd/MM/yyyy" [width]="105"></dxi-column>
+        <dxi-column dataField="d3" caption="Día 3" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
+        <dxi-column dataField="d5" caption="Día 5" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
+        <dxi-column dataField="d7" caption="Día 7" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
+        <dxi-column dataField="llamadas" caption="N° llam." dataType="number" [width]="100" alignment="center"></dxi-column>
+        <dxi-column dataField="venta" caption="Venta" [width]="90" cellTemplate="boolTpl" alignment="center"></dxi-column>
+        <dxi-column dataField="estado" caption="Estado" [width]="130" alignment="center"></dxi-column>
         <div *dxTemplate="let c of 'boolTpl'">{{ siNo(c.value) }}</div>
         <dxo-summary>
           <dxi-total-item column="dni" summaryType="count" displayFormat="{0} clientes"></dxi-total-item>
@@ -90,18 +89,18 @@
     <!-- Resumen por asesor -->
     <div class="sg-card" *ngIf="porAsesor.length">
       <div class="sg-card-h"><mat-icon>leaderboard</mat-icon> Cumplimiento por asesor</div>
-      <dx-data-grid [dataSource]="porAsesor" [showBorders]="true" [hoverStateEnabled]="true" [columnAutoWidth]="true"
-        [rowAlternationEnabled]="true" height="320">
+      <dx-data-grid [dataSource]="porAsesor" [showBorders]="true" [hoverStateEnabled]="true" [columnAutoWidth]="false"
+        width="100%" [rowAlternationEnabled]="true" height="320">
         <dxo-scrolling mode="virtual"></dxo-scrolling>
-        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="200"></dxi-column>
-        <dxi-column dataField="clientes" caption="Clientes" dataType="number" [width]="95"></dxi-column>
-        <dxi-column dataField="d3" caption="Día 3" dataType="number" [width]="80"></dxi-column>
-        <dxi-column dataField="d5" caption="Día 5" dataType="number" [width]="80"></dxi-column>
-        <dxi-column dataField="d7" caption="Día 7" dataType="number" [width]="80"></dxi-column>
-        <dxi-column dataField="completos" caption="Completos" dataType="number" [width]="105"></dxi-column>
-        <dxi-column dataField="pctCompleto" caption="% Completo" dataType="number" [width]="110" cellTemplate="pctTpl" [sortOrder]="'desc'"></dxi-column>
-        <dxi-column dataField="ventas" caption="Ventas" dataType="number" [width]="85"></dxi-column>
-        <dxi-column dataField="pctVenta" caption="% Venta" dataType="number" [width]="95" cellTemplate="pctTpl"></dxi-column>
+        <dxi-column dataField="asesor" caption="Asesor" [minWidth]="240"></dxi-column>
+        <dxi-column dataField="clientes" caption="Clientes" dataType="number" [width]="100" alignment="center"></dxi-column>
+        <dxi-column dataField="d3" caption="Día 3" dataType="number" [width]="90" alignment="center"></dxi-column>
+        <dxi-column dataField="d5" caption="Día 5" dataType="number" [width]="90" alignment="center"></dxi-column>
+        <dxi-column dataField="d7" caption="Día 7" dataType="number" [width]="90" alignment="center"></dxi-column>
+        <dxi-column dataField="completos" caption="Completos" dataType="number" [width]="110" alignment="center"></dxi-column>
+        <dxi-column dataField="pctCompleto" caption="% Completo" dataType="number" [width]="115" cellTemplate="pctTpl" [sortOrder]="'desc'" alignment="center"></dxi-column>
+        <dxi-column dataField="ventas" caption="Ventas" dataType="number" [width]="90" alignment="center"></dxi-column>
+        <dxi-column dataField="pctVenta" caption="% Venta" dataType="number" [width]="100" cellTemplate="pctTpl" alignment="center"></dxi-column>
         <div *dxTemplate="let c of 'pctTpl'">{{ c.value | number:'1.0-1' }}%</div>
       </dx-data-grid>
     </div>
