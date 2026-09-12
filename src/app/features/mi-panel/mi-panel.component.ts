@@ -160,6 +160,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   segModal = false;   // modal bloqueante al iniciar sesión
   private segAlarmaCtx: any = null;
   private segAlarmaTimer: any = null;
+  private segHablando = false;
   cerrarSegBanner(): void { this.segBannerVisible = false; }
   cerrarSegModal(): void { this.segModal = false; this.detenerAlarma(); }
   get segVencidos(): number { return this.segAlertas.filter((x) => x.vencido).length; }
@@ -190,7 +191,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
         o.type = 'triangle'; o.frequency.value = freq;
         o.connect(g); g.connect(ctx.destination);
         g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.3, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.13, t + 0.03);   // base suave (la voz va encima)
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.95);
         o.start(t); o.stop(t + dur);
       };
@@ -204,11 +205,38 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       const totalMs = mel.reduce((s, [, d]) => s + d, 0) * 1000;
       this.segAlarmaTimer = setInterval(tocar, totalMs);
     } catch { /* audio bloqueado */ }
+    this.cantarFreddy();   // voz del navegador cantando/diciendo la letra
+  }
+
+  /** Voz del navegador (Web Speech) diciendo la letra en español, grave y lenta, en bucle
+   *  hasta cerrar el modal. No es una voz cantada de estudio; es síntesis de voz. */
+  private cantarFreddy(): void {
+    const ss = (window as any).speechSynthesis as SpeechSynthesis | undefined;
+    if (!ss) return;
+    this.segHablando = true;
+    const letra = 'Uno, dos, Freddy viene por ti. Tres, cuatro, cierra bien la puerta. '
+      + 'Cinco, seis, agarra un crucifijo. Siete, ocho, quédate despierto. Nueve, diez, nunca duermas otra vez.';
+    const decir = () => {
+      if (!this.segHablando) return;
+      try {
+        const u = new SpeechSynthesisUtterance(letra);
+        u.lang = 'es-ES'; u.pitch = 0.3; u.rate = 0.85; u.volume = 1;
+        const voces = ss.getVoices() || [];
+        const vEs = voces.find((v) => (v.lang || '').toLowerCase().startsWith('es'));
+        if (vEs) u.voice = vEs;
+        u.onend = () => { if (this.segHablando) setTimeout(decir, 600); };
+        ss.cancel(); ss.speak(u);
+      } catch { /* noop */ }
+    };
+    if ((ss.getVoices() || []).length) { decir(); }
+    else { ss.onvoiceschanged = () => { ss.onvoiceschanged = null; if (this.segHablando) decir(); }; setTimeout(() => { if (this.segHablando) decir(); }, 400); }
   }
 
   private detenerAlarma(): void {
     if (this.segAlarmaTimer) { clearInterval(this.segAlarmaTimer); this.segAlarmaTimer = null; }
     if (this.segAlarmaCtx) { try { this.segAlarmaCtx.close(); } catch { /* noop */ } this.segAlarmaCtx = null; }
+    this.segHablando = false;
+    try { (window as any).speechSynthesis?.cancel(); } catch { /* noop */ }
   }
 
   // ── Mis gestiones (Call / Realzza) — por defecto el día en curso ──
