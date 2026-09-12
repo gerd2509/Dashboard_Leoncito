@@ -168,9 +168,9 @@ export class MiPanelComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void { this.detenerAlarma(); }
 
-  /** Nana de caja de música TENEBROSA (melodía ORIGINAL, no la de ninguna película) sobre un
-   *  dron grave. Web Audio, en BUCLE hasta cerrar el modal (OK → detenerAlarma). Si el
-   *  navegador bloquea el audio, falla en silencio. */
+  /** Efecto de "cuchilladas" de cuerdas agudas y disonantes (ORIGINAL, estilo suspenso; no es
+   *  la pieza de ninguna película), sobre un dron grave. Web Audio, en BUCLE hasta cerrar el
+   *  modal (OK → detenerAlarma). Si el navegador bloquea el audio, falla en silencio. */
   private reproducirAlarma(): void {
     this.detenerAlarma();
     try {
@@ -180,50 +180,41 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       this.segAlarmaCtx = ctx;
       const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
 
-      // Dron grave suave (atmósfera).
+      // Dron grave suave (tensión de fondo).
       const drone = (freq: number, det: number, vol: number) => {
         const o = ctx.createOscillator(); const g = ctx.createGain();
         o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = det;
         g.gain.value = vol; o.connect(g); g.connect(master); o.start();
       };
-      drone(55, -6, 0.09); drone(55, 8, 0.09);
+      drone(58, -6, 0.10); drone(58, 9, 0.10);
 
-      // Nota de caja de música (timbre triangle con decaimiento).
-      const N: Record<string, number> = { A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, C6: 1046.5 };
-      const nota = (freq: number, t: number, dur: number, vol = 0.34) => {
-        const o = ctx.createOscillator(); const g = ctx.createGain();
-        o.type = 'triangle'; o.frequency.value = freq;
-        o.connect(g); g.connect(master);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.98);
-        o.start(t); o.stop(t + dur);
-        // octava grave sutil para dar cuerpo
-        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
-        o2.type = 'sine'; o2.frequency.value = freq / 2; o2.connect(g2); g2.connect(master);
-        g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.02);
-        g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.9);
-        o2.start(t); o2.stop(t + dur);
+      // Una "cuchillada": cluster disonante agudo, ataque instantáneo y corte seco.
+      const stab = (t: number, base: number) => {
+        [base, base * 1.06, base * 1.5].forEach((f) => {   // 2ª menor + tritono → chirrido
+          const o = ctx.createOscillator(); const g = ctx.createGain();
+          o.type = 'sawtooth'; o.frequency.value = f;
+          o.connect(g); g.connect(master);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.28, t + 0.006);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+          o.start(t); o.stop(t + 0.14);
+        });
       };
-      // Melodía original en tono menor, lenta y disonante (vals 3/4 siniestro).
-      const b = 0.5;   // duración base
-      const mel: [string, number][] = [
-        ['A5', b], ['E5', b], ['C5', b],           // descenso
-        ['Eb5', b], ['E5', b], ['rest', b * 0.5],  // giro disonante
-        ['A5', b], ['G5', b], ['E5', b],
-        ['F5', b], ['C5', b * 1.5], ['rest', b * 0.5],
-        ['D5', b], ['B4', b], ['Eb5', b],          // final sin resolver
-        ['A4', b * 2], ['rest', b * 1.5],
-      ];
-      const tocar = () => {
+      const golpeGrave = (t: number) => {   // remate grave tras la ráfaga
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(120, t); o.frequency.exponentialRampToValueAtTime(60, t + 0.4);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+        o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.65);
+      };
+      const rafaga = () => {
         if (!ctx || ctx.state === 'closed') return;
         if (ctx.state === 'suspended') { try { ctx.resume(); } catch { /* noop */ } }
-        let t = ctx.currentTime + 0.06;
-        for (const [n, d] of mel) { if (n !== 'rest') nota(N[n], t, d); t += d; }
+        let t = ctx.currentTime + 0.05;
+        for (let i = 0; i < 8; i++) { stab(t, 1760); t += 0.12; }   // ráfaga de chirridos
+        golpeGrave(t + 0.05);
       };
-      tocar();
-      const totalMs = mel.reduce((s, [, d]) => s + d, 0) * 1000;
-      this.segAlarmaTimer = setInterval(tocar, totalMs);
+      rafaga();
+      this.segAlarmaTimer = setInterval(rafaga, 2000);
     } catch { /* audio bloqueado */ }
   }
 
