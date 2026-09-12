@@ -10,6 +10,7 @@ import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { SheetsService } from '../../services/service-google.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { ASESORES_CALL, ASESORES_REALZZA } from '../../shared/asesores';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 type Canal = 'call' | 'realzza';
@@ -47,6 +48,14 @@ interface SegAsesor {
 export class Seguimiento135Component {
   private sheets = inject(SheetsService);
   private ventasSrv = inject(CargaVentasService);
+
+  // CC/RZ código → nombre (para cruzar el vendedor de las ventas con el asesor de la gestión,
+  // que en Call viene como código y en la gestión como nombre completo).
+  private ccANombre = new Map<string, string>(
+    [...ASESORES_CALL, ...ASESORES_REALZZA].map((a) => [a.value.toUpperCase(), a.nombre.toUpperCase()]));
+  private normNom(s: any): string {
+    return (s ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  }
 
   canal: Canal = 'call';
   fuente: Fuente = 'auto';
@@ -131,25 +140,32 @@ export class Seguimiento135Component {
     ]);
 
     // Índice gestión por DNI: fechas + asesor.
+    // Índice de gestión por DNI: cada llamada con SU asesor (para anclar el seguimiento
+    // al asesor que hizo la 1ª llamada = "dueño" del cliente).
     const colAsesor = this.canal === 'realzza' ? 'ASESOR REALZZA' : 'ASESOR CONTACT';
-    const idx = new Map<string, { fechas: Date[]; asesor: string; celular: string }>();
+    const idx = new Map<string, { rows: { fecha: Date; asesor: string }[]; celular: string }>();
     for (const g of (ges || [])) {
       const dni = this.dig(g['DNI CLIENTE']); if (!dni) continue;
       const f = this.parseFecha(g['Marca temporal']); if (!f) continue;
-      let e = idx.get(dni); if (!e) { e = { fechas: [], asesor: '', celular: '' }; idx.set(dni, e); }
-      e.fechas.push(f);
-      if (!e.asesor) e.asesor = (g[colAsesor] || '').toString().trim().toUpperCase();
+      const raw = (g[colAsesor] || '').toString().trim().toUpperCase();
+      const asesor = (this.ccANombre.get(raw) || raw);   // nombre para mostrar (conserva Ñ/acentos)
+      let e = idx.get(dni); if (!e) { e = { rows: [], celular: '' }; idx.set(dni, e); }
+      e.rows.push({ fecha: f, asesor });
       if (!e.celular) e.celular = this.dig(g['CELULAR GESTIONADO']);
     }
 
-    // Ventas efectivas por DNI (cerró venta).
-    const ventaSet = new Set<string>();
+    // Ventas efectivas por DNI → set de ASESORES que cerraron esa venta (por DNI).
+    const ventaByDni = new Map<string, Set<string>>();
     for (const v of (ven || [])) {
       if (this.canal === 'realzza' && +v.mes_cv !== mes) continue;
       const est = (v.estado_venta || '').toString().toUpperCase();
       if (est.includes('NOTA DE') || est.includes('INCAUTAC')) continue;
       if ((Number(v.monto_consolidado) || 0) <= 0) continue;
-      const dni = this.dig(v.doc_identidad); if (dni) ventaSet.add(dni);
+      const dni = this.dig(v.doc_identidad); if (!dni) continue;
+      const raw = (v.vendedor || v.asesor_venta || '').toString().trim().toUpperCase();
+      const asesor = this.normNom(this.ccANombre.get(raw) || raw);
+      let s = ventaByDni.get(dni); if (!s) { s = new Set(); ventaByDni.set(dni, s); }
+      if (asesor) s.add(asesor);
     }
 
     // Universo: Excel (DNIs importados) o los gestionados del mes.
@@ -174,22 +190,29 @@ export class Seguimiento135Component {
 
     // Arma el seguimiento por cliente.
     const filas: Seg[] = universo.map(({ dni, cliente, cel }) => {
-      const g = idx.get(dni);
-      const venta = ventaSet.has(dni);
-      const celular = (g && g.celular) || cel || '';
-      if (!g || !g.fechas.length) {
+      const e = idx.get(dni);
+      const ventasSet = ventaByDni.get(dni);
+      const celular = (e && e.celular) || cel || '';
+      if (!e || !e.rows.length) {
+        // Sin gestión: no hay dueño; la venta (si la hay) fue sin seguimiento.
+        const venta = !!ventasSet && ventasSet.size > 0;
         return { dni, celular, cliente, asesor: '', fechaDia1: null, d3: false, d5: false, d7: false, llamadas: 0, venta, hitos: 0, estado: venta ? 'CERRÓ VENTA' : 'SIN INICIAR' };
       }
-      const fechas = g.fechas.slice().sort((a, b) => a.getTime() - b.getTime());
-      const dia1 = fechas[0];
+      // Dueño = asesor de la PRIMERA llamada. Los hitos y la venta solo cuentan si son de ÉL.
+      const rows = e.rows.slice().sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+      const duenoDisp = rows[0].asesor;
+      const dueno = this.normNom(duenoDisp);
+      const propias = rows.filter((r) => this.normNom(r.asesor) === dueno);
+      const dia1 = propias[0].fecha;
       const offset = (f: Date) => Math.floor((this.soloDia(f).getTime() - this.soloDia(dia1).getTime()) / 86400000);
-      const enVentana = (lo: number, hi: number) => fechas.some((f) => { const o = offset(f); return o >= lo && o <= hi; });
-      const d3 = enVentana(1, 3);   // día 3 ±1 (offset 2 ± 1)
+      const enVentana = (lo: number, hi: number) => propias.some((r) => { const o = offset(r.fecha); return o >= lo && o <= hi; });
+      const d3 = enVentana(1, 3);   // día 3 ±1
       const d5 = enVentana(3, 5);   // día 5 ±1
       const d7 = enVentana(5, 7);   // día 7 ±1
       const hitos = (d3 ? 1 : 0) + (d5 ? 1 : 0) + (d7 ? 1 : 0);
+      const venta = !!ventasSet && ventasSet.has(dueno);   // solo si el MISMO asesor cerró la venta
       const estado = venta ? 'CERRÓ VENTA' : (hitos === 3 ? 'COMPLETO' : 'EN PROCESO');
-      return { dni, celular, cliente, asesor: g.asesor, fechaDia1: dia1, d3, d5, d7, llamadas: fechas.length, venta, hitos, estado };
+      return { dni, celular, cliente, asesor: duenoDisp, fechaDia1: dia1, d3, d5, d7, llamadas: propias.length, venta, hitos, estado };
     });
 
     this.filas = filas.sort((a, b) => (a.fechaDia1?.getTime() || 0) - (b.fechaDia1?.getTime() || 0));
