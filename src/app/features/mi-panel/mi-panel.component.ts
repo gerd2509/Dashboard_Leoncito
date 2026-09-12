@@ -166,8 +166,10 @@ export class MiPanelComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void { this.detenerAlarma(); }
 
-  /** Alarma en BUCLE (3 pitidos cada ~1.1s) hasta que se cierre el modal (OK). Web Audio;
-   *  si el navegador bloquea el audio, falla en silencio. */
+  /** Melodía "1, 2, Freddy viene por ti" (Nightmare on Elm St.) sintetizada con Web Audio
+   *  (timbre de caja de música), en BUCLE hasta que se cierre el modal (OK). No es el audio
+   *  original (derechos/limitación técnica) pero es la melodía reconocible. Si el navegador
+   *  bloquea el audio, falla en silencio. */
   private reproducirAlarma(): void {
     this.detenerAlarma();
     try {
@@ -175,23 +177,32 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       if (!Ctx) return;
       const ctx = new Ctx();
       this.segAlarmaCtx = ctx;
-      const patron = () => {
+      const N: Record<string, number> = { A4: 440, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880 };
+      // "Uno, dos, Freddy viene por ti…" — frase descendente, tenebrosa.
+      const mel: [string, number][] = [
+        ['E5', 0.5], ['G5', 0.5],                          // uno, dos
+        ['A5', 0.5], ['G5', 0.5], ['E5', 0.5],             // Fre-ddy vie-ne
+        ['G5', 0.5], ['E5', 0.35], ['D5', 0.35], ['A4', 0.9], // por ti…
+        ['rest', 0.7],
+      ];
+      const nota = (freq: number, t: number, dur: number) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = freq;
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.3, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.95);
+        o.start(t); o.stop(t + dur);
+      };
+      const tocar = () => {
         if (!ctx || ctx.state === 'closed') return;
         if (ctx.state === 'suspended') { try { ctx.resume(); } catch { /* noop */ } }
-        const beep = (start: number, freq: number) => {
-          const o = ctx.createOscillator(); const g = ctx.createGain();
-          o.type = 'square'; o.frequency.value = freq;
-          o.connect(g); g.connect(ctx.destination);
-          const t = ctx.currentTime + start;
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(0.32, t + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
-          o.start(t); o.stop(t + 0.3);
-        };
-        beep(0, 880); beep(0.28, 880); beep(0.56, 1175);
+        let t = ctx.currentTime + 0.06;
+        for (const [n, d] of mel) { if (n !== 'rest') nota(N[n], t, d); t += d; }
       };
-      patron();
-      this.segAlarmaTimer = setInterval(patron, 1100);
+      tocar();
+      const totalMs = mel.reduce((s, [, d]) => s + d, 0) * 1000;
+      this.segAlarmaTimer = setInterval(tocar, totalMs);
     } catch { /* audio bloqueado */ }
   }
 
