@@ -168,10 +168,9 @@ export class MiPanelComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void { this.detenerAlarma(); }
 
-  /** Fondo de música de TERROR (sintetizado con Web Audio, original): dron grave ominoso +
-   *  intervalo disonante con trémolo + "stingers" que suben de golpe con latido, en BUCLE
-   *  hasta que se cierre el modal (OK → detenerAlarma). Si el navegador bloquea el audio,
-   *  falla en silencio. */
+  /** Nana de caja de música TENEBROSA (melodía ORIGINAL, no la de ninguna película) sobre un
+   *  dron grave. Web Audio, en BUCLE hasta cerrar el modal (OK → detenerAlarma). Si el
+   *  navegador bloquea el audio, falla en silencio. */
   private reproducirAlarma(): void {
     this.detenerAlarma();
     try {
@@ -179,47 +178,52 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       if (!Ctx) return;
       const ctx = new Ctx();
       this.segAlarmaCtx = ctx;
-      const master = ctx.createGain(); master.gain.value = 0.95; master.connect(ctx.destination);
+      const master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
 
-      // 1) Dron grave (sierras desafinadas) — rumor ominoso constante.
+      // Dron grave suave (atmósfera).
       const drone = (freq: number, det: number, vol: number) => {
         const o = ctx.createOscillator(); const g = ctx.createGain();
         o.type = 'sawtooth'; o.frequency.value = freq; o.detune.value = det;
         g.gain.value = vol; o.connect(g); g.connect(master); o.start();
       };
-      drone(55, -7, 0.16); drone(55, 9, 0.16); drone(82.4, 4, 0.10);
+      drone(55, -6, 0.09); drone(55, 8, 0.09);
 
-      // 2) Intervalo disonante agudo (tritono) con trémolo — tensión.
-      const diso = ctx.createGain(); diso.gain.value = 0.05; diso.connect(master);
-      const hi1 = ctx.createOscillator(); hi1.type = 'triangle'; hi1.frequency.value = 660;
-      const hi2 = ctx.createOscillator(); hi2.type = 'triangle'; hi2.frequency.value = 933;
-      hi1.connect(diso); hi2.connect(diso); hi1.start(); hi2.start();
-      const lfo = ctx.createOscillator(); const lfoG = ctx.createGain();
-      lfo.frequency.value = 7; lfoG.gain.value = 0.05; lfo.connect(lfoG); lfoG.connect(diso.gain); lfo.start();
-
-      // 3) Stinger periódico: barrido que sube de golpe + latido doble.
-      const stinger = () => {
+      // Nota de caja de música (timbre triangle con decaimiento).
+      const N: Record<string, number> = { A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880, C6: 1046.5 };
+      const nota = (freq: number, t: number, dur: number, vol = 0.34) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = freq;
+        o.connect(g); g.connect(master);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.98);
+        o.start(t); o.stop(t + dur);
+        // octava grave sutil para dar cuerpo
+        const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+        o2.type = 'sine'; o2.frequency.value = freq / 2; o2.connect(g2); g2.connect(master);
+        g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.02);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * 0.9);
+        o2.start(t); o2.stop(t + dur);
+      };
+      // Melodía original en tono menor, lenta y disonante (vals 3/4 siniestro).
+      const b = 0.5;   // duración base
+      const mel: [string, number][] = [
+        ['A5', b], ['E5', b], ['C5', b],           // descenso
+        ['Eb5', b], ['E5', b], ['rest', b * 0.5],  // giro disonante
+        ['A5', b], ['G5', b], ['E5', b],
+        ['F5', b], ['C5', b * 1.5], ['rest', b * 0.5],
+        ['D5', b], ['B4', b], ['Eb5', b],          // final sin resolver
+        ['A4', b * 2], ['rest', b * 1.5],
+      ];
+      const tocar = () => {
         if (!ctx || ctx.state === 'closed') return;
         if (ctx.state === 'suspended') { try { ctx.resume(); } catch { /* noop */ } }
-        const t = ctx.currentTime;
-        const o = ctx.createOscillator(); const g = ctx.createGain();
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(120, t);
-        o.frequency.exponentialRampToValueAtTime(1500, t + 0.9);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.5, t + 0.85);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
-        o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.25);
-        const latido = (bt: number) => {
-          const bo = ctx.createOscillator(); const bg = ctx.createGain();
-          bo.type = 'sine'; bo.frequency.setValueAtTime(95, bt); bo.frequency.exponentialRampToValueAtTime(45, bt + 0.15);
-          bg.gain.setValueAtTime(0.0001, bt); bg.gain.exponentialRampToValueAtTime(0.55, bt + 0.03); bg.gain.exponentialRampToValueAtTime(0.0001, bt + 0.26);
-          bo.connect(bg); bg.connect(master); bo.start(bt); bo.stop(bt + 0.3);
-        };
-        latido(t + 1.4); latido(t + 1.75);
+        let t = ctx.currentTime + 0.06;
+        for (const [n, d] of mel) { if (n !== 'rest') nota(N[n], t, d); t += d; }
       };
-      stinger();
-      this.segAlarmaTimer = setInterval(stinger, 2600);
+      tocar();
+      const totalMs = mel.reduce((s, [, d]) => s + d, 0) * 1000;
+      this.segAlarmaTimer = setInterval(tocar, totalMs);
     } catch { /* audio bloqueado */ }
   }
 
