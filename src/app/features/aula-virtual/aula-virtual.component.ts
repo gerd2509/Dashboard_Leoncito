@@ -76,11 +76,22 @@ export class AulaVirtualComponent implements OnInit {
     this.aula.obtenerLeccion(l.id).subscribe({
       next: (det) => {
         this.leccionSel = { ...l, ...det };
-        this.pdfUrl = det.url ? this.sanitizer.bypassSecurityTrustResourceUrl(det.url) : null;
+        this.pdfUrl = det.url ? this.sanitizer.bypassSecurityTrustResourceUrl(this.urlDeVisor(det.url, det.archivo_nombre)) : null;
         this.vista = 'leccion'; this.cargando = false;
       },
       error: () => { this.error = 'No se pudo abrir la lección.'; this.cargando = false; },
     });
+  }
+
+  /** PDF → el navegador lo renderiza solo en el iframe. PPT/Word/Excel → el navegador NO
+   *  sabe mostrarlos (los descarga), así que se incrustan con el visor Office Online de
+   *  Microsoft (lee el archivo desde su URL pública firmada y lo muestra, sin descargar). */
+  private urlDeVisor(url: string, nombreArchivo?: string): string {
+    const ext = (nombreArchivo || url).split('.').pop()?.toLowerCase() || '';
+    if (['ppt', 'pptx', 'doc', 'docx', 'xls', 'xlsx'].includes(ext)) {
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    }
+    return url;   // pdf y cualquier otro → directo
   }
 
   marcarVisto(): void {

@@ -128,8 +128,9 @@
     <h3>{{ formLeccion!.id ? 'Editar lección' : 'Nueva lección' }}</h3>
     <label>Título</label>
     <input type="text" [(ngModel)]="formLeccion!.titulo" placeholder="Ej: Introducción al producto" />
-    <label>PDF {{ formLeccion!.id ? '(deja vacío para no cambiarlo)' : '' }}</label>
-    <input type="file" accept="application/pdf" (change)="onArchivoLeccion($event)" />
+    <label>Material (PDF, PowerPoint o Word) {{ formLeccion!.id ? '— deja vacío para no cambiarlo' : '' }}</label>
+    <input type="file" accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx" (change)="onArchivoLeccion($event)" />
+    <small class="aa-hint">Se visualiza directo en el aula (sin descargar). Máx. ~15 MB para que el visor cargue rápido.</small>
     <label>XP al aprobar</label>
     <input type="number" min="10" [(ngModel)]="formLeccion!.xp" />
     <div class="aa-modal-acciones">

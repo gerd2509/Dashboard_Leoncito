@@ -74,6 +74,7 @@
 .aa-modal input[type=text], .aa-modal input[type=number], .aa-modal textarea, .aa-modal select, .aa-modal input[type=file] {
   width: 100%; border: 1px solid #d7e0ee; border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; box-sizing: border-box;
 }
+.aa-hint { display: block; margin-top: 5px; font-size: 11px; color: #8a97ab; }
 .aa-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
 .aa-swatch-ico { width: 34px; height: 34px; border-radius: 8px; border: 2px solid #e6edf6; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #55627a; }
 .aa-swatch-ico.sel { border-color: #1A5FAD; background: #eaf2fc; color: #1A5FAD; }
