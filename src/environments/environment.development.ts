@@ -7,4 +7,5 @@ export const environment = {
   cruceBase: 'http://localhost:4002',
   ventasBase: 'http://localhost:3000/ventas',
   gestionBase: 'http://localhost:3000/gestion',
+  aulaBase: 'http://localhost:3000/aula',
 };

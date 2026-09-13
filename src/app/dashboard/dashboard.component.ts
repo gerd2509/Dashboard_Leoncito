@@ -35,6 +35,8 @@ import { PizarraMetasComponent } from "../features/pizarra-metas/pizarra-metas.c
 import { AvanceCarteraComponent } from "../features/avance-cartera/avance-cartera.component";
 import { EmbudosGestionComponent } from "../features/embudos-gestion/embudos-gestion.component";
 import { Seguimiento135Component } from "../features/seguimiento-135/seguimiento-135.component";
+import { AulaVirtualComponent } from "../features/aula-virtual/aula-virtual.component";
+import { AulaVirtualAdminComponent } from "../features/aula-virtual-admin/aula-virtual-admin.component";
 import { RegistroGestionComponent } from "../features/registro-gestion/registro-gestion.component";
 import { RegistroSupervisorComponent } from "../features/control-supervisor/registro-supervisor/registro-supervisor.component";
 import { ControlSupervisorComponent } from "../features/control-supervisor/control-supervisor.component";
@@ -107,6 +109,8 @@ interface MenuItem {
     AvanceCarteraComponent,
     EmbudosGestionComponent,
     Seguimiento135Component,
+    AulaVirtualComponent,
+    AulaVirtualAdminComponent,
     RegistroGestionComponent,
     RegistroSupervisorComponent,
     ControlSupervisorComponent,
@@ -217,6 +221,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Comparativo Cartera Ventas Piso', icon: 'compare_arrows', modulo: 'comparativo-cartera-ventas' },
         { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' },
         { label: 'Maduración de Leads',   icon: 'hub',            modulo: 'maduracion-leads' }
+      ]
+    },
+    {
+      icon: 'school', label: 'Capacitación',
+      submenu: [
+        { label: 'Aula Virtual',              icon: 'auto_stories', modulo: 'aula-virtual' },
+        { label: 'Aula Virtual — Contenido',  icon: 'edit_note',    modulo: 'aula-virtual-admin' },
       ]
     },
     {

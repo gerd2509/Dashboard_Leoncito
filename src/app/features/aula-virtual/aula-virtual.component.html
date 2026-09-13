@@ -1,0 +1,182 @@
+<div class="av-wrap" *ngIf="vendedor; else sinUsuario">
+
+  <!-- ══════ Encabezado gamificado: nivel, XP, racha, insignias ══════ -->
+  <div class="av-hero" *ngIf="vista !== 'certificado'">
+    <div class="av-hero-top">
+      <div class="av-hero-titulo">
+        <mat-icon>auto_stories</mat-icon>
+        <div><h2>Aula Virtual</h2><p>¡Sigue aprendiendo, {{ vendedor.split(' ')[0] }}! 🚀</p></div>
+      </div>
+      <button class="av-btn-ghost" (click)="verRanking()"><mat-icon>leaderboard</mat-icon> Ranking</button>
+    </div>
+
+    <div class="av-hero-stats" *ngIf="progreso as p">
+      <div class="av-stat nivel">
+        <div class="av-stat-ico">🏆</div>
+        <div><b>Nivel {{ p.nivel }}</b><small>{{ p.xp }} XP total</small></div>
+      </div>
+      <div class="av-xpbar-wrap">
+        <div class="av-xpbar"><div class="av-xpbar-fill" [style.width.%]="((500 - p.xpParaSiguienteNivel) / 500) * 100"></div></div>
+        <small>{{ p.xpParaSiguienteNivel }} XP para el siguiente nivel</small>
+      </div>
+      <div class="av-stat racha" [class.activa]="p.racha > 0">
+        <div class="av-stat-ico">🔥</div>
+        <div><b>{{ p.racha }}</b><small>día(s) seguidos</small></div>
+      </div>
+    </div>
+
+    <div class="av-insignias" *ngIf="progreso as p">
+      <div class="av-insignia" *ngFor="let i of p.insigniasTodas"
+           [class.ganada]="tieneInsignia(i.codigo)"
+           [title]="i.nombre + ' — ' + i.descripcion">
+        <span class="ai-emoji">{{ i.icono }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="alerta-error" *ngIf="error"><mat-icon>error_outline</mat-icon>{{ error }}</div>
+
+  <!-- ══════ CURSOS ══════ -->
+  <div class="av-grid" *ngIf="vista === 'cursos' && !cargando">
+    <div class="av-curso" *ngFor="let c of cursos" [style.--color]="c.color" (click)="abrirCurso(c)">
+      <div class="av-curso-ico" [style.background]="c.color"><mat-icon>{{ c.icono }}</mat-icon></div>
+      <h3>{{ c.titulo }}</h3>
+      <p>{{ c.descripcion }}</p>
+      <div class="av-curso-bar"><div class="av-curso-bar-fill" [style.width.%]="c.pct" [style.background]="c.color"></div></div>
+      <div class="av-curso-foot">
+        <span>{{ c.lecciones_completadas }}/{{ c.total_lecciones }} lecciones</span>
+        <span class="av-pct" [style.color]="c.color">{{ c.pct }}%</span>
+      </div>
+      <button class="av-btn-cert" *ngIf="c.pct === 100" (click)="$event.stopPropagation(); verCertificado(c)">
+        <mat-icon>workspace_premium</mat-icon> Ver certificado
+      </button>
+    </div>
+    <div class="av-vacio" *ngIf="!cursos.length">
+      <mat-icon>menu_book</mat-icon><p>Aún no hay cursos disponibles para ti. ¡Vuelve pronto!</p>
+    </div>
+  </div>
+
+  <!-- ══════ LECCIONES ══════ -->
+  <div class="av-seccion" *ngIf="vista === 'lecciones' && !cargando">
+    <button class="av-back" (click)="volverACursos()"><mat-icon>arrow_back</mat-icon> Cursos</button>
+    <h3 class="av-tit-curso" *ngIf="cursoSel">{{ cursoSel.titulo }}</h3>
+    <div class="av-lecciones">
+      <div class="av-leccion" *ngFor="let l of lecciones; let i = index" [class.hecha]="l.aprobado" (click)="abrirLeccion(l)">
+        <div class="av-lec-num" [class.ok]="l.aprobado">
+          <mat-icon *ngIf="l.aprobado">check</mat-icon><span *ngIf="!l.aprobado">{{ i + 1 }}</span>
+        </div>
+        <div class="av-lec-info">
+          <b>{{ l.titulo }}</b>
+          <small *ngIf="l.tiene_examen">{{ l.aprobado ? 'Aprobado · ' + l.mejor_puntaje + '%' : (l.visto ? 'Falta rendir el examen' : 'Con examen') }}</small>
+          <small *ngIf="!l.tiene_examen">{{ l.visto ? 'Visto' : 'Sin examen' }}</small>
+        </div>
+        <div class="av-lec-xp">+{{ l.xp }} XP</div>
+        <mat-icon class="av-lec-go">chevron_right</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ LECCIÓN (visor PDF) ══════ -->
+  <div class="av-seccion" *ngIf="vista === 'leccion' && !cargando">
+    <button class="av-back" (click)="volverALecciones()"><mat-icon>arrow_back</mat-icon> Lecciones</button>
+    <h3 class="av-tit-curso" *ngIf="leccionSel">{{ leccionSel.titulo }}</h3>
+    <div class="av-pdf-frame" *ngIf="pdfUrl"><iframe [src]="pdfUrl" title="Contenido"></iframe></div>
+    <div class="av-vacio" *ngIf="!pdfUrl"><mat-icon>picture_as_pdf</mat-icon><p>Esta lección no tiene material adjunto.</p></div>
+    <button class="av-btn-cta" (click)="marcarVisto()" *ngIf="!leccionSel?.visto">
+      <mat-icon>check_circle</mat-icon> Ya revisé el contenido{{ leccionSel?.tiene_examen ? ' — Rendir examen' : '' }}
+    </button>
+    <button class="av-btn-cta" (click)="iniciarExamen()" *ngIf="leccionSel?.visto && leccionSel?.tiene_examen">
+      <mat-icon>quiz</mat-icon> Rendir examen
+    </button>
+  </div>
+
+  <!-- ══════ EXAMEN ══════ -->
+  <div class="av-seccion" *ngIf="vista === 'examen' && !cargando">
+    <h3 class="av-tit-curso"><mat-icon>quiz</mat-icon> Examen — {{ leccionSel?.titulo }}</h3>
+    <p class="av-nota-min">Necesitas <b>70%</b> o más para aprobar. ¡Tú puedes! 💪</p>
+    <div class="av-pregunta" *ngFor="let p of preguntas; let qi = index">
+      <div class="av-preg-txt"><span class="av-preg-num">{{ qi + 1 }}</span> {{ p.pregunta }}</div>
+      <div class="av-opciones">
+        <button class="av-opcion" *ngFor="let op of p.opciones; let oi = index"
+                [class.sel]="respuestas.get(p.id) === oi" (click)="elegirRespuesta(p.id, oi)">
+          <span class="av-op-letra">{{ ['A','B','C','D','E'][oi] }}</span> {{ op }}
+        </button>
+      </div>
+    </div>
+    <button class="av-btn-cta" [disabled]="!examenCompleto" (click)="enviarExamen()">
+      <mat-icon>send</mat-icon> Enviar examen ({{ respuestas.size }}/{{ preguntas.length }})
+    </button>
+  </div>
+
+  <!-- ══════ RESULTADO ══════ -->
+  <div class="av-seccion av-resultado" *ngIf="vista === 'resultado' && resultado as r">
+    <div class="av-res-card" [class.ok]="r.aprobado">
+      <div class="av-res-ico">{{ r.aprobado ? '🎉' : '📚' }}</div>
+      <h2>{{ r.aprobado ? '¡Aprobado!' : 'Aún no llegas al 70%' }}</h2>
+      <div class="av-res-nota" [ngClass]="claseNota(r.puntaje)">{{ r.puntaje }}%</div>
+      <p>{{ r.correctas }} de {{ r.total }} respuestas correctas.</p>
+      <p class="av-res-xp" *ngIf="r.xpGanado">+{{ r.xpGanado }} XP ganados 🎁</p>
+    </div>
+    <div class="av-detalle">
+      <div class="av-det-item" *ngFor="let d of r.detalle; let i = index" [class.ok]="d.acerto">
+        <mat-icon>{{ d.acerto ? 'check_circle' : 'cancel' }}</mat-icon>
+        <div><b>Pregunta {{ i + 1 }}</b><small *ngIf="d.explicacion">{{ d.explicacion }}</small></div>
+      </div>
+    </div>
+    <div class="av-res-acciones">
+      <button class="av-btn-ghost" (click)="reintentarExamen()" *ngIf="!r.aprobado"><mat-icon>replay</mat-icon> Reintentar</button>
+      <button class="av-btn-cta" (click)="volverALecciones()"><mat-icon>arrow_forward</mat-icon> Continuar</button>
+    </div>
+  </div>
+
+  <!-- ══════ RANKING ══════ -->
+  <div class="av-seccion" *ngIf="vista === 'ranking' && !cargando">
+    <button class="av-back" (click)="volverACursos()"><mat-icon>arrow_back</mat-icon> Cursos</button>
+    <h3 class="av-tit-curso"><mat-icon>leaderboard</mat-icon> Ranking de aprendizaje</h3>
+    <div class="av-rank-lista">
+      <div class="av-rank-item" *ngFor="let r of ranking" [class.yo]="r.vendedor === vendedor" [class.podio]="r.puesto <= 3">
+        <span class="av-rank-pos">{{ r.puesto <= 3 ? (r.puesto === 1 ? '🥇' : r.puesto === 2 ? '🥈' : '🥉') : r.puesto }}</span>
+        <span class="av-rank-nombre">{{ r.vendedor }}</span>
+        <span class="av-rank-nivel">Nv. {{ r.nivel }}</span>
+        <span class="av-rank-xp">{{ r.xp }} XP</span>
+      </div>
+      <div class="av-vacio" *ngIf="!ranking.length"><p>Aún no hay datos de ranking.</p></div>
+    </div>
+  </div>
+
+  <!-- Overlay de carga -->
+  <app-loading-overlay [inline]="true" [visible]="cargando" icon="auto_stories" mensaje="Cargando…"></app-loading-overlay>
+
+  <!-- ══════ Celebración (insignia nueva) ══════ -->
+  <div class="av-celebra-bg" *ngIf="celebrando.length" (click)="cerrarCelebracion()">
+    <span class="av-confeti" *ngFor="let c of confetis" [style.left.%]="c.left" [style.animation-delay.s]="c.delay">{{ c.emoji }}</span>
+    <div class="av-celebra-card" (click)="$event.stopPropagation()">
+      <h3>¡Nueva insignia desbloqueada!</h3>
+      <div class="av-celebra-badge" *ngFor="let b of celebrando">
+        <span class="av-celebra-emoji">{{ b.icono }}</span>
+        <b>{{ b.nombre }}</b><small>{{ b.descripcion }}</small>
+      </div>
+      <button class="av-btn-cta" (click)="cerrarCelebracion()">¡Genial!</button>
+    </div>
+  </div>
+</div>
+
+<ng-template #sinUsuario>
+  <div class="alerta-error" *ngIf="error"><mat-icon>error_outline</mat-icon>{{ error }}</div>
+</ng-template>
+
+<!-- ══════ CERTIFICADO (imprimible) ══════ -->
+<div class="av-cert-wrap" *ngIf="vista === 'certificado' && cursoSel">
+  <button class="av-back av-no-print" (click)="volverACursos()"><mat-icon>arrow_back</mat-icon> Volver</button>
+  <div class="av-certificado">
+    <div class="av-cert-borde">
+      <mat-icon class="av-cert-medalla">workspace_premium</mat-icon>
+      <p class="av-cert-eyebrow">CERTIFICADO DE FINALIZACIÓN</p>
+      <h1>{{ vendedor }}</h1>
+      <p class="av-cert-txt">ha completado exitosamente el curso</p>
+      <h2>{{ cursoSel.titulo }}</h2>
+      <p class="av-cert-fecha">{{ fechaHoy }}</p>
+    </div>
+  </div>
+  <button class="av-btn-cta av-no-print" (click)="imprimirCertificado()"><mat-icon>print</mat-icon> Imprimir / Guardar como PDF</button>
+</div>

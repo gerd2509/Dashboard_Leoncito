@@ -1,0 +1,160 @@
+<div class="aa-wrap">
+  <div class="aa-head">
+    <div class="aa-head-ico"><mat-icon>school</mat-icon></div>
+    <div><h2>Aula Virtual — Contenido</h2><p>Cursos, lecciones y exámenes que verán los vendedores.</p></div>
+  </div>
+
+  <!-- ══════ CURSOS ══════ -->
+  <ng-container *ngIf="vista === 'cursos'">
+    <button class="aa-btn-cta" (click)="nuevoCurso()"><mat-icon>add_circle</mat-icon> Nuevo curso</button>
+    <div class="aa-grid" *ngIf="!cargando">
+      <div class="aa-curso" *ngFor="let c of cursos" [style.border-top-color]="c.color">
+        <div class="aa-curso-top">
+          <div class="aa-curso-ico" [style.background]="c.color"><mat-icon>{{ c.icono }}</mat-icon></div>
+          <div class="aa-curso-badges">
+            <span class="aa-chip">{{ c.canal }}</span>
+            <span class="aa-chip" [class.off]="!c.activo">{{ c.activo ? 'Activo' : 'Inactivo' }}</span>
+          </div>
+        </div>
+        <h3>{{ c.titulo }}</h3>
+        <p>{{ c.descripcion }}</p>
+        <div class="aa-curso-foot">
+          <span>{{ c.lecciones }} lección(es)</span>
+          <div class="aa-curso-acciones">
+            <button (click)="abrirLecciones(c)" title="Lecciones"><mat-icon>menu_book</mat-icon></button>
+            <button (click)="editarCursoForm(c)" title="Editar"><mat-icon>edit</mat-icon></button>
+            <button (click)="eliminarCurso(c)" title="Eliminar" class="danger"><mat-icon>delete</mat-icon></button>
+          </div>
+        </div>
+      </div>
+      <div class="aa-vacio" *ngIf="!cursos.length"><mat-icon>menu_book</mat-icon><p>Aún no hay cursos. Crea el primero.</p></div>
+    </div>
+  </ng-container>
+
+  <!-- ══════ LECCIONES ══════ -->
+  <ng-container *ngIf="vista === 'lecciones'">
+    <button class="aa-back" (click)="volverACursos()"><mat-icon>arrow_back</mat-icon> Cursos</button>
+    <h3 class="aa-subtit" *ngIf="cursoSel">{{ cursoSel.titulo }}</h3>
+    <button class="aa-btn-cta" (click)="nuevaLeccion()"><mat-icon>add_circle</mat-icon> Nueva lección</button>
+    <div class="aa-lista" *ngIf="!cargando">
+      <div class="aa-fila" *ngFor="let l of lecciones">
+        <mat-icon class="aa-fila-ico">picture_as_pdf</mat-icon>
+        <div class="aa-fila-info">
+          <b>{{ l.titulo }}</b>
+          <small>{{ l.archivo_nombre || 'Sin archivo' }} · {{ l.preguntas_aprobadas }}/{{ l.preguntas }} pregunta(s) publicada(s) · {{ l.xp }} XP</small>
+        </div>
+        <div class="aa-fila-acciones">
+          <button (click)="abrirPreguntas(l)" title="Preguntas"><mat-icon>quiz</mat-icon></button>
+          <button (click)="editarLeccionForm(l)" title="Editar"><mat-icon>edit</mat-icon></button>
+          <button (click)="eliminarLeccion(l)" title="Eliminar" class="danger"><mat-icon>delete</mat-icon></button>
+        </div>
+      </div>
+      <div class="aa-vacio" *ngIf="!lecciones.length"><p>Aún no hay lecciones en este curso.</p></div>
+    </div>
+  </ng-container>
+
+  <!-- ══════ PREGUNTAS ══════ -->
+  <ng-container *ngIf="vista === 'preguntas'">
+    <button class="aa-back" (click)="volverALecciones()"><mat-icon>arrow_back</mat-icon> Lecciones</button>
+    <h3 class="aa-subtit" *ngIf="leccionSel">{{ leccionSel.titulo }}</h3>
+
+    <div class="aa-ia-box">
+      <mat-icon>auto_awesome</mat-icon>
+      <div class="aa-ia-txt">
+        <b>Generar preguntas con IA</b>
+        <small>Lee el PDF de la lección y redacta un borrador. Tú las revisas y apruebas antes de publicarlas.</small>
+      </div>
+      <input type="number" min="3" max="8" [(ngModel)]="cantidadIA" class="aa-input-num" />
+      <button class="aa-btn-cta small" (click)="generarConIA()" [disabled]="generandoIA">
+        <mat-icon>{{ generandoIA ? 'hourglass_empty' : 'auto_awesome' }}</mat-icon> {{ generandoIA ? 'Generando…' : 'Generar' }}
+      </button>
+    </div>
+    <button class="aa-btn-ghost" (click)="nuevaPreguntaManual()"><mat-icon>add</mat-icon> Agregar pregunta manual</button>
+
+    <div class="aa-preguntas" *ngIf="!cargando">
+      <div class="aa-preg-card" *ngFor="let p of preguntas" [class.pendiente]="!p.aprobada">
+        <div class="aa-preg-top">
+          <span class="aa-chip" [class.off]="!p.aprobada">{{ p.aprobada ? 'Publicada' : 'Borrador (sin publicar)' }}</span>
+          <span class="aa-chip origen">{{ p.origen === 'ia' ? '✨ IA' : '✍️ Manual' }}</span>
+        </div>
+        <p class="aa-preg-txt">{{ p.pregunta }}</p>
+        <ul class="aa-preg-op">
+          <li *ngFor="let o of p.opciones; let i = index" [class.correcta]="i === p.respuesta_correcta">
+            {{ ['A','B','C','D','E'][i] }}. {{ o }} <mat-icon *ngIf="i === p.respuesta_correcta">check_circle</mat-icon>
+          </li>
+        </ul>
+        <p class="aa-preg-exp" *ngIf="p.explicacion"><b>Explicación:</b> {{ p.explicacion }}</p>
+        <div class="aa-preg-acciones">
+          <button class="aa-btn-cta small" *ngIf="!p.aprobada" (click)="aprobar(p)"><mat-icon>check_circle</mat-icon> Aprobar y publicar</button>
+          <button class="aa-btn-ghost small" (click)="editarPreguntaForm(p)"><mat-icon>edit</mat-icon> Editar</button>
+          <button class="aa-btn-ghost small danger" (click)="eliminarPregunta(p)"><mat-icon>delete</mat-icon> Eliminar</button>
+        </div>
+      </div>
+      <div class="aa-vacio" *ngIf="!preguntas.length"><p>Sin preguntas aún. Genera con IA o agrega una manual.</p></div>
+    </div>
+  </ng-container>
+
+  <app-loading-overlay [inline]="true" [visible]="cargando" icon="school" mensaje="Cargando…"></app-loading-overlay>
+</div>
+
+<!-- ══════ Popup: form Curso ══════ -->
+<div class="aa-modal-bg" *ngIf="formCurso" (click)="cerrarFormCurso()">
+  <div class="aa-modal" (click)="$event.stopPropagation()">
+    <h3>{{ formCurso!.id ? 'Editar curso' : 'Nuevo curso' }}</h3>
+    <label>Título</label>
+    <input type="text" [(ngModel)]="formCurso!.titulo" placeholder="Ej: Técnicas de cierre de venta" />
+    <label>Descripción</label>
+    <textarea [(ngModel)]="formCurso!.descripcion" rows="2" placeholder="Breve descripción del curso"></textarea>
+    <label>Canal</label>
+    <select [(ngModel)]="formCurso!.canal"><option *ngFor="let c of canales" [value]="c.v">{{ c.t }}</option></select>
+    <label>Ícono</label>
+    <div class="aa-swatches">
+      <button *ngFor="let i of iconos" class="aa-swatch-ico" [class.sel]="formCurso!.icono === i" (click)="formCurso!.icono = i"><mat-icon>{{ i }}</mat-icon></button>
+    </div>
+    <label>Color</label>
+    <div class="aa-swatches">
+      <button *ngFor="let c of colores" class="aa-swatch-color" [class.sel]="formCurso!.color === c" [style.background]="c" (click)="formCurso!.color = c"></button>
+    </div>
+    <div class="aa-modal-acciones">
+      <button class="aa-btn-ghost" (click)="cerrarFormCurso()">Cancelar</button>
+      <button class="aa-btn-cta" (click)="guardarCurso()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ Popup: form Lección ══════ -->
+<div class="aa-modal-bg" *ngIf="formLeccion" (click)="cerrarFormLeccion()">
+  <div class="aa-modal" (click)="$event.stopPropagation()">
+    <h3>{{ formLeccion!.id ? 'Editar lección' : 'Nueva lección' }}</h3>
+    <label>Título</label>
+    <input type="text" [(ngModel)]="formLeccion!.titulo" placeholder="Ej: Introducción al producto" />
+    <label>PDF {{ formLeccion!.id ? '(deja vacío para no cambiarlo)' : '' }}</label>
+    <input type="file" accept="application/pdf" (change)="onArchivoLeccion($event)" />
+    <label>XP al aprobar</label>
+    <input type="number" min="10" [(ngModel)]="formLeccion!.xp" />
+    <div class="aa-modal-acciones">
+      <button class="aa-btn-ghost" (click)="cerrarFormLeccion()">Cancelar</button>
+      <button class="aa-btn-cta" (click)="guardarLeccion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ Popup: form Pregunta manual ══════ -->
+<div class="aa-modal-bg" *ngIf="formPregunta" (click)="cerrarFormPregunta()">
+  <div class="aa-modal" (click)="$event.stopPropagation()">
+    <h3>{{ formPregunta!.id ? 'Editar pregunta' : 'Nueva pregunta' }}</h3>
+    <label>Pregunta</label>
+    <textarea [(ngModel)]="formPregunta!.pregunta" rows="2"></textarea>
+    <label>Opciones (marca la correcta)</label>
+    <div class="aa-op-edit" *ngFor="let o of formPregunta!.opciones; let i = index">
+      <input type="radio" name="correcta" [checked]="formPregunta!.respuesta_correcta === i" (change)="formPregunta!.respuesta_correcta = i" />
+      <input type="text" [(ngModel)]="formPregunta!.opciones![i]" [placeholder]="'Opción ' + ['A','B','C','D','E'][i]" />
+    </div>
+    <label>Explicación (opcional)</label>
+    <textarea [(ngModel)]="formPregunta!.explicacion" rows="2"></textarea>
+    <div class="aa-modal-acciones">
+      <button class="aa-btn-ghost" (click)="cerrarFormPregunta()">Cancelar</button>
+      <button class="aa-btn-cta" (click)="guardarPregunta()">Guardar y publicar</button>
+    </div>
+  </div>
+</div>

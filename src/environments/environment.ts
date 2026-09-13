@@ -11,4 +11,5 @@ export const environment = {
   cruceBase: '',
   ventasBase: 'https://api-unificada.onrender.com/ventas',
   gestionBase: 'https://api-unificada.onrender.com/gestion',
+  aulaBase: 'https://api-unificada.onrender.com/aula',
 };
