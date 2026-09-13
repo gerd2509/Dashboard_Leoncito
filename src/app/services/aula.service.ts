@@ -29,6 +29,15 @@ export interface AulaExamenResultado {
   detalle: { pregunta_id: number; marcada: number; correcta: number; explicacion: string; acerto: boolean }[];
 }
 export interface AulaRankingFila { vendedor: string; xp: number; lecciones: number; puesto: number; nivel: number; }
+export interface AulaProgresoVendedor {
+  vendedor: string; vistas: number; aprobadas: number; con_intento: number; promedio: number;
+  intentos: number; xp: number; nivel: number; ultima_actividad: string | null; total_lecciones: number;
+}
+export interface AulaProgresoDetalleFila {
+  curso: string; leccion: string; xp: number; visto: boolean; fecha_visto: string | null;
+  intentos: number; mejor_puntaje: number; aprobado: boolean; fecha_aprobado: string | null;
+}
+export interface AulaProgresoDetalle { detalle: AulaProgresoDetalleFila[]; insignias: AulaInsignia[]; racha: number; }
 
 @Injectable({ providedIn: 'root' })
 export class AulaService {
@@ -76,4 +85,10 @@ export class AulaService {
   crearPregunta(data: Partial<AulaPregunta>): Observable<AulaPregunta> { return this.http.post<AulaPregunta>(`${this.root}/admin/preguntas`, data); }
   editarPregunta(id: number, data: Partial<AulaPregunta>): Observable<AulaPregunta> { return this.http.put<AulaPregunta>(`${this.root}/admin/preguntas/${id}`, data); }
   eliminarPregunta(id: number): Observable<any> { return this.http.delete(`${this.root}/admin/preguntas/${id}`); }
+
+  // ── Admin — progreso del equipo ──
+  adminProgreso(): Observable<AulaProgresoVendedor[]> { return this.http.get<AulaProgresoVendedor[]>(`${this.root}/admin/progreso`); }
+  adminProgresoVendedor(vendedor: string): Observable<AulaProgresoDetalle> {
+    return this.http.get<AulaProgresoDetalle>(`${this.root}/admin/progreso/${encodeURIComponent(vendedor)}`);
+  }
 }

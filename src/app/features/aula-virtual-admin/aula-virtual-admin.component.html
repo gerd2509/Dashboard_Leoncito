@@ -2,6 +2,7 @@
   <div class="aa-head">
     <div class="aa-head-ico"><mat-icon>school</mat-icon></div>
     <div><h2>Aula Virtual — Contenido</h2><p>Cursos, lecciones y exámenes que verán los vendedores.</p></div>
+    <button class="aa-btn-ghost aa-head-btn" (click)="verProgreso()"><mat-icon>bar_chart</mat-icon> Progreso de vendedores</button>
   </div>
 
   <!-- ══════ CURSOS ══════ -->
@@ -78,11 +79,71 @@
           <button class="aa-btn-ghost small danger" (click)="eliminarPregunta(p)"><mat-icon>delete</mat-icon> Eliminar</button>
         </div>
       </div>
-      <div class="aa-vacio" *ngIf="!preguntas.length"><p>Sin preguntas aún. Genera con IA o agrega una manual.</p></div>
+      <div class="aa-vacio" *ngIf="!preguntas.length"><p>Sin preguntas aún. Agrega la primera.</p></div>
+    </div>
+  </ng-container>
+
+  <!-- ══════ PROGRESO DE VENDEDORES ══════ -->
+  <ng-container *ngIf="vista === 'progreso'">
+    <button class="aa-back" (click)="vista = 'cursos'"><mat-icon>arrow_back</mat-icon> Contenido</button>
+    <h3 class="aa-subtit"><mat-icon>bar_chart</mat-icon> Progreso de vendedores</h3>
+    <input type="text" class="aa-buscador" placeholder="Buscar vendedor…" [(ngModel)]="filtroVendedor" />
+    <div class="aa-tabla-scroll" *ngIf="!cargando">
+      <table class="aa-tabla-prog">
+        <thead>
+          <tr>
+            <th class="ta-l">Vendedor</th><th>Nivel</th><th>XP</th>
+            <th>Lecciones vistas</th><th>Aprobadas</th><th>Promedio</th><th>Intentos</th><th>Última actividad</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let v of progresoFiltrado" (click)="verDetalleVendedor(v)">
+            <td class="ta-l"><b>{{ v.vendedor }}</b></td>
+            <td class="ta-c">{{ v.nivel }}</td>
+            <td class="ta-c">{{ v.xp }}</td>
+            <td class="ta-c">{{ v.vistas }} / {{ v.total_lecciones }}</td>
+            <td class="ta-c">{{ v.aprobadas }}</td>
+            <td class="ta-c" [class.ok]="v.promedio >= 70" [class.bad]="v.promedio < 70 && v.con_intento > 0">{{ v.con_intento > 0 ? v.promedio + '%' : '—' }}</td>
+            <td class="ta-c">{{ v.intentos }}</td>
+            <td class="ta-c">{{ fmtFecha(v.ultima_actividad) }}</td>
+            <td class="ta-c"><mat-icon>chevron_right</mat-icon></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="aa-vacio" *ngIf="!progresoFiltrado.length"><mat-icon>bar_chart</mat-icon><p>Aún no hay vendedores con actividad registrada.</p></div>
     </div>
   </ng-container>
 
   <app-loading-overlay [inline]="true" [visible]="cargando" icon="school" mensaje="Cargando…"></app-loading-overlay>
+</div>
+
+<!-- ══════ Popup: detalle de progreso por vendedor ══════ -->
+<div class="aa-modal-bg" *ngIf="vendedorSel" (click)="cerrarDetalleVendedor()">
+  <div class="aa-modal aa-modal-ancho" (click)="$event.stopPropagation()">
+    <h3>{{ vendedorSel }}</h3>
+    <div class="aa-det-insignias" *ngIf="progresoDetalle as d">
+      <span class="aa-det-racha" *ngIf="d.racha > 0">🔥 {{ d.racha }} día(s) de racha</span>
+      <span class="aa-det-badge" *ngFor="let b of d.insignias" [title]="b.nombre + ' — ' + b.descripcion">{{ b.icono }}</span>
+      <span class="aa-hint" *ngIf="!d.insignias.length">Sin insignias aún</span>
+    </div>
+    <table class="aa-tabla-prog" *ngIf="progresoDetalle as d">
+      <thead><tr><th class="ta-l">Curso / Lección</th><th>Estado</th><th>Nota</th><th>Intentos</th><th>Fecha</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let f of d.detalle">
+          <td class="ta-l"><small>{{ f.curso }}</small><br><b>{{ f.leccion }}</b></td>
+          <td class="ta-c">
+            <span class="aa-chip" [class.off]="!f.aprobado" [class.warn]="f.visto && !f.aprobado">
+              {{ f.aprobado ? 'Aprobada' : (f.visto ? 'Vista, sin aprobar' : 'Sin ver') }}
+            </span>
+          </td>
+          <td class="ta-c" [class.ok]="f.mejor_puntaje >= 70" [class.bad]="f.intentos > 0 && f.mejor_puntaje < 70">{{ f.intentos > 0 ? f.mejor_puntaje + '%' : '—' }}</td>
+          <td class="ta-c">{{ f.intentos }}</td>
+          <td class="ta-c">{{ fmtFecha(f.fecha_aprobado || f.fecha_visto) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="aa-modal-acciones"><button class="aa-btn-ghost" (click)="cerrarDetalleVendedor()">Cerrar</button></div>
+  </div>
 </div>
 
 <!-- ══════ Popup: form Curso ══════ -->

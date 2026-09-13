@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { AulaService, AulaCurso, AulaLeccion, AulaPregunta } from '../../services/aula.service';
+import {
+  AulaService, AulaCurso, AulaLeccion, AulaPregunta, AulaProgresoVendedor, AulaProgresoDetalle,
+} from '../../services/aula.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
-type Vista = 'cursos' | 'lecciones' | 'preguntas';
+type Vista = 'cursos' | 'lecciones' | 'preguntas' | 'progreso';
 
 const ICONOS = ['school', 'menu_book', 'campaign', 'support_agent', 'storefront', 'trending_up', 'diamond', 'handshake', 'psychology'];
 const COLORES = ['#1A5FAD', '#6A1B9A', '#2E7D32', '#E65100', '#00838F', '#AD1457', '#455A64'];
@@ -39,6 +41,11 @@ export class AulaVirtualAdminComponent implements OnInit {
   leccionSel: AulaLeccion | null = null;
   preguntas: AulaPregunta[] = [];
   formPregunta: Partial<AulaPregunta> | null = null;
+
+  progresoEquipo: AulaProgresoVendedor[] = [];
+  vendedorSel: string | null = null;
+  progresoDetalle: AulaProgresoDetalle | null = null;
+  filtroVendedor = '';
 
   ngOnInit(): void { this.cargarCursos(); }
 
@@ -126,6 +133,26 @@ export class AulaVirtualAdminComponent implements OnInit {
   eliminarPregunta(p: AulaPregunta): void {
     if (!confirm('¿Eliminar esta pregunta?')) return;
     this.aula.eliminarPregunta(p.id).subscribe({ next: () => { this.preguntas = this.preguntas.filter((x) => x.id !== p.id); }, error: () => this.toast('No se pudo eliminar.', true) });
+  }
+
+  // ── Progreso del equipo ──
+  verProgreso(): void {
+    this.vista = 'progreso'; this.vendedorSel = null; this.progresoDetalle = null; this.cargando = true;
+    this.aula.adminProgreso().subscribe({ next: (r) => { this.progresoEquipo = r; this.cargando = false; }, error: () => (this.cargando = false) });
+  }
+  get progresoFiltrado(): AulaProgresoVendedor[] {
+    const f = this.filtroVendedor.trim().toLowerCase();
+    return f ? this.progresoEquipo.filter((v) => v.vendedor.toLowerCase().includes(f)) : this.progresoEquipo;
+  }
+  verDetalleVendedor(v: AulaProgresoVendedor): void {
+    this.vendedorSel = v.vendedor; this.cargando = true;
+    this.aula.adminProgresoVendedor(v.vendedor).subscribe({ next: (d) => { this.progresoDetalle = d; this.cargando = false; }, error: () => (this.cargando = false) });
+  }
+  cerrarDetalleVendedor(): void { this.vendedorSel = null; this.progresoDetalle = null; }
+  fmtFecha(f: string | null): string {
+    if (!f) return '—';
+    const d = new Date(f);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   }
 
   private toast(msg: string, error = false): void {
