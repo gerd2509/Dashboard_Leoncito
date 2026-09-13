@@ -73,9 +73,6 @@ export class AulaService {
   eliminarLeccion(id: number): Observable<any> { return this.http.delete(`${this.root}/admin/lecciones/${id}`); }
 
   adminPreguntas(leccionId: number): Observable<AulaPregunta[]> { return this.http.get<AulaPregunta[]>(`${this.root}/admin/lecciones/${leccionId}/preguntas`); }
-  generarPreguntasIA(leccionId: number, cantidad = 5): Observable<{ success: boolean; preguntas: AulaPregunta[]; message?: string }> {
-    return this.http.post<any>(`${this.root}/admin/lecciones/${leccionId}/generar-preguntas`, { cantidad });
-  }
   crearPregunta(data: Partial<AulaPregunta>): Observable<AulaPregunta> { return this.http.post<AulaPregunta>(`${this.root}/admin/preguntas`, data); }
   editarPregunta(id: number, data: Partial<AulaPregunta>): Observable<AulaPregunta> { return this.http.put<AulaPregunta>(`${this.root}/admin/preguntas/${id}`, data); }
   eliminarPregunta(id: number): Observable<any> { return this.http.delete(`${this.root}/admin/preguntas/${id}`); }

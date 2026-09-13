@@ -58,24 +58,12 @@
     <button class="aa-back" (click)="volverALecciones()"><mat-icon>arrow_back</mat-icon> Lecciones</button>
     <h3 class="aa-subtit" *ngIf="leccionSel">{{ leccionSel.titulo }}</h3>
 
-    <div class="aa-ia-box">
-      <mat-icon>auto_awesome</mat-icon>
-      <div class="aa-ia-txt">
-        <b>Generar preguntas con IA</b>
-        <small>Lee el PDF de la lección y redacta un borrador. Tú las revisas y apruebas antes de publicarlas.</small>
-      </div>
-      <input type="number" min="3" max="8" [(ngModel)]="cantidadIA" class="aa-input-num" />
-      <button class="aa-btn-cta small" (click)="generarConIA()" [disabled]="generandoIA">
-        <mat-icon>{{ generandoIA ? 'hourglass_empty' : 'auto_awesome' }}</mat-icon> {{ generandoIA ? 'Generando…' : 'Generar' }}
-      </button>
-    </div>
-    <button class="aa-btn-ghost" (click)="nuevaPreguntaManual()"><mat-icon>add</mat-icon> Agregar pregunta manual</button>
+    <button class="aa-btn-cta" (click)="nuevaPreguntaManual()"><mat-icon>add_circle</mat-icon> Agregar pregunta</button>
 
     <div class="aa-preguntas" *ngIf="!cargando">
       <div class="aa-preg-card" *ngFor="let p of preguntas" [class.pendiente]="!p.aprobada">
         <div class="aa-preg-top">
           <span class="aa-chip" [class.off]="!p.aprobada">{{ p.aprobada ? 'Publicada' : 'Borrador (sin publicar)' }}</span>
-          <span class="aa-chip origen">{{ p.origen === 'ia' ? '✨ IA' : '✍️ Manual' }}</span>
         </div>
         <p class="aa-preg-txt">{{ p.pregunta }}</p>
         <ul class="aa-preg-op">

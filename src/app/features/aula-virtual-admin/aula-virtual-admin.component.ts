@@ -38,8 +38,6 @@ export class AulaVirtualAdminComponent implements OnInit {
 
   leccionSel: AulaLeccion | null = null;
   preguntas: AulaPregunta[] = [];
-  generandoIA = false;
-  cantidadIA = 5;
   formPregunta: Partial<AulaPregunta> | null = null;
 
   ngOnInit(): void { this.cargarCursos(); }
@@ -105,18 +103,6 @@ export class AulaVirtualAdminComponent implements OnInit {
   }
   volverALecciones(): void { this.vista = 'lecciones'; this.leccionSel = null; this.preguntas = []; if (this.cursoSel) this.abrirLecciones(this.cursoSel); }
 
-  generarConIA(): void {
-    if (!this.leccionSel) return;
-    this.generandoIA = true;
-    this.aula.generarPreguntasIA(this.leccionSel.id, this.cantidadIA).subscribe({
-      next: (r) => {
-        this.generandoIA = false;
-        if (r.success && r.preguntas?.length) { this.preguntas = [...this.preguntas, ...r.preguntas]; this.toast(`Se generaron ${r.preguntas.length} preguntas — revísalas y apruébalas.`); }
-        else this.toast(r.message || 'No se generaron preguntas.', true);
-      },
-      error: (e) => { this.generandoIA = false; this.toast(e?.error?.message || 'No se pudo generar con IA.', true); },
-    });
-  }
   nuevaPreguntaManual(): void { this.formPregunta = { pregunta: '', opciones: ['', '', '', ''], respuesta_correcta: 0, explicacion: '' }; }
   editarPreguntaForm(p: AulaPregunta): void { this.formPregunta = { ...p, opciones: [...p.opciones] }; }
   cerrarFormPregunta(): void { this.formPregunta = null; }
