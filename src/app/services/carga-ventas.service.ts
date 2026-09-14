@@ -242,6 +242,17 @@ export class CargaVentasService {
   }
 
   /**
+   * Leads KOMMO en DETALLE (fila por fila) de un mes — para Embudos de Gestión
+   * (embudo KOMMO/LEADS): ASIGNADOS = # leads creados ese mes; CONTACTADOS = los
+   * que ya tienen "Modificado por".
+   */
+  obtenerLeadsDetalle(canal: 'call' | 'realzza', anio: number, mes: number): Observable<{ id: number; nombre_lead: string; responsable: string; modificado_por: string }[]> {
+    const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
+    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/${path}/detalle`, { params });
+  }
+
+  /**
    * Data del módulo Ventas Realzza reconstruyendo los 2 movimientos (CV y NC) de cada
    * venta por AÑO: la venta cuenta en su mes CV, la NC resta en su mes de AF. Respeta el
    * TipoBase de ventas_realzza (Realzza tal cual; CALL solo si se puso a mano).

@@ -6,7 +6,7 @@
     <div>
       <h2>Embudos de Gestión</h2>
       <p *ngIf="!modo">Elige la base y sube tu Excel de carteras: cruza cada cartera con la gestión y muestra el embudo.</p>
-      <p *ngIf="modo">Base <b>{{ nombreModo }}</b> — cada hoja del Excel es un embudo; la hoja VENTAS mide las ventas.</p>
+      <p *ngIf="modo">Base <b>{{ nombreModo }}</b> — cada hoja del Excel es un embudo; gestión, ventas y KOMMO se cruzan en vivo con la base de datos.</p>
     </div>
     <button *ngIf="modo" class="btn-secundario volver" (click)="volverModos()">
       <mat-icon>arrow_back</mat-icon> Cambiar base
@@ -35,7 +35,7 @@
         <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
           [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
       </div>
-      <span class="barra-nota"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Incluye una hoja <b>VENTAS</b>.</span>
+      <span class="barra-nota"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Gestión, ventas y KOMMO se cruzan solos con la BD del mes elegido.</span>
     </div>
 
     <div *ngIf="!listo" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
@@ -46,7 +46,7 @@
         <p class="dz-sub">o</p>
         <label class="btn-cargar"><mat-icon>folder_open</mat-icon> Seleccionar archivo
           <input type="file" hidden accept=".xlsx,.xls" (change)="onFileChange($event)" /></label>
-        <p class="dz-formatos">Una hoja por cartera (con DNI) + una hoja <b>VENTAS</b> (DNI, CONTACTO KOMMO, MARKET PLACE).</p>
+        <p class="dz-formatos">Una hoja por cartera, con columna <b>DNI</b> (y opcional Asesor). Gestión, ventas y KOMMO se cruzan solos con la base de datos.</p>
       </ng-container>
       <ng-template #cargando>
         <app-loading-overlay [inline]="true" [visible]="procesando" icon="filter_alt"

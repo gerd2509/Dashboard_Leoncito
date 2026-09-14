@@ -4,6 +4,7 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { lastValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { SheetsService } from '../../services/service-google.service';
+import { CargaVentasService } from '../../services/carga-ventas.service';
 
 type Modo = 'call' | 'realzza';
 
@@ -74,6 +75,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 })
 export class EmbudosGestionComponent {
   private sheets = inject(SheetsService);
+  private ventasSrv = inject(CargaVentasService);
 
   modo: Modo | null = null;
   arrastrando = false;
@@ -141,55 +143,54 @@ export class EmbudosGestionComponent {
   }
 
   // ── Núcleo ──
+  // Todas las hojas del Excel son CARTERAS (solo definen ASIGNADOS). La gestión, las
+  // ventas y los leads KOMMO ya NO se leen del Excel: se cruzan EN VIVO contra la BD
+  // (gestión: igual que antes; ventas: tabla ventas/ventas_realzza; KOMMO: leads_kommo_*
+  // + gestión Kommo), así no hace falta preparar hojas VENTAS ni "kommo" a mano.
   private async construirEmbudos(wb: XLSX.WorkBook): Promise<void> {
-    // 1) Identificar hojas especiales: VENTAS y KOMMO (leads). El resto = carteras.
-    const hojas = wb.SheetNames;
-    const hojaVentas = hojas.find(h => this.norm(h) === 'ventas' || this.norm(h).includes('venta'));
-    const hojaKommo = hojas.find(h => {
-      const n = this.norm(h);
-      return n === 'kommo' || n === 'kommoleads' || (n.includes('kommo') && n.includes('lead'));
-    });
-    const hojasCartera = hojas.filter(h => h !== hojaVentas && h !== hojaKommo);
-    if (!hojasCartera.length && !hojaKommo) throw new Error('El Excel no tiene hojas de cartera ni hoja KOMMO (además de VENTAS).');
+    const hojasCartera = wb.SheetNames;
+    if (!hojasCartera.length) throw new Error('El Excel no tiene hojas.');
 
-    // 2) Leer VENTAS: set de DNIs + clasificación de la venta.
-    //    - Call:    columna CONTACTO  → KOMMO / MARKET PLACE.
-    //    - Realzza: columna TipoBase  → KOMMO / MARKET PLACE / BBDD KOMMO.
-    let ventasSet = new Set<string>();
-    let ventasKommo = 0, ventasMarket = 0, ventasBbddKommo = 0;
-    if (hojaVentas) {
-      const rowsV = XLSX.utils.sheet_to_json<Record<string, any>>(wb.Sheets[hojaVentas], { defval: '', raw: false });
-      if (rowsV.length) {
-        const headers = Object.keys(rowsV[0]);
-        const dniV = this.buscarHeader(headers, CANDIDATOS_DNI) ?? this.buscarIncluye(headers, FRAG_DNI);
-        const colCanal = this.modo === 'realzza'
-          ? (this.buscarHeader(headers, ['TipoBase', 'TIPO BASE', 'TIPO DE BASE']) ?? this.buscarIncluye(headers, ['tipobase', 'tipodebase']))
-          : (this.buscarHeader(headers, ['CONTACTO', 'Contacto']) ?? this.buscarIncluye(headers, ['contacto']));
-        rowsV.forEach(r => {
-          if (dniV) { const d = this.dig(r[dniV]); if (d) ventasSet.add(d); }
-          const c = colCanal ? this.norm(r[colCanal]) : '';
-          if (c === 'kommo') ventasKommo++;
-          else if (c === 'marketplace') ventasMarket++;
-          else if (c === 'bbddkommo') ventasBbddKommo++;
-        });
-      }
-    }
-
-    // 3) Gestión del mes: modo (call/campo) filtrado en backend por "Marca temporal";
-    //    Kommo se trae completo y se filtra por FECHA DE LEAD ASIGNADO (el backend no filtra por esa columna).
+    // 1) Gestión del mes (backend, "Marca temporal") + gestión Kommo del mes (por
+    //    FECHA DE LEAD ASIGNADO) + ventas del mes + leads Kommo del mes (detalle).
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
     const desde = new Date(anio, mes, 1), hasta = new Date(anio, mes + 1, 0);
-    let dataModo: any[] = [], dataKommo: any[] = [];
+    let dataModo: any[] = [], dataKommo: any[] = [], dataVentas: any[] = [], leadsDetalle: any[] = [];
     try {
-      [dataModo, dataKommo] = await Promise.all([
+      [dataModo, dataKommo, dataVentas, leadsDetalle] = await Promise.all([
         lastValueFrom(this.modo === 'realzza'
           ? this.sheets.getSheetDataCampoRango({ desde, hasta })   // Google Form campo/realzza
           : this.sheets.getSheetDataCallRango({ desde, hasta })),  // Google Form call
         lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes + 1, leadAnio: anio })),   // solo leads del mes (BD)
+        lastValueFrom(this.modo === 'realzza'
+          ? this.ventasSrv.obtenerVentasRealzzaModulo(anio)                        // se filtra por mes_cv abajo
+          : this.ventasSrv.obtenerVentasCanal('call', { anio, mes: mes + 1 })),
+        lastValueFrom(this.ventasSrv.obtenerLeadsDetalle(this.modo!, anio, mes + 1)),
       ]);
     } catch {
-      throw new Error('No se pudo cargar la gestión (revisa la conexión al servidor).');
+      throw new Error('No se pudo cargar la gestión/ventas (revisa la conexión al servidor).');
     }
+
+    // 2) Ventas EFECTIVAS del mes (excluye notas de crédito/incautaciones, monto>0),
+    //    clasificadas por su propia columna: Call = "contacto"; Realzza = "tipo_base"
+    //    (mismos valores KOMMO / MARKET PLACE / BBDD KOMMO que antes traía la hoja VENTAS).
+    const ventasSet = new Set<string>();
+    let ventasKommo = 0, ventasMarket = 0, ventasBbddKommo = 0;
+    (dataVentas || [])
+      .filter(v => {
+        if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
+        const est = (v.estado_venta || '').toString().toUpperCase();
+        if (est.includes('NOTA DE') || est.includes('INCAUTAC')) return false;
+        return (Number(v.monto_consolidado) || 0) > 0;
+      })
+      .forEach(v => {
+        const dni = this.dig(v.doc_identidad);
+        if (dni) ventasSet.add(dni);
+        const c = this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto);
+        if (c === 'kommo') ventasKommo++;
+        else if (c === 'marketplace') ventasMarket++;
+        else if (c === 'bbddkommo') ventasBbddKommo++;
+      });
 
     // Kommo del mes según FECHA DE LEAD ASIGNADO (d/m/yyyy).
     const kommoMes = dataKommo.filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio));
@@ -240,20 +241,17 @@ export class EmbudosGestionComponent {
       embudos.push(emb);
     }
 
-    // 5) Embudo KOMMO (LEADS), desde la hoja "kommo" del Excel + la gestión Kommo del mes.
-    //    ASIGNADOS = filas de la hoja (leads); CONTACTADOS = filas con "Modificado por" no vacío;
+    // 5) Embudo KOMMO (LEADS) — SIEMPRE se arma (ya no depende de subir una hoja "kommo"):
+    //    ASIGNADOS = leads del mes (tabla leads_kommo_<canal>, en BD);
+    //    CONTACTADOS = de esos, con "Modificado por" no vacío;
     //    GESTIONADOS = registros de gestión Kommo con FECHA DE LEAD ASIGNADO en el mes;
-    //    INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO; VENTAS = ventas con CONTACTO = KOMMO.
-    if (hojaKommo) {
-      const rowsK = XLSX.utils.sheet_to_json<Record<string, any>>(wb.Sheets[hojaKommo], { defval: '', raw: false });
-      const headersK = rowsK.length ? Object.keys(rowsK[0]) : [];
-      const colMod = this.buscarHeader(headersK, ['Modificado por', 'MODIFICADO POR']) ?? this.buscarIncluye(headersK, ['modificadopor']);
-      const asignados = rowsK.length;
-      const contactados = colMod ? rowsK.filter(r => (r[colMod] ?? '').toString().trim() !== '').length : 0;
+    //    INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO;
+    //    TOTAL VENTAS = ventas KOMMO + ventas MARKET PLACE del mes.
+    {
+      const asignados = leadsDetalle.length;
+      const contactados = leadsDetalle.filter(r => (r.modificado_por ?? '').toString().trim() !== '').length;
       const gestionados = kommoMes.length;
       const interesados = kommoMes.filter(r => (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO').length;
-
-      // TOTAL VENTAS del embudo Kommo = ventas KOMMO + ventas MARKET PLACE (ambas en la columna CONTACTO).
       const ventasTotalK = ventasKommo + ventasMarket;
       const emb = this.armarEmbudo('KOMMO (LEADS)', asignados, gestionados, contactados, interesados, ventasTotalK, this.paleta[ci++ % this.paleta.length], true);
       emb.marketPlace = ventasMarket;
