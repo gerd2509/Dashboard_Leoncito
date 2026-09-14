@@ -113,12 +113,12 @@ export const CALL_MODULES = [
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
-  'avance-metas', 'reporte-global', 'seguimiento-135', 'aula-virtual',
+  'avance-metas', 'reporte-global', 'seguimiento-135',
 ];
 export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
-  'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'aula-virtual',
+  'registro-kommo', 'gestion-kommo', 'seguimiento-135',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
@@ -128,7 +128,7 @@ const JEFE_ALMACEN_MODULES = ['logistica-registrar', 'logistica-entregas', 'logi
 const CHOFER_MODULES = ['logistica-despacho', 'logistica-rutas'];
 const ALMACENERO_MODULES = ['logistica-registrar', 'logistica-despacho'];
 // Rol vendedor: por defecto ve su panel personal + el formulario de registro.
-const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones', 'aula-virtual'];
+const VENDEDOR_MODULES = ['mi-panel', 'registro-gestion', 'registro-market-place', 'registro-derivaciones'];
 
 const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-call':       [...CALL_MODULES],
@@ -152,7 +152,7 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'almacenero-zona':    [...ALMACENERO_MODULES],
 };
 
-const STORAGE_KEY = 'gd_permissions_v36';
+const STORAGE_KEY = 'gd_permissions_v37';
 
 @Injectable({ providedIn: 'root' })
 export class PermissionsService {
