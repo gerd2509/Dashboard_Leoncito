@@ -498,14 +498,14 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       next: ({ ges, ven }) => {
         // Mis contactos por DNI (solo CONTACTO, solo míos).
         const parse = (s: any): Date | null => { const m = (s ?? '').toString().match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (!m) return null; const d = new Date(+m[3], +m[2] - 1, +m[1]); d.setHours(0, 0, 0, 0); return isNaN(d.getTime()) ? null : d; };
-        const porDni = new Map<string, { fechas: Date[]; cel: string }>();
+        const porDni = new Map<string, { registros: { fecha: Date; resultado: string }[]; cel: string }>();
         for (const g of (ges || [])) {
           if ((g['ESTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() !== 'CONTACTO') continue;
           if (this.normNombre(g['ASESOR REALZZA']) !== yo) continue;
           const dni = (g['DNI CLIENTE'] ?? '').toString().replace(/\D/g, '').replace(/^0+/, ''); if (!dni) continue;
           const f = parse(g['Marca temporal']); if (!f) continue;
-          let e = porDni.get(dni); if (!e) { e = { fechas: [], cel: '' }; porDni.set(dni, e); }
-          e.fechas.push(f);
+          let e = porDni.get(dni); if (!e) { e = { registros: [], cel: '' }; porDni.set(dni, e); }
+          e.registros.push({ fecha: f, resultado: (g['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() });
           if (!e.cel) e.cel = (g['CELULAR GESTIONADO'] ?? '').toString().replace(/\D/g, '');
         }
         // DNIs que ya me compraron (no hace falta seguir).
@@ -517,11 +517,15 @@ export class MiPanelComponent implements OnInit, OnDestroy {
         }
         // RECENCIA: recordar llamar a los clientes que llevan ≥3 días sin contacto (y ≤35,
         // dentro de la ventana cargada) y que aún no compraron. Vencido = ≥7 días.
+        // Si el resultado del ÚLTIMO contacto fue NO INTERESADO / NO ATENDIBLE, ya no
+        // tiene caso seguir insistiendo: se excluye definitivamente de la alerta.
+        const SIN_INTERES = new Set(['NO INTERESADO', 'NO ATENDIBLE']);
         const alertas: { dni: string; celular: string; dias: number; vencido: boolean }[] = [];
         porDni.forEach((e, dni) => {
           if (vendidos.has(dni)) return;
-          const ult = e.fechas.reduce((a, b) => (b > a ? b : a));               // último contacto
-          const dias = Math.round((hoy.getTime() - ult.getTime()) / 86400000);
+          const ultimo = e.registros.reduce((a, b) => (b.fecha > a.fecha ? b : a));   // último contacto
+          if (SIN_INTERES.has(ultimo.resultado)) return;
+          const dias = Math.round((hoy.getTime() - ultimo.fecha.getTime()) / 86400000);
           if (dias < 3 || dias > 35) return;                                    // <3 = recién / >35 = fuera de ventana
           alertas.push({ dni, celular: e.cel, dias, vencido: dias >= 7 });
         });
