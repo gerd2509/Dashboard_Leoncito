@@ -160,6 +160,7 @@ export class CierreGestionComponent implements OnInit {
   // LISTA ASESORES CALL CENTER (base, sin los que pasan a Realzza por fecha)
   private asesoresCallBase = [
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
+    { value: 'CC2', viewValue: 'VALDERA PISCOYA DEXY ROSARIO' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
@@ -222,7 +223,7 @@ export class CierreGestionComponent implements OnInit {
   // Nombres cortos para mostrar en las tablas (mismo criterio que ventas / ventas-campo)
   nombresCortos: Record<string, string> = {
     // Call Center
-    'CC1':  'PATRICIA', 'CC3':  'FELICITA', 'CC5':  'KAREN',   'CC6':  'MARIA',
+    'CC1':  'PATRICIA', 'CC2':  'DEXY',     'CC3':  'FELICITA', 'CC5':  'KAREN',   'CC6':  'MARIA',
     'CC8':  'KELLY',    'CC11': 'ARIADNE',  'CC12': 'BRENDA',  'CC13': 'FRANCIS',
     'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
     'CC26': 'NOEMI',    'CC19': 'JUANA',

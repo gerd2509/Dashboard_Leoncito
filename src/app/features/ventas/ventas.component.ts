@@ -125,6 +125,7 @@ export class VentasComponent implements OnInit {
   asesores = [
     { value: '', viewValue: 'Seleccione Asesor' },
     { value: 'CC1',  viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
+    { value: 'CC2',  viewValue: 'VALDERA PISCOYA DEXY ROSARIO' },
     { value: 'CC3',  viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'CC5',  viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6',  viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
@@ -155,6 +156,7 @@ export class VentasComponent implements OnInit {
 
   nombresCortos: Record<string, string> = {
     'CC1':  'PATRICIA',
+    'CC2':  'DEXY',
     'CC3':  'FELICITA',
     'CC5':  'KAREN',
     'CC6':  'MARIA',

@@ -12,6 +12,8 @@ export const ASESORES_CALL: AsesorRef[] = [
   { value: 'CC19', nombre: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
   { value: 'CC22', nombre: 'BERNAL BAZAN FABRICIO ROLANDO' },
   { value: 'CC26', nombre: 'RUIZ SAMPEN LUCRECIA NOEMI' },
+  // Pasó de Ferreñafe (piso) a Call Center (sep-2026).
+  { value: 'CC2',  nombre: 'VALDERA PISCOYA DEXY ROSARIO' },
 ];
 
 export const ASESORES_REALZZA: AsesorRef[] = [
