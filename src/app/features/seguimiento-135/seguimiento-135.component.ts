@@ -59,7 +59,8 @@ export class Seguimiento135Component {
     return (s ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
   }
 
-  canal: Canal = 'call';
+  // Por ahora solo se mapea Realzza (Call queda comentado en el HTML hasta reactivarlo).
+  canal: Canal = 'realzza';
   fuente: Fuente = 'auto';
   fecha: Date = new Date();
 
