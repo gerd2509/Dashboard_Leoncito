@@ -445,6 +445,10 @@ export class ComparativoVentasComponent implements OnInit {
   private normContacto(v: any): string {
     return (v || 'SIN CONTACTO').toString().trim().toUpperCase() || 'SIN CONTACTO';
   }
+  /** Balde de "sin tipo de base" (Call: SIN CONTACTO; Realzza: SIN BASE) — se excluye del
+   *  gráfico Ventas por Tipo de Base, igual que hace la tabla del módulo Ventas Realzza
+   *  (oculta la fila "SIN TIPO" aunque su monto sigue en los totales generales). */
+  private esSinBase(c: string): boolean { return c === 'SIN BASE' || c === 'SIN CONTACTO'; }
 
   /** Suma montos por contacto dentro de un rango de fechas, respetando el asesor seleccionado. */
   private montosPorContacto(fechaInicio: any, fechaFin: any): Map<string, number> {
@@ -463,6 +467,7 @@ export class ComparativoVentasComponent implements OnInit {
       if (asesor && this.normNom(v.AsesorVenta) !== asesor) continue;
 
       const c = this.normContacto(v.Contacto);
+      if (this.esSinBase(c)) continue;   // oculta el balde sin tipo de base (igual que Ventas Realzza)
       map.set(c, (map.get(c) || 0) + monto);
     }
     return map;
@@ -475,6 +480,7 @@ export class ComparativoVentasComponent implements OnInit {
       const monto = Number(v.MontoConsolidado || 0);
       if (!monto) continue;   // permite negativos (NC)
       const c = this.normContacto(v.Contacto);
+      if (this.esSinBase(c)) continue;   // oculta el balde sin tipo de base (igual que Ventas Realzza)
       agrupado.set(c, (agrupado.get(c) || 0) + monto);
     }
 
