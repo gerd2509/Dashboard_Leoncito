@@ -276,9 +276,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     this.sedesBloques = this.sedesObjetivo.map(sede => {
       const cfg = this.sedeConfig.getConfig(sede.key);
-      // Roster desde el CAP (solo ACTIVOS); si no hay CAP, cae al listado estático.
-      // Se listan ÚNICAMENTE los asesores del CAP (no se agregan los que no estén en él).
-      const asesores = this.capPorSede.get(sede.key)?.length
+      // Roster desde el CAP (solo ACTIVOS de HOY); si no hay CAP, cae al listado estático.
+      const asesoresBase = this.capPorSede.get(sede.key)?.length
         ? this.capPorSede.get(sede.key)!
         : (cfg?.asesores ?? []);
       const supMap = this.supPorSede.get(sede.key);
@@ -289,6 +288,22 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         this.sedeConfig.mismaSede(r['TIENDA SEDE'], valorSede) &&
         this.esMismaFecha(r['Marca temporal'], fecha)
       );
+
+      // El roster "activo de HOY" no basta para fechas pasadas: si alguien ya no
+      // figura ACTIVO en el CAP (renunció, aún no la dieron de alta, etc.) pero SÍ
+      // tiene gestión real ese día, se agrega igual — si no, sus llamadas/cartas/
+      // afiliaciones desaparecerían del total de la sede sin dejar rastro.
+      const cubiertos = new Set(asesoresBase.map(a => this.normNombre(a)));
+      const extra: string[] = [];
+      for (const r of filasSede) {
+        const crudo = (r['ASESOR'] ?? r[cfg!.columnaAsesor] ?? '').toString().trim();
+        if (!crudo) continue;
+        const n = this.normNombre(crudo);
+        if (cubiertos.has(n)) continue;
+        cubiertos.add(n);
+        extra.push(crudo);
+      }
+      const asesores = [...asesoresBase, ...extra];
 
       const filas: AsesorRow[] = asesores.map(asesorNombre => {
         const objetivo = this.normNombre(asesorNombre);
@@ -693,10 +708,26 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       }
 
       // Afiliaciones por día del ámbito (roster del CAP × afiliaciones importadas).
+      // Igual que en la vista diaria: se agregan también las asesoras con gestión
+      // real en el rango que ya no figuran ACTIVAS en el CAP de hoy, para no perder
+      // sus afiliaciones del histórico.
       const afilDia = new Map<string, number>();
       for (const s of sedesScope) {
         const cfg = this.sedeConfig.getConfig(s.key);
-        const roster = this.capPorSede.get(s.key)?.length ? this.capPorSede.get(s.key)! : (cfg?.asesores ?? []);
+        const valorSedeS = cfg?.valorSede ?? s.nombre;
+        const rosterBase = this.capPorSede.get(s.key)?.length ? this.capPorSede.get(s.key)! : (cfg?.asesores ?? []);
+        const cubiertosS = new Set(rosterBase.map(a => this.normNombre(a)));
+        const extraS: string[] = [];
+        for (const r of (data ?? [])) {
+          if (!this.sedeConfig.mismaSede(r['TIENDA SEDE'], valorSedeS)) continue;
+          const crudo = (r['ASESOR'] ?? r[cfg?.columnaAsesor ?? ''] ?? '').toString().trim();
+          if (!crudo) continue;
+          const n = this.normNombre(crudo);
+          if (cubiertosS.has(n)) continue;
+          cubiertosS.add(n);
+          extraS.push(crudo);
+        }
+        const roster = [...rosterBase, ...extraS];
         for (const asesor of roster) {
           const m = this.afiliacionesData.get(this.normNombre(asesor));
           if (!m) continue;
