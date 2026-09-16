@@ -191,6 +191,8 @@ export class ReporteGlobalComponent implements OnInit {
   filtroRankSsenda = true;
   private motosRowsCache: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[] = [];
 
+  get ambasMarcas(): boolean { return this.filtroRankWanxin && this.filtroRankSsenda; }
+
   toggleFiltroRank(marca: 'WANXIN' | 'SSENDA'): void {
     if (marca === 'WANXIN') {
       if (this.filtroRankWanxin && !this.filtroRankSsenda) return;   // no dejar los 2 desmarcados
