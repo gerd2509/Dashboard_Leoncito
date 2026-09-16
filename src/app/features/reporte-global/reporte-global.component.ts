@@ -186,10 +186,27 @@ export class ReporteGlobalComponent implements OnInit {
     this.motosMonto = this.buildPivot(montoMoto, motoCols);
   }
 
+  // Filtro de marca del RANKING (checkboxes): al menos uno debe quedar marcado.
+  filtroRankWanxin = true;
+  filtroRankSsenda = true;
+  private motosRowsCache: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[] = [];
+
+  toggleFiltroRank(marca: 'WANXIN' | 'SSENDA'): void {
+    if (marca === 'WANXIN') {
+      if (this.filtroRankWanxin && !this.filtroRankSsenda) return;   // no dejar los 2 desmarcados
+      this.filtroRankWanxin = !this.filtroRankWanxin;
+    } else {
+      if (this.filtroRankSsenda && !this.filtroRankWanxin) return;
+      this.filtroRankSsenda = !this.filtroRankSsenda;
+    }
+    this.recalcularRanking();
+  }
+
   /** Tablas de motos: por marca × sede, por tipo × sede y ranking de vendedores por sede. */
   private construirMotos(rowsAll: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]): void {
     // Solo sedes reconocidas (se excluye "Otras").
     const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
+    this.motosRowsCache = rows;
     // ── Motos por MARCA × sede (# motos) ──
     const ordenMarca = ['WANXIN', 'SSENDA'];
     const marcas = [...new Set(rows.map(r => r.marca))]
@@ -206,7 +223,19 @@ export class ReporteGlobalComponent implements OnInit {
     const entTipo = rows.map(r => { const i = this.sedeInfo(r.sede); return { sedeKey: i.key, sede: i.nombre, col: r.tipo, value: r.motos || 0 }; });
     this.motosTipo = this.buildPivot(entTipo, tipoCols);
 
-    // ── Ranking de vendedores por sede (propio / global, con desglose Wanxin/Ssenda) ──
+    this.recalcularRanking();
+  }
+
+  /** Ranking de vendedores por sede (propio / global, con desglose Wanxin/Ssenda), respetando
+   *  el filtro de marca de los checkboxes (al menos una marca queda siempre marcada). */
+  private recalcularRanking(): void {
+    const marcasOk = new Set<string>();
+    if (this.filtroRankWanxin) marcasOk.add('WANXIN');
+    if (this.filtroRankSsenda) marcasOk.add('SSENDA');
+    // "Otras" marcas se incluyen mientras ambos filtros estén activos (vista sin filtrar).
+    const soloFiltrado = !(this.filtroRankWanxin && this.filtroRankSsenda);
+    const rows = this.motosRowsCache.filter(r => !soloFiltrado || marcasOk.has(r.marca));
+
     const bySede = new Map<string, RankSede>();
     for (const r of rows) {
       const i = this.sedeInfo(r.sede);

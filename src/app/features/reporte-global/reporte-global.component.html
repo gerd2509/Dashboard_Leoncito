@@ -83,6 +83,10 @@
   <div class="am-card">
     <div class="am-cardhead moto">
       <mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos netas · propio / global · Wanxin / Ssenda)</em>
+      <span class="rg-filtro-marca">
+        <label><input type="checkbox" [checked]="filtroRankWanxin" (change)="toggleFiltroRank('WANXIN')"> Wanxin</label>
+        <label><input type="checkbox" [checked]="filtroRankSsenda" (change)="toggleFiltroRank('SSENDA')"> Ssenda</label>
+      </span>
       <button class="rg-toggle-all" *ngIf="rankingSedes.length" (click)="toggleTodas()">
         <mat-icon>{{ colapsadas.size >= rankingSedes.length ? 'unfold_more' : 'unfold_less' }}</mat-icon>
         {{ colapsadas.size >= rankingSedes.length ? 'Expandir todas' : 'Colapsar todas' }}
