@@ -15,13 +15,18 @@ const MODS_CALL = ['gestion-sede', 'control-gestion-sede', 'gestion-call-sedes',
 export function canalDeUsuario(u: any): '' | Canal {
   const rol = (u?.rol || '').toString().toLowerCase();
   if (rol === 'admin') return '';
-  // Supervisor/gerente GENERAL (sede "Todas") → ve AMBOS canales (Leoncito + Realzza),
-  // igual que admin. (La sede "Call" sí queda solo en Leoncito.)
-  if ((u?.sede || '').toString().trim().toLowerCase() === 'todas') return '';
   // Caso especial BRENDA: trabajó como Leoncito (Call) en KOMMO/gestión HASTA agosto-2026.
   // DESDE septiembre-2026 pasa a Realzza → se respeta su canal real (ya no se fuerza a Call).
   const ident = [(u?.usuario || ''), (u?.nombre || ''), (u?.vendedor || '')].join(' ').toUpperCase();
   if ((ident.includes('BERNAL BAZAN BRENDA') || ident.includes('CC_BRENDA')) && new Date() < new Date(2026, 8, 1)) return 'LEONCITO';
+  // Canal explícito del usuario (Call/Realzza) manda SIEMPRE, aunque su sede esté
+  // guardada como "todas" (normal en Call: no está atado a una sede física).
+  const canalU = (u?.canal || '').toString().trim().toLowerCase();
+  if (canalU === 'realzza') return 'REALZZA';
+  if (canalU === 'call') return 'LEONCITO';
+  // Supervisor/gerente GENERAL (sede "Todas", sin canal propio) → ve AMBOS canales
+  // (Leoncito + Realzza), igual que admin.
+  if ((u?.sede || '').toString().trim().toLowerCase() === 'todas') return '';
   // Por PERMISOS propios: si tiene módulos de AMBOS canales → ve los dos (como Henry).
   // Solo de Realzza → REALZZA; solo de Call → LEONCITO.
   const mods = Array.isArray(u?.modulos) ? u.modulos : null;
