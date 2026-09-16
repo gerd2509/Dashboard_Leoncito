@@ -82,7 +82,7 @@
   <!-- ══════════ RANKING de vendedores de motos por sede (tabla única) ══════════ -->
   <div class="am-card">
     <div class="am-cardhead moto">
-      <mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos · propio / global)</em>
+      <mat-icon>emoji_events</mat-icon> Ranking de Vendedores de Motos por Sede <em>(# motos netas · propio / global · Wanxin / Ssenda)</em>
       <button class="rg-toggle-all" *ngIf="rankingSedes.length" (click)="toggleTodas()">
         <mat-icon>{{ colapsadas.size >= rankingSedes.length ? 'unfold_more' : 'unfold_less' }}</mat-icon>
         {{ colapsadas.size >= rankingSedes.length ? 'Expandir todas' : 'Colapsar todas' }}
@@ -92,11 +92,19 @@
       <table class="am-table rg-rank-tabla">
         <thead>
           <tr>
-            <th class="ta-l rg-c-pos">#</th>
-            <th class="ta-l">Vendedor</th>
-            <th class="rg-c-num">Propio</th>
-            <th class="rg-c-num">Global</th>
-            <th class="rg-c-num">Total</th>
+            <th class="ta-l rg-c-pos" rowspan="2">#</th>
+            <th class="ta-l" rowspan="2">Vendedor</th>
+            <th class="rg-c-num rg-grp-head" colspan="3">Propio</th>
+            <th class="rg-c-num rg-grp-head" colspan="3">Global</th>
+            <th class="rg-c-num" rowspan="2">Total</th>
+          </tr>
+          <tr>
+            <th class="rg-c-num rg-sub">Total</th>
+            <th class="rg-c-num rg-sub">Wanxin</th>
+            <th class="rg-c-num rg-sub">Ssenda</th>
+            <th class="rg-c-num rg-sub">Total</th>
+            <th class="rg-c-num rg-sub">Wanxin</th>
+            <th class="rg-c-num rg-sub">Ssenda</th>
           </tr>
         </thead>
         <tbody *ngFor="let s of rankingSedes">
@@ -107,7 +115,11 @@
               <span class="rg-grp-count">({{ s.vendedores.length }})</span>
             </td>
             <td class="rg-c-num">{{ s.propio | number }}</td>
+            <td class="rg-c-num">{{ s.propioWanxin | number }}</td>
+            <td class="rg-c-num">{{ s.propioSsenda | number }}</td>
             <td class="rg-c-num">{{ s.global | number }}</td>
+            <td class="rg-c-num">{{ s.globalWanxin | number }}</td>
+            <td class="rg-c-num">{{ s.globalSsenda | number }}</td>
             <td class="rg-c-num tot">{{ s.total | number }}</td>
           </tr>
           <ng-container *ngIf="!estaColapsada(s.sedeKey)">
@@ -115,16 +127,24 @@
               <td class="ta-l rg-c-pos"><span class="rg-rank-pos" [class.top]="idx < 3">{{ idx + 1 }}</span></td>
               <td class="ta-l rg-c-vend" [title]="v.vendedor">{{ nombreRank(v.vendedor) }}</td>
               <td class="rg-c-num">{{ v.propio | number }}</td>
+              <td class="rg-c-num">{{ v.propioWanxin | number }}</td>
+              <td class="rg-c-num">{{ v.propioSsenda | number }}</td>
               <td class="rg-c-num">{{ v.global | number }}</td>
+              <td class="rg-c-num">{{ v.globalWanxin | number }}</td>
+              <td class="rg-c-num">{{ v.globalSsenda | number }}</td>
               <td class="rg-c-num tot">{{ v.total | number }}</td>
             </tr>
           </ng-container>
         </tbody>
-        <tbody *ngIf="!rankingSedes.length"><tr class="vacio"><td colspan="5">Sin datos para el periodo</td></tr></tbody>
+        <tbody *ngIf="!rankingSedes.length"><tr class="vacio"><td colspan="9">Sin datos para el periodo</td></tr></tbody>
         <tfoot *ngIf="rankingSedes.length">
           <tr><td class="ta-l" colspan="2">TOTAL GENERAL</td>
             <td class="rg-c-num">{{ rankTot.propio | number }}</td>
+            <td class="rg-c-num">{{ rankTot.propioWanxin | number }}</td>
+            <td class="rg-c-num">{{ rankTot.propioSsenda | number }}</td>
             <td class="rg-c-num">{{ rankTot.global | number }}</td>
+            <td class="rg-c-num">{{ rankTot.globalWanxin | number }}</td>
+            <td class="rg-c-num">{{ rankTot.globalSsenda | number }}</td>
             <td class="rg-c-num tot">{{ rankTot.total | number }}</td></tr>
         </tfoot>
       </table>

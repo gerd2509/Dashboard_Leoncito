@@ -12,8 +12,14 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 interface ColPivot { key: string; label: string; }
 interface FilaPivot { sedeKey: string; sede: string; color: string; valores: Record<string, number>; total: number; }
 interface Pivot { cols: ColPivot[]; filas: FilaPivot[]; totales: Record<string, number>; totalGeneral: number; }
-interface RankVendedor { vendedor: string; propio: number; global: number; total: number; }
-interface RankSede { sedeKey: string; sede: string; color: string; vendedores: RankVendedor[]; propio: number; global: number; total: number; }
+interface RankVendedor {
+  vendedor: string; propio: number; global: number; total: number;
+  propioWanxin: number; propioSsenda: number; globalWanxin: number; globalSsenda: number;
+}
+interface RankSede {
+  sedeKey: string; sede: string; color: string; vendedores: RankVendedor[]; propio: number; global: number; total: number;
+  propioWanxin: number; propioSsenda: number; globalWanxin: number; globalSsenda: number;
+}
 
 @Component({
   selector: 'app-reporte-global',
@@ -43,7 +49,7 @@ export class ReporteGlobalComponent implements OnInit {
   motosMarca: Pivot | null = null;   // motos por marca × sede (# motos)
   motosTipo: Pivot | null = null;    // motos por tipo × sede (# motos)
   rankingSedes: RankSede[] = [];     // ranking de vendedores por sede (propio/global)
-  rankTot = { propio: 0, global: 0, total: 0 };
+  rankTot = { propio: 0, global: 0, total: 0, propioWanxin: 0, propioSsenda: 0, globalWanxin: 0, globalSsenda: 0 };
   colapsadas = new Set<string>();    // sedes colapsadas en el ranking
 
   toggleSede(key: string): void { this.colapsadas.has(key) ? this.colapsadas.delete(key) : this.colapsadas.add(key); }
@@ -200,16 +206,22 @@ export class ReporteGlobalComponent implements OnInit {
     const entTipo = rows.map(r => { const i = this.sedeInfo(r.sede); return { sedeKey: i.key, sede: i.nombre, col: r.tipo, value: r.motos || 0 }; });
     this.motosTipo = this.buildPivot(entTipo, tipoCols);
 
-    // ── Ranking de vendedores por sede (propio / global) ──
+    // ── Ranking de vendedores por sede (propio / global, con desglose Wanxin/Ssenda) ──
     const bySede = new Map<string, RankSede>();
     for (const r of rows) {
       const i = this.sedeInfo(r.sede);
       let s = bySede.get(i.key);
-      if (!s) { s = { sedeKey: i.key, sede: i.nombre, color: this.color(i.key), vendedores: [], propio: 0, global: 0, total: 0 }; bySede.set(i.key, s); }
+      if (!s) { s = { sedeKey: i.key, sede: i.nombre, color: this.color(i.key), vendedores: [], propio: 0, global: 0, total: 0, propioWanxin: 0, propioSsenda: 0, globalWanxin: 0, globalSsenda: 0 }; bySede.set(i.key, s); }
       let v = s.vendedores.find(x => x.vendedor === r.vendedor);
-      if (!v) { v = { vendedor: r.vendedor, propio: 0, global: 0, total: 0 }; s.vendedores.push(v); }
+      if (!v) { v = { vendedor: r.vendedor, propio: 0, global: 0, total: 0, propioWanxin: 0, propioSsenda: 0, globalWanxin: 0, globalSsenda: 0 }; s.vendedores.push(v); }
       const n = r.motos || 0;
-      if (r.credito === 'GLOBAL') { v.global += n; s.global += n; } else { v.propio += n; s.propio += n; }
+      const esGlobal = r.credito === 'GLOBAL';
+      if (esGlobal) { v.global += n; s.global += n; } else { v.propio += n; s.propio += n; }
+      if (r.marca === 'WANXIN') {
+        if (esGlobal) { v.globalWanxin += n; s.globalWanxin += n; } else { v.propioWanxin += n; s.propioWanxin += n; }
+      } else if (r.marca === 'SSENDA') {
+        if (esGlobal) { v.globalSsenda += n; s.globalSsenda += n; } else { v.propioSsenda += n; s.propioSsenda += n; }
+      }
       v.total += n; s.total += n;
     }
     this.rankingSedes = [...bySede.values()].sort((a, b) => b.total - a.total);
@@ -218,6 +230,10 @@ export class ReporteGlobalComponent implements OnInit {
       propio: this.rankingSedes.reduce((s, x) => s + x.propio, 0),
       global: this.rankingSedes.reduce((s, x) => s + x.global, 0),
       total: this.rankingSedes.reduce((s, x) => s + x.total, 0),
+      propioWanxin: this.rankingSedes.reduce((s, x) => s + x.propioWanxin, 0),
+      propioSsenda: this.rankingSedes.reduce((s, x) => s + x.propioSsenda, 0),
+      globalWanxin: this.rankingSedes.reduce((s, x) => s + x.globalWanxin, 0),
+      globalSsenda: this.rankingSedes.reduce((s, x) => s + x.globalSsenda, 0),
     };
   }
 
@@ -290,14 +306,14 @@ export class ReporteGlobalComponent implements OnInit {
     if (this.motosTipo) this.hojaPivot(wb, 'Motos x Tipo', this.motosTipo, false);
     if (this.rankingSedes.length) {
       const ws = wb.addWorksheet('Ranking Motos x Sede');
-      const hr = ws.addRow(['Sede', 'Vendedor', 'Propio', 'Global', 'Total']);
+      const hr = ws.addRow(['Sede', 'Vendedor', 'Propio', 'Propio Wanxin', 'Propio Ssenda', 'Global', 'Global Wanxin', 'Global Ssenda', 'Total']);
       hr.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
       for (const s of this.rankingSedes) {
-        s.vendedores.forEach(v => ws.addRow([s.sede, v.vendedor, v.propio, v.global, v.total]));
-        const sr = ws.addRow([`TOTAL ${s.sede}`, '', s.propio, s.global, s.total]);
+        s.vendedores.forEach(v => ws.addRow([s.sede, v.vendedor, v.propio, v.propioWanxin, v.propioSsenda, v.global, v.globalWanxin, v.globalSsenda, v.total]));
+        const sr = ws.addRow([`TOTAL ${s.sede}`, '', s.propio, s.propioWanxin, s.propioSsenda, s.global, s.globalWanxin, s.globalSsenda, s.total]);
         sr.eachCell(cell => { cell.font = { bold: true }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3FB' } }; });
       }
-      ws.columns.forEach((col, i) => { col.width = i <= 1 ? 24 : 10; });
+      ws.columns.forEach((col, i) => { col.width = i <= 1 ? 24 : 12; });
       ws.views = [{ state: 'frozen', ySplit: 1 }];
     }
     if (this.margenLinea) this.hojaPivot(wb, 'Ventas x Linea', this.margenLinea, true);
