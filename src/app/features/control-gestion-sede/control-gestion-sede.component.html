@@ -31,6 +31,14 @@
     <span class="afi-error" *ngIf="afiliacionesError">⚠ {{ afiliacionesError }}</span>
 </form>
 
+<div class="afi-sinmatch" *ngIf="afiliacionesSinMatch.length">
+    <mat-icon>warning</mat-icon>
+    <span>
+        {{ afiliacionesSinMatch.length }} afiliación(es) del día sin asesor reconocido (revisar nombre en el Excel o en el CAP):
+        <b *ngFor="let a of afiliacionesSinMatch">{{ a.nombre }} ({{ a.cantidad }})&nbsp;&nbsp;</b>
+    </span>
+</div>
+
 <div class="grid-container">
 
     <!-- ── TABLA RESUMEN POR SEDE ── -->

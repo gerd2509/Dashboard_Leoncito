@@ -100,6 +100,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   private afiliacionesData = new Map<string, Record<string, number>>();
   afiliacionesInfo: { archivo: string; fecha: string; total: number; sinFecha: number } | null = null;
   afiliacionesError = '';
+  // Afiliaciones del día seleccionado cuyo "ASESOR DE VENTA" (del Excel) no coincide
+  // con ningún asesor conocido de ninguna sede (roster CAP + gestión real del día):
+  // probable typo/tilde/nombre distinto — se muestran para poder corregirlas a mano.
+  afiliacionesSinMatch: { nombre: string; cantidad: number }[] = [];
   private readonly AFI_KEY = 'cgs_afiliaciones_v2';
   // Meta diaria de afiliaciones POR ASESOR (la de la sede = nº asesores × esto).
   private readonly META_AFI_ASESOR = 4;
@@ -274,6 +278,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     // Días del mes seleccionado → meta diaria = meta mensual / días del mes
     this.diasDelMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
 
+    const cubiertosGlobal = new Set<string>();
     this.sedesBloques = this.sedesObjetivo.map(sede => {
       const cfg = this.sedeConfig.getConfig(sede.key);
       // Roster desde el CAP (solo ACTIVOS de HOY); si no hay CAP, cae al listado estático.
@@ -304,6 +309,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         extra.push(crudo);
       }
       const asesores = [...asesoresBase, ...extra];
+      asesores.forEach(a => cubiertosGlobal.add(this.normNombre(a)));
 
       const filas: AsesorRow[] = asesores.map(asesorNombre => {
         const objetivo = this.normNombre(asesorNombre);
@@ -375,6 +381,20 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((totalAfiliaciones / metaDiariaAfiliaciones) * 100) : null,
       };
     });
+
+    // Afiliaciones del día importadas cuyo nombre no calzó con NINGÚN asesor de
+    // NINGUNA sede (ni por CAP ni por gestión real): quedan huérfanas, se listan
+    // para poder corregir el nombre en el Excel o en el CAP.
+    this.afiliacionesSinMatch = [];
+    if (claveFechaSel) {
+      for (const [nombre, porDia] of this.afiliacionesData) {
+        const n = porDia[claveFechaSel] || 0;
+        if (n > 0 && !cubiertosGlobal.has(nombre)) {
+          this.afiliacionesSinMatch.push({ nombre, cantidad: n });
+        }
+      }
+      this.afiliacionesSinMatch.sort((a, b) => b.cantidad - a.cantidad);
+    }
 
     this.construirResumen();
   }
