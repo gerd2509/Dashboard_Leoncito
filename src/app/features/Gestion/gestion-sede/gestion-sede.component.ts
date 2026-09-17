@@ -68,14 +68,24 @@ export class GestionSedeComponent implements OnInit {
     this.formGestion.patchValue({ sede: sedeInicial });
     this.actualizarComboAsesores(sedeInicial);
 
+    // Rango por defecto = mes actual. Antes se pedía TODA la tabla `gestion` (cientos de
+    // miles de filas, crece a diario) y se filtraba en el navegador → tumbaba el backend
+    // por "heap out of memory". Ahora siempre se pide un rango acotado al servidor.
+    const hoy = new Date();
+    const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    this.formGestion.patchValue({ fechaInicio: inicioMes, fechaFin: hoy });
+
     await this.cargarData();
   }
 
   private async cargarData(): Promise<void> {
     this.isLoading = true;
     try {
+      const { fechaInicio, fechaFin } = this.formGestion.value;
+      const desde = fechaInicio || new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const hasta = fechaFin || new Date();
       // Fuente única = BD (tabla gestion), ya mapeada a la forma del sheet (+ id + ASESOR).
-      this.listData = await lastValueFrom(this.service.getGestionSedesDB());
+      this.listData = await lastValueFrom(this.service.getGestionSedesDB({ desde, hasta }));
       this.aplicarFiltros();
     } catch (e) {
       console.error('Error al cargar datos de sedes:', e);
@@ -154,8 +164,10 @@ export class GestionSedeComponent implements OnInit {
     this.aplicarFiltros();
   }
 
+  /** Cambió el rango de fecha: se vuelve a pedir al servidor (no se filtra en el navegador
+   *  sobre datos ya cargados, porque `listData` solo trae el rango pedido anteriormente). */
   filtrarPorFecha(): void {
-    this.aplicarFiltros();
+    this.cargarData();
   }
 
   private actualizarComboAsesores(sedeKey: string): void {
