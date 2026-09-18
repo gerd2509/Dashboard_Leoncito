@@ -133,8 +133,10 @@
                     stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
                 <dx-select-box formControlName="scope" [dataSource]="evoScopeOptions" valueExpr="value"
                     displayExpr="label" label="Ámbito" labelMode="floating" stylingMode="underlined" [width]="220"></dx-select-box>
+                <dx-select-box formControlName="agrupacion" [dataSource]="evoAgrupacionOptions" valueExpr="value"
+                    displayExpr="label" label="Agrupar" labelMode="floating" stylingMode="underlined" [width]="130"></dx-select-box>
                 <dx-tag-box [dataSource]="evoMetricasOptions" [value]="evoMetricas" valueExpr="value" displayExpr="label"
-                    label="Mostrar" labelMode="floating" stylingMode="underlined" [width]="260"
+                    label="Mostrar" labelMode="floating" stylingMode="underlined" [width]="360" [multiline]="false"
                     [showSelectionControls]="true" [applyValueMode]="'instantly'"
                     (onValueChanged)="onEvoMetricasChanged($event)"></dx-tag-box>
                 <button mat-flat-button type="button" (click)="cargarEvolucion()" [disabled]="evoLoading">

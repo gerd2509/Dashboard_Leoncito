@@ -90,6 +90,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     { value: 'afiliaciones', label: 'Afiliaciones' },
   ];
   evoMetricas: string[] = ['llamadas', 'cartas', 'afiliaciones'];   // qué series mostrar
+  readonly evoAgrupacionOptions = [
+    { value: 'dia', label: 'Por día' },
+    { value: 'mes', label: 'Por mes' },
+  ];
+  private readonly MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
   onEvoMetricasChanged(e: any): void {
     // No permitir dejarlo vacío (que siempre quede al menos 1 serie visible).
@@ -158,7 +163,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.formCtrl = this.fb.group({ fechaGestion: [new Date()] });
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    this.evoForm = this.fb.group({ desde: [inicioMes], hasta: [hoy], scope: ['GLOBAL'] });
+    this.evoForm = this.fb.group({ desde: [inicioMes], hasta: [hoy], scope: ['GLOBAL'], agrupacion: ['dia'] });
   }
 
   async ngOnInit() {
@@ -775,19 +780,37 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         }
       }
 
-      // Un punto por cada día del rango (0 los días sin datos).
+      const agrupacion = (this.evoForm.value.agrupacion as string) || 'dia';
       const datos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
-      const d = new Date(desde); d.setHours(0, 0, 0, 0);
-      const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
-      let guard = 0;
-      while (d <= fin && guard < 366) {
-        const k = this.ymd(d);
-        const acc = porDia.get(k);
-        datos.push({
-          fecha: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
-          llamadas: acc?.ll ?? 0, cartas: acc?.ca ?? 0, afiliaciones: afilDia.get(k) ?? 0,
-        });
-        d.setDate(d.getDate() + 1); guard++;
+      if (agrupacion === 'mes') {
+        // Un punto por cada MES del rango: suma los días de ese mes (útil para rangos
+        // amplios, donde por día queda ilegible). Igual tope por defecto (~10 años).
+        const d = new Date(desde.getFullYear(), desde.getMonth(), 1);
+        const fin = new Date(hasta.getFullYear(), hasta.getMonth(), 1);
+        let guard = 0;
+        while (d <= fin && guard < 120) {
+          const anio = d.getFullYear(), mes = d.getMonth();
+          const prefijo = `${anio}-${String(mes + 1).padStart(2, '0')}`;
+          let ll = 0, ca = 0, afi = 0;
+          porDia.forEach((v, k) => { if (k.startsWith(prefijo)) { ll += v.ll; ca += v.ca; } });
+          afilDia.forEach((v, k) => { if (k.startsWith(prefijo)) afi += v; });
+          datos.push({ fecha: `${this.MESES_CORTOS[mes]} ${anio}`, llamadas: ll, cartas: ca, afiliaciones: afi });
+          d.setMonth(d.getMonth() + 1); guard++;
+        }
+      } else {
+        // Un punto por cada día del rango (0 los días sin datos).
+        const d = new Date(desde); d.setHours(0, 0, 0, 0);
+        const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
+        let guard = 0;
+        while (d <= fin && guard < 366) {
+          const k = this.ymd(d);
+          const acc = porDia.get(k);
+          datos.push({
+            fecha: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+            llamadas: acc?.ll ?? 0, cartas: acc?.ca ?? 0, afiliaciones: afilDia.get(k) ?? 0,
+          });
+          d.setDate(d.getDate() + 1); guard++;
+        }
       }
       this.evoDatos = datos;
     } catch (e: any) {
