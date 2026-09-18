@@ -25,6 +25,10 @@ interface AsesorRow {
   afiliaciones: number;   // del Excel importado (cruce por nombre)
 }
 
+interface EvoPunto { fecha: string; llamadas: number; cartas: number; afiliaciones: number; }
+interface EvoPivotFila { sedeKey: string; sede: string; valores: number[]; total: number; }
+interface EvoPivot { metrica: 'llamadas' | 'cartas' | 'afiliaciones'; label: string; color: string; filas: EvoPivotFila[]; totales: number[]; totalGeneral: number; }
+
 interface SedeBloque {
   key: string;
   nombre: string;
@@ -105,7 +109,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   evoMetricasLabel(): string {
     return this.evoMetricasOptions.filter(o => this.evoMetricas.includes(o.value)).map(o => o.label).join(' / ');
   }
-  evoDatos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
+  evoDatos: EvoPunto[] = [];
+  evoPivots: EvoPivot[] = [];   // detalle por sede (solo con más de 1 sede en el ámbito)
   evoTitulo = '';
   evoError = '';
 
@@ -738,7 +743,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         this.sheetsService.getGestionSedesEvolucion({ desde, hasta }));
 
       // Llamadas / cartas por día (agregado ya viene por día+sede; se suma lo que cae en el ámbito).
+      // También se guarda por sede (porDiaPorSede) para la tabla de detalle por sede.
       const porDia = new Map<string, { ll: number; ca: number }>();
+      const porDiaPorSede = new Map<string, Map<string, { ll: number; ca: number }>>();
       for (const r of (porDiaSede ?? [])) {
         if (!valorSet.has(this.sedeConfig.normalizar(r.sede))) continue;
         if (r.dia < desdeK || r.dia > hastaK) continue;
@@ -746,6 +753,14 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         const acc = porDia.get(r.dia)!;
         acc.ll += r.llamadas || 0;
         acc.ca += r.cartas || 0;
+
+        const sedeMatch = sedesScope.find(s => this.sedeConfig.mismaSede(r.sede, this.sedeConfig.getConfig(s.key)?.valorSede ?? s.nombre));
+        if (sedeMatch) {
+          let m = porDiaPorSede.get(sedeMatch.key); if (!m) { m = new Map(); porDiaPorSede.set(sedeMatch.key, m); }
+          const accS = m.get(r.dia) ?? { ll: 0, ca: 0 };
+          accS.ll += r.llamadas || 0; accS.ca += r.cartas || 0;
+          m.set(r.dia, accS);
+        }
       }
 
       // Afiliaciones por día del ámbito (roster del CAP × afiliaciones importadas).
@@ -754,6 +769,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       // sus afiliaciones del histórico. `asesores` ya viene como (sede, asesor) distintos
       // del rango, no una fila por gestión.
       const afilDia = new Map<string, number>();
+      const afilPorSede = new Map<string, Map<string, number>>();
       for (const s of sedesScope) {
         const cfg = this.sedeConfig.getConfig(s.key);
         const valorSedeS = cfg?.valorSede ?? s.nombre;
@@ -770,52 +786,50 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           extraS.push(crudo);
         }
         const roster = [...rosterBase, ...extraS];
+        const afilS = new Map<string, number>();
         for (const asesor of roster) {
           const m = this.afiliacionesData.get(this.normNombre(asesor));
           if (!m) continue;
           for (const [dia, n] of Object.entries(m)) {
             if (dia < desdeK || dia > hastaK) continue;
             afilDia.set(dia, (afilDia.get(dia) ?? 0) + (n as number));
+            afilS.set(dia, (afilS.get(dia) ?? 0) + (n as number));
           }
         }
+        afilPorSede.set(s.key, afilS);
       }
 
       const agrupacion = (this.evoForm.value.agrupacion as string) || 'dia';
-      const datos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
-      if (agrupacion === 'mes') {
-        // Un punto por cada MES del rango: suma los días de ese mes (útil para rangos
-        // amplios, donde por día queda ilegible). Igual tope por defecto (~10 años).
-        const d = new Date(desde.getFullYear(), desde.getMonth(), 1);
-        const fin = new Date(hasta.getFullYear(), hasta.getMonth(), 1);
-        let guard = 0;
-        while (d <= fin && guard < 120) {
-          const anio = d.getFullYear(), mes = d.getMonth();
-          const prefijo = `${anio}-${String(mes + 1).padStart(2, '0')}`;
-          let ll = 0, ca = 0, afi = 0;
-          porDia.forEach((v, k) => { if (k.startsWith(prefijo)) { ll += v.ll; ca += v.ca; } });
-          afilDia.forEach((v, k) => { if (k.startsWith(prefijo)) afi += v; });
-          datos.push({ fecha: `${this.MESES_CORTOS[mes]} ${anio}`, llamadas: ll, cartas: ca, afiliaciones: afi });
-          d.setMonth(d.getMonth() + 1); guard++;
-        }
+      this.evoDatos = this.construirPuntosEvo(porDia, afilDia, desde, hasta, agrupacion);
+
+      // Detalle por sede (tabla pivote): solo tiene sentido con más de 1 sede en el ámbito.
+      if (sedesScope.length > 1) {
+        const porSede = sedesScope.map(s => ({
+          sedeKey: s.key, sede: s.nombre,
+          puntos: this.construirPuntosEvo(porDiaPorSede.get(s.key) ?? new Map(), afilPorSede.get(s.key) ?? new Map(), desde, hasta, agrupacion),
+        })).filter(f => f.puntos.some(p => p.llamadas > 0 || p.cartas > 0 || p.afiliaciones > 0));
+
+        const metricas: { key: 'llamadas' | 'cartas' | 'afiliaciones'; label: string; color: string }[] = [
+          { key: 'llamadas', label: 'Llamadas', color: '#C0632A' },
+          { key: 'cartas', label: 'Cartas', color: '#4E8A83' },
+          { key: 'afiliaciones', label: 'Afiliaciones', color: '#1F3B6E' },
+        ];
+        this.evoPivots = metricas.map(met => {
+          const filas: EvoPivotFila[] = porSede.map(f => {
+            const valores = f.puntos.map(p => p[met.key]);
+            return { sedeKey: f.sedeKey, sede: f.sede, valores, total: valores.reduce((a, b) => a + b, 0) };
+          }).sort((a, b) => b.total - a.total);
+          const nCols = this.evoDatos.length;
+          const totales = Array.from({ length: nCols }, (_, i) => filas.reduce((s, f) => s + (f.valores[i] || 0), 0));
+          return { metrica: met.key, label: met.label, color: met.color, filas, totales, totalGeneral: totales.reduce((a, b) => a + b, 0) };
+        });
       } else {
-        // Un punto por cada día del rango (0 los días sin datos).
-        const d = new Date(desde); d.setHours(0, 0, 0, 0);
-        const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
-        let guard = 0;
-        while (d <= fin && guard < 366) {
-          const k = this.ymd(d);
-          const acc = porDia.get(k);
-          datos.push({
-            fecha: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
-            llamadas: acc?.ll ?? 0, cartas: acc?.ca ?? 0, afiliaciones: afilDia.get(k) ?? 0,
-          });
-          d.setDate(d.getDate() + 1); guard++;
-        }
+        this.evoPivots = [];
       }
-      this.evoDatos = datos;
     } catch (e: any) {
       console.error('Error al cargar evolución:', e);
       this.evoDatos = [];
+      this.evoPivots = [];
       // Mensaje visible (antes se tragaba el error → parecía que "no cargaba").
       const status = e?.status ? ` (HTTP ${e.status})` : '';
       const msg = e?.message || e?.statusText || 'error desconocido';
@@ -823,6 +837,45 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     } finally {
       this.evoLoading = false;
     }
+  }
+
+  /** Arma los puntos de la evolución (uno por día o por mes, según `agrupacion`) a partir
+   *  de los mapas ya agregados por período. Se reutiliza tanto para el total del ámbito
+   *  como para cada sede del detalle (misma lógica, distinto mapa de entrada). */
+  private construirPuntosEvo(
+    porDiaMap: Map<string, { ll: number; ca: number }>,
+    afilMap: Map<string, number>,
+    desde: Date, hasta: Date, agrupacion: string,
+  ): EvoPunto[] {
+    const datos: EvoPunto[] = [];
+    if (agrupacion === 'mes') {
+      const d = new Date(desde.getFullYear(), desde.getMonth(), 1);
+      const fin = new Date(hasta.getFullYear(), hasta.getMonth(), 1);
+      let guard = 0;
+      while (d <= fin && guard < 120) {
+        const anio = d.getFullYear(), mes = d.getMonth();
+        const prefijo = `${anio}-${String(mes + 1).padStart(2, '0')}`;
+        let ll = 0, ca = 0, afi = 0;
+        porDiaMap.forEach((v, k) => { if (k.startsWith(prefijo)) { ll += v.ll; ca += v.ca; } });
+        afilMap.forEach((v, k) => { if (k.startsWith(prefijo)) afi += v; });
+        datos.push({ fecha: `${this.MESES_CORTOS[mes]} ${anio}`, llamadas: ll, cartas: ca, afiliaciones: afi });
+        d.setMonth(d.getMonth() + 1); guard++;
+      }
+    } else {
+      const d = new Date(desde); d.setHours(0, 0, 0, 0);
+      const fin = new Date(hasta); fin.setHours(0, 0, 0, 0);
+      let guard = 0;
+      while (d <= fin && guard < 366) {
+        const k = this.ymd(d);
+        const acc = porDiaMap.get(k);
+        datos.push({
+          fecha: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+          llamadas: acc?.ll ?? 0, cartas: acc?.ca ?? 0, afiliaciones: afilMap.get(k) ?? 0,
+        });
+        d.setDate(d.getDate() + 1); guard++;
+      }
+    }
+    return datos;
   }
 
   /** 'dd/mm/yyyy HH:mm:ss' → 'YYYY-MM-DD'. */

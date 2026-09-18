@@ -190,6 +190,38 @@
                 </table>
             </div>
 
+            <!-- Detalle por sede: una tabla por métrica seleccionada en "Mostrar" (solo con >1 sede en el ámbito) -->
+            <ng-container *ngFor="let piv of evoPivots">
+                <div class="ev-pivot-wrap" *ngIf="!evoLoading && evoMuestra(piv.metrica) && piv.filas.length">
+                    <div class="ev-pivot-title"><span class="ev-dot" [style.background]="piv.color"></span>Detalle por sede — {{ piv.label }}</div>
+                    <div class="ev-tabla-wrap">
+                        <table class="ev-tabla">
+                            <thead>
+                                <tr>
+                                    <th class="ev-th-lbl">SEDE</th>
+                                    <th *ngFor="let p of evoDatos">{{ p.fecha }}</th>
+                                    <th>TOTAL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let f of piv.filas">
+                                    <td class="ev-lbl">{{ f.sede }}</td>
+                                    <td *ngFor="let v of f.valores">{{ v }}</td>
+                                    <td class="ev-tot">{{ f.total }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td class="ev-lbl">TOTAL</td>
+                                    <td *ngFor="let t of piv.totales">{{ t }}</td>
+                                    <td class="ev-tot">{{ piv.totalGeneral }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </ng-container>
+
             <div *ngIf="!evoLoading && evoError" class="ev-error-cgs">
                 <mat-icon>error_outline</mat-icon> {{ evoError }}
             </div>

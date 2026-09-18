@@ -368,6 +368,12 @@
     vertical-align: middle;
 }
 
+/* ── Detalle por sede (tabla pivote por métrica) ── */
+.ev-pivot-wrap { margin-top: 14px; border-top: 1px solid #E3E9F2; padding-top: 8px; }
+.ev-pivot-title { display: flex; align-items: center; font-size: 13px; font-weight: 700; color: #1E3A5F; padding: 0 12px 6px; }
+.ev-tabla tfoot td { background: #EEF3FB; font-weight: 800; color: #1A5FAD; }
+.ev-tabla .ev-tot { font-weight: 800; color: #1A5FAD; }
+
 /* ── Toolbar detalle (checkbox contacto/no contacto) ── */
 .cgs-toolbar {
     display: flex;
