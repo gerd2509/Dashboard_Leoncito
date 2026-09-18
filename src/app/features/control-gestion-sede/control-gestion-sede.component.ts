@@ -709,28 +709,29 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         this.sedeConfig.normalizar(this.sedeConfig.getConfig(s.key)?.valorSede ?? s.nombre)));
 
       const desdeK = this.ymd(desde), hastaK = this.ymd(hasta);
-      // La evolución lee de la BD (misma fuente que la vista diaria): así refleja TODO el
-      // histórico migrado + lo sincronizado del formulario, y funciona para cualquier
-      // usuario con acceso (antes leía el sheet directo → con el nuevo form quedaba casi
-      // vacío y podía fallar para no-admins).
-      const data = await lastValueFrom(this.sheetsService.getGestionSedesDB({ desde, hasta }));
+      // La evolución se calcula en SQL (agregado por día+sede) en vez de traer una fila
+      // por gestión: con "todo el año" son cientos de miles de filas, y traerlas crudas al
+      // navegador para contarlas ahí ya tumbó el backend por heap OOM. El endpoint
+      // /gestion/evolucion hace el conteo en la BD y manda un puñado de filas.
+      const { porDia: porDiaSede, asesores } = await lastValueFrom(
+        this.sheetsService.getGestionSedesEvolucion({ desde, hasta }));
 
-      // Llamadas / cartas por día (de la gestión de sedes en BD).
+      // Llamadas / cartas por día (agregado ya viene por día+sede; se suma lo que cae en el ámbito).
       const porDia = new Map<string, { ll: number; ca: number }>();
-      for (const r of (data ?? [])) {
-        if (!valorSet.has(this.sedeConfig.normalizar(r['TIENDA SEDE']))) continue;
-        const dia = this.diaDeMarca(r['Marca temporal']);
-        if (!dia || dia < desdeK || dia > hastaK) continue;
-        if (!porDia.has(dia)) porDia.set(dia, { ll: 0, ca: 0 });
-        const acc = porDia.get(dia)!;
-        if (this.esLlamada(r)) acc.ll++;
-        else if (this.esCarta(r)) acc.ca++;
+      for (const r of (porDiaSede ?? [])) {
+        if (!valorSet.has(this.sedeConfig.normalizar(r.sede))) continue;
+        if (r.dia < desdeK || r.dia > hastaK) continue;
+        if (!porDia.has(r.dia)) porDia.set(r.dia, { ll: 0, ca: 0 });
+        const acc = porDia.get(r.dia)!;
+        acc.ll += r.llamadas || 0;
+        acc.ca += r.cartas || 0;
       }
 
       // Afiliaciones por día del ámbito (roster del CAP × afiliaciones importadas).
       // Igual que en la vista diaria: se agregan también las asesoras con gestión
       // real en el rango que ya no figuran ACTIVAS en el CAP de hoy, para no perder
-      // sus afiliaciones del histórico.
+      // sus afiliaciones del histórico. `asesores` ya viene como (sede, asesor) distintos
+      // del rango, no una fila por gestión.
       const afilDia = new Map<string, number>();
       for (const s of sedesScope) {
         const cfg = this.sedeConfig.getConfig(s.key);
@@ -738,9 +739,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         const rosterBase = this.capPorSede.get(s.key)?.length ? this.capPorSede.get(s.key)! : (cfg?.asesores ?? []);
         const cubiertosS = new Set(rosterBase.map(a => this.normNombre(a)));
         const extraS: string[] = [];
-        for (const r of (data ?? [])) {
-          if (!this.sedeConfig.mismaSede(r['TIENDA SEDE'], valorSedeS)) continue;
-          const crudo = (r['ASESOR'] ?? r[cfg?.columnaAsesor ?? ''] ?? '').toString().trim();
+        for (const a of (asesores ?? [])) {
+          if (!this.sedeConfig.mismaSede(a.sede, valorSedeS)) continue;
+          const crudo = (a.asesor ?? '').toString().trim();
           if (!crudo) continue;
           const n = this.normNombre(crudo);
           if (cubiertosS.has(n)) continue;

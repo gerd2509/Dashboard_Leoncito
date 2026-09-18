@@ -204,6 +204,18 @@ export class SheetsService {
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
     return this.http.get<any[]>(`${base}/gestion`, { params }).pipe(map(rows => (rows || []).map(this.mapGestionDbToSheet)));
   }
+  /** Agregado por día+sede (llamadas/cartas, contado en SQL) + lista de (sede, asesor)
+   *  distintos del rango — para "Evolución por Rango" de Control Gestión Sede. Igual que
+   *  getGestionSedesDB() pero sin traer fila por gestión: sirve para rangos largos (ej.
+   *  todo el año) sin arriesgar un heap OOM en el backend. */
+  getGestionSedesEvolucion(rango: { desde: Date; hasta: Date }): Observable<{
+    porDia: { dia: string; sede: string; llamadas: number; cartas: number }[];
+    asesores: { sede: string; asesor: string }[];
+  }> {
+    const base = environment.gestionBase || environment.apiBase;
+    const params = new HttpParams().set('desde', this.fechaISO(rango.desde)).set('hasta', this.fechaISO(rango.hasta));
+    return this.http.get<any>(`${base}/evolucion`, { params });
+  }
   /** Copia al BD lo NUEVO del formulario de sedes (botón "Sincronizar"). Opcional: acotar
    *  por rango (recomendado: el día que se ve) → mucho más rápido que releer todo. */
   sincronizarGestionSedes(rango?: { desde?: Date; hasta?: Date }): Observable<{ success: boolean; leidas: number; insertados: number; duplicados: number }> {
