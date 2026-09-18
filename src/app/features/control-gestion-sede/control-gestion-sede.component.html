@@ -133,6 +133,10 @@
                     stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
                 <dx-select-box formControlName="scope" [dataSource]="evoScopeOptions" valueExpr="value"
                     displayExpr="label" label="Ámbito" labelMode="floating" stylingMode="underlined" [width]="220"></dx-select-box>
+                <dx-tag-box [dataSource]="evoMetricasOptions" [value]="evoMetricas" valueExpr="value" displayExpr="label"
+                    label="Mostrar" labelMode="floating" stylingMode="underlined" [width]="260"
+                    [showSelectionControls]="true" [applyValueMode]="'instantly'"
+                    (onValueChanged)="onEvoMetricasChanged($event)"></dx-tag-box>
                 <button mat-flat-button type="button" (click)="cargarEvolucion()" [disabled]="evoLoading">
                     <mat-icon>{{ evoLoading ? 'hourglass_empty' : 'insights' }}</mat-icon>
                     {{ evoLoading ? 'Cargando...' : 'Ver evolución' }}
@@ -144,13 +148,15 @@
             </div>
 
             <dx-chart *ngIf="!evoLoading && evoDatos.length" [dataSource]="evoDatos" [redrawOnResize]="true"
-                [title]="'Evolución Llamadas / Cartas / Afiliaciones — ' + evoTitulo" class="ev-combo">
+                [title]="'Evolución ' + evoMetricasLabel() + ' — ' + evoTitulo" class="ev-combo">
                 <dxo-common-series-settings argumentField="fecha"></dxo-common-series-settings>
-                <dxi-value-axis name="izq" position="left"><dxo-title text="Llamadas"></dxo-title></dxi-value-axis>
-                <dxi-value-axis name="der" position="right"><dxo-title text="Cartas / Afiliaciones"></dxo-title></dxi-value-axis>
-                <dxi-series valueField="llamadas"     name="Llamadas"     type="bar"  axis="izq" color="#C0632A"></dxi-series>
-                <dxi-series valueField="cartas"       name="Cartas"       type="line" axis="der" color="#4E8A83"><dxo-point [size]="6"></dxo-point></dxi-series>
-                <dxi-series valueField="afiliaciones" name="Afiliaciones" type="line" axis="der" color="#1F3B6E"><dxo-point [size]="6"></dxo-point></dxi-series>
+                <dxi-value-axis name="izq" position="left" *ngIf="evoMuestra('llamadas')"><dxo-title text="Llamadas"></dxo-title></dxi-value-axis>
+                <dxi-value-axis name="der" position="right" *ngIf="evoMuestra('cartas') || evoMuestra('afiliaciones')">
+                    <dxo-title [text]="evoMuestra('cartas') && evoMuestra('afiliaciones') ? 'Cartas / Afiliaciones' : evoMuestra('cartas') ? 'Cartas' : 'Afiliaciones'"></dxo-title>
+                </dxi-value-axis>
+                <dxi-series *ngIf="evoMuestra('llamadas')" valueField="llamadas"     name="Llamadas"     type="bar"  axis="izq" color="#C0632A"></dxi-series>
+                <dxi-series *ngIf="evoMuestra('cartas')" valueField="cartas"       name="Cartas"       type="line" axis="der" color="#4E8A83"><dxo-point [size]="6"></dxo-point></dxi-series>
+                <dxi-series *ngIf="evoMuestra('afiliaciones')" valueField="afiliaciones" name="Afiliaciones" type="line" axis="der" color="#1F3B6E"><dxo-point [size]="6"></dxo-point></dxi-series>
                 <dxo-argument-axis><dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label></dxo-argument-axis>
                 <dxo-legend verticalAlignment="top" horizontalAlignment="center"></dxo-legend>
                 <dxo-tooltip [enabled]="true" [shared]="true"></dxo-tooltip>
@@ -166,15 +172,15 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr *ngIf="evoMuestra('llamadas')">
                             <td class="ev-lbl"><span class="ev-dot" style="background:#C0632A"></span> Llamadas</td>
                             <td *ngFor="let p of evoDatos">{{ p.llamadas }}</td>
                         </tr>
-                        <tr>
+                        <tr *ngIf="evoMuestra('cartas')">
                             <td class="ev-lbl"><span class="ev-dot" style="background:#4E8A83"></span> Cartas</td>
                             <td *ngFor="let p of evoDatos">{{ p.cartas }}</td>
                         </tr>
-                        <tr>
+                        <tr *ngIf="evoMuestra('afiliaciones')">
                             <td class="ev-lbl"><span class="ev-dot" style="background:#1F3B6E"></span> Afiliaciones</td>
                             <td *ngFor="let p of evoDatos">{{ p.afiliaciones }}</td>
                         </tr>

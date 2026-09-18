@@ -84,6 +84,22 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   evoLoading = false;
   evoForm!: UntypedFormGroup;
   evoScopeOptions: { value: string; label: string }[] = [];   // Global / Zona / Sede (por perfil)
+  readonly evoMetricasOptions = [
+    { value: 'llamadas', label: 'Llamadas' },
+    { value: 'cartas', label: 'Cartas' },
+    { value: 'afiliaciones', label: 'Afiliaciones' },
+  ];
+  evoMetricas: string[] = ['llamadas', 'cartas', 'afiliaciones'];   // qué series mostrar
+
+  onEvoMetricasChanged(e: any): void {
+    // No permitir dejarlo vacío (que siempre quede al menos 1 serie visible).
+    if (!e.value?.length) { e.component.option('value', this.evoMetricas); return; }
+    this.evoMetricas = e.value;
+  }
+  evoMuestra(m: 'llamadas' | 'cartas' | 'afiliaciones'): boolean { return this.evoMetricas.includes(m); }
+  evoMetricasLabel(): string {
+    return this.evoMetricasOptions.filter(o => this.evoMetricas.includes(o.value)).map(o => o.label).join(' / ');
+  }
   evoDatos: { fecha: string; llamadas: number; cartas: number; afiliaciones: number }[] = [];
   evoTitulo = '';
   evoError = '';
