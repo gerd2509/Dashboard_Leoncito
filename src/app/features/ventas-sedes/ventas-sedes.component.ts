@@ -741,9 +741,14 @@ export class VentasSedesComponent implements OnInit {
    */
   private generarVentasPorFuente(): void {
     // Mismo neteo que "Ventas por Tipo Crédito" (NC + incautaciones), pero agrupado por
-    // fuente generadora. Las ventas/NC/INC SIN fuente van al bucket "SIN FUENTE" para que
-    // el total cuadre exactamente con el KPI de Monto Real (neto).
-    const fuenteKey = (v: any): string => ((v.Fuente || '').toString().trim().toUpperCase() || 'SIN FUENTE ASIGNADA');
+    // fuente generadora. "SIN FUENTE ASIGNADA" debe representar SOLO ventas reales que aún
+    // no tienen fuente cruzada (pendientes de "Cruzar") — NO notas de crédito/incautaciones
+    // sin fuente (esas son ventas YA canceladas, no ventas por atribuir; si se incluyen ahí
+    // el número deja de tener sentido). Por eso su NC/INC sin fuente se descarta del todo en
+    // esta tabla (a costa de que el total ya no cuadre 100% con el KPI de Monto Real si
+    // existiera algún caso así — se prefiere que el número tenga sentido).
+    const SIN_FUENTE = 'SIN FUENTE ASIGNADA';
+    const fuenteKey = (v: any): string => ((v.Fuente || '').toString().trim().toUpperCase() || SIN_FUENTE);
 
     const mapVentas = new Map<string, { monto: number; ops: number }>();
     this.filtroVentas.forEach(v => {
@@ -756,6 +761,8 @@ export class VentasSedesComponent implements OnInit {
     const mapINCMismo = this.agruparINCMismoMes(fuenteKey);
     const mapNC = this.agruparNCTodas(fuenteKey);
     const mapINC = this.agruparINCTodas(fuenteKey);
+    // NC/incautaciones sin fuente: se descartan de esta tabla (no son "ventas por atribuir").
+    [mapNCMismo, mapINCMismo, mapNC, mapINC].forEach(m => m.delete(SIN_FUENTE));
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNC.keys(), ...mapINC.keys()]).forEach(fu => {
