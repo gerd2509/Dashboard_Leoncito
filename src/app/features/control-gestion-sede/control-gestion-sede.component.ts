@@ -111,6 +111,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
   evoDatos: EvoPunto[] = [];
   evoPivots: EvoPivot[] = [];   // detalle por sede (solo con más de 1 sede en el ámbito)
+  evoAfiliacionesSinMatch: { nombre: string; cantidad: number }[] = [];
   evoTitulo = '';
   evoError = '';
 
@@ -779,6 +780,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       // del rango, no una fila por gestión.
       const afilDia = new Map<string, number>();
       const afilPorSede = new Map<string, Map<string, number>>();
+      const cubiertosEvo = new Set<string>();   // para detectar afiliaciones huérfanas del rango
       for (const s of sedesScope) {
         const cfg = this.sedeConfig.getConfig(s.key);
         const valorSedeS = cfg?.valorSede ?? s.nombre;
@@ -795,6 +797,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           extraS.push(crudo);
         }
         const roster = [...rosterBase, ...extraS];
+        roster.forEach(a => cubiertosEvo.add(this.normNombre(a)));
         const afilS = new Map<string, number>();
         for (const asesor of roster) {
           const m = this.afiliacionesData.get(this.normNombre(asesor));
@@ -807,6 +810,20 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         }
         afilPorSede.set(s.key, afilS);
       }
+
+      // Afiliaciones importadas del rango cuyo nombre no calzó con NINGÚN asesor de
+      // NINGUNA sede del ámbito (ni CAP ni gestión real en el rango): quedan fuera del
+      // gráfico/tabla sin que se note — se listan para poder corregir el nombre.
+      this.evoAfiliacionesSinMatch = [];
+      for (const [nombre, porDia] of this.afiliacionesData) {
+        let total = 0;
+        for (const [dia, n] of Object.entries(porDia)) {
+          if (dia < desdeK || dia > hastaK) continue;
+          total += (n as number);
+        }
+        if (total > 0 && !cubiertosEvo.has(nombre)) this.evoAfiliacionesSinMatch.push({ nombre, cantidad: total });
+      }
+      this.evoAfiliacionesSinMatch.sort((a, b) => b.cantidad - a.cantidad);
 
       const agrupacion = (this.evoForm.value.agrupacion as string) || 'dia';
       this.evoDatos = this.construirPuntosEvo(porDia, afilDia, desde, hasta, agrupacion);
@@ -841,6 +858,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       console.error('Error al cargar evolución:', e);
       this.evoDatos = [];
       this.evoPivots = [];
+      this.evoAfiliacionesSinMatch = [];
       // Mensaje visible (antes se tragaba el error → parecía que "no cargaba").
       const status = e?.status ? ` (HTTP ${e.status})` : '';
       const msg = e?.message || e?.statusText || 'error desconocido';

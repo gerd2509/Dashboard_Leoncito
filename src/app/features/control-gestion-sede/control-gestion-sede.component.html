@@ -222,6 +222,14 @@
                 </div>
             </ng-container>
 
+            <div class="afi-sinmatch" *ngIf="!evoLoading && evoAfiliacionesSinMatch.length">
+                <mat-icon>warning</mat-icon>
+                <span>
+                    {{ evoAfiliacionesSinMatch.length }} afiliación(es) del rango sin asesor reconocido en ninguna sede del ámbito (revisar nombre en el Excel o en el CAP):
+                    <b *ngFor="let a of evoAfiliacionesSinMatch">{{ a.nombre }} ({{ a.cantidad }})&nbsp;&nbsp;</b>
+                </span>
+            </div>
+
             <div *ngIf="!evoLoading && evoError" class="ev-error-cgs">
                 <mat-icon>error_outline</mat-icon> {{ evoError }}
             </div>
