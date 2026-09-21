@@ -7,6 +7,13 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { ASESORES_CALL, ASESORES_REALZZA, nombreCorto } from '../../shared/asesores';
 
+// Mapa código→nombre combinando AMBOS rosters actuales (Call + Realzza): un asesor
+// puede haber pasado de canal (ej. Kelly/Anita/Brenda: Call→Realzza desde set-2026)
+// y sus ventas de meses anteriores siguen apareciendo con su código de entonces —
+// el nombre debe resolverse igual, sin importar en qué roster esté HOY.
+const CODIGO_A_NOMBRE: Record<string, string> = Object.fromEntries(
+  [...ASESORES_CALL, ...ASESORES_REALZZA].map(a => [a.value, a.nombre]));
+
 interface MesCol { anio: number; mes: number; label: string; proyeccion: boolean; }
 interface FilaLinea { asesor: string; nombre: string; valores: number[]; total: number; }
 type Categoria = 'MOTOS' | 'MELAMINA' | 'RESTO';
@@ -118,7 +125,12 @@ export class VentasLineaComponent implements OnInit {
     porAsesor.forEach((valores, key) => {
       if (vistos.has(key)) return;
       const total = valores.reduce((s, v) => s + v, 0);
-      if (total !== 0) filas.push({ asesor: key, nombre: this.canal === 'CALL' ? key : nombreCorto(key), valores, total });
+      if (total === 0) return;
+      // Código/nombre fuera del roster ACTUAL de este canal (ej. pasó al otro canal
+      // después): se resuelve el nombre igual por el mapa combinado, en vez de
+      // mostrar el código crudo.
+      const nombre = this.canal === 'CALL' ? (CODIGO_A_NOMBRE[key] ? nombreCorto(CODIGO_A_NOMBRE[key]) : key) : nombreCorto(key);
+      filas.push({ asesor: key, nombre, valores, total });
     });
     filas.sort((a, b) => b.total - a.total);
     this.filas = filas;
