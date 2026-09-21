@@ -194,8 +194,8 @@ export class CierreGestionComponent implements OnInit {
   // Call KOMMO: KAREN, ESMERALDA (+KELLY, BRENDA hasta ago)
   private get kommoCallIds() {
     return this.kellyAnitaRealzza
-      ? ['CC5', 'CC15']
-      : ['CC5', 'CC15', 'CC8', 'CC12'];
+      ? ['CC2', 'CC5', 'CC15']
+      : ['CC2', 'CC5', 'CC15', 'CC8', 'CC12'];
   }
   // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH (+KELLY, ANITA, BRENDA desde sep)
   private get kommoRealzzaIds() {
