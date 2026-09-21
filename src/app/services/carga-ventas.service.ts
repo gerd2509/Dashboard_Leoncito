@@ -146,6 +146,17 @@ export class CargaVentasService {
     if (mes) params = params.set('mes', mes);
     return this.http.get<any[]>(`${this.root}/margen-linea-sede`, { params });
   }
+  /** Ventas netas por asesor × mes × categoría (Motos/Melamina/Resto) — módulo Ventas por Línea. */
+  obtenerVentasLineaAsesor(rango: { canal: 'CALL' | 'REALZZA'; anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number }): Observable<{
+    rows: { asesor: string; anio: number; mes: number; categoria: 'MOTOS' | 'MELAMINA' | 'RESTO'; monto: number; ops: number }[];
+    mesesProyeccion: string[];
+  }> {
+    const params = new HttpParams()
+      .set('canal', rango.canal)
+      .set('anioDesde', rango.anioDesde).set('mesDesde', rango.mesDesde)
+      .set('anioHasta', rango.anioHasta).set('mesHasta', rango.mesHasta);
+    return this.http.get<any>(`${this.root}/ventas-linea-asesor`, { params });
+  }
   /** Guarda (upsert) una meta editada directamente en el módulo. */
   guardarMetaAvance(clave: string, meta: number): Observable<any> {
     return this.http.put(`${this.root}/metas-avance`, { clave, meta });

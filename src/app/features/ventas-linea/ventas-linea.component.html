@@ -1,0 +1,71 @@
+<div class="vl-wrap">
+  <div class="vl-head">
+    <div class="vl-ico"><mat-icon>category</mat-icon></div>
+    <div>
+      <h2>Ventas por Línea</h2>
+      <p>Monto neto (− NC/incautaciones) por asesor y mes: Motos / Melamina / Resto.</p>
+    </div>
+  </div>
+
+  <div class="vl-tabs">
+    <button [class.active]="canal === 'CALL'" (click)="setCanal('CALL')"><mat-icon>call</mat-icon> Call Center</button>
+    <button [class.active]="canal === 'REALZZA'" (click)="setCanal('REALZZA')"><mat-icon>storefront</mat-icon> Realzza</button>
+  </div>
+
+  <form class="vl-form" [formGroup]="form">
+    <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating" displayFormat="MMMM yyyy"
+      [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"></dx-date-box>
+    <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" displayFormat="MMMM yyyy"
+      [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"></dx-date-box>
+    <button mat-flat-button type="button" (click)="cargar()" [disabled]="isLoading">
+      <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
+      {{ isLoading ? 'Cargando...' : 'Ver' }}
+    </button>
+  </form>
+
+  <app-loading-overlay [inline]="true" [visible]="isLoading" icon="category"
+    mensaje="Calculando ventas por línea…" submensaje="Cruzando ventas y margen…"></app-loading-overlay>
+
+  <div *ngIf="!isLoading && error" class="vl-error">
+    <mat-icon>error_outline</mat-icon> {{ error }}
+  </div>
+
+  <div class="vl-scroll" *ngIf="!isLoading && !error && filas.length">
+    <table class="vl-tabla">
+      <thead>
+        <tr>
+          <th class="ta-l vl-c-asesor" rowspan="2">Asesor</th>
+          <th class="vl-grp-head" *ngFor="let m of meses" colspan="3">
+            {{ m.label }}<span class="vl-proy" *ngIf="m.proyeccion"> (Proyección)</span>
+          </th>
+          <th rowspan="2">Total</th>
+        </tr>
+        <tr>
+          <ng-container *ngFor="let m of meses">
+            <th class="vl-sub">Venta Motos</th>
+            <th class="vl-sub">Venta Melamina</th>
+            <th class="vl-sub">Resto</th>
+          </ng-container>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let f of filas">
+          <td class="ta-l vl-c-asesor" [title]="f.asesor">{{ f.nombre }}</td>
+          <td *ngFor="let v of f.valores">{{ v ? soles(v) : '—' }}</td>
+          <td class="vl-tot">{{ soles(f.total) }}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="ta-l vl-c-asesor">TOTAL</td>
+          <td *ngFor="let t of totales">{{ soles(t) }}</td>
+          <td class="vl-tot">{{ soles(totalGeneral) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div *ngIf="!isLoading && !error && !filas.length" class="vl-vacio">
+    <mat-icon>info</mat-icon> Sin ventas para el rango y canal elegidos.
+  </div>
+</div>
