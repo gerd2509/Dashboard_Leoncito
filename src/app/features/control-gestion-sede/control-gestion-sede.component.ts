@@ -27,7 +27,7 @@ interface AsesorRow {
 
 interface EvoPunto { fecha: string; llamadas: number; cartas: number; afiliaciones: number; }
 interface EvoPivotFila { sedeKey: string; sede: string; valores: number[]; total: number; }
-interface EvoPivot { metrica: 'llamadas' | 'cartas' | 'afiliaciones'; label: string; color: string; filas: EvoPivotFila[]; totales: number[]; totalGeneral: number; }
+interface EvoPivot { metrica: 'llamadas' | 'cartas' | 'afiliaciones'; label: string; color: string; filas: EvoPivotFila[]; totales: number[]; totalGeneral: number; valoresConDato: number[]; }
 
 interface SedeBloque {
   key: string;
@@ -483,6 +483,15 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   textoLlamadas(valor: number): string { return this.textoSobre(this.escalaRGB(valor, this.valoresPctLlamadas)); }
   textoCartas(valor: number): string   { return this.textoSobre(this.escalaRGB(valor, this.valoresPctCartas)); }
 
+  // Heatmap del "Detalle por sede" de Evolución (Rango): mismo criterio de 3 colores,
+  // pero sobre los valores de esa métrica (no un %). Las celdas en 0 quedan sin color.
+  colorHeat(valor: number, piv: EvoPivot): string {
+    return valor > 0 ? this.rgbStr(this.escalaRGB(valor, piv.valoresConDato)) : '';
+  }
+  textoHeat(valor: number, piv: EvoPivot): string {
+    return valor > 0 ? this.textoSobre(this.escalaRGB(valor, piv.valoresConDato)) : '';
+  }
+
   private escalaRGB(valor: number, valores: number[]): number[] {
     const ROJO     = [248, 105, 107];
     const AMARILLO = [255, 235, 132];
@@ -821,7 +830,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           }).sort((a, b) => b.total - a.total);
           const nCols = this.evoDatos.length;
           const totales = Array.from({ length: nCols }, (_, i) => filas.reduce((s, f) => s + (f.valores[i] || 0), 0));
-          return { metrica: met.key, label: met.label, color: met.color, filas, totales, totalGeneral: totales.reduce((a, b) => a + b, 0) };
+          // Valores CON dato (>0) para la escala de color (heatmap rojo→amarillo→verde).
+          const valoresConDato = filas.flatMap(f => f.valores).filter(v => v > 0);
+          return { metrica: met.key, label: met.label, color: met.color, filas, totales, totalGeneral: totales.reduce((a, b) => a + b, 0), valoresConDato };
         });
       } else {
         this.evoPivots = [];

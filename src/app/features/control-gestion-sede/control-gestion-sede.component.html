@@ -206,7 +206,7 @@
                             <tbody>
                                 <tr *ngFor="let f of piv.filas">
                                     <td class="ev-lbl">{{ f.sede }}</td>
-                                    <td *ngFor="let v of f.valores">{{ v }}</td>
+                                    <td *ngFor="let v of f.valores" [style.background]="colorHeat(v, piv)" [style.color]="textoHeat(v, piv)">{{ v || '' }}</td>
                                     <td class="ev-tot">{{ f.total }}</td>
                                 </tr>
                             </tbody>
