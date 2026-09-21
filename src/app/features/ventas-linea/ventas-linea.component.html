@@ -12,16 +12,27 @@
     <button [class.active]="canal === 'REALZZA'" (click)="setCanal('REALZZA')"><mat-icon>storefront</mat-icon> Realzza</button>
   </div>
 
-  <form class="vl-form" [formGroup]="form">
-    <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating" displayFormat="MMMM yyyy"
-      [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"></dx-date-box>
-    <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" displayFormat="MMMM yyyy"
-      [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"></dx-date-box>
-    <button mat-flat-button type="button" (click)="cargar()" [disabled]="isLoading">
-      <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
-      {{ isLoading ? 'Cargando...' : 'Ver' }}
-    </button>
-  </form>
+  <div class="vl-form-row">
+    <form class="vl-form" [formGroup]="form">
+      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="180"></dx-date-box>
+      <button mat-flat-button type="button" (click)="cargar()" [disabled]="isLoading">
+        <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
+        {{ isLoading ? 'Cargando...' : 'Ver' }}
+      </button>
+    </form>
+
+    <div class="vl-proy-card" *ngIf="!isLoading && proyeccionCierre">
+      <mat-icon>trending_up</mat-icon>
+      <div>
+        <div class="vl-proy-lbl">Proyección de cierre — {{ proyeccionCierre.mesLabel }}</div>
+        <div class="vl-proy-val">{{ soles(proyeccionCierre.proyectado) }}</div>
+        <div class="vl-proy-sub">Acumulado a hoy: {{ soles(proyeccionCierre.actual) }}</div>
+      </div>
+    </div>
+  </div>
 
   <app-loading-overlay [inline]="true" [visible]="isLoading" icon="category"
     mensaje="Calculando ventas por línea…" submensaje="Cruzando ventas y margen…"></app-loading-overlay>
@@ -35,9 +46,7 @@
       <thead>
         <tr>
           <th class="ta-l vl-c-asesor" rowspan="2">Asesor</th>
-          <th class="vl-grp-head" *ngFor="let m of meses" colspan="3">
-            {{ m.label }}<span class="vl-proy" *ngIf="m.proyeccion"> (Proyección)</span>
-          </th>
+          <th class="vl-grp-head" *ngFor="let m of meses" colspan="3">{{ m.label }}</th>
           <th rowspan="2">Total</th>
         </tr>
         <tr>

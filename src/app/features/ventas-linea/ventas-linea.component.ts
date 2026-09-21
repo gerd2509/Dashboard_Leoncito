@@ -41,6 +41,8 @@ export class VentasLineaComponent implements OnInit {
   filas: FilaLinea[] = [];
   totales: number[] = [];
   totalGeneral = 0;
+  /** Proyección de cierre del mes EN CURSO (si cae dentro del rango elegido). */
+  proyeccionCierre: { mesLabel: string; actual: number; proyectado: number } | null = null;
 
   private readonly MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   private readonly CAT_IDX: Record<Categoria, number> = { MOTOS: 0, MELAMINA: 1, RESTO: 2 };
@@ -139,6 +141,18 @@ export class VentasLineaComponent implements OnInit {
     filas.forEach(f => f.valores.forEach((v, i) => totales[i] += v));
     this.totales = totales;
     this.totalGeneral = totales.reduce((s, v) => s + v, 0);
+
+    // Proyección de cierre: solo si el mes EN CURSO (hoy) está dentro del rango elegido.
+    const hoy = new Date();
+    const idxHoy = meses.findIndex(m => m.anio === hoy.getFullYear() && m.mes === hoy.getMonth() + 1);
+    if (idxHoy >= 0) {
+      const actual = totales[idxHoy * 3] + totales[idxHoy * 3 + 1] + totales[idxHoy * 3 + 2];
+      const diasMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+      const diasTranscurridos = Math.max(1, hoy.getDate());
+      this.proyeccionCierre = { mesLabel: meses[idxHoy].label, actual, proyectado: Math.round((actual / diasTranscurridos) * diasMes) };
+    } else {
+      this.proyeccionCierre = null;
+    }
   }
 
   soles(n: number): string { return 'S/ ' + Math.round(n || 0).toLocaleString('es-PE'); }
