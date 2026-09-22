@@ -1721,19 +1721,27 @@ export class VentasCampoComponent implements OnInit {
     const mapNCMes = this.agruparNCMismoMes(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
     const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
 
-    this.tablaBonosAsesor = Array.from(mapVentas.entries()).map(([nombre, data]) => {
+    // Unión con quienes SOLO tienen NC arrastrada (0 ventas en el rango) — igual que
+    // generarResumenPorVendedor(); si no, esos vendedores (y su NC) desaparecían de la
+    // tabla entera y el TOTAL no cuadraba con "Avance de Ventas por Vendedor".
+    const nombres = new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]);
+    this.tablaBonosAsesor = Array.from(nombres).map(nombre => {
+      const data = mapVentas.get(nombre) || { ventas: 0, ops: 0 };
       const ventas = Math.round(data.ventas) + Math.round(mapNCMes.get(nombre) || 0);   // bruto incluye NC del mes
       const montoNC = Math.round(mapNCTodas.get(nombre) || 0);
-      const montoNeto = Math.max(0, ventas - montoNC);
+      const montoNeto = ventas - montoNC;   // sin recortar en 0: debe cuadrar con las demás tablas
       const ticket = data.ops > 0 ? Math.round(data.ventas / data.ops) : 0;
+      // Proyección/bono SÍ se acotan en 0 (no tiene sentido proyectar o bonificar en
+      // negativo), pero eso no debe ocultar el NETO real de la fila/el total.
+      const netoParaProyeccion = Math.max(0, montoNeto);
       let ticketDiario = 0;
       let proyeccion = 0;
 
       if (esPasado || seleccionaMesCompleto) {
-        ticketDiario = diasMesSeleccionado > 0 ? montoNeto / diasMesSeleccionado : 0;
-        proyeccion = montoNeto;
+        ticketDiario = diasMesSeleccionado > 0 ? netoParaProyeccion / diasMesSeleccionado : 0;
+        proyeccion = netoParaProyeccion;
       } else {
-        ticketDiario = diasTranscurridos > 0 ? montoNeto / diasTranscurridos : 0;
+        ticketDiario = diasTranscurridos > 0 ? netoParaProyeccion / diasTranscurridos : 0;
         proyeccion = Math.round(ticketDiario * diasMesActual);
       }
 
