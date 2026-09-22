@@ -23,6 +23,8 @@ export class VentasCampoComponent implements OnInit {
   cargandoBD = false;   // overlay mientras se trae la data de ventas_realzza (BD)
 
   formVentas: UntypedFormGroup;
+  motosFuenteForm!: UntypedFormGroup;
+  cargandoMotosFuente = false;
 
   dataVentas: any[] = [];
   filtroVentas: any[] = [];
@@ -118,6 +120,7 @@ export class VentasCampoComponent implements OnInit {
   customizeNetoTipoBaseTotal = (_: any) => `S/ ${Math.round(this.totalNetoTipoBase).toLocaleString('es-PE')}`;
   showDetailGrid = false;
   showNCGrid = false;
+  showPlazoGrid = false;
   totalPctMargenCredito = 0;
   customizePctMargenTotal = (_: any) => `${this.totalPctMargenCredito.toFixed(1)}%`;
   dataMargen: any[] = [];
@@ -220,10 +223,18 @@ export class VentasCampoComponent implements OnInit {
       fechaFin: [today, Validators.required],
       Asesores: ['']
     });
+
+    // Buscador de mes a mes dedicado para "Motos por mes" (independiente del filtro
+    // de fecha del resto del módulo, que es por día). Por defecto: últimos 3 meses.
+    this.motosFuenteForm = this.fb.group({
+      desde: [new Date(today.getFullYear(), today.getMonth() - 2, 1)],
+      hasta: [today],
+    });
   }
 
   async ngOnInit() {
     this.cargarDesdeBD();   // carga la data real de ventas_realzza al abrir el módulo
+    this.buscarMotosFuente();   // carga "Motos por mes" con su propio rango por defecto
   }
 
   /**
@@ -250,16 +261,11 @@ export class VentasCampoComponent implements OnInit {
     const evoReq = this.ventasSvc.obtenerVentasRealzzaEvolutivo().pipe(catchError(() => of([] as any[])));
     // Metas por tipo de base (BD, editables en el maestro) → para la columna Meta/%avance.
     const metasReq = yrs.map(a => this.ventasSvc.getMetaTipoBaseAnio(a).pipe(catchError(() => of([] as any[]))));
-    const motosFuenteReq = this.ventasSvc.obtenerVentasRealzzaMotosFuente({
-      anioDesde: Math.min(...yrs), mesDesde: !isNaN(ini.getTime()) ? ini.getMonth() + 1 : 1,
-      anioHasta: Math.max(...yrs), mesHasta: !isNaN(fin.getTime()) ? fin.getMonth() + 1 : 12,
-    }).pipe(catchError(() => of([] as any[])));
-    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq, metas: forkJoin(metasReq), motosFuente: motosFuenteReq }).subscribe({
-      next: ({ ventas, margen, evo, metas, motosFuente }) => {
+    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq, metas: forkJoin(metasReq) }).subscribe({
+      next: ({ ventas, margen, evo, metas }) => {
         this.procesarBD(([] as any[]).concat(...ventas), ([] as any[]).concat(...margen));
         this.setMetasTipoBase(([] as any[]).concat(...metas));   // pobla metasPorMes desde la BD
         this.setEvolutivo(evo);        // gráfico evolutivo (neto por mes) desde ventas_realzza
-        this.setMotosFuente(motosFuente);
         this.generarMesesGlobalGo();   // arma el selector de Mes + filtroGlobalGo (Detalle Global GO)
         this.cargandoBD = false;
         this.actualizarFiltros();
@@ -291,6 +297,23 @@ export class VentasCampoComponent implements OnInit {
     });
     this.totalMotosKommo = this.motosKommoPorMes.reduce((s, r) => s + r.ops, 0);
     this.totalMotosMarketPlace = this.motosMarketPlacePorMes.reduce((s, r) => s + r.ops, 0);
+  }
+
+  /** Busca "Motos por mes" (KOMMO / Market Place) por su propio rango mes-a-mes,
+   *  independiente del filtro de fecha (por día) del resto del módulo. */
+  buscarMotosFuente(): void {
+    if (!this.motosFuenteForm?.valid) return;
+    const desde = new Date(this.motosFuenteForm.value.desde);
+    const hasta = new Date(this.motosFuenteForm.value.hasta);
+    if (isNaN(desde.getTime()) || isNaN(hasta.getTime())) return;
+    this.cargandoMotosFuente = true;
+    this.ventasSvc.obtenerVentasRealzzaMotosFuente({
+      anioDesde: desde.getFullYear(), mesDesde: desde.getMonth() + 1,
+      anioHasta: hasta.getFullYear(), mesHasta: hasta.getMonth() + 1,
+    }).pipe(catchError(() => of([] as any[]))).subscribe(rows => {
+      this.setMotosFuente(rows);
+      this.cargandoMotosFuente = false;
+    });
   }
 
   /** Pobla metasPorMes ('yyyy-mm' → {tipoBase → meta}) desde la BD (tabla meta_tipo_base). */

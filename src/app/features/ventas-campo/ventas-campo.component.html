@@ -283,6 +283,16 @@
 </div>
 
 <!-- ===== MOTOS POR MES: KOMMO vs MARKET PLACE (solo motos, netas) ===== -->
+<form class="mf-buscador" [formGroup]="motosFuenteForm">
+    <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="170"></dx-date-box>
+    <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="170"></dx-date-box>
+    <button mat-flat-button type="button" (click)="buscarMotosFuente()" [disabled]="cargandoMotosFuente">
+        <mat-icon>{{ cargandoMotosFuente ? 'hourglass_empty' : 'search' }}</mat-icon>
+        {{ cargandoMotosFuente ? 'Buscando...' : 'Buscar' }}
+    </button>
+</form>
 <div class="mf-grid">
     <div class="mf-card">
         <div class="section-header">
@@ -384,6 +394,12 @@
 
 <!-- ===== FILA: AVANCE VENDEDOR + TIPO DE PAGO ===== -->
 <!-- ══════════ Ventas por PLAZO (cuotas) — Realzza ══════════ -->
+<div class="plazo-toggle-bar" (click)="showPlazoGrid = !showPlazoGrid">
+    <mat-icon class="plazo-chevron" [class.open]="showPlazoGrid">expand_more</mat-icon>
+    <mat-icon>schedule</mat-icon>
+    <span>{{ showPlazoGrid ? 'Ocultar' : 'Ver' }} Ventas por Plazo y Detalle por Cuotas (corto / largo alcance, nº de operaciones y monto)</span>
+</div>
+<div *ngIf="showPlazoGrid" class="plazo-content">
 <div class="section-header">
     <mat-icon>schedule</mat-icon>
     Ventas por Plazo — Corto (1–6) / Largo (7–12) · nº de operaciones
@@ -508,6 +524,7 @@
         <dxi-total-item column="mTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
     </dxo-summary>
 </dx-data-grid>
+</div>
 
 <div class="tabla-row-2">
     <div>
