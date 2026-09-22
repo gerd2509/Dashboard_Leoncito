@@ -328,6 +328,20 @@ export class VentasCampoComponent implements OnInit {
     });
   }
 
+  /**
+   * ¿La fila es una afectación que RESTA del monto real (va a dataNotasCredito, resta
+   * en su mes de afectación)? NOTA DE CRÉDITO / INCAUTACIÓN — igual criterio que el
+   * resto de la app (Reporte Global, Mi Panel, etc.) — y PRONTO PAGO: es la misma
+   * venta re-estampada con su propio mes_af (descuento/ajuste liquidado después),
+   * confirmado con data real (4 filas de set-2026: 3 NC + 1 Pronto Pago = S/16,747.03
+   * exacto). CANCELADO/ACTIVO/CLASIFICADO A PÉRDIDA-LEGAL NO restan aquí (CANCELADO en
+   * Realzza = "pagado al contado", no una anulación).
+   */
+  private esVentaReductora(estadoVentaUpper: string): boolean {
+    const e = (estadoVentaUpper || '').toString().trim().toUpperCase();
+    return e === 'NOTA DE CRÉDITO' || e === 'NOTA DE CREDITO' || e.includes('INCAUTAC') || e === 'PRONTO PAGO';
+  }
+
   /** Arma dataVentas / dataNotasCredito / dataGlobalGo / dataMargen desde filas de la BD. */
   private procesarBD(vrows: any[], mrows: any[]): void {
     // Margen: mapa por CodigoCV (líneas), cliente, y totales (valor/margen) por venta.
@@ -359,7 +373,7 @@ export class VentasCampoComponent implements OnInit {
       const estadoVenta = (r.estado_venta || '').toString().trim().toUpperCase();
       const entidad = (r.entidad || '').toString().trim().toUpperCase();
       const monto = this.parseNumber(r.monto_consolidado);
-      const esNC = estadoVenta === 'NOTA DE CRÉDITO' || estadoVenta === 'NOTA DE CREDITO';
+      const esNC = this.esVentaReductora(estadoVenta);
       const id = (r.codigo_cv ?? '').toString().trim();
       const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
       if (sede !== 'SEDE REALZZA STORE') continue;
@@ -497,7 +511,7 @@ export class VentasCampoComponent implements OnInit {
         const estadoVenta = (row['EstadoVenta'] || '').toString().trim().toUpperCase();
         const entidad = (row['Entidad'] || '').toString().trim().toUpperCase();
         const monto = this.parseNumber(row['MontoConsolidado']);
-        const esNC = estadoVenta === 'NOTA DE CRÉDITO' || estadoVenta === 'NOTA DE CREDITO';
+        const esNC = this.esVentaReductora(estadoVenta);
         const idventa = (row['IDVENTA'] || '').toString().trim();
 
         if (sede === 'SEDE REALZZA STORE' && !esNC && monto > 0) {
