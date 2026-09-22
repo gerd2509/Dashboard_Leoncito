@@ -275,6 +275,14 @@ export class CargaVentasService {
   obtenerVentasRealzzaEvolutivo(): Observable<{ anio: number; mes: number; ventas: number; nc: number; neto: number }[]> {
     return this.http.get<{ anio: number; mes: number; ventas: number; nc: number; neto: number }[]>(`${this.root}/ventas-realzza/evolutivo`);
   }
+  /** Operaciones netas de solo MOTOS por mes, agrupadas KOMMO / MARKET PLACE. */
+  obtenerVentasRealzzaMotosFuente(rango: { anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number }):
+    Observable<{ anio: number; mes: number; grupo: 'KOMMO' | 'MARKETPLACE'; ops: number }[]> {
+    const params = new HttpParams()
+      .set('anioDesde', rango.anioDesde).set('mesDesde', rango.mesDesde)
+      .set('anioHasta', rango.anioHasta).set('mesHasta', rango.mesHasta);
+    return this.http.get<any[]>(`${this.root}/ventas-realzza/motos-fuente`, { params });
+  }
 
   // ── Atribución de Ventas por canal ──
   //   Call    → tabla `ventas` × gestion_call (AsesorVenta/CC + TipoCliente/TipoBase).

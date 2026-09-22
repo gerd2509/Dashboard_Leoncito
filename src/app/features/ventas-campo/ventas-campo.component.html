@@ -282,6 +282,57 @@
     </div>
 </div>
 
+<!-- ===== MOTOS POR MES: KOMMO vs MARKET PLACE (solo motos, netas) ===== -->
+<div class="mf-grid">
+    <div class="mf-card">
+        <div class="section-header">
+            <mat-icon>two_wheeler</mat-icon>
+            Motos por KOMMO (incl. BBDD KOMMO) — por mes
+        </div>
+        <table class="mf-tabla">
+            <thead>
+                <tr>
+                    <th class="mf-th-lbl">MES</th>
+                    <th *ngFor="let m of motosKommoPorMes">{{ m.mesLabel }}</th>
+                    <th>TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="mf-lbl">Motos KOMMO</td>
+                    <td *ngFor="let m of motosKommoPorMes">{{ m.ops || '' }}</td>
+                    <td class="mf-tot">{{ totalMotosKommo }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="mf-vacio" *ngIf="!motosKommoPorMes.length">Sin datos para el rango elegido.</p>
+    </div>
+
+    <div class="mf-card">
+        <div class="section-header">
+            <mat-icon>two_wheeler</mat-icon>
+            Motos por Market Place — por mes
+        </div>
+        <table class="mf-tabla">
+            <thead>
+                <tr>
+                    <th class="mf-th-lbl">MES</th>
+                    <th *ngFor="let m of motosMarketPlacePorMes">{{ m.mesLabel }}</th>
+                    <th>TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="mf-lbl">Motos Market Place</td>
+                    <td *ngFor="let m of motosMarketPlacePorMes">{{ m.ops || '' }}</td>
+                    <td class="mf-tot">{{ totalMotosMarketPlace }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="mf-vacio" *ngIf="!motosMarketPlacePorMes.length">Sin datos para el rango elegido.</p>
+    </div>
+</div>
+
 <!-- ===== VENTAS POR LÍNEA REAL (ancho completo) ===== -->
 <div class="section-header">
     <mat-icon>storefront</mat-icon>

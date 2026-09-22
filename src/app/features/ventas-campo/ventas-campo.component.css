@@ -279,3 +279,15 @@
 
 .check-icon { color: #3D9B2F; font-size: 20px; width: 20px; height: 20px; }
 .warn-icon  { color: #DC2626; font-size: 20px; width: 20px; height: 20px; }
+
+/* Motos por mes: KOMMO / Market Place (solo motos, netas) */
+.mf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
+@media (max-width: 900px) { .mf-grid { grid-template-columns: 1fr; } }
+.mf-card { background: #fff; border: 1px solid #E3E9F2; border-radius: 10px; overflow: hidden; }
+.mf-tabla { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+.mf-tabla th, .mf-tabla td { border: 1px solid #E3E9F2; padding: 6px 10px; text-align: center; white-space: nowrap; }
+.mf-tabla thead th { background: #293964; color: #fff; font-weight: 700; }
+.mf-th-lbl, .mf-lbl { text-align: left; font-weight: 700; background: #F4F7FC; }
+.mf-tabla thead .mf-th-lbl { background: #293964; }
+.mf-tot { font-weight: 800; color: #1A5FAD; background: #EEF3FB; }
+.mf-vacio { padding: 10px 14px; color: #6b7a90; font-size: 12.5px; }

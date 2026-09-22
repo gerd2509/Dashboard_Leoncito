@@ -92,6 +92,11 @@ export class VentasCampoComponent implements OnInit {
   maxMontoMotoTipo = 1;
   ventasPorTipoBase: any[] = [];
   maxMontoTipoBase = 1;
+  // Motos por mes: KOMMO (incluye BBDD KOMMO) vs Market Place — netas (− NC/incautaciones).
+  motosKommoPorMes: { mesLabel: string; ops: number }[] = [];
+  motosMarketPlacePorMes: { mesLabel: string; ops: number }[] = [];
+  totalMotosKommo = 0;
+  totalMotosMarketPlace = 0;
   // Pivot ventas por asesor (vendedor) × tipo de base (neto), como en Call.
   ventasPorAsesorTipoBase: any[] = [];
   tiposBaseUnicos: string[] = [];
@@ -245,17 +250,47 @@ export class VentasCampoComponent implements OnInit {
     const evoReq = this.ventasSvc.obtenerVentasRealzzaEvolutivo().pipe(catchError(() => of([] as any[])));
     // Metas por tipo de base (BD, editables en el maestro) → para la columna Meta/%avance.
     const metasReq = yrs.map(a => this.ventasSvc.getMetaTipoBaseAnio(a).pipe(catchError(() => of([] as any[]))));
-    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq, metas: forkJoin(metasReq) }).subscribe({
-      next: ({ ventas, margen, evo, metas }) => {
+    const motosFuenteReq = this.ventasSvc.obtenerVentasRealzzaMotosFuente({
+      anioDesde: Math.min(...yrs), mesDesde: !isNaN(ini.getTime()) ? ini.getMonth() + 1 : 1,
+      anioHasta: Math.max(...yrs), mesHasta: !isNaN(fin.getTime()) ? fin.getMonth() + 1 : 12,
+    }).pipe(catchError(() => of([] as any[])));
+    forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq, metas: forkJoin(metasReq), motosFuente: motosFuenteReq }).subscribe({
+      next: ({ ventas, margen, evo, metas, motosFuente }) => {
         this.procesarBD(([] as any[]).concat(...ventas), ([] as any[]).concat(...margen));
         this.setMetasTipoBase(([] as any[]).concat(...metas));   // pobla metasPorMes desde la BD
         this.setEvolutivo(evo);        // gráfico evolutivo (neto por mes) desde ventas_realzza
+        this.setMotosFuente(motosFuente);
         this.generarMesesGlobalGo();   // arma el selector de Mes + filtroGlobalGo (Detalle Global GO)
         this.cargandoBD = false;
         this.actualizarFiltros();
       },
       error: () => { this.cargandoBD = false; this.actualizarFiltros(); },
     });
+  }
+
+  private readonly MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+  /** Arma las 2 tablas "Motos por mes" (KOMMO / Market Place) desde /ventas-realzza/motos-fuente. */
+  private setMotosFuente(rows: { anio: number; mes: number; grupo: 'KOMMO' | 'MARKETPLACE'; ops: number }[]): void {
+    if (!rows?.length) { this.motosKommoPorMes = []; this.motosMarketPlacePorMes = []; this.totalMotosKommo = 0; this.totalMotosMarketPlace = 0; return; }
+    const claves = Array.from(new Set(rows.map(r => `${r.anio}-${String(r.mes).padStart(2, '0')}`))).sort();
+    const porClave = new Map<string, { kommo: number; mp: number }>();
+    rows.forEach(r => {
+      const k = `${r.anio}-${String(r.mes).padStart(2, '0')}`;
+      const cur = porClave.get(k) || { kommo: 0, mp: 0 };
+      if (r.grupo === 'KOMMO') cur.kommo += r.ops; else cur.mp += r.ops;
+      porClave.set(k, cur);
+    });
+    this.motosKommoPorMes = claves.map(k => {
+      const [a, m] = k.split('-').map(Number);
+      return { mesLabel: `${this.MESES_CORTOS[m - 1]}-${String(a).slice(2)}`, ops: porClave.get(k)?.kommo || 0 };
+    });
+    this.motosMarketPlacePorMes = claves.map(k => {
+      const [a, m] = k.split('-').map(Number);
+      return { mesLabel: `${this.MESES_CORTOS[m - 1]}-${String(a).slice(2)}`, ops: porClave.get(k)?.mp || 0 };
+    });
+    this.totalMotosKommo = this.motosKommoPorMes.reduce((s, r) => s + r.ops, 0);
+    this.totalMotosMarketPlace = this.motosMarketPlacePorMes.reduce((s, r) => s + r.ops, 0);
   }
 
   /** Pobla metasPorMes ('yyyy-mm' → {tipoBase → meta}) desde la BD (tabla meta_tipo_base). */
