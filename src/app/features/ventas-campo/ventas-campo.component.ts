@@ -330,16 +330,14 @@ export class VentasCampoComponent implements OnInit {
 
   /**
    * ¿La fila es una afectación que RESTA del monto real (va a dataNotasCredito, resta
-   * en su mes de afectación)? NOTA DE CRÉDITO / INCAUTACIÓN — igual criterio que el
-   * resto de la app (Reporte Global, Mi Panel, etc.) — y PRONTO PAGO: es la misma
-   * venta re-estampada con su propio mes_af (descuento/ajuste liquidado después),
-   * confirmado con data real (4 filas de set-2026: 3 NC + 1 Pronto Pago = S/16,747.03
-   * exacto). CANCELADO/ACTIVO/CLASIFICADO A PÉRDIDA-LEGAL NO restan aquí (CANCELADO en
-   * Realzza = "pagado al contado", no una anulación).
+   * en su mes de afectación)? Solo NOTA DE CRÉDITO / INCAUTACIÓN — la lógica de
+   * siempre (igual que el resto de la app: Reporte Global, Mi Panel, etc.). PRONTO
+   * PAGO NO resta (es una venta válida, no una afectación) — CANCELADO/ACTIVO/
+   * CLASIFICADO A PÉRDIDA-LEGAL tampoco (CANCELADO en Realzza = "pagado al contado").
    */
   private esVentaReductora(estadoVentaUpper: string): boolean {
     const e = (estadoVentaUpper || '').toString().trim().toUpperCase();
-    return e === 'NOTA DE CRÉDITO' || e === 'NOTA DE CREDITO' || e.includes('INCAUTAC') || e === 'PRONTO PAGO';
+    return e === 'NOTA DE CRÉDITO' || e === 'NOTA DE CREDITO' || e.includes('INCAUTAC');
   }
 
   /** Arma dataVentas / dataNotasCredito / dataGlobalGo / dataMargen desde filas de la BD. */
