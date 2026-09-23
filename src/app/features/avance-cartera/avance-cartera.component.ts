@@ -29,6 +29,18 @@ const CANDIDATOS_ASESOR = [
   'ASESOR REALZZA', 'ASIGNACION REALZZA',
 ];
 const CANDIDATOS_ZONA = ['ZONA', 'ZONAS', 'SEDE', 'TIENDA', 'TIENDA SEDE'];
+
+/** Asesoras de Call Center que a veces figuran en la columna de asesor/asignación de
+ *  la cartera de PISO importada, pero NO son vendedoras de piso — si un cliente de la
+ *  cartera piso aparece asignado a alguna de ellas, no cuenta en el avance de piso
+ *  (no es trabajo del vendedor físico de esa sede). Aplica solo en modo 'piso'. */
+const ASESORES_CALL_EN_CARTERA_PISO = new Set([
+  'MORETO DELGADO PATRICIA ESTEFANY',
+  'QUISPE FONSECA KAREN AIMEE',
+  'MORALES ÑIQUE MARIA CANDELARIA',
+  'TORRES ALVARADO JUDY ESMERALDA',
+  'SANDOVAL OTINIANO JUANA DEL PILAR',
+]);
 const CANDIDATOS_TIPO_CLIENTE = [
   'TIPO CLIENTE', 'TIPO DE CLIENTE', 'TIPOCLIENTE', 'TIPO_CLIENTE', 'TIPO DE CLIENTES',
   'CLIENTE TIPO', 'TIPO CLIENTES', 'SEGMENTO', 'SEGMENTO CLIENTE',
@@ -305,8 +317,14 @@ export class AvanceCarteraComponent implements OnInit {
       };
     });
 
+    // Piso: descarta la cartera asignada a asesoras de Call Center (no son vendedoras
+    // de piso; si quedan en el Excel, no deben inflar el avance de la sede).
+    const clientesFiltrados = this.modo === 'piso'
+      ? clientes.filter(c => !ASESORES_CALL_EN_CARTERA_PISO.has(c.asesor))
+      : clientes;
+
     // Deduplicar por DNI (un cliente cuenta una sola vez, igual que Embudos).
-    const unicos = this.dedupPorDni(clientes);
+    const unicos = this.dedupPorDni(clientesFiltrados);
     this.clientes = unicos;
     this.calcularGlobales(unicos);
     if (this.modo === 'piso') {
