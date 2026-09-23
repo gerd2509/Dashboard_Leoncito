@@ -132,8 +132,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   // probable typo/tilde/nombre distinto — se muestran para poder corregirlas a mano.
   afiliacionesSinMatch: { nombre: string; cantidad: number }[] = [];
   private readonly AFI_KEY = 'cgs_afiliaciones_v2';
-  // Meta diaria de afiliaciones POR ASESOR (la de la sede = nº asesores × esto).
-  private readonly META_AFI_ASESOR = 4;
+  // Metas diarias POR ASESOR/VENDEDOR (la de la sede = nº asesores AJUSTADO × esto).
+  private readonly META_LLAMADAS_ASESOR = 40;
+  private readonly META_CARTAS_ASESOR = 5;
+  private readonly META_AFI_ASESOR = 2;
   diasDelMes = 30;
   private readonly ordenZonas = ['CENTRO', 'NORTE', 'SUR'];
   // Orden exacto de las sedes dentro de cada zona (como se muestra en el resumen).
@@ -375,13 +377,16 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const totalGestiones        = filas.reduce((s, f) => s + f.total, 0);
       const totalAfiliaciones     = filas.reduce((s, f) => s + f.afiliaciones, 0);
 
-      // Metas: mensual (config) → diaria = mensual / días del mes
+      // Metas diarias = nº de asesores AJUSTADO × meta por asesor (40 llamadas / 5 cartas
+      // / 2 afiliaciones). Ajuste por tamaño de sede (no todos gestionan todos los días):
+      // ≥7 asesores → se resta 2 del headcount; ≤6 → se resta 1. Reemplaza la meta mensual
+      // configurada por sede (Maestro de Sedes), que ya no se usa para el % de cumplimiento.
       const metaLlamadasMensual    = cfg?.metaLlamadasMensual ?? 0;
       const metaCartasMensual      = cfg?.metaCartasMensual ?? 0;
-      const metaDiariaLlamadas     = this.diasDelMes > 0 ? Math.round(metaLlamadasMensual / this.diasDelMes) : 0;
-      const metaDiariaCartas       = this.diasDelMes > 0 ? Math.round(metaCartasMensual   / this.diasDelMes) : 0;
-      // Afiliaciones: meta diaria de la sede = nº asesores del roster × meta por asesor (4).
-      const metaDiariaAfiliaciones = asesores.length * this.META_AFI_ASESOR;
+      const nAsesoresMeta          = this.nAsesoresAjustado(asesores.length);
+      const metaDiariaLlamadas     = nAsesoresMeta * this.META_LLAMADAS_ASESOR;
+      const metaDiariaCartas       = nAsesoresMeta * this.META_CARTAS_ASESOR;
+      const metaDiariaAfiliaciones = nAsesoresMeta * this.META_AFI_ASESOR;
 
       return {
         key: sede.key,
@@ -427,6 +432,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
 
   /** Agrupa las sedes por zona (CENTRO/NORTE/SUR) y prepara los valores para la escala de color. */
+  /** Headcount ajustado para el cálculo de metas diarias (no todos gestionan todos los
+   *  días): sedes con 7+ asesores restan 2; con 6 o menos restan 1. Piso mínimo 0. */
+  private nAsesoresAjustado(n: number): number {
+    return Math.max(0, n - (n >= 7 ? 2 : 1));
+  }
+
   private construirResumen() {
     const grupos: ZonaGrupo[] = [];
 
