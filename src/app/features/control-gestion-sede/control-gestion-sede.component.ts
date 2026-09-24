@@ -377,17 +377,15 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const totalGestiones        = filas.reduce((s, f) => s + f.total, 0);
       const totalAfiliaciones     = filas.reduce((s, f) => s + f.afiliaciones, 0);
 
-      // Metas diarias = nº de asesores AJUSTADO × meta por asesor (40 llamadas / 5 cartas
-      // / 2 afiliaciones). El headcount NO es el roster completo del CAP (incluiría gente
-      // de vacaciones/baja que no gestiona ese día): es el nº de asesores que REALMENTE
-      // registraron llamadas/cartas ese día en esa sede (filas con total > 0). Ajuste por
-      // tamaño de sede: ≥7 asesores activos → se resta 2 del headcount; ≤6 → se resta 1.
-      // Reemplaza la meta mensual configurada por sede (Maestro de Sedes), que ya no se
-      // usa para el % de cumplimiento.
+      // Metas diarias = nº de asesores ACTIVOS ese día × meta por asesor (40 llamadas / 5
+      // cartas / 2 afiliaciones). El headcount NO es el roster completo del CAP (incluiría
+      // gente de vacaciones/baja que no gestiona ese día): es el nº de asesores que
+      // REALMENTE registraron llamadas/cartas ese día en esa sede (filas con total > 0),
+      // sin ningún descuento adicional. Reemplaza la meta mensual configurada por sede
+      // (Maestro de Sedes), que ya no se usa para el % de cumplimiento.
       const metaLlamadasMensual    = cfg?.metaLlamadasMensual ?? 0;
       const metaCartasMensual      = cfg?.metaCartasMensual ?? 0;
-      const nAsesoresActivos       = filas.filter(f => f.total > 0).length;
-      const nAsesoresMeta          = this.nAsesoresAjustado(nAsesoresActivos);
+      const nAsesoresMeta          = filas.filter(f => f.total > 0).length;
       const metaDiariaLlamadas     = nAsesoresMeta * this.META_LLAMADAS_ASESOR;
       const metaDiariaCartas       = nAsesoresMeta * this.META_CARTAS_ASESOR;
       const metaDiariaAfiliaciones = nAsesoresMeta * this.META_AFI_ASESOR;
@@ -436,14 +434,6 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
 
   /** Agrupa las sedes por zona (CENTRO/NORTE/SUR) y prepara los valores para la escala de color. */
-  /** Headcount ajustado para el cálculo de metas diarias (no todos gestionan todos los
-   *  días): sedes con 7+ asesores restan 2; con 6 o menos restan 1. Piso mínimo 0. */
-  private nAsesoresAjustado(n: number): number {
-    // Piso de 1: si hay al menos 1 asesor activo, la resta no puede dejar la
-    // meta en 0 (eso anularía el % de cumplimiento aunque ese asesor sí gestione).
-    if (n <= 0) return 0;
-    return Math.max(1, n - (n >= 7 ? 2 : 1));
-  }
 
   private construirResumen() {
     const grupos: ZonaGrupo[] = [];
