@@ -83,7 +83,7 @@
                             <td class="td-total">{{ g.gestiones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(g.pctLlamadas)" [style.color]="textoLlamadas(g.pctLlamadas)">{{ g.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(g.pctCartas)"     [style.color]="textoCartas(g.pctCartas)">{{ g.pctCartas }}%</td>
-                            <td class="td-pct" [style.background]="g.pctAfiliaciones === null ? '' : colorCartas(g.pctAfiliaciones)" [style.color]="g.pctAfiliaciones === null ? '' : textoCartas(g.pctAfiliaciones)">{{ g.pctAfiliaciones === null ? '—' : g.pctAfiliaciones + '%' }}</td>
+                            <td class="td-pct" [style.background]="colorCartas(g.pctAfiliaciones)" [style.color]="textoCartas(g.pctAfiliaciones)">{{ g.pctAfiliaciones }}%</td>
                         </tr>
                         <!-- Sedes de la zona -->
                         <tr *ngFor="let b of g.sedes">
@@ -94,7 +94,7 @@
                             <td class="td-total">{{ b.totalGestiones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(b.pctLlamadas)" [style.color]="textoLlamadas(b.pctLlamadas)">{{ b.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(b.pctCartas)"     [style.color]="textoCartas(b.pctCartas)">{{ b.pctCartas }}%</td>
-                            <td class="td-pct" [style.background]="b.pctAfiliaciones === null ? '' : colorCartas(b.pctAfiliaciones)" [style.color]="b.pctAfiliaciones === null ? '' : textoCartas(b.pctAfiliaciones)">{{ b.pctAfiliaciones === null ? '—' : b.pctAfiliaciones + '%' }}</td>
+                            <td class="td-pct" [style.background]="colorCartas(b.pctAfiliaciones)" [style.color]="textoCartas(b.pctAfiliaciones)">{{ b.pctAfiliaciones }}%</td>
                         </tr>
                     </tbody>
 
@@ -107,7 +107,7 @@
                             <td class="td-total">{{ resumenTotalGen.gestiones }}</td>
                             <td class="td-pct" [style.background]="colorLlamadas(resumenTotalGen.pctLlamadas)" [style.color]="textoLlamadas(resumenTotalGen.pctLlamadas)">{{ resumenTotalGen.pctLlamadas }}%</td>
                             <td class="td-pct" [style.background]="colorCartas(resumenTotalGen.pctCartas)"     [style.color]="textoCartas(resumenTotalGen.pctCartas)">{{ resumenTotalGen.pctCartas }}%</td>
-                            <td class="td-pct" [style.background]="resumenTotalGen.pctAfiliaciones === null ? '' : colorCartas(resumenTotalGen.pctAfiliaciones)" [style.color]="resumenTotalGen.pctAfiliaciones === null ? '' : textoCartas(resumenTotalGen.pctAfiliaciones)">{{ resumenTotalGen.pctAfiliaciones === null ? '—' : resumenTotalGen.pctAfiliaciones + '%' }}</td>
+                            <td class="td-pct" [style.background]="colorCartas(resumenTotalGen.pctAfiliaciones)" [style.color]="textoCartas(resumenTotalGen.pctAfiliaciones)">{{ resumenTotalGen.pctAfiliaciones }}%</td>
                         </tr>
                     </tfoot>
                 </table>

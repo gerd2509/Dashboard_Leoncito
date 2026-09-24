@@ -50,7 +50,7 @@ interface SedeBloque {
   metaDiariaAfiliaciones: number;
   pctLlamadas: number;   // % cumplimiento llamadas vs meta diaria (0-100+)
   pctCartas: number;     // % cumplimiento cartas   vs meta diaria (0-100+)
-  pctAfiliaciones: number | null;  // % cumplimiento afiliaciones (null = sin meta → "—")
+  pctAfiliaciones: number;  // % cumplimiento afiliaciones vs meta diaria (0-100+)
 }
 
 interface ZonaGrupo {
@@ -65,7 +65,7 @@ interface ZonaGrupo {
   metaDiariaAfiliaciones: number;
   pctLlamadas: number;
   pctCartas: number;
-  pctAfiliaciones: number | null;
+  pctAfiliaciones: number;
 }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
@@ -119,7 +119,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   // ── Resumen agrupado por zona ──
   resumenGrupos: ZonaGrupo[] = [];
-  resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, afiliaciones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, metaDiariaAfiliaciones: 0, pctLlamadas: 0, pctCartas: 0, pctAfiliaciones: null as number | null };
+  resumenTotalGen = { llamadas: 0, cartas: 0, gestiones: 0, afiliaciones: 0, metaDiariaLlamadas: 0, metaDiariaCartas: 0, metaDiariaAfiliaciones: 0, pctLlamadas: 0, pctCartas: 0, pctAfiliaciones: 0 };
 
   // ── Afiliaciones (se importan de un Excel y se guardan en el navegador) ──
   // normNombre → { 'YYYY-MM-DD': nº afiliaciones }. Se cuenta por la FECHO REGISTRO
@@ -243,7 +243,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       metaDiariaAfiliaciones: 0,
       pctLlamadas: 0,
       pctCartas: 0,
-      pctAfiliaciones: null,
+      pctAfiliaciones: 0,
     }));
   }
 
@@ -414,7 +414,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         // % cumplimiento = gestiones del día / meta diaria
         pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((totalLlamadas / metaDiariaLlamadas) * 100) : 0,
         pctCartas:   metaDiariaCartas   > 0 ? Math.round((totalCartas   / metaDiariaCartas)   * 100) : 0,
-        pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((totalAfiliaciones / metaDiariaAfiliaciones) * 100) : null,
+        pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((totalAfiliaciones / metaDiariaAfiliaciones) * 100) : 0,
       };
     });
 
@@ -439,7 +439,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   /** Headcount ajustado para el cálculo de metas diarias (no todos gestionan todos los
    *  días): sedes con 7+ asesores restan 2; con 6 o menos restan 1. Piso mínimo 0. */
   private nAsesoresAjustado(n: number): number {
-    return Math.max(0, n - (n >= 7 ? 2 : 1));
+    // Piso de 1: si hay al menos 1 asesor activo, la resta no puede dejar la
+    // meta en 0 (eso anularía el % de cumplimiento aunque ese asesor sí gestione).
+    if (n <= 0) return 0;
+    return Math.max(1, n - (n >= 7 ? 2 : 1));
   }
 
   private construirResumen() {
@@ -464,7 +467,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         metaDiariaLlamadas, metaDiariaCartas, metaDiariaAfiliaciones,
         pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((llamadas / metaDiariaLlamadas) * 100) : 0,
         pctCartas:   metaDiariaCartas   > 0 ? Math.round((cartas   / metaDiariaCartas)   * 100) : 0,
-        pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((afiliaciones / metaDiariaAfiliaciones) * 100) : null,
+        pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((afiliaciones / metaDiariaAfiliaciones) * 100) : 0,
       });
     }
     this.resumenGrupos = grupos;
@@ -481,7 +484,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       llamadas, cartas, gestiones, afiliaciones, metaDiariaLlamadas, metaDiariaCartas, metaDiariaAfiliaciones,
       pctLlamadas: metaDiariaLlamadas > 0 ? Math.round((llamadas / metaDiariaLlamadas) * 100) : 0,
       pctCartas:   metaDiariaCartas   > 0 ? Math.round((cartas   / metaDiariaCartas)   * 100) : 0,
-      pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((afiliaciones / metaDiariaAfiliaciones) * 100) : null,
+      pctAfiliaciones: metaDiariaAfiliaciones > 0 ? Math.round((afiliaciones / metaDiariaAfiliaciones) * 100) : 0,
     };
 
     // Rangos para la escala de 3 colores (solo sobre las filas de sede)
@@ -494,10 +497,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
 
   // ── Escala de 3 colores (Excel): rojo (mín) → amarillo (percentil 50) → verde (máx) ──
-  colorLlamadas(valor: number): string { return this.rgbStr(this.escalaRGB(valor, this.valoresPctLlamadas)); }
-  colorCartas(valor: number): string   { return this.rgbStr(this.escalaRGB(valor, this.valoresPctCartas)); }
-  textoLlamadas(valor: number): string { return this.textoSobre(this.escalaRGB(valor, this.valoresPctLlamadas)); }
-  textoCartas(valor: number): string   { return this.textoSobre(this.escalaRGB(valor, this.valoresPctCartas)); }
+  // A partir del 100% de cumplimiento, siempre verde (meta lograda), sin importar la
+  // posición relativa dentro del rango de esa fecha.
+  private readonly VERDE_META = [61, 155, 65];
+  colorLlamadas(valor: number): string { return valor >= 100 ? this.rgbStr(this.VERDE_META) : this.rgbStr(this.escalaRGB(valor, this.valoresPctLlamadas)); }
+  colorCartas(valor: number): string   { return valor >= 100 ? this.rgbStr(this.VERDE_META) : this.rgbStr(this.escalaRGB(valor, this.valoresPctCartas)); }
+  textoLlamadas(valor: number): string { return valor >= 100 ? this.textoSobre(this.VERDE_META) : this.textoSobre(this.escalaRGB(valor, this.valoresPctLlamadas)); }
+  textoCartas(valor: number): string   { return valor >= 100 ? this.textoSobre(this.VERDE_META) : this.textoSobre(this.escalaRGB(valor, this.valoresPctCartas)); }
 
   // Heatmap del "Detalle por sede" de Evolución (Rango): mismo criterio de 3 colores,
   // pero sobre los valores de esa métrica (no un %). Las celdas en 0 quedan sin color.
