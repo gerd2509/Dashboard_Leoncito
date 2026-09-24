@@ -378,12 +378,16 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const totalAfiliaciones     = filas.reduce((s, f) => s + f.afiliaciones, 0);
 
       // Metas diarias = nº de asesores AJUSTADO × meta por asesor (40 llamadas / 5 cartas
-      // / 2 afiliaciones). Ajuste por tamaño de sede (no todos gestionan todos los días):
-      // ≥7 asesores → se resta 2 del headcount; ≤6 → se resta 1. Reemplaza la meta mensual
-      // configurada por sede (Maestro de Sedes), que ya no se usa para el % de cumplimiento.
+      // / 2 afiliaciones). El headcount NO es el roster completo del CAP (incluiría gente
+      // de vacaciones/baja que no gestiona ese día): es el nº de asesores que REALMENTE
+      // registraron llamadas/cartas ese día en esa sede (filas con total > 0). Ajuste por
+      // tamaño de sede: ≥7 asesores activos → se resta 2 del headcount; ≤6 → se resta 1.
+      // Reemplaza la meta mensual configurada por sede (Maestro de Sedes), que ya no se
+      // usa para el % de cumplimiento.
       const metaLlamadasMensual    = cfg?.metaLlamadasMensual ?? 0;
       const metaCartasMensual      = cfg?.metaCartasMensual ?? 0;
-      const nAsesoresMeta          = this.nAsesoresAjustado(asesores.length);
+      const nAsesoresActivos       = filas.filter(f => f.total > 0).length;
+      const nAsesoresMeta          = this.nAsesoresAjustado(nAsesoresActivos);
       const metaDiariaLlamadas     = nAsesoresMeta * this.META_LLAMADAS_ASESOR;
       const metaDiariaCartas       = nAsesoresMeta * this.META_CARTAS_ASESOR;
       const metaDiariaAfiliaciones = nAsesoresMeta * this.META_AFI_ASESOR;
