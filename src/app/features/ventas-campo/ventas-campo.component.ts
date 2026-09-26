@@ -1254,17 +1254,15 @@ export class VentasCampoComponent implements OnInit {
     this.maxMontoMotoTipo = this.motosPorTipoProducto.length > 0 ? this.motosPorTipoProducto[0].Monto : 1;
   }
 
-  /** Motos por tipo de base (GLOBAL GO / PROPIO), sin importar el tipo de venta/producto
-   *  de motos: solo separa por entidad Global Go vs cualquier otra. */
+  /** Motos por TIPO DE BASE (fuente: Referidos, Tienda, BBDD, KOMMO, Market Place, etc.),
+   *  no por entidad/financiadora — es la clasificación TipoBase de ventas_realzza. */
   generarMotosPorTipoBase(): void {
     const motos = this.filtroVentas.filter(v =>
       (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
-    const map = new Map<string, { monto: number; ops: number }>([
-      ['GLOBAL GO', { monto: 0, ops: 0 }], ['PROPIO', { monto: 0, ops: 0 }],
-    ]);
+    const map = new Map<string, { monto: number; ops: number }>();
     motos.forEach(v => {
-      const tipo = this.entidadDisplay(v.Entidad).toUpperCase() === 'GLOBAL GO' ? 'GLOBAL GO' : 'PROPIO';
-      const cur = map.get(tipo)!;
+      const tipo = (v.TipoBase || '').toString().trim().toUpperCase() || 'SIN TIPO DE BASE';
+      const cur = map.get(tipo) || { monto: 0, ops: 0 };
       map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
     this.motosPorTipoBase = Array.from(map, ([TipoBase, d]) => ({
