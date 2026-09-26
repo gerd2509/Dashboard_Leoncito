@@ -284,15 +284,6 @@ export class CargaVentasService {
     return this.http.get<any[]>(`${this.root}/ventas-realzza/motos-fuente`, { params });
   }
 
-  /** Operaciones netas de solo MOTOS por mes, agrupadas por ENTIDAD: GLOBAL GO / PROPIO. */
-  obtenerVentasRealzzaMotosEntidad(rango: { anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number }):
-    Observable<{ anio: number; mes: number; grupo: 'GLOBAL GO' | 'PROPIO'; ops: number }[]> {
-    const params = new HttpParams()
-      .set('anioDesde', rango.anioDesde).set('mesDesde', rango.mesDesde)
-      .set('anioHasta', rango.anioHasta).set('mesHasta', rango.mesHasta);
-    return this.http.get<any[]>(`${this.root}/ventas-realzza/motos-entidad`, { params });
-  }
-
   // ── Atribución de Ventas por canal ──
   //   Call    → tabla `ventas` × gestion_call (AsesorVenta/CC + TipoCliente/TipoBase).
   //   Realzza → tabla `ventas_realzza` × gestion_realzza (TipoBase) + margen_ventas.

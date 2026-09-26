@@ -99,11 +99,9 @@ export class VentasCampoComponent implements OnInit {
   motosMarketPlacePorMes: { mesLabel: string; ops: number }[] = [];
   totalMotosKommo = 0;
   totalMotosMarketPlace = 0;
-  // Motos por mes: GLOBAL GO vs PROPIO (por entidad) — netas (− NC/incautaciones).
-  motosGlobalGoPorMes: { mesLabel: string; ops: number }[] = [];
-  motosPropioPorMes: { mesLabel: string; ops: number }[] = [];
-  totalMotosGlobalGo = 0;
-  totalMotosPropio = 0;
+  // Motos por Tipo de Base: GLOBAL GO vs PROPIO (detalle, no por mes) — junto a Motos por Entidad.
+  motosPorTipoBase: any[] = [];
+  maxMontoMotoTipoBase = 1;
   // Pivot ventas por asesor (vendedor) × tipo de base (neto), como en Call.
   ventasPorAsesorTipoBase: any[] = [];
   tiposBaseUnicos: string[] = [];
@@ -304,47 +302,19 @@ export class VentasCampoComponent implements OnInit {
     this.totalMotosMarketPlace = this.motosMarketPlacePorMes.reduce((s, r) => s + r.ops, 0);
   }
 
-  /** Arma la tabla "Motos por mes" GLOBAL GO / PROPIO desde /ventas-realzza/motos-entidad. */
-  private setMotosEntidad(rows: { anio: number; mes: number; grupo: 'GLOBAL GO' | 'PROPIO'; ops: number }[]): void {
-    if (!rows?.length) { this.motosGlobalGoPorMes = []; this.motosPropioPorMes = []; this.totalMotosGlobalGo = 0; this.totalMotosPropio = 0; return; }
-    const claves = Array.from(new Set(rows.map(r => `${r.anio}-${String(r.mes).padStart(2, '0')}`))).sort();
-    const porClave = new Map<string, { go: number; propio: number }>();
-    rows.forEach(r => {
-      const k = `${r.anio}-${String(r.mes).padStart(2, '0')}`;
-      const cur = porClave.get(k) || { go: 0, propio: 0 };
-      if (r.grupo === 'GLOBAL GO') cur.go += r.ops; else cur.propio += r.ops;
-      porClave.set(k, cur);
-    });
-    this.motosGlobalGoPorMes = claves.map(k => {
-      const [a, m] = k.split('-').map(Number);
-      return { mesLabel: `${this.MESES_CORTOS[m - 1]}-${String(a).slice(2)}`, ops: porClave.get(k)?.go || 0 };
-    });
-    this.motosPropioPorMes = claves.map(k => {
-      const [a, m] = k.split('-').map(Number);
-      return { mesLabel: `${this.MESES_CORTOS[m - 1]}-${String(a).slice(2)}`, ops: porClave.get(k)?.propio || 0 };
-    });
-    this.totalMotosGlobalGo = this.motosGlobalGoPorMes.reduce((s, r) => s + r.ops, 0);
-    this.totalMotosPropio = this.motosPropioPorMes.reduce((s, r) => s + r.ops, 0);
-  }
-
-  /** Busca "Motos por mes" (KOMMO / Market Place / Global Go-Propio) por su propio
-   *  rango mes-a-mes, independiente del filtro de fecha (por día) del resto del módulo. */
+  /** Busca "Motos por mes" (KOMMO / Market Place) por su propio rango mes-a-mes,
+   *  independiente del filtro de fecha (por día) del resto del módulo. */
   buscarMotosFuente(): void {
     if (!this.motosFuenteForm?.valid) return;
     const desde = new Date(this.motosFuenteForm.value.desde);
     const hasta = new Date(this.motosFuenteForm.value.hasta);
     if (isNaN(desde.getTime()) || isNaN(hasta.getTime())) return;
-    const rango = {
+    this.cargandoMotosFuente = true;
+    this.ventasSvc.obtenerVentasRealzzaMotosFuente({
       anioDesde: desde.getFullYear(), mesDesde: desde.getMonth() + 1,
       anioHasta: hasta.getFullYear(), mesHasta: hasta.getMonth() + 1,
-    };
-    this.cargandoMotosFuente = true;
-    forkJoin({
-      fuente: this.ventasSvc.obtenerVentasRealzzaMotosFuente(rango).pipe(catchError(() => of([] as any[]))),
-      entidad: this.ventasSvc.obtenerVentasRealzzaMotosEntidad(rango).pipe(catchError(() => of([] as any[]))),
-    }).subscribe(({ fuente, entidad }) => {
-      this.setMotosFuente(fuente);
-      this.setMotosEntidad(entidad);
+    }).pipe(catchError(() => of([] as any[]))).subscribe(rows => {
+      this.setMotosFuente(rows);
       this.cargandoMotosFuente = false;
     });
   }
@@ -733,6 +703,7 @@ export class VentasCampoComponent implements OnInit {
     this.generarVentasPorEntidad();
     this.generarMotosPorEntidad();
     this.generarMotosPorTipoProducto();
+    this.generarMotosPorTipoBase();
     this.generarDetalleMotosGlobalGo();
     this.generarVentasPorTipoCredito();
     this.generarVentasPorTipoBase();
@@ -1281,6 +1252,25 @@ export class VentasCampoComponent implements OnInit {
       TipoProducto, Monto: Math.round(d.monto), NroOps: d.ops
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoTipo = this.motosPorTipoProducto.length > 0 ? this.motosPorTipoProducto[0].Monto : 1;
+  }
+
+  /** Motos por tipo de base (GLOBAL GO / PROPIO), sin importar el tipo de venta/producto
+   *  de motos: solo separa por entidad Global Go vs cualquier otra. */
+  generarMotosPorTipoBase(): void {
+    const motos = this.filtroVentas.filter(v =>
+      (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
+    const map = new Map<string, { monto: number; ops: number }>([
+      ['GLOBAL GO', { monto: 0, ops: 0 }], ['PROPIO', { monto: 0, ops: 0 }],
+    ]);
+    motos.forEach(v => {
+      const tipo = this.entidadDisplay(v.Entidad).toUpperCase() === 'GLOBAL GO' ? 'GLOBAL GO' : 'PROPIO';
+      const cur = map.get(tipo)!;
+      map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+    });
+    this.motosPorTipoBase = Array.from(map, ([TipoBase, d]) => ({
+      TipoBase, Monto: Math.round(d.monto), NroOps: d.ops
+    })).sort((a, b) => b.Monto - a.Monto);
+    this.maxMontoMotoTipoBase = this.motosPorTipoBase.length > 0 ? this.motosPorTipoBase[0].Monto : 1;
   }
 
   generarVentasPorTipoCredito(): void {

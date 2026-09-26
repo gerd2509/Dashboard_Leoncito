@@ -341,35 +341,6 @@
         </table>
         <p class="mf-vacio" *ngIf="!motosMarketPlacePorMes.length">Sin datos para el rango elegido.</p>
     </div>
-
-    <div class="mf-card">
-        <div class="section-header">
-            <mat-icon>two_wheeler</mat-icon>
-            Motos por Tipo de Base (Global Go / Propio) — por mes
-        </div>
-        <table class="mf-tabla">
-            <thead>
-                <tr>
-                    <th class="mf-th-lbl">MES</th>
-                    <th *ngFor="let m of motosGlobalGoPorMes">{{ m.mesLabel }}</th>
-                    <th>TOTAL</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="mf-lbl">Global Go</td>
-                    <td *ngFor="let m of motosGlobalGoPorMes">{{ m.ops || '' }}</td>
-                    <td class="mf-tot">{{ totalMotosGlobalGo }}</td>
-                </tr>
-                <tr>
-                    <td class="mf-lbl">Propio</td>
-                    <td *ngFor="let m of motosPropioPorMes">{{ m.ops || '' }}</td>
-                    <td class="mf-tot">{{ totalMotosPropio }}</td>
-                </tr>
-            </tbody>
-        </table>
-        <p class="mf-vacio" *ngIf="!motosGlobalGoPorMes.length">Sin datos para el rango elegido.</p>
-    </div>
 </div>
 
 <!-- ===== VENTAS POR LÍNEA REAL (ancho completo) ===== -->
@@ -703,7 +674,7 @@
     </div>
 </div>
 
-<!-- ===== FILA: MOTOS POR ENTIDAD + MOTOS POR TIPO PRODUCTO ===== -->
+<!-- ===== FILA: MOTOS POR ENTIDAD + MOTOS POR TIPO PRODUCTO + MOTOS POR TIPO DE BASE ===== -->
 <div class="tabla-row-2">
     <div>
         <div class="section-header section-header-moto">
@@ -758,6 +729,36 @@
             </div>
             <dxo-summary>
                 <dxi-total-item alignment="left" column="TipoProducto" displayFormat="TOTAL"></dxi-total-item>
+                <dxi-total-item column="Monto" summaryType="sum" displayFormat="S/ {0}"
+                    [valueFormat]="'#,##0'" showInColumn="Monto"></dxi-total-item>
+                <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+            </dxo-summary>
+        </dx-data-grid>
+    </div>
+
+    <div>
+        <div class="section-header section-header-moto">
+            <mat-icon>two_wheeler</mat-icon>
+            Motos por Tipo de Base
+        </div>
+        <dx-data-grid [dataSource]="motosPorTipoBase" [showBorders]="true" [showColumnLines]="true"
+            [showRowLines]="true" [rowAlternationEnabled]="true" [columnAutoWidth]="true"
+            (onCellPrepared)="onCellPreparedMoto($event)" [hoverStateEnabled]="true">
+            <dxi-column dataField="TipoBase" caption="TIPO DE BASE" alignment="left" />
+            <dxi-column dataField="Monto" caption="MONTO" alignment="center"
+                dataType="number" cellTemplate="montoMotoTipoBaseBarTemplate" />
+            <dxi-column dataField="NroOps" caption="N° OPS" alignment="center" dataType="number" [width]="80" />
+            <div *dxTemplate="let cell of 'montoMotoTipoBaseBarTemplate'"
+                style="position:relative; text-align:right; padding:2px 8px 2px 4px; min-height:20px;">
+                <div style="position:absolute; left:0; top:2px; bottom:2px; border-radius:3px;
+                    background:linear-gradient(90deg, rgba(249,115,22,0.15), rgba(249,115,22,0.35));"
+                    [style.width.%]="cell.data.Monto / maxMontoMotoTipoBase * 100"></div>
+                <span style="position:relative; font-weight:600; font-size:13px;">
+                    S/. {{ cell.data.Monto | number:'1.0-0' }}
+                </span>
+            </div>
+            <dxo-summary>
+                <dxi-total-item alignment="left" column="TipoBase" displayFormat="TOTAL"></dxi-total-item>
                 <dxi-total-item column="Monto" summaryType="sum" displayFormat="S/ {0}"
                     [valueFormat]="'#,##0'" showInColumn="Monto"></dxi-total-item>
                 <dxi-total-item column="NroOps" summaryType="sum" displayFormat="{0}"></dxi-total-item>

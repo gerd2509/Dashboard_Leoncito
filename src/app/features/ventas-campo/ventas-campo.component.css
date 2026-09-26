@@ -188,11 +188,12 @@
    ========================================================= */
 .tabla-row-2 {
     display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     margin-bottom: 6px;
     align-items: flex-start;
 }
-.tabla-row-2 > div { flex: 1; min-width: 0; }
+.tabla-row-2 > div { flex: 1 1 280px; min-width: 0; }
 
 /* =========================================================
    EVOLUTIVO
@@ -282,9 +283,8 @@
 
 /* Motos por mes: KOMMO / Market Place (solo motos, netas) */
 .mf-buscador { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 16px 0 4px; }
-.mf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 10px; }
-@media (max-width: 1300px) { .mf-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 700px)  { .mf-grid { grid-template-columns: 1fr; } }
+.mf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 10px; }
+@media (max-width: 900px) { .mf-grid { grid-template-columns: 1fr; } }
 .mf-card { background: #fff; border: 1px solid #E3E9F2; border-radius: 10px; overflow: hidden; }
 .mf-tabla { border-collapse: collapse; font-size: 12.5px; width: 100%; }
 .mf-tabla th, .mf-tabla td { border: 1px solid #E3E9F2; padding: 6px 10px; text-align: center; white-space: nowrap; }
