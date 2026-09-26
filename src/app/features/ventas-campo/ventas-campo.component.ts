@@ -1190,7 +1190,10 @@ export class VentasCampoComponent implements OnInit {
         Semana: s.label,
         MontoVentas: montoVentas,
         MontoNC: montoNC,
-        MontoNeto: Math.max(0, montoVentas - montoNC),
+        // Sin recortar en 0 (igual que las demás tablas): si no, la suma de netos por
+        // semana no cuadraría con el Monto Real global cuando una semana tiene más NC
+        // arrastrada que ventas propias.
+        MontoNeto: montoVentas - montoNC,
         NroOps: ops,
         TicketPromedio: ops > 0 ? Math.round(montoVentas / ops) : 0
       };
