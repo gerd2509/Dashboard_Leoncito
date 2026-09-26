@@ -1255,19 +1255,22 @@ export class VentasCampoComponent implements OnInit {
   }
 
   /** Motos por TIPO DE BASE (fuente: Referidos, Tienda, BBDD, KOMMO, Market Place, etc.),
-   *  no por entidad/financiadora — es la clasificación TipoBase de ventas_realzza. */
+   *  no por entidad/financiadora — es la clasificación TipoBase de ventas_realzza. Mismo
+   *  criterio que "Ventas por Tipo de Base" (generarVentasPorTipoBase): las ventas sin
+   *  TipoBase asignado se agrupan como "SIN TIPO" y no se muestran (no es una fuente real,
+   *  es una atribución pendiente de completar en el módulo de Atribución). */
   generarMotosPorTipoBase(): void {
     const motos = this.filtroVentas.filter(v =>
       (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
     const map = new Map<string, { monto: number; ops: number }>();
     motos.forEach(v => {
-      const tipo = (v.TipoBase || '').toString().trim().toUpperCase() || 'SIN TIPO DE BASE';
+      const tipo = (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase();
       const cur = map.get(tipo) || { monto: 0, ops: 0 };
       map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
     this.motosPorTipoBase = Array.from(map, ([TipoBase, d]) => ({
       TipoBase, Monto: Math.round(d.monto), NroOps: d.ops
-    })).sort((a, b) => b.Monto - a.Monto);
+    })).filter(r => r.TipoBase !== 'SIN TIPO').sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoTipoBase = this.motosPorTipoBase.length > 0 ? this.motosPorTipoBase[0].Monto : 1;
   }
 
