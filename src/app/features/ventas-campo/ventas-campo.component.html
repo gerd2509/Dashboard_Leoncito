@@ -341,6 +341,35 @@
         </table>
         <p class="mf-vacio" *ngIf="!motosMarketPlacePorMes.length">Sin datos para el rango elegido.</p>
     </div>
+
+    <div class="mf-card">
+        <div class="section-header">
+            <mat-icon>two_wheeler</mat-icon>
+            Motos por Tipo de Base (Global Go / Propio) — por mes
+        </div>
+        <table class="mf-tabla">
+            <thead>
+                <tr>
+                    <th class="mf-th-lbl">MES</th>
+                    <th *ngFor="let m of motosGlobalGoPorMes">{{ m.mesLabel }}</th>
+                    <th>TOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="mf-lbl">Global Go</td>
+                    <td *ngFor="let m of motosGlobalGoPorMes">{{ m.ops || '' }}</td>
+                    <td class="mf-tot">{{ totalMotosGlobalGo }}</td>
+                </tr>
+                <tr>
+                    <td class="mf-lbl">Propio</td>
+                    <td *ngFor="let m of motosPropioPorMes">{{ m.ops || '' }}</td>
+                    <td class="mf-tot">{{ totalMotosPropio }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="mf-vacio" *ngIf="!motosGlobalGoPorMes.length">Sin datos para el rango elegido.</p>
+    </div>
 </div>
 
 <!-- ===== VENTAS POR LÍNEA REAL (ancho completo) ===== -->

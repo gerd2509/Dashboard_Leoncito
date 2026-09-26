@@ -99,6 +99,11 @@ export class VentasCampoComponent implements OnInit {
   motosMarketPlacePorMes: { mesLabel: string; ops: number }[] = [];
   totalMotosKommo = 0;
   totalMotosMarketPlace = 0;
+  // Motos por mes: GLOBAL GO vs PROPIO (por entidad) — netas (− NC/incautaciones).
+  motosGlobalGoPorMes: { mesLabel: string; ops: number }[] = [];
+  motosPropioPorMes: { mesLabel: string; ops: number }[] = [];
+  totalMotosGlobalGo = 0;
+  totalMotosPropio = 0;
   // Pivot ventas por asesor (vendedor) × tipo de base (neto), como en Call.
   ventasPorAsesorTipoBase: any[] = [];
   tiposBaseUnicos: string[] = [];
@@ -299,19 +304,47 @@ export class VentasCampoComponent implements OnInit {
     this.totalMotosMarketPlace = this.motosMarketPlacePorMes.reduce((s, r) => s + r.ops, 0);
   }
 
-  /** Busca "Motos por mes" (KOMMO / Market Place) por su propio rango mes-a-mes,
-   *  independiente del filtro de fecha (por día) del resto del módulo. */
+  /** Arma la tabla "Motos por mes" GLOBAL GO / PROPIO desde /ventas-realzza/motos-entidad. */
+  private setMotosEntidad(rows: { anio: number; mes: number; grupo: 'GLOBAL GO' | 'PROPIO'; ops: number }[]): void {
+    if (!rows?.length) { this.motosGlobalGoPorMes = []; this.motosPropioPorMes = []; this.totalMotosGlobalGo = 0; this.totalMotosPropio = 0; return; }
+    const claves = Array.from(new Set(rows.map(r => `${r.anio}-${String(r.mes).padStart(2, '0')}`))).sort();
+    const porClave = new Map<string, { go: number; propio: number }>();
+    rows.forEach(r => {
+      const k = `${r.anio}-${String(r.mes).padStart(2, '0')}`;
+      const cur = porClave.get(k) || { go: 0, propio: 0 };
+      if (r.grupo === 'GLOBAL GO') cur.go += r.ops; else cur.propio += r.ops;
+      porClave.set(k, cur);
+    });
+    this.motosGlobalGoPorMes = claves.map(k => {
+      const [a, m] = k.split('-').map(Number);
+      return { mesLabel: `${this.MESES_CORTOS[m - 1]}-${String(a).slice(2)}`, ops: porClave.get(k)?.go || 0 };
+    });
+    this.motosPropioPorMes = claves.map(k => {
+      const [a, m] = k.split('-').map(Number);
+      return { mesLabel: `${this.MESES_CORTOS[m - 1]}-${String(a).slice(2)}`, ops: porClave.get(k)?.propio || 0 };
+    });
+    this.totalMotosGlobalGo = this.motosGlobalGoPorMes.reduce((s, r) => s + r.ops, 0);
+    this.totalMotosPropio = this.motosPropioPorMes.reduce((s, r) => s + r.ops, 0);
+  }
+
+  /** Busca "Motos por mes" (KOMMO / Market Place / Global Go-Propio) por su propio
+   *  rango mes-a-mes, independiente del filtro de fecha (por día) del resto del módulo. */
   buscarMotosFuente(): void {
     if (!this.motosFuenteForm?.valid) return;
     const desde = new Date(this.motosFuenteForm.value.desde);
     const hasta = new Date(this.motosFuenteForm.value.hasta);
     if (isNaN(desde.getTime()) || isNaN(hasta.getTime())) return;
-    this.cargandoMotosFuente = true;
-    this.ventasSvc.obtenerVentasRealzzaMotosFuente({
+    const rango = {
       anioDesde: desde.getFullYear(), mesDesde: desde.getMonth() + 1,
       anioHasta: hasta.getFullYear(), mesHasta: hasta.getMonth() + 1,
-    }).pipe(catchError(() => of([] as any[]))).subscribe(rows => {
-      this.setMotosFuente(rows);
+    };
+    this.cargandoMotosFuente = true;
+    forkJoin({
+      fuente: this.ventasSvc.obtenerVentasRealzzaMotosFuente(rango).pipe(catchError(() => of([] as any[]))),
+      entidad: this.ventasSvc.obtenerVentasRealzzaMotosEntidad(rango).pipe(catchError(() => of([] as any[]))),
+    }).subscribe(({ fuente, entidad }) => {
+      this.setMotosFuente(fuente);
+      this.setMotosEntidad(entidad);
       this.cargandoMotosFuente = false;
     });
   }
