@@ -294,7 +294,8 @@
 .mf-tot { font-weight: 800; color: #1A5FAD; background: #EEF3FB; }
 .mf-vacio { padding: 10px 14px; color: #6b7a90; font-size: 12.5px; }
 
-/* Barra completa clickeable (Ventas por Plazo) — ocupa todo el ancho, no un botón chico */
+/* Barras completas clickeables (Ventas por Plazo, Notas de Crédito, Tabla de Detalle) —
+   ocupan todo el ancho, no un botón chico. */
 .plazo-toggle-bar {
   display: flex; align-items: center; gap: 8px; width: 100%;
   margin: 14px 0 4px; padding: 12px 16px; box-sizing: border-box;
@@ -305,3 +306,19 @@
 .plazo-chevron { transition: transform .15s ease; }
 .plazo-chevron.open { transform: rotate(180deg); }
 .plazo-content { width: 100%; }
+
+.detail-toggle-bar {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 12px 0 4px; padding: 12px 16px; box-sizing: border-box;
+  background: #EEF3FB; border: 1px solid #C9DAF0; border-radius: 10px;
+  cursor: pointer; user-select: none; font-weight: 700; font-size: 14px; color: #1A5FAD;
+}
+.detail-toggle-bar:hover { background: #E3EDFA; }
+
+.nc-toggle-bar {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 10px 0 4px; padding: 12px 16px; box-sizing: border-box;
+  background: #FEF2F2; border: 1px solid rgba(244,63,94,0.35); border-radius: 10px;
+  cursor: pointer; user-select: none; font-weight: 700; font-size: 14px; color: #DC2626;
+}
+.nc-toggle-bar:hover { background: #FEE2E2; }
