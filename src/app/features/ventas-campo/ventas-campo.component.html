@@ -151,7 +151,7 @@
         <mat-icon>file_download</mat-icon> Exportar
     </button>
 </div>
-<dx-data-grid *ngIf="showDetailGrid" id="dataGrid" class="focqus-elevation"
+<dx-data-grid *ngIf="showDetailGrid" id="dataGrid" #dataGrid class="focqus-elevation"
     [dataSource]="filtroVentas" [allowColumnReordering]="true"
     [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
     [rowAlternationEnabled]="true" (onCellPrepared)="onCellPrepared($event)"

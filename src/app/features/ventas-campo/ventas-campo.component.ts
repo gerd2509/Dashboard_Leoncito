@@ -214,7 +214,7 @@ export class VentasCampoComponent implements OnInit {
     'CHANTA CAMPOS KELLY KARINTIA': 'KELLY',
   };
 
-  @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
+  @ViewChild('dataGrid', { static: false }) dataGrid!: DxDataGridComponent;
   @ViewChild('gridGlobalGo', { static: false }) gridGlobalGo!: DxDataGridComponent;
 
   constructor(private fb: UntypedFormBuilder) {
