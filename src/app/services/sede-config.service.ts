@@ -4,10 +4,14 @@ export interface SedeConfig {
   nombre: string;          // Nombre para mostrar en UI: 'Ferreñafe'
   valorSede: string;       // Valor exacto en la columna 'TIENDA SEDE' del sheet
   columnaAsesor: string;   // Columna del asesor en el sheet: 'ASESOR DE VENTA FERREÑAFE'
-  zona: 'CENTRO' | 'NORTE' | 'SUR';   // Zona a la que pertenece la sede (para el resumen agrupado)
+  zona: 'CENTRO' | 'NORTE' | 'SUR' | 'EXPANSION';   // Zona a la que pertenece la sede (para el resumen agrupado)
   metaCartasMensual: number;    // Meta mensual de cartas (la diaria = mensual / días del mes)
   metaLlamadasMensual: number;  // Meta mensual de llamadas (la diaria = mensual / días del mes)
   asesores: string[];      // Nombres completos de los asesores (tal cual el sheet)
+  // true = sede de PISO sin gestión de Call Center (llamadas/cartas/afiliaciones) — no debe
+  // aparecer en los módulos de gestión de Call (Control Gestión Sede, Registro de Gestión,
+  // Cierre Gestión Sedes), solo en los de ventas/cartera de piso. Ej: Piura, Lima.
+  soloVentas?: boolean;
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -252,6 +256,30 @@ const SEDES: Record<string, SedeConfig> = {
       'PEREZ CABREJOS GUADALUPE TATIANA',
     ],
   },
+
+  // ── Nuevas sedes (expansión fuera de Lambayeque) — de PISO, sin gestión de Call
+  // Center todavía. Sin asesores/ventas cargados aún; se completan cuando se asignen. ──
+  piura: {
+    nombre: 'Piura',
+    valorSede: 'Piura',
+    columnaAsesor: 'ASESOR DE VENTA PIURA',
+    zona: 'EXPANSION',
+    metaCartasMensual: 0,
+    metaLlamadasMensual: 0,
+    asesores: [],
+    soloVentas: true,
+  },
+
+  lima: {
+    nombre: 'Lima',
+    valorSede: 'Lima',
+    columnaAsesor: 'ASESOR DE VENTA LIMA',
+    zona: 'EXPANSION',
+    metaCartasMensual: 0,
+    metaLlamadasMensual: 0,
+    asesores: [],
+    soloVentas: true,
+  },
 };
 
 // Claves (normalizadas) de las sedes que se gestionan por Call Center.
@@ -273,6 +301,13 @@ export class SedeConfigService {
   // Lista para combos: [{ key, nombre }]
   getSedesParaCombo(): { key: string; nombre: string }[] {
     return Object.entries(SEDES).map(([key, cfg]) => ({ key, nombre: cfg.nombre }));
+  }
+
+  // Igual que getSedesParaCombo() pero excluye las sedes marcadas `soloVentas` (de piso,
+  // sin gestión de Call Center) — para los módulos de gestión (Control Gestión Sede,
+  // Registro de Gestión, Cierre Gestión Sedes) que no deben mostrar sedes sin llamadas/cartas.
+  getSedesConGestionCall(): { key: string; nombre: string }[] {
+    return this.getSedesParaCombo().filter(s => !SEDES[s.key]?.soloVentas);
   }
 
   // Sedes que operan vía Call Center (gestión por formulario).
@@ -305,7 +340,7 @@ export class SedeConfigService {
    */
   expandirSedes(tokens: string[]): string[] {
     const keys = new Set<string>();
-    const zonas = ['centro', 'norte', 'sur'];
+    const zonas = ['centro', 'norte', 'sur', 'expansion'];
     for (const raw of tokens || []) {
       const t = this.normalizar(raw);
       if (t === 'todas') {

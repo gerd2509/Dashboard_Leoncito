@@ -191,6 +191,7 @@ export class SeguridadComponent implements OnInit {
       { value: 'centro', label: 'Zona Centro' },
       { value: 'norte', label: 'Zona Norte' },
       { value: 'sur', label: 'Zona Sur' },
+      { value: 'expansion', label: 'Zona Expansión (Piura/Lima)' },
       ...this.sedeCfg.getSedesParaCombo().map(s => ({ value: s.key, label: s.nombre })),
     ];
     this.cargarUsuarios();
@@ -345,7 +346,7 @@ export class SeguridadComponent implements OnInit {
     const esGerSup = this.form.rol === 'gerente' || this.form.rol === 'supervisor';
     if (!esGerSup) {
       // Quita las zonas de la selección si el rol ya no es gerente/supervisor.
-      this.form.sedes = this.form.sedes.filter(s => !['centro', 'norte', 'sur'].includes(s));
+      this.form.sedes = this.form.sedes.filter(s => !['centro', 'norte', 'sur', 'expansion'].includes(s));
       if (!this.form.sedes.length) this.form.sedes = ['todas'];
       this.form.sede = this.form.sedes[0];
     }
@@ -387,7 +388,7 @@ export class SeguridadComponent implements OnInit {
   /** Opciones de sede visibles: las ZONAS (centro/norte/sur) solo para gerente/supervisor. */
   get sedeOptionsVisibles(): { value: string; label: string }[] {
     const esGerSup = this.form.rol === 'gerente' || this.form.rol === 'supervisor';
-    const zonas = ['centro', 'norte', 'sur'];
+    const zonas = ['centro', 'norte', 'sur', 'expansion'];
     return this.sedeOptions.filter(o => esGerSup || !zonas.includes(o.value));
   }
 

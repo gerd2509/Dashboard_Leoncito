@@ -207,7 +207,7 @@ export class PermissionsService {
   perfilDe(sede: string): string {
     const s = this.sedeCfg.normalizar(sede);
     if (s === 'realzza') return 'realzza';
-    if (s === 'centro' || s === 'norte' || s === 'sur') return 'zona';  // gerencia por zona
+    if (s === 'centro' || s === 'norte' || s === 'sur' || s === 'expansion') return 'zona';  // gerencia por zona
     return 'call';
   }
 

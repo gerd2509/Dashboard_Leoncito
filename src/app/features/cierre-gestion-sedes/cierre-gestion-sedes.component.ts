@@ -88,7 +88,7 @@ export class CierreGestionSedesComponent implements OnInit {
     this.esAdmin = !u || u.rol === 'admin' || ['todas', 'call'].includes((u.sede || '').toLowerCase());
 
     if (this.esAdmin) {
-      this.sedesDisponibles = [{ key: 'todas', nombre: 'Todas las sedes' }, ...this.sedeConfig.getSedesParaCombo()];
+      this.sedesDisponibles = [{ key: 'todas', nombre: 'Todas las sedes' }, ...this.sedeConfig.getSedesConGestionCall()];
       this.form.patchValue({ sede: 'todas' });
     } else {
       const cfg = this.sedeConfig.getConfig(u!.sede);

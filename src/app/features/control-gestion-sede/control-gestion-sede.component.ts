@@ -182,8 +182,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     if (esGlobal) {
       // Orden por zona (CENTRO → NORTE → SUR) para que las tarjetas de detalle
-      // coincidan con el resumen agrupado.
-      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
+      // coincidan con el resumen agrupado. Excluye sedes `soloVentas` (de piso, sin
+      // gestión de Call Center, ej. Piura/Lima): no tienen llamadas/cartas que mostrar.
+      this.sedesObjetivo = this.sedeConfig.getSedesConGestionCall()
         .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
     } else {
       // Una o varias sedes/zonas asignadas al usuario (las zonas se expanden a sus sedes).

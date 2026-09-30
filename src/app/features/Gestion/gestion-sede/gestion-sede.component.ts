@@ -54,7 +54,7 @@ export class GestionSedeComponent implements OnInit {
     const esGlobal = !u || u.rol === 'admin' || ['todas', 'call'].includes(u.sede.toLowerCase());
 
     if (esGlobal) {
-      this.sedesDisponibles = this.sedeConfig.getSedesParaCombo();
+      this.sedesDisponibles = this.sedeConfig.getSedesConGestionCall();
     } else {
       const cfg = this.sedeConfig.getConfig(u.sede);
       this.sedesDisponibles = cfg

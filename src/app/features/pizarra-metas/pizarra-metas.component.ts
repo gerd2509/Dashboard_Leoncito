@@ -102,13 +102,13 @@ export class PizarraMetasComponent implements OnInit {
     this.esGlobal = !u || u.rol === 'admin' || this.sedeConfig.incluyeTodas(sedesU);
 
     if (this.esGlobal) {
-      this.sedesDisponibles = this.sedeConfig.getSedesParaCombo()
+      this.sedesDisponibles = this.sedeConfig.getSedesConGestionCall()
         .sort((a, b) => a.nombre.localeCompare(b.nombre));
       this.sedeSeleccionada = this.sedesDisponibles[0]?.key ?? '';
     } else if (u) {
       // Una o varias sedes/zonas asignadas (las zonas se expanden a sus sedes).
       const sedesFisicas = this.sedeConfig.expandirSedes(sedesU);
-      this.sedesDisponibles = this.sedeConfig.getSedesParaCombo()
+      this.sedesDisponibles = this.sedeConfig.getSedesConGestionCall()
         .filter(s => sedesFisicas.includes(s.key)).sort((a, b) => a.nombre.localeCompare(b.nombre));
       if (!this.sedesDisponibles.length) {
         const key = this.sedeConfig.normalizar(u.sede);

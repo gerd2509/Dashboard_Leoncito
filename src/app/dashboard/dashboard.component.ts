@@ -415,7 +415,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.sedeConfig.incluyeTodas(tokens) || u.rol === 'admin') return 'Todas las sedes';
     const nombres = tokens.map(t => {
       const nt = this.sedeConfig.normalizar(t);
-      if (['centro', 'norte', 'sur'].includes(nt)) return 'Zona ' + nt.charAt(0).toUpperCase() + nt.slice(1);
+      if (['centro', 'norte', 'sur', 'expansion'].includes(nt)) return 'Zona ' + nt.charAt(0).toUpperCase() + nt.slice(1);
       return this.sedeConfig.getConfig(t)?.nombre ?? t;
     });
     return nombres.length ? nombres.join(', ') : (u.sede || '—');

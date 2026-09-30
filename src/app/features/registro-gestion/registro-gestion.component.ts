@@ -213,7 +213,7 @@ export class RegistroGestionComponent implements OnInit {
   asesorFijo = false; // true cuando el asesor sale del login (vendedor de sede) → no se elige
 
   ngOnInit(): void {
-    this.sedes = this.sedeCfg.getSedesParaCombo().sort((a, b) => a.nombre.localeCompare(b.nombre));
+    this.sedes = this.sedeCfg.getSedesConGestionCall().sort((a, b) => a.nombre.localeCompare(b.nombre));
     const u = this.auth.getUsuario();
     const key = this.sedeCfg.normalizar(u?.sede ?? '');
     const rol = (u?.rol || '').toString().toLowerCase();
