@@ -120,7 +120,9 @@ export class AvanceCarteraComponent implements OnInit {
   // Consolidado Piso: ventas de la BASE (por DNI del cliente en la cartera) + metas.
   // dni → (sedeKey donde se CERRÓ la venta → { ops, monto })
   private ventasPorDni = new Map<string, Map<string, { ops: number; monto: number }>>();
-  private gestionesTotalPorSede = new Map<string, number>();
+  // sedeKey → dni → nº de gestiones registradas ese mes (para Intensidad, acotado al
+  // grupo/cuadro que se esté mostrando — no el total de la sede completa).
+  private gestionesPorSedeDni = new Map<string, Map<string, number>>();
   private metasCartera: Record<string, number> = {};
   // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
   consolidado: ResumenSede[] = [];
@@ -402,7 +404,7 @@ export class AvanceCarteraComponent implements OnInit {
     }
 
     const porSede = new Map<string, IndiceGestion>();
-    this.gestionesTotalPorSede = new Map();
+    this.gestionesPorSedeDni = new Map();
     let count = 0;
     for (const item of data) {
       const fecha = this.parseMarcaTemporal(item[GS_FECHA]);
@@ -411,11 +413,15 @@ export class AvanceCarteraComponent implements OnInit {
       if (!sedeKey) continue;
       const estado = this.mapEstado(item[GS_ESTADO]);
       count++;
-      this.gestionesTotalPorSede.set(sedeKey, (this.gestionesTotalPorSede.get(sedeKey) || 0) + 1);
       if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map() });
       const idx = porSede.get(sedeKey)!;
       const dni = this.soloDigitos(String(item[GS_DNI] ?? ''));
-      if (dni) this.guardarUltima(idx.porDni, dni, { fecha, estado });
+      if (dni) {
+        this.guardarUltima(idx.porDni, dni, { fecha, estado });
+        if (!this.gestionesPorSedeDni.has(sedeKey)) this.gestionesPorSedeDni.set(sedeKey, new Map());
+        const porDniSede = this.gestionesPorSedeDni.get(sedeKey)!;
+        porDniSede.set(dni, (porDniSede.get(dni) || 0) + 1);
+      }
       const tel = this.soloDigitos(String(item[GS_CELULAR] ?? '')).slice(-9);
       if (tel.length >= 9) this.guardarUltima(idx.porTel, tel, { fecha, estado });
     }
@@ -524,13 +530,20 @@ export class AvanceCarteraComponent implements OnInit {
         }
       }
     }
+    // ── Intensidad: gestiones de SOLO los DNIs de este cuadro (no el total de la sede
+    // completa) — si no, un grupo chico (ej. "Lover B") queda dividido entre TODA la
+    // actividad de la sede y el número sale inflado sin representar nada real. ──
+    for (const [dni, baseKey] of baseSedeDeDni) {
+      const r = map.get(baseKey);
+      if (!r) continue;
+      r.gestionesTotal += this.gestionesPorSedeDni.get(baseKey)?.get(dni) || 0;
+    }
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
     const diasMes = new Date(this.fecha.getFullYear(), this.fecha.getMonth() + 1, 0).getDate();
     const diasTrans = esMesActual ? Math.max(1, hoy.getDate()) : diasMes;
     map.forEach(r => {
       r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0;
-      r.gestionesTotal = this.gestionesTotalPorSede.get(r.sedeKey) || 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
       r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
       const sk = r.sedeKey || 'sin-sede';
