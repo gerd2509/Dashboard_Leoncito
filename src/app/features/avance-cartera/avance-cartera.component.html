@@ -156,7 +156,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of resumenSedes" class="fila-click" (click)="sedeDetalle = (r.sedeKey || 'sin-sede'); onSedeDetalleChanged()">
+              <tr *ngFor="let r of resumenSedes" [class.fila-click]="r.sedeKey !== 'call-center'"
+                  [class.fila-call-center]="r.sedeKey === 'call-center'" (click)="seleccionarSede(r)">
                 <td class="left">{{ r.sede }}</td>
                 <td>{{ r.asignados }}</td>
                 <td>{{ r.gestionados }}</td>
@@ -169,51 +170,6 @@
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Cuadro aparte: avance de Call Center (Patricia/Maria/Juana) sobre la cartera de
-           cada sede — no se mezcla con el avance de piso de arriba. -->
-      <div class="tabla-asesores" *ngIf="esPiso && !sedeDetalle && resumenCallCenter.length">
-        <h3>Avance Call Center <small>(Patricia, Maria y Juana — sobre la cartera de cada sede, aparte del avance de piso)</small></h3>
-        <div class="tabla-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th class="left">Sede</th>
-                <th>Asignados</th><th>Gestionados</th><th>Contacto</th>
-                <th>No contacto</th><th>Faltan</th><th>% Avance</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of resumenCallCenter">
-                <td class="left">{{ r.sede }}</td>
-                <td>{{ r.asignados }}</td>
-                <td>{{ r.gestionados }}</td>
-                <td class="c-ok">{{ r.contacto }}</td>
-                <td class="c-no">{{ r.noContacto }}</td>
-                <td class="c-alerta">{{ r.pendientes }}</td>
-                <td>
-                  <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
-                  <b>{{ r.avance }}%</b>
-                </td>
-              </tr>
-            </tbody>
-            <tfoot>
-              <tr>
-                <td class="left"><b>Total general</b></td>
-                <td>{{ totCallCenter().asignados }}</td>
-                <td>{{ totCallCenter().gestionados }}</td>
-                <td></td>
-                <td></td>
-                <td class="c-alerta">{{ totCallCenter().pendientes }}</td>
-                <td>
-                  <div class="mini-bar"><span [class]="claseAvance(totCallCenter().avance)" [style.width.%]="totCallCenter().avance"></span></div>
-                  <b>{{ totCallCenter().avance }}%</b>
-                </td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>
@@ -292,7 +248,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let r of filas">
+          <tr *ngFor="let r of filas" [class.fila-call-center]="r.sedeKey === 'call-center'">
             <td class="left">{{ r.sede }}</td>
             <td>{{ r.asignados }}</td>
             <td>{{ r.gestionados }}</td>

@@ -177,6 +177,9 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .tabla-asesores h3 small { color: var(--gris); font-weight: 500; font-size: 13px; }
 .fila-click { cursor: pointer; }
 .fila-click:hover td { background: #e9f2fd; }
+/* Fila "Call Center": no es una sede física (no es clickeable) — se marca aparte, sutil. */
+.fila-call-center td { border-top: 2px solid #d5e0ee; font-style: italic; }
+.fila-call-center td.left { font-weight: 700; font-style: normal; }
 
 /* Acciones */
 .acciones { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }

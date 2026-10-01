@@ -108,14 +108,6 @@ interface ResumenSede {
   metaKey: string;          // clave de persistencia de la meta (cartera:[grupo:]<sede>)
 }
 
-/** Avance por sede de SOLO lo que gestionó Call Center sobre la cartera de esa sede
- *  (ASESORES_CALL_CENTER_CARTERA) — cuadro aparte, no toca el avance de piso. */
-interface ResumenCallCenterSede {
-  sedeKey: string; sede: string;
-  asignados: number; gestionados: number;
-  contacto: number; noContacto: number; pendientes: number; avance: number;
-}
-
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
@@ -144,8 +136,10 @@ export class AvanceCarteraComponent implements OnInit {
   // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
   consolidado: ResumenSede[] = [];
   consolidadoGrupos: { grupo: string; filas: ResumenSede[] }[] = [];
-  // Cuadro aparte: avance de Call Center (Patricia/Maria/Juana) sobre la cartera de cada sede.
-  resumenCallCenter: ResumenCallCenterSede[] = [];
+  // Clientes de la cartera asignados a Call Center (Patricia/Maria/Juana), deduplicados —
+  // se usan para agregar la fila "Call Center" en cada tabla por sede (no entran al avance
+  // de piso). Se filtran por grupo/tipo igual que `this.clientes` para cada cuadro.
+  private clientesCallCenter: ClienteCartera[] = [];
 
   // ── Modo / estado UI ──
   modo: Modo | null = null;
@@ -231,7 +225,7 @@ export class AvanceCarteraComponent implements OnInit {
   reiniciar(): void {
     this.listo = false; this.error = ''; this.nombreArchivo = '';
     this.headersOriginales = [];
-    this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.resumenCallCenter = [];
+    this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.clientesCallCenter = [];
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
@@ -348,18 +342,18 @@ export class AvanceCarteraComponent implements OnInit {
     const unicos = this.dedupPorDni(clientesFiltrados);
     this.clientes = unicos;
     this.calcularGlobales(unicos);
+    // Lo que gestionó Call Center (Patricia/Maria/Juana) sobre la cartera: se guarda
+    // aparte (no entra al avance de piso) para agregarse como 1 fila más "Call Center"
+    // en cada tabla por sede (Avance por sede, Asignados Totales, cada grupo).
+    this.clientesCallCenter = this.modo === 'piso'
+      ? this.dedupPorDni(clientes.filter(c => ASESORES_CALL_CENTER_CARTERA.has(c.asesor)))
+      : [];
     if (this.modo === 'piso') {
       this.construirResumenSedes(unicos);
       this.resumenAsesores = [];
-      // Cuadro aparte: lo que gestionó Call Center (Patricia/Maria/Juana) sobre la
-      // cartera de cada sede — NO afecta el avance de piso de arriba.
-      const clientesCallCenter = this.dedupPorDni(
-        clientes.filter(c => ASESORES_CALL_CENTER_CARTERA.has(c.asesor)));
-      this.resumenCallCenter = this.construirResumenCallCenter(clientesCallCenter);
     } else {
       this.resumenAsesores = this.agregarPorAsesor(unicos);
       this.resumenSedes = [];
-      this.resumenCallCenter = [];
     }
     this.construirPorDia(unicos);
     this.construirDistribucion();
@@ -600,27 +594,38 @@ export class AvanceCarteraComponent implements OnInit {
           filas: this.buildSedes(this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === g), `cartera:${ym}:${g}:`, legacyG(g)),
         }))
       : [];   // si no hay tipos reales, no muestra cuadros por grupo
+
+    // Fila "Call Center" (Patricia/Maria/Juana) al final de cada tabla por sede — aparte
+    // del avance de piso (no se cuenta arriba), pero visible como 1 fila más ahí mismo.
+    if (this.clientesCallCenter.length) {
+      const filaCC = this.construirFilaCallCenter(this.clientesCallCenter, `cartera:${ym}:call-center`);
+      this.resumenSedes = [...this.resumenSedes, filaCC];
+      this.consolidado = [...this.consolidado, filaCC];
+      this.consolidadoGrupos = this.consolidadoGrupos.map(cg => ({
+        grupo: cg.grupo,
+        filas: [...cg.filas, this.construirFilaCallCenter(
+          this.clientesCallCenter.filter(c => this.grupoTipo(c.tipoCliente) === cg.grupo),
+          `cartera:${ym}:${cg.grupo}:call-center`)],
+      }));
+    }
   }
 
-  /** Avance por sede de SOLO los clientes de esa base asignados a Call Center
-   *  (Patricia/Maria/Juana) — mismo criterio de asignados/gestionados/avance que el
-   *  avance de piso, pero scoped a ellas. No toca `resumenSedes`/`consolidado`. */
-  private construirResumenCallCenter(clientes: ClienteCartera[]): ResumenCallCenterSede[] {
-    const map = new Map<string, ResumenCallCenterSede>();
+  /** Una fila "Call Center" (Patricia/Maria/Juana) para agregar al final de cualquier
+   *  tabla por sede — mismas columnas de avance (sin ventas, que no les aplica; la meta
+   *  queda editable igual que las demás filas, con su propia clave de persistencia). */
+  private construirFilaCallCenter(clientes: ClienteCartera[], metaKey: string): ResumenSede {
+    let asignados = 0, gestionados = 0, contacto = 0, noContacto = 0, pendientes = 0;
     for (const c of clientes) {
-      const key = c.sedeKey || 'sin-sede';
-      let r = map.get(key);
-      if (!r) {
-        r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0,
-              contacto: 0, noContacto: 0, pendientes: 0, avance: 0 };
-        map.set(key, r);
-      }
-      r.asignados++;
-      if (c.estado === 'PENDIENTE') r.pendientes++;
-      else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
+      asignados++;
+      if (c.estado === 'PENDIENTE') pendientes++;
+      else { gestionados++; if (c.estado === 'CONTACTO') contacto++; else noContacto++; }
     }
-    map.forEach(r => { r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0; });
-    return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+    return {
+      sedeKey: 'call-center', sede: 'Call Center', asignados, gestionados, contacto, noContacto, pendientes,
+      avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0,
+      gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0,
+      ventasEntran: 0, ventasSalen: 0, meta: this.metasCartera[metaKey] || 0, proyeccion: 0, avanceMeta: 0, metaKey,
+    };
   }
 
   /** Agrupa el valor crudo de TipoCliente en el nombre de cuadro (como el Excel):
@@ -655,14 +660,6 @@ export class AvanceCarteraComponent implements OnInit {
     };
   }
 
-  /** Fila "Total general" del cuadro de Call Center. */
-  totCallCenter() {
-    const asignados = this.resumenCallCenter.reduce((a, r) => a + r.asignados, 0);
-    const gestionados = this.resumenCallCenter.reduce((a, r) => a + r.gestionados, 0);
-    const pendientes = this.resumenCallCenter.reduce((a, r) => a + r.pendientes, 0);
-    return { asignados, gestionados, pendientes, avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0 };
-  }
-
   /** Edita la meta de una sede (persiste con la clave del cuadro: cartera:[grupo:]<sede>). */
   onMetaCartera(r: ResumenSede, valor: any): void {
     r.meta = Number(String(valor).replace(/[^0-9.]/g, '')) || 0;
@@ -686,6 +683,14 @@ export class AvanceCarteraComponent implements OnInit {
   // asesor y export) se enfoca en esa sede; sin sede vuelve a la vista global.
   onSedeDetalleChanged(): void {
     this.recomputarVista();
+  }
+
+  /** Click en una fila de "Avance por sede": la fila "Call Center" no es una sede física
+   *  (no tiene clientes en `this.clientes`) → no abre un detalle vacío. */
+  seleccionarSede(r: ResumenSede): void {
+    if (r.sedeKey === 'call-center') return;
+    this.sedeDetalle = r.sedeKey || 'sin-sede';
+    this.onSedeDetalleChanged();
   }
 
   get nombreSedeDetalle(): string {
