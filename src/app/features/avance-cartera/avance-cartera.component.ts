@@ -41,6 +41,15 @@ const ASESORES_CALL_EN_CARTERA_PISO = new Set([
   'TORRES ALVARADO JUDY ESMERALDA',
   'SANDOVAL OTINIANO JUANA DEL PILAR',
 ]);
+
+/** Subconjunto de ASESORES_CALL_EN_CARTERA_PISO que hoy SÍ gestiona cartera de piso
+ *  por Call Center (Patricia, Maria, Juana) — para el cuadro aparte "Call Center" del
+ *  avance por sede. El avance de PISO (arriba) sigue excluyendo a las 5 tal cual. */
+const ASESORES_CALL_CENTER_CARTERA = new Set([
+  'MORETO DELGADO PATRICIA ESTEFANY',
+  'MORALES ÑIQUE MARIA CANDELARIA',
+  'SANDOVAL OTINIANO JUANA DEL PILAR',
+]);
 const CANDIDATOS_TIPO_CLIENTE = [
   'TIPO CLIENTE', 'TIPO DE CLIENTE', 'TIPOCLIENTE', 'TIPO_CLIENTE', 'TIPO DE CLIENTES',
   'CLIENTE TIPO', 'TIPO CLIENTES', 'SEGMENTO', 'SEGMENTO CLIENTE',
@@ -99,6 +108,14 @@ interface ResumenSede {
   metaKey: string;          // clave de persistencia de la meta (cartera:[grupo:]<sede>)
 }
 
+/** Avance por sede de SOLO lo que gestionó Call Center sobre la cartera de esa sede
+ *  (ASESORES_CALL_CENTER_CARTERA) — cuadro aparte, no toca el avance de piso. */
+interface ResumenCallCenterSede {
+  sedeKey: string; sede: string;
+  asignados: number; gestionados: number;
+  contacto: number; noContacto: number; pendientes: number; avance: number;
+}
+
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
@@ -127,6 +144,8 @@ export class AvanceCarteraComponent implements OnInit {
   // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
   consolidado: ResumenSede[] = [];
   consolidadoGrupos: { grupo: string; filas: ResumenSede[] }[] = [];
+  // Cuadro aparte: avance de Call Center (Patricia/Maria/Juana) sobre la cartera de cada sede.
+  resumenCallCenter: ResumenCallCenterSede[] = [];
 
   // ── Modo / estado UI ──
   modo: Modo | null = null;
@@ -212,7 +231,7 @@ export class AvanceCarteraComponent implements OnInit {
   reiniciar(): void {
     this.listo = false; this.error = ''; this.nombreArchivo = '';
     this.headersOriginales = [];
-    this.clientes = []; this.resumenAsesores = []; this.resumenSedes = [];
+    this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.resumenCallCenter = [];
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
@@ -332,9 +351,15 @@ export class AvanceCarteraComponent implements OnInit {
     if (this.modo === 'piso') {
       this.construirResumenSedes(unicos);
       this.resumenAsesores = [];
+      // Cuadro aparte: lo que gestionó Call Center (Patricia/Maria/Juana) sobre la
+      // cartera de cada sede — NO afecta el avance de piso de arriba.
+      const clientesCallCenter = this.dedupPorDni(
+        clientes.filter(c => ASESORES_CALL_CENTER_CARTERA.has(c.asesor)));
+      this.resumenCallCenter = this.construirResumenCallCenter(clientesCallCenter);
     } else {
       this.resumenAsesores = this.agregarPorAsesor(unicos);
       this.resumenSedes = [];
+      this.resumenCallCenter = [];
     }
     this.construirPorDia(unicos);
     this.construirDistribucion();
@@ -577,6 +602,27 @@ export class AvanceCarteraComponent implements OnInit {
       : [];   // si no hay tipos reales, no muestra cuadros por grupo
   }
 
+  /** Avance por sede de SOLO los clientes de esa base asignados a Call Center
+   *  (Patricia/Maria/Juana) — mismo criterio de asignados/gestionados/avance que el
+   *  avance de piso, pero scoped a ellas. No toca `resumenSedes`/`consolidado`. */
+  private construirResumenCallCenter(clientes: ClienteCartera[]): ResumenCallCenterSede[] {
+    const map = new Map<string, ResumenCallCenterSede>();
+    for (const c of clientes) {
+      const key = c.sedeKey || 'sin-sede';
+      let r = map.get(key);
+      if (!r) {
+        r = { sedeKey: c.sedeKey, sede: c.sedeNombre || 'SIN SEDE', asignados: 0, gestionados: 0,
+              contacto: 0, noContacto: 0, pendientes: 0, avance: 0 };
+        map.set(key, r);
+      }
+      r.asignados++;
+      if (c.estado === 'PENDIENTE') r.pendientes++;
+      else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
+    }
+    map.forEach(r => { r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0; });
+    return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
+  }
+
   /** Agrupa el valor crudo de TipoCliente en el nombre de cuadro (como el Excel):
    *  NUEVO → Afiliaciones · Reenganche/Cancelado → Lover A · Dormidos/No Vigentes → Lover B. */
   private grupoTipo(tipo: string): string {
@@ -607,6 +653,14 @@ export class AvanceCarteraComponent implements OnInit {
       ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
       avanceMeta: meta > 0 ? Math.round((monto / meta) * 100) : 0,
     };
+  }
+
+  /** Fila "Total general" del cuadro de Call Center. */
+  totCallCenter() {
+    const asignados = this.resumenCallCenter.reduce((a, r) => a + r.asignados, 0);
+    const gestionados = this.resumenCallCenter.reduce((a, r) => a + r.gestionados, 0);
+    const pendientes = this.resumenCallCenter.reduce((a, r) => a + r.pendientes, 0);
+    return { asignados, gestionados, pendientes, avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0 };
   }
 
   /** Edita la meta de una sede (persiste con la clave del cuadro: cartera:[grupo:]<sede>). */
