@@ -257,12 +257,15 @@ const SEDES: Record<string, SedeConfig> = {
     ],
   },
 
-  // ── Nuevas sedes (expansión fuera de Lambayeque) — de PISO, sin gestión de Call
-  // Center todavía. Sin asesores/ventas cargados aún; se completan cuando se asignen. ──
-  piura: {
-    nombre: 'Piura',
-    valorSede: 'Piura',
-    columnaAsesor: 'ASESOR DE VENTA PIURA',
+  // ── Nuevas sedes (expansión fuera de Lambayeque) — tiendas REALZZA, sin gestión de
+  // Call Center (llamadas/cartas) todavía. Clave y valorSede en 'REALZZA <ciudad>' para
+  // que calcen con el CAP (cap_sedes/cap_asesores usan ese mismo nombre) y con
+  // normSedeKey() del backend (alta masiva de usuarios por sede). Sin asesores/ventas
+  // cargados aún; se completan cuando se asignen. ──
+  realzzapiura: {
+    nombre: 'Realzza Piura',
+    valorSede: 'Realzza Piura',
+    columnaAsesor: 'ASESOR DE VENTA REALZZA PIURA',
     zona: 'EXPANSION',
     metaCartasMensual: 0,
     metaLlamadasMensual: 0,
@@ -270,10 +273,10 @@ const SEDES: Record<string, SedeConfig> = {
     soloVentas: true,
   },
 
-  lima: {
-    nombre: 'Lima',
-    valorSede: 'Lima',
-    columnaAsesor: 'ASESOR DE VENTA LIMA',
+  realzzalima: {
+    nombre: 'Realzza Lima',
+    valorSede: 'Realzza Lima',
+    columnaAsesor: 'ASESOR DE VENTA REALZZA LIMA',
     zona: 'EXPANSION',
     metaCartasMensual: 0,
     metaLlamadasMensual: 0,

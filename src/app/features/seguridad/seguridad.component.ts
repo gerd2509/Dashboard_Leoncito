@@ -191,7 +191,7 @@ export class SeguridadComponent implements OnInit {
       { value: 'centro', label: 'Zona Centro' },
       { value: 'norte', label: 'Zona Norte' },
       { value: 'sur', label: 'Zona Sur' },
-      { value: 'expansion', label: 'Zona Expansión (Piura/Lima)' },
+      { value: 'expansion', label: 'Zona Expansión (Realzza Piura/Lima)' },
       ...this.sedeCfg.getSedesParaCombo().map(s => ({ value: s.key, label: s.nombre })),
     ];
     this.cargarUsuarios();
