@@ -317,8 +317,13 @@
                 <div class="mp-kpi g4"><mat-icon>percent</mat-icon><div><span class="v">{{ gestPct }}%</span><span class="l">Contactabilidad</span></div></div>
               </div>
 
-              <!-- KOMMO · Market Place · Derivaciones · Agendamientos (una sola fila) -->
-              <div class="mp-mini-4">
+              <!-- Llamadas (gestión Realzza) · KOMMO · Market Place · Derivaciones · Agendamientos (una sola fila) -->
+              <div class="mp-mini-5">
+                <div class="mp-mini llamadas">
+                  <div class="mm-h"><mat-icon>call</mat-icon> Llamadas</div>
+                  <div class="mm-big">{{ gestReales }}</div>
+                  <div class="mm-sub"><span class="ok">{{ gestContacto }} contacto</span> · <span class="no">{{ gestNoContacto }} no contacto</span></div>
+                </div>
                 <div class="mp-mini kommo">
                   <div class="mm-h"><mat-icon>public</mat-icon> KOMMO</div>
                   <div class="mm-big">{{ kommoTotal }}</div>
