@@ -25,6 +25,15 @@ export class AgendamientosCampoComponent {
   get esVendedor(): boolean { return (this.auth.getUsuario()?.rol || '') === 'vendedor'; }
   get miAsesor(): string { return (this.auth.getUsuario()?.vendedor || '').toString().toUpperCase().trim(); }
 
+  // Filtro de tienda para admin/supervisor (los vendedores ya quedan acotados por nombre).
+  readonly sedes = [
+    { value: '', viewValue: 'TODAS LAS TIENDAS' },
+    { value: 'REALZZA', viewValue: 'REALZZA CHICLAYO' },
+    { value: 'REALZZA PIURA', viewValue: 'REALZZA PIURA' },
+    { value: 'REALZZA LIMA', viewValue: 'REALZZA LIMA' },
+  ];
+  filtroSede = '';
+
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';
 
@@ -125,11 +134,15 @@ export class AgendamientosCampoComponent {
         const fechaInteresFormateada = `${dDia.padStart(2, '0')}/${dMes.padStart(2, '0')}/${dAnio}`;
         const motivo = (d['MOTIVO INTERÉS'] || '').trim().toUpperCase();
 
-        // Si es vendedor, solo sus propios agendamientos (por ASESOR REALZZA).
+        // Si es vendedor, solo sus propios agendamientos (por ASESOR REALZZA + su tienda).
+        const sedeDato = (d['SEDE'] || '').toString().toUpperCase().trim();
         const esMio = !this.esVendedor
           || (d['ASESOR REALZZA'] || '').toString().toUpperCase().trim() === this.miAsesor;
+        // Admin/supervisor: filtro de tienda manual ('REALZZA' = Chiclayo, excluye Piura/Lima).
+        const sedeOk = this.esVendedor || !this.filtroSede
+          || (this.filtroSede === 'REALZZA' ? (sedeDato !== 'REALZZA PIURA' && sedeDato !== 'REALZZA LIMA') : sedeDato === this.filtroSede);
 
-        return esMio && fechaInteresFormateada === fechaSeleccionadaFormateada &&
+        return esMio && sedeOk && fechaInteresFormateada === fechaSeleccionadaFormateada &&
           motivo === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)";
       });
 
@@ -142,6 +155,11 @@ export class AgendamientosCampoComponent {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  async onSedeChanged(event: any): Promise<void> {
+    this.filtroSede = event.value || '';
+    await this.actualizar();
   }
 
   exportar(): void {

@@ -7,7 +7,7 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { RegistroGestionService, GestionPayload, GestionRealzzaPayload, GestionCallPayload } from '../../services/registro-gestion.service';
 import { ASESORES_CALL } from '../../shared/asesores';
-import { asesorGestion } from '../../shared/canal-usuario';
+import { asesorGestion, sedeRealzzaDeUsuario } from '../../shared/canal-usuario';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 
 // Asesores para cuando un admin/supervisor registra a nombre de otro (no vendedor).
@@ -744,7 +744,9 @@ export class RegistroGestionComponent implements OnInit {
       asesor_realzza: m.asesor,
       dni_cliente: m.dni_cliente.trim(),
       estado_gestion: m.estado_gestion,
-      sede: 'REALZZA',
+      // 'REALZZA PIURA'/'REALZZA LIMA' si el que registra es de esa sede; 'REALZZA' (como
+      // siempre) para Chiclayo — mismo criterio que el asesor, tomado del login.
+      sede: sedeRealzzaDeUsuario(this.auth.getUsuario()),
       tipo_base: m.tipo_base,
       celular_gestionado: m.celular_gestionado,
       medio_primer_contacto: m.medio_primer_contacto,

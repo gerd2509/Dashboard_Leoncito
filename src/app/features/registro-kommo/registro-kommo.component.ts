@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { GestionKommoService, GestionKommo } from '../../services/gestion-kommo.service';
 import { ASESORES_CALL } from '../../shared/asesores';
-import { canalDeUsuario, asesorGestion, Canal } from '../../shared/canal-usuario';
+import { canalDeUsuario, asesorGestion, sedeRealzzaDeUsuario, Canal } from '../../shared/canal-usuario';
 
 // Modelo del formulario (todos string para el binding de DevExtreme).
 interface FormKommo {
@@ -76,7 +76,7 @@ export class RegistroKommoComponent implements OnInit {
   readonly motivosNoCierre = ['MUY CARO', 'FALTA DE STOCK O DISPONIBILIDAD DE PRODUCTO',
     'DESISTIO DE LA COMPRA (CAMBIO DE OPINION EL TITULAR)', 'NO CALIFICA (PROBLEMAS CREDITICIOS O REQUISITOS)',
     'INCONTACTABLE POSTERIOR AL INTERES (DEJO DE CONTESTAR)', 'FALTA DE INICIAL'];
-  readonly sedes = ['Lambayeque', 'Realzza', 'Fuera de Zona', 'Ferreñafe', 'Chongoyape', 'La Victoria',
+  readonly sedes = ['Lambayeque', 'Realzza', 'Realzza Piura', 'Realzza Lima', 'Fuera de Zona', 'Ferreñafe', 'Chongoyape', 'La Victoria',
     'Olmos', 'Jayanca', 'Cayalti', 'Motupe', 'Mochumi', 'Morrope', 'Oyotun'];
 
   private readonly asesoresCall = ASESORES_CALL.map(a => a.nombre).sort();
@@ -92,6 +92,9 @@ export class RegistroKommoComponent implements OnInit {
   // login) y no se elige. El admin sí lo elige del combo.
   get esVendedor(): boolean { return this.scope !== ''; }
   readonly asesorFijo = this.esVendedor ? asesorGestion(this.auth.getUsuario()) : '';
+  // Sede fija para un vendedor Realzza (Chiclayo/Piura/Lima según su login) — igual que
+  // el asesor, no se elige. Los de Leoncito/sede siguen escogiendo su sede del combo.
+  readonly sedeFijoRealzza = (this.esVendedor && this.scope === 'REALZZA') ? sedeRealzzaDeUsuario(this.auth.getUsuario()) : '';
 
   canal: Canal = 'LEONCITO';
   guardando = false;
@@ -119,6 +122,7 @@ export class RegistroKommoComponent implements OnInit {
   private resetForm(): void {
     this.f = blankForm(this.canal);
     this.f.asesor = this.asesorFijo;   // vendedor → asesor predeterminado; admin → vacío (lo elige)
+    if (this.canal === 'REALZZA' && this.sedeFijoRealzza) this.f.sede = this.sedeFijoRealzza;
     this.fechaLead = this.fechaAgend = this.horaAgend = this.fechaDeriv = this.horaDeriv = null;
     this.intento = false;   // form limpio → sin marcas rojas hasta la próxima interacción
   }

@@ -4,6 +4,10 @@
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
 
+    <dx-select-box *ngIf="!esVendedor" width="190" [dataSource]="sedes" displayExpr="viewValue"
+        valueExpr="value" [value]="filtroSede" label="Tienda" labelMode="floating" stylingMode="underlined"
+        placeholder="" [showClearButton]="true" (onValueChanged)="onSedeChanged($event)" />
+
     <button class="button" mat-flat-button (click)="actualizar()">
         <mat-icon>search</mat-icon>
         Actualizar

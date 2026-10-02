@@ -44,12 +44,13 @@ export class SheetsService {
 
   // 🆕 Gestión KOMMO desde PostgreSQL (tabla gestion_kommo, en gestion-service).
   // ?shape=sheet devuelve las mismas cabeceras del sheet KOMMO → drop-in de getSheetKOMMO().
-  getGestionKommo(rango?: { desde?: Date; hasta?: Date; leadMes?: number; leadAnio?: number }): Observable<any[]> {
+  getGestionKommo(rango?: { desde?: Date; hasta?: Date; leadMes?: number; leadAnio?: number; sede?: string }): Observable<any[]> {
     let params = new HttpParams().set('shape', 'sheet');
     if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
     if (rango?.leadMes) params = params.set('leadMes', rango.leadMes);   // filtra por FECHA DE LEAD ASIGNADO (Embudos)
     if (rango?.leadAnio) params = params.set('leadAnio', rango.leadAnio);
+    if (rango?.sede) params = params.set('sede', rango.sede);   // tienda Realzza: REALZZA/REALZZA PIURA/REALZZA LIMA
     return this.http.get<any[]>(`${environment.gestionBase || environment.apiBase}/gestion-kommo`, { params });
   }
 
@@ -61,10 +62,11 @@ export class SheetsService {
 
   // 🆕 Gestión Realzza desde PostgreSQL (reemplaza el Google Form de campo).
   // Devuelve las MISMAS cabeceras que la hoja, así que es drop-in de getSheetDataCampo().
-  getGestionRealzza(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+  getGestionRealzza(rango?: { desde?: Date; hasta?: Date; sede?: string }): Observable<any[]> {
     let params = new HttpParams();
     if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
+    if (rango?.sede) params = params.set('sede', rango.sede);   // tienda Realzza: REALZZA/REALZZA PIURA/REALZZA LIMA
     return this.http.get<any[]>(`${environment.apiBase}/gestion-realzza`, { params });
   }
 
@@ -104,10 +106,10 @@ export class SheetsService {
   getSheetDataCallRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
     return this.getGestionCall(rango);
   }
-  getSheetDataCampoRango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+  getSheetDataCampoRango(rango?: { desde?: Date; hasta?: Date; sede?: string }): Observable<any[]> {
     return this.getGestionRealzza(rango);
   }
-  getSheetKOMMORango(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
+  getSheetKOMMORango(rango?: { desde?: Date; hasta?: Date; leadMes?: number; leadAnio?: number; sede?: string }): Observable<any[]> {
     return this.getGestionKommo(rango);
   }
 

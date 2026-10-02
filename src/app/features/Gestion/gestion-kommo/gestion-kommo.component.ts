@@ -4,7 +4,11 @@ import { DX_COMMON_MODULES } from '../../dx_common_modules';
 import { AuthService } from '../../../services/auth.service';
 import { GestionKommoService, GestionKommo } from '../../../services/gestion-kommo.service';
 import { ExcelExportService } from '../../../services/excel/excel.service';
-import { canalDeUsuario, Canal } from '../../../shared/canal-usuario';
+import { canalDeUsuario, sedeRealzzaDeUsuario, Canal } from '../../../shared/canal-usuario';
+
+// Filtro de este módulo: canal (Leoncito/Realzza) + tienda dentro de Realzza.
+// 'REALZZA' sola = Chiclayo (histórico); las otras 2, explícitas.
+type TiendaFiltro = '' | 'LEONCITO' | 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { custom } from 'devextreme/ui/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -33,8 +37,17 @@ export class GestionKommoComponent implements OnInit {
 
   // Gating por rol.
   readonly scope = canalDeUsuario(this.auth.getUsuario());   // '' (admin) | LEONCITO | REALZZA
+  // Para un no-admin de Realzza, su propia tienda (Chiclayo/Piura/Lima) — se le fija el
+  // filtro de sede automáticamente, no la elige. No aplica a Leoncito (no tiene tiendas).
+  readonly tiendaPropia: TiendaFiltro = this.scope === 'REALZZA'
+    ? (sedeRealzzaDeUsuario(this.auth.getUsuario()) as TiendaFiltro) : '';
+  get tiendaPropiaLabel(): string {
+    if (this.tiendaPropia === 'REALZZA PIURA') return 'Realzza Piura';
+    if (this.tiendaPropia === 'REALZZA LIMA') return 'Realzza Lima';
+    return 'Realzza';
+  }
   get esAdmin(): boolean { return this.scope === ''; }
-  filtroCanal: '' | Canal = '';
+  filtroTienda: TiendaFiltro = '';
 
   isLoading = false;
   registros: GestionKommo[] = [];
@@ -44,25 +57,35 @@ export class GestionKommoComponent implements OnInit {
   hasta: Date | null = null;
 
   ngOnInit(): void {
-    this.filtroCanal = this.scope || '';   // no-admin arranca fijo en su canal
+    // no-admin arranca fijo: Leoncito en su canal, Realzza en su propia tienda.
+    this.filtroTienda = this.scope === 'REALZZA' ? (this.tiendaPropia || 'REALZZA') : (this.scope || '');
     this.cargar();
   }
 
   private get canalEfectivo(): '' | Canal {
-    return this.scope ? this.scope : this.filtroCanal;   // no-admin siempre su canal
+    if (this.scope) return this.scope;
+    const t = this.filtroTienda;
+    return (t === 'REALZZA' || t === 'REALZZA PIURA' || t === 'REALZZA LIMA') ? 'REALZZA' : (t as '' | Canal);
+  }
+  /** Tienda Realzza a filtrar (vacío = no aplica, p. ej. en Leoncito o "Todos"). */
+  private get sedeEfectiva(): string {
+    const t = this.scope === 'REALZZA' ? (this.tiendaPropia || 'REALZZA') : this.filtroTienda;
+    return (t === 'REALZZA' || t === 'REALZZA PIURA' || t === 'REALZZA LIMA') ? t : '';
   }
 
-  setFiltroCanal(c: '' | Canal): void {
+  setFiltroTienda(t: TiendaFiltro): void {
     if (!this.esAdmin) return;   // solo admin cambia el filtro
-    this.filtroCanal = c;
+    this.filtroTienda = t;
     this.cargar();
   }
 
   cargar(): void {
     this.isLoading = true;
     const canal = this.canalEfectivo;
-    const opts: { canal?: string; desde?: string; hasta?: string } = {};
+    const sede = this.sedeEfectiva;
+    const opts: { canal?: string; desde?: string; hasta?: string; sede?: string } = {};
     if (canal) opts.canal = canal;
+    if (sede) opts.sede = sede;
     if (this.desde) opts.desde = this.ymd(this.desde);
     if (this.hasta) opts.hasta = this.ymd(this.hasta);
     this.srv.listar(Object.keys(opts).length ? opts : undefined).subscribe({
@@ -126,7 +149,7 @@ export class GestionKommoComponent implements OnInit {
 
   exportar(): void {
     if (this.dataGrid) {
-      const suf = this.canalEfectivo || 'GENERAL';
+      const suf = (this.sedeEfectiva || this.canalEfectivo || 'GENERAL').replace(/\s+/g, '_');
       this.excelService.exportarDesdeGrid(`Gestion_Kommo_${suf}`, this.dataGrid);
     }
   }

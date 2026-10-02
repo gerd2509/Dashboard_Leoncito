@@ -30,6 +30,14 @@ export class GestionCampoRealzzaComponent implements OnInit {
   isLoading = false;
   filtroDerivacionActivo: boolean = false;
 
+  // Tienda Realzza: REALZZA = Chiclayo (histórico, sede vacía o "REALZZA").
+  sedes = [
+    { value: '', viewValue: 'TODAS LAS TIENDAS' },
+    { value: 'REALZZA', viewValue: 'REALZZA CHICLAYO' },
+    { value: 'REALZZA PIURA', viewValue: 'REALZZA PIURA' },
+    { value: 'REALZZA LIMA', viewValue: 'REALZZA LIMA' },
+  ];
+
   // Asesores Realzza — mismos nombres que el módulo Ventas Campo (fuente única).
   asesores = [
     { value: '', viewValue: 'SELECCIONE ASESOR' },
@@ -52,6 +60,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
       fechaInicio: [null, Validators.required],
       fechaFin: [null, Validators.required],
       Asesores: [''],
+      Sede: [''],
     });
   }
 
@@ -203,6 +212,16 @@ export class GestionCampoRealzzaComponent implements OnInit {
         });
       }
 
+      const sede = (this.formGestion.value.Sede || '').toString().trim().toUpperCase();
+      if (sede) {
+        datosFiltrados = datosFiltrados.filter(item => {
+          const sedeEnDato = (item['SEDE'] || '').toString().trim().toUpperCase();
+          // 'REALZZA' sola = Chiclayo/histórico: cualquier SEDE que no sea PIURA/LIMA.
+          if (sede === 'REALZZA') return sedeEnDato !== 'REALZZA PIURA' && sedeEnDato !== 'REALZZA LIMA';
+          return sedeEnDato === sede;
+        });
+      }
+
       if (this.filtroDerivacionActivo) {
         const motivosValidos = [
           'VENTA DERIVADA PARA CIERRE A SEDE'
@@ -232,6 +251,11 @@ export class GestionCampoRealzzaComponent implements OnInit {
 
   async onAsesorChanged(event: any): Promise<void> {
     this.formGestion.patchValue({ Asesores: event.value });
+    this.aplicarFiltros();
+  }
+
+  async onSedeChanged(event: any): Promise<void> {
+    this.formGestion.patchValue({ Sede: event.value });
     this.aplicarFiltros();
   }
 

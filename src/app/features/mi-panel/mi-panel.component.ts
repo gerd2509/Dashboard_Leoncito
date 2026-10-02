@@ -8,6 +8,7 @@ import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { SheetsService } from '../../services/service-google.service';
 import { ASESORES_CALL } from '../../shared/asesores';
+import { sedeRealzzaDeUsuario } from '../../shared/canal-usuario';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { exportDataGrid } from 'devextreme/excel_exporter';
@@ -451,11 +452,15 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     // Respuestas del SHEET, igual que en los componentes Gestión Call / Realzza /
     // KOMMO. Cada canal es su propia hoja (Realzza = /campo, distinta a Call = /call);
     // en KOMMO se distingue KOMMO vs Market Place por la columna MARKET PLACE L/R.
+    // Realzza: se acota también por su propia tienda (Chiclayo/Piura/Lima) — el nombre
+    // del asesor ya aísla "lo mío", pero así el backend no manda las otras tiendas.
+    const sedeRz = canal === 'realzza' ? sedeRealzzaDeUsuario(this.auth.getUsuario()) : undefined;
+    const rangoRz = sedeRz ? { ...rango, sede: sedeRz } : rango;
     const general = canal === 'call'
       ? this.sheets.getSheetDataCallRango(rango)
-      : this.sheets.getSheetDataCampoRango(rango);
+      : this.sheets.getSheetDataCampoRango(rangoRz);
 
-    forkJoin({ general, kommo: this.sheets.getSheetKOMMORango(rango) }).subscribe({
+    forkJoin({ general, kommo: this.sheets.getSheetKOMMORango(rangoRz) }).subscribe({
       next: ({ general, kommo }) => {
         this.procesarGeneral(general || [], colAsesor, colEstadoGeneral, dia);
         this.procesarKommo(kommo || [], colAsesor, colEstadoKommo, colMarket, dia);

@@ -4,14 +4,16 @@
       <div><b>Gestión KOMMO</b><small>Desde base de datos · editable</small></div>
     </span>
     <div class="gk-actions">
-      <!-- Toggle de canal: solo admin; Call/Realzza queda fijo en su canal -->
+      <!-- Toggle de canal/tienda: solo admin; Call/Realzza queda fijo en el suyo -->
       <div class="gk-canal" *ngIf="esAdmin">
-        <button [class.on]="filtroCanal === ''" (click)="setFiltroCanal('')">Todos</button>
-        <button [class.on]="filtroCanal === 'LEONCITO'" (click)="setFiltroCanal('LEONCITO')">Leoncito</button>
-        <button class="rz" [class.on]="filtroCanal === 'REALZZA'" (click)="setFiltroCanal('REALZZA')">Realzza</button>
+        <button [class.on]="filtroTienda === ''" (click)="setFiltroTienda('')">Todos</button>
+        <button [class.on]="filtroTienda === 'LEONCITO'" (click)="setFiltroTienda('LEONCITO')">Leoncito</button>
+        <button class="rz" [class.on]="filtroTienda === 'REALZZA'" (click)="setFiltroTienda('REALZZA')">Realzza</button>
+        <button class="rz" [class.on]="filtroTienda === 'REALZZA PIURA'" (click)="setFiltroTienda('REALZZA PIURA')">Realzza Piura</button>
+        <button class="rz" [class.on]="filtroTienda === 'REALZZA LIMA'" (click)="setFiltroTienda('REALZZA LIMA')">Realzza Lima</button>
       </div>
       <span class="gk-canal-fijo" *ngIf="!esAdmin" [class.rz]="scope === 'REALZZA'">
-        {{ scope === 'REALZZA' ? 'Realzza' : 'Leoncito' }}
+        {{ scope === 'REALZZA' ? tiendaPropiaLabel : 'Leoncito' }}
       </span>
       <dx-date-box [(value)]="desde" type="date" [openOnFieldClick]="true" label="Desde" labelMode="floating"
           stylingMode="outlined" width="130" [displayFormat]="'dd/MM/yyyy'" [max]="hasta"></dx-date-box>

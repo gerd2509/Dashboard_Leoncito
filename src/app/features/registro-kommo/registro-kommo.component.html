@@ -29,7 +29,7 @@
         <div class="rk-field">
           <label>Sede</label>
           <dx-select-box [dataSource]="sedes" [(value)]="f.sede" [searchEnabled]="true"
-            [acceptCustomValue]="true" [showClearButton]="true" stylingMode="outlined"></dx-select-box>
+            [acceptCustomValue]="true" [showClearButton]="true" [disabled]="!!sedeFijoRealzza" stylingMode="outlined"></dx-select-box>
         </div>
         <div class="rk-field">
           <label>Fecha lead asignado</label>

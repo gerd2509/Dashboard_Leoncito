@@ -48,12 +48,13 @@ export class GestionKommoService {
     return this.http.post(this.url, payload);
   }
 
-  listar(opts?: { canal?: string; desde?: string; hasta?: string; asesor?: string }): Observable<GestionKommo[]> {
+  listar(opts?: { canal?: string; desde?: string; hasta?: string; asesor?: string; sede?: string }): Observable<GestionKommo[]> {
     let params = new HttpParams();
     if (opts?.canal)  params = params.set('canal', opts.canal);
     if (opts?.desde)  params = params.set('desde', opts.desde);
     if (opts?.hasta)  params = params.set('hasta', opts.hasta);
     if (opts?.asesor) params = params.set('asesor', opts.asesor);
+    if (opts?.sede)   params = params.set('sede', opts.sede);   // REALZZA PIURA / REALZZA LIMA (dentro de canal REALZZA)
     return this.http.get<GestionKommo[]>(this.url, { params });
   }
 

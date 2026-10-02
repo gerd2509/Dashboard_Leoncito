@@ -54,3 +54,16 @@ export function asesorGestion(u: any): string {
   if (v.toUpperCase().includes('BERNAL BAZAN BRENDA')) return 'BERNAL BAZAN BRENDA NICOL';
   return v;
 }
+
+/**
+ * Sede de Realzza a guardar en Registro de Gestión / Registro KOMMO para un vendedor
+ * Realzza, según su login: 'realzzapiura'/'realzzalima' (sede-config.service.ts) →
+ * "REALZZA PIURA"/"REALZZA LIMA"; cualquier otro caso (Chiclayo, histórico) → "REALZZA"
+ * tal cual se guardaba antes de que existieran otras tiendas Realzza.
+ */
+export function sedeRealzzaDeUsuario(u: any): string {
+  const sede = (u?.sede || '').toString().trim().toLowerCase();
+  if (sede === 'realzzapiura') return 'REALZZA PIURA';
+  if (sede === 'realzzalima') return 'REALZZA LIMA';
+  return 'REALZZA';
+}
