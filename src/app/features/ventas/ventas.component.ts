@@ -126,18 +126,12 @@ export class VentasComponent implements OnInit {
     { value: '', viewValue: 'Seleccione Asesor' },
     { value: 'CC1',  viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
     { value: 'CC2',  viewValue: 'VALDERA PISCOYA DEXY ROSARIO' },
-    { value: 'CC3',  viewValue: 'UCHOFEN VIGO FELICITA' },
     { value: 'CC5',  viewValue: 'QUISPE FONSECA KAREN AIMEE' },
     { value: 'CC6',  viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
     { value: 'CC8',  viewValue: 'CHANTA CAMPOS KELLY KARINTIA' },
-    { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' },
-    { value: 'CC13', viewValue: 'CARBONEL GUERRERO FRANCIS JHON' },
-    { value: 'CC11', viewValue: 'SAMAME HUAMAN ARIADNE' },
     { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
-    { value: 'CC16', viewValue: 'BONILLA CHUMACERO VILMA ROSSMERY' },
     { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' },
     { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' },
-    { value: 'CC22', viewValue: 'BERNAL BAZAN FABRICIO ROLANDO' },
     { value: 'CC26', viewValue: 'RUIZ SAMPEN LUCRECIA NOEMI' }
   ];
 
