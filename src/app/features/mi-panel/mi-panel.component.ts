@@ -277,6 +277,14 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     this.vendedor = (u?.vendedor || '').trim();
     this.canal = u?.canal || '';
     const sede = (u?.sede || '').trim();
+    // Las tiendas nuevas de Realzza (Piura/Lima) se crean por el alta masiva del CAP con
+    // canal='sede' (genérico), aunque son vendedores Realzza. Se corrige aquí para que
+    // vean su propia gestión (llamadas/KOMMO/Market Place/derivaciones de Realzza) en vez
+    // de la gestión de piso/sede.
+    if (this.canal.toLowerCase() !== 'call' && this.canal.toLowerCase() !== 'realzza'
+        && sede.toLowerCase().includes('realzza')) {
+      this.canal = 'realzza';
+    }
     this.sedeKey = sede;
     this.sedeNombre = this.sedeCfg.getConfig(sede)?.nombre
       ?? (sede ? sede.charAt(0).toUpperCase() + sede.slice(1) : '');

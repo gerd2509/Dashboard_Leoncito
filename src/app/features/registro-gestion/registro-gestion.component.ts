@@ -236,7 +236,8 @@ export class RegistroGestionComponent implements OnInit {
         return;
       }
       // Realzza → solo formulario Realzza; el asesor sale del login (vendedor).
-      if (canalU === 'realzza' || key === 'realzza') {
+      // 'key' incluye 'realzzapiura'/'realzzalima' (tiendas nuevas), no solo 'realzza'.
+      if (canalU === 'realzza' || key === 'realzza' || key.includes('realzza')) {
         this.canal = 'realzza';
         this.rz.asesor = asesor;
         return;
