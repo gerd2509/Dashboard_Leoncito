@@ -44,8 +44,9 @@ export class SheetsService {
 
   // 🆕 Gestión KOMMO desde PostgreSQL (tabla gestion_kommo, en gestion-service).
   // ?shape=sheet devuelve las mismas cabeceras del sheet KOMMO → drop-in de getSheetKOMMO().
-  getGestionKommo(rango?: { desde?: Date; hasta?: Date; leadMes?: number; leadAnio?: number; sede?: string }): Observable<any[]> {
+  getGestionKommo(rango?: { desde?: Date; hasta?: Date; leadMes?: number; leadAnio?: number; sede?: string; canal?: string }): Observable<any[]> {
     let params = new HttpParams().set('shape', 'sheet');
+    if (rango?.canal) params = params.set('canal', rango.canal);
     if (rango?.desde) params = params.set('desde', this.fechaISO(rango.desde));
     if (rango?.hasta) params = params.set('hasta', this.fechaISO(rango.hasta));
     if (rango?.leadMes) params = params.set('leadMes', rango.leadMes);   // filtra por FECHA DE LEAD ASIGNADO (Embudos)

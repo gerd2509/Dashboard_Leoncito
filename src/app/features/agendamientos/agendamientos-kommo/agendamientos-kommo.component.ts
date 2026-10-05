@@ -8,6 +8,7 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators, ReactiveFormsModule }
 import { DxDataGridComponent } from 'devextreme-angular/ui/data-grid';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
+import { canalDeUsuario, enTiendaRealzza, esGestorTiendaRealzza, sedeRealzzaDeUsuario } from '../../../shared/canal-usuario';
 
 import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
 
@@ -30,6 +31,16 @@ export class AgendamientosKommoComponent {
 
   get esVendedor(): boolean { return (this.auth.getUsuario()?.rol || '') === 'vendedor'; }
   get miAsesor(): string { return (this.auth.getUsuario()?.vendedor || '').toString().toUpperCase().trim(); }
+
+  // Vendedor o gerente de tienda: su empresa (Leoncito / Realzza) viene del login y no se elige.
+  readonly canalLogin = canalDeUsuario(this.auth.getUsuario());
+  readonly bloqueado = (this.esVendedor || esGestorTiendaRealzza(this.auth.getUsuario())) && !!this.canalLogin;
+  // Tienda Realzza del login (Chiclayo / Piura / Lima). '' = Leoncito o admin (todas las tiendas).
+  readonly tiendaFija = (this.bloqueado && this.canalLogin === 'REALZZA') ? sedeRealzzaDeUsuario(this.auth.getUsuario()) : '';
+  get etiquetaFija(): string {
+    if (this.tiendaFija === 'REALZZA') return 'REALZZA CHICLAYO';
+    return this.tiendaFija || 'LEONCITO (CALL)';
+  }
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
@@ -58,16 +69,11 @@ export class AgendamientosKommoComponent {
   constructor(private fb: UntypedFormBuilder) {
     this.formAgendamientos = this.fb.group({
       fechaGestion: [new Date(), Validators.required],
-      empresa: ['LEONCITO', Validators.required]
+      empresa: [this.canalLogin === 'REALZZA' ? 'REALZZA' : 'LEONCITO', Validators.required]
     });
   }
 
   async ngOnInit() {
-    // Vendedor: fija la empresa según su canal (call→LEONCITO, realzza→REALZZA).
-    if (this.esVendedor) {
-      const canal = (this.auth.getUsuario()?.canal || '').toLowerCase();
-      this.formAgendamientos.patchValue({ empresa: canal === 'realzza' ? 'REALZZA' : 'LEONCITO' });
-    }
     await this.actualizar();   // carga automática al entrar
   }
 
@@ -104,7 +110,16 @@ export class AgendamientosKommoComponent {
 
     this.isLoading = true;
     try {
-      this.datosOriginales = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
+      const emp = this.formAgendamientos.value.empresa;
+      if (emp === 'REALZZA') {
+        // Realzza: agendamientos del canal KOMMO (gestion_kommo). Rango amplio: el agendamiento se registra antes de su fecha.
+        const desde = new Date(fechaGestion); desde.setDate(desde.getDate() - 60);
+        this.datosOriginales = await lastValueFrom(this.service.getGestionKommo({
+          canal: 'REALZZA', desde, hasta: new Date(Math.max(Date.now(), fechaGestion.getTime())),
+        }));
+      } else {
+        this.datosOriginales = await lastValueFrom(this.service.getSheetData()) /* Google Form call */;
+      }
 
       const dia = fechaGestion.getDate().toString().padStart(2, '0');
       const mes = (fechaGestion.getMonth() + 1).toString().padStart(2, '0');
@@ -122,8 +137,9 @@ export class AgendamientosKommoComponent {
         // Si es vendedor, solo sus propios agendamientos (por la columna asesor del canal).
         const esMio = !this.esVendedor
           || (d[this.currentCols.asesor] || '').toString().toUpperCase().trim() === this.miAsesor;
+        const sedeOk = !this.tiendaFija || enTiendaRealzza(d['SEDE'], this.tiendaFija);
 
-        return esMio && fechaFormateada === fechaBusqueda &&
+        return esMio && sedeOk && fechaFormateada === fechaBusqueda &&
           motivo === "CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)";
       });
 

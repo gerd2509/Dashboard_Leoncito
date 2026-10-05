@@ -2,7 +2,9 @@
 <form class="form mt-2" [formGroup]="formAgendamientos"
     style="display: flex; gap: 10px; align-items: center; padding: 10px;">
 
-    <dx-select-box formControlName="empresa" [items]="['LEONCITO', 'REALZZA']" label="Seleccionar Empresa"
+    <span class="ak-fijo" *ngIf="bloqueado"><mat-icon>{{ canalLogin === 'REALZZA' ? 'storefront' : 'headset_mic' }}</mat-icon> {{ etiquetaFija }}</span>
+
+    <dx-select-box *ngIf="!bloqueado" formControlName="empresa" [items]="['LEONCITO', 'REALZZA']" label="Seleccionar Empresa"
         labelMode="floating" stylingMode="underlined" [width]="200" (onValueChanged)="onEmpresaChanged()">
     </dx-select-box>
 
