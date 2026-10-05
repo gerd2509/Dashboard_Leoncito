@@ -7,6 +7,11 @@
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
 
+    <dx-select-box *ngIf="!tiendaGestor" width="190" [dataSource]="tiendasOpciones" displayExpr="viewValue" valueExpr="value"
+        [value]="tiendaCierre" (onValueChanged)="setTiendaCierre($event.value)" label="Tienda" labelMode="floating" stylingMode="underlined">
+    </dx-select-box>
+    <span class="cs-tienda-fija" *ngIf="tiendaGestor"><mat-icon>storefront</mat-icon> {{ tiendaGestor }}</span>
+
     <button mat-flat-button [disabled]="formCierreGestion.invalid" (click)="actualizar()">
         <mat-icon>search</mat-icon>
         Actualizar

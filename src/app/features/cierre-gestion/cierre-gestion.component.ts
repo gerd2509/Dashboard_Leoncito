@@ -5,6 +5,9 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
+import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
 
@@ -19,6 +22,15 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 export class CierreGestionComponent implements OnInit {
   protected service = inject(SheetsService);
   protected auth    = inject(AuthService);
+  private cap = inject(CapSedesService);
+  private tiendas = new AsesoresPorTienda(this.cap);
+
+  // Tienda: Chiclayo (por defecto, sin cambios) · Piura / Lima (asesores del CAP) · Todas (admin).
+  readonly tiendasOpciones = [...TIENDAS_REALZZA, { value: 'TODAS', viewValue: 'TODAS LAS TIENDAS' }];
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  tiendaCierre = this.tiendaGestor || 'REALZZA';
+  private rawRealzza: any[] = [];
+  private rawKommo: any[] = [];
 
   // true cuando el usuario es gerente/supervisor de Realzza
   get soloRealzza(): boolean {
@@ -187,7 +199,14 @@ export class CierreGestionComponent implements OnInit {
     return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, ...this.TRANSICION];
   }
   get asesoresRealzza() {
-    return this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, ...this.TRANSICION] : this.asesoresRealzzaBase;
+    const base = this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, ...this.TRANSICION] : this.asesoresRealzzaBase;
+    if (this.esTiendaNueva) return this.asesoresDeTienda(this.tiendaCierre);
+    if (this.tiendaCierre === 'TODAS') return [...base, ...this.asesoresDeTienda('REALZZA PIURA'), ...this.asesoresDeTienda('REALZZA LIMA')];
+    return base;
+  }
+  private get esTiendaNueva(): boolean { return this.tiendaCierre === 'REALZZA PIURA' || this.tiendaCierre === 'REALZZA LIMA'; }
+  private asesoresDeTienda(t: string): { value: string; viewValue: string }[] {
+    return (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
   }
 
   // ── Sublistas KOMMO (mismo corte por fecha) ──
@@ -210,6 +229,7 @@ export class CierreGestionComponent implements OnInit {
       .filter((a): a is { value: string; viewValue: string } => !!a);
   }
   get asesoresKommoRealzza() {
+    if (this.esTiendaNueva) return this.asesoresRealzza;
     return this.kommoRealzzaIds
       .map(id => this.asesoresRealzza.find(a => a.value === id))
       .filter((a): a is { value: string; viewValue: string } => !!a);
@@ -266,6 +286,7 @@ export class CierreGestionComponent implements OnInit {
   async ngOnInit() {
     this.isLoading = true;
     try {
+      await this.tiendas.cargar();
       const r = this.rangoMes();
       const [dataCall, dataRealzza, dataPost, dataKOMMO] = await Promise.all([
         lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
@@ -275,9 +296,10 @@ export class CierreGestionComponent implements OnInit {
       ]);
 
       this.dataOriginal = dataCall;
-      this.dataRealzza = dataRealzza;
+      this.rawRealzza = dataRealzza;
       this.dataPostVenta = dataPost;
-      this.dataKOMMO = dataKOMMO;
+      this.rawKommo = dataKOMMO;
+      this.aplicarTienda();
 
       this.calcularIndicadoresCompletos();
 
@@ -294,6 +316,21 @@ export class CierreGestionComponent implements OnInit {
 
   ngOnDestroy() {
     this.limpiarTimers();
+  }
+
+  /** Acota Realzza y KOMMO a los asesores de la tienda elegida (Chiclayo = sin Piura/Lima). */
+  private aplicarTienda(): void {
+    const t = this.tiendaCierre;
+    const keep = (r: any) => t === 'TODAS' || this.tiendas.pertenece(r['ASESOR REALZZA'], t);
+    this.dataRealzza = this.rawRealzza.filter(keep);
+    this.dataKOMMO = this.rawKommo.filter(keep);
+  }
+
+  setTiendaCierre(t: string): void {
+    if (this.tiendaGestor) return;
+    this.tiendaCierre = t || 'REALZZA';
+    this.aplicarTienda();
+    this.calcularIndicadoresCompletos();
   }
 
   calcularIndicadoresCompletos() {
@@ -321,6 +358,7 @@ export class CierreGestionComponent implements OnInit {
   async actualizar() {
     this.isLoading = true;
     try {
+      await this.tiendas.cargar();
       const r = this.rangoMes();
       const [dataCall, dataRealzza, dataPost, dataKOMMO] = await Promise.all([
         lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
@@ -329,9 +367,10 @@ export class CierreGestionComponent implements OnInit {
         lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
       this.dataOriginal = dataCall;
-      this.dataRealzza = dataRealzza;
+      this.rawRealzza = dataRealzza;
       this.dataPostVenta = dataPost;
-      this.dataKOMMO = dataKOMMO;
+      this.rawKommo = dataKOMMO;
+      this.aplicarTienda();
       this.calcularIndicadoresCompletos();
     } catch (error) {
       console.error('Error al actualizar datos:', error);
