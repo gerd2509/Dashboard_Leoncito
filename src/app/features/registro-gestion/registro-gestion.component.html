@@ -87,8 +87,11 @@
     <div class="rg-grid" *ngIf="canal === 'realzza'">
       <div class="rg-field rg-2">
         <label>Asesor Realzza *</label>
-        <dx-select-box [dataSource]="asesoresRealzza" [(value)]="rz.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
-          [disabled]="!elegirCanal" [isValid]="!(intento && !rz.asesor)" (onValueChanged)="touched()" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+        <dx-select-box [dataSource]="asesoresRealzzaVista" [(value)]="rz.asesor" [searchEnabled]="true" [acceptCustomValue]="true"
+          [disabled]="!elegirCanal && !rzGestor" [isValid]="!(intento && !rz.asesor)" (onValueChanged)="touched()" placeholder="Selecciona…" stylingMode="outlined"></dx-select-box>
+      </div>
+      <div class="rg-field"><label>Sede</label>
+        <dx-text-box [value]="rzSedeLabel" [readOnly]="true" stylingMode="outlined"></dx-text-box>
       </div>
       <div class="rg-field"><label>DNI cliente *</label>
         <dx-text-box [(value)]="rz.dni_cliente" (onValueChanged)="rz.dni_cliente = soloNum(rz.dni_cliente, 8)" mode="tel" [maxLength]="8"

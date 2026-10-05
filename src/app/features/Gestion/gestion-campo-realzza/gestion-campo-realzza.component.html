@@ -12,7 +12,7 @@
       <dx-select-box width="220" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
           valueExpr="value" label="Asesor" labelMode="floating" stylingMode="outlined" placeholder=""
           [showClearButton]="true" (onValueChanged)="onAsesorChanged($event)" />
-      <dx-select-box width="190" formControlName="Sede" [dataSource]="sedes" displayExpr="viewValue"
+      <dx-select-box *ngIf="!tiendaGestor" width="190" formControlName="Sede" [dataSource]="sedes" displayExpr="viewValue"
           valueExpr="value" label="Tienda" labelMode="floating" stylingMode="outlined" placeholder=""
           [showClearButton]="true" (onValueChanged)="onSedeChanged($event)" />
       <dx-check-box text="Derivación" [(value)]="filtroDerivacionActivo" [disabled]="!formGestion.valid"

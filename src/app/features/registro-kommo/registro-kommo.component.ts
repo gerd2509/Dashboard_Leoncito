@@ -5,7 +5,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
 import { GestionKommoService, GestionKommo } from '../../services/gestion-kommo.service';
 import { ASESORES_CALL } from '../../shared/asesores';
-import { canalDeUsuario, asesorGestion, sedeRealzzaDeUsuario, Canal } from '../../shared/canal-usuario';
+import { canalDeUsuario, asesorGestion, esGestorTiendaRealzza, sedeRealzzaDeUsuario, Canal } from '../../shared/canal-usuario';
+import { CapSedesService } from '../../services/cap-sedes.service';
 
 // Modelo del formulario (todos string para el binding de DevExtreme).
 interface FormKommo {
@@ -55,6 +56,7 @@ export class RegistroKommoComponent implements OnInit {
   private auth = inject(AuthService);
   private srv = inject(GestionKommoService);
   private snack = inject(MatSnackBar);
+  private cap = inject(CapSedesService);
 
   // Opciones (valores reales de la data KOMMO).
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
@@ -81,7 +83,12 @@ export class RegistroKommoComponent implements OnInit {
 
   private readonly asesoresCall = ASESORES_CALL.map(a => a.nombre).sort();
   private readonly asesoresRealzza = [...ASESORES_REALZZA].sort();
-  get asesores(): string[] { return this.canal === 'REALZZA' ? this.asesoresRealzza : this.asesoresCall; }
+  // Gerente/supervisor de Piura/Lima: elige entre los asesores de su CAP (no es fijo).
+  private asesoresGestor: string[] = [];
+  get asesores(): string[] {
+    if (this.canal !== 'REALZZA') return this.asesoresCall;
+    return this.gestorTienda ? this.asesoresGestor : this.asesoresRealzza;
+  }
 
   // Gating por rol: qué canal(es) puede registrar este usuario.
   readonly scope = canalDeUsuario(this.auth.getUsuario());   // '' (admin/ambos) | 'LEONCITO' | 'REALZZA'
@@ -90,11 +97,12 @@ export class RegistroKommoComponent implements OnInit {
 
   // Si el usuario es un vendedor (no admin), su asesor es fijo (predeterminado del
   // login) y no se elige. El admin sí lo elige del combo.
-  get esVendedor(): boolean { return this.scope !== ''; }
+  readonly gestorTienda = esGestorTiendaRealzza(this.auth.getUsuario());
+  get esVendedor(): boolean { return this.scope !== '' && !this.gestorTienda; }
   readonly asesorFijo = this.esVendedor ? asesorGestion(this.auth.getUsuario()) : '';
   // Sede fija para un vendedor Realzza (Chiclayo/Piura/Lima según su login) — igual que
   // el asesor, no se elige. Los de Leoncito/sede siguen escogiendo su sede del combo.
-  readonly sedeFijoRealzza = (this.esVendedor && this.scope === 'REALZZA') ? sedeRealzzaDeUsuario(this.auth.getUsuario()) : '';
+  readonly sedeFijoRealzza = (this.scope === 'REALZZA' && (this.esVendedor || this.gestorTienda)) ? sedeRealzzaDeUsuario(this.auth.getUsuario()) : '';
 
   canal: Canal = 'LEONCITO';
   guardando = false;
@@ -109,6 +117,7 @@ export class RegistroKommoComponent implements OnInit {
   ngOnInit(): void {
     this.canal = this.canalesPermitidos[0];
     this.resetForm();
+    if (this.gestorTienda) this.cap.vendedoresActivos(sedeRealzzaDeUsuario(this.auth.getUsuario())).then(l => this.asesoresGestor = l);
   }
 
   get registrador(): string { return this.auth.getUsuario()?.nombre ?? ''; }

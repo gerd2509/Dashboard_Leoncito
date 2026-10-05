@@ -7,6 +7,9 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import { DxDataGridComponent } from 'devextreme-angular';
 import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
+import { AuthService } from '../../../services/auth.service';
+import { CapSedesService } from '../../../services/cap-sedes.service';
+import { esGestorTiendaRealzza, tiendaFijaRealzza } from '../../../shared/canal-usuario';
 
 import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
 
@@ -19,6 +22,11 @@ import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading
 export class GestionCampoRealzzaComponent implements OnInit {
   protected service = inject(SheetsService);
   protected excelService = inject(ExcelExportService);
+  private auth = inject(AuthService);
+  private cap = inject(CapSedesService);
+
+  // Gerente/supervisor de Piura/Lima: ve solo su tienda y sus asesores (CAP).
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
 
   formGestion: UntypedFormGroup;
   dataFiltrada: any[] = [];
@@ -60,7 +68,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
       fechaInicio: [null, Validators.required],
       fechaFin: [null, Validators.required],
       Asesores: [''],
-      Sede: [''],
+      Sede: [this.tiendaGestor],
     });
   }
 
@@ -146,6 +154,10 @@ export class GestionCampoRealzzaComponent implements OnInit {
   }
 
   async ngOnInit() {
+    if (this.tiendaGestor) {
+      const nombres = await this.cap.vendedoresActivos(this.tiendaGestor);
+      this.asesores = [{ value: '', viewValue: 'SELECCIONE ASESOR' }, ...nombres.map(n => ({ value: n, viewValue: n }))];
+    }
     await this.cargasIniciales();
   }
 

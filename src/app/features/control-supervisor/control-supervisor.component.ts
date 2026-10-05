@@ -7,6 +7,10 @@ import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 import { ControlSupervisorService, ControlSupervisor } from '../../services/control-supervisor.service';
 import { SheetsService } from '../../services/service-google.service';
+import { AuthService } from '../../services/auth.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
+import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 
@@ -90,6 +94,14 @@ export class ControlSupervisorComponent implements OnInit {
   private srv = inject(ControlSupervisorService);
   private sheets = inject(SheetsService);
   private snack = inject(MatSnackBar);
+  private auth = inject(AuthService);
+  private cap = inject(CapSedesService);
+  private tiendas = new AsesoresPorTienda(this.cap);
+
+  // Tienda Realzza: Chiclayo (histórico) por defecto; Piura/Lima. El gerente de tienda queda fijo.
+  readonly tiendasOpciones = TIENDAS_REALZZA;
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  tiendaFiltro = this.tiendaGestor || 'REALZZA';
 
   // Listas para el formulario de edición rápida.
   readonly asesoresLista = [
@@ -219,10 +231,11 @@ export class ControlSupervisorComponent implements OnInit {
         idxKommo.set(dni, arr);
       });
 
+      await this.tiendas.cargar();
       this.citas = (controles || [])
         .map(c => (c.tipo_control === 'MARKET_PLACE' ? this.armarCitaMp(c) : this.armarCita(c, idxDni, idxKommo)))
         .filter((c): c is CitaControl => c !== null);
-      this.asesoresDisponibles = Array.from(new Set(this.citas.map(c => c.asesor).filter(Boolean))).sort();
+      this.refrescarAsesoresDisponibles();
       this.aplicarFiltroAsesor();
     } catch (e) {
       console.error('❌ control-supervisor:', e);
@@ -381,9 +394,25 @@ export class ControlSupervisorComponent implements OnInit {
     const asesor = (this.form.value.asesor || '').toString().trim();
     this.citasFiltradas = this.citas.filter(c =>
       (!asesor || c.asesor === asesor) &&
+      this.tiendas.pertenece(c.asesor, this.tiendaFiltro) &&
       (this.vista === 'TODO' || c.tipo === this.vista));
     this.recalcularKpis();
   }
+
+  setTiendaFiltro(t: string): void {
+    if (this.tiendaGestor) return;
+    this.tiendaFiltro = t || 'REALZZA';
+    this.form.patchValue({ asesor: '' });
+    this.refrescarAsesoresDisponibles();
+    this.aplicarFiltroAsesor();
+  }
+
+  private refrescarAsesoresDisponibles(): void {
+    this.asesoresDisponibles = Array.from(new Set(
+      this.citas.map(c => c.asesor).filter(a => !!a && this.tiendas.pertenece(a, this.tiendaFiltro)))).sort();
+  }
+
+  get asesoresEdicion(): string[] { return this.tiendas.listaDe(this.tiendaFiltro) ?? this.asesoresLista; }
 
   private recalcularKpis(): void {
     const g = this.citasFiltradas.filter(c => c.tipo === 'GESTION');
@@ -690,7 +719,7 @@ export class ControlSupervisorComponent implements OnInit {
 
   private construirReporte(): ReporteSupervisor {
     const asesorFiltro = (this.form.value.asesor || '').toString().trim();
-    const base = this.citas.filter(c => !asesorFiltro || c.asesor === asesorFiltro);
+    const base = this.citas.filter(c => (!asesorFiltro || c.asesor === asesorFiltro) && this.tiendas.pertenece(c.asesor, this.tiendaFiltro));
     const gest = base.filter(c => c.tipo === 'GESTION');
     const mp = base.filter(c => c.tipo === 'MARKET_PLACE');
 

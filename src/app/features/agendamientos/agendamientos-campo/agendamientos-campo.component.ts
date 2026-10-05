@@ -7,6 +7,7 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
+import { esGestorTiendaRealzza, tiendaFijaRealzza } from '../../../shared/canal-usuario';
 
 import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
 
@@ -32,7 +33,9 @@ export class AgendamientosCampoComponent {
     { value: 'REALZZA PIURA', viewValue: 'REALZZA PIURA' },
     { value: 'REALZZA LIMA', viewValue: 'REALZZA LIMA' },
   ];
-  filtroSede = '';
+  // Gerente/supervisor de Piura/Lima: ve solo los agendamientos de su tienda.
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  filtroSede: string = this.tiendaGestor;
 
   protected showFilterRow: boolean = true;
   protected currentFilter: string = 'auto';

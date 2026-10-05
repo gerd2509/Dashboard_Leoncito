@@ -8,6 +8,10 @@ import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 import { ControlSupervisorService, ControlSupervisor } from '../../../services/control-supervisor.service';
 import { ExcelExportService } from '../../../services/excel/excel.service';
+import { AuthService } from '../../../services/auth.service';
+import { CapSedesService } from '../../../services/cap-sedes.service';
+import { AsesoresPorTienda } from '../../../shared/asesores-por-tienda';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../../shared/canal-usuario';
 
 // Fila del grid = el registro de la BD + campos calculados para mostrar.
 interface FilaSup extends ControlSupervisor {
@@ -27,6 +31,13 @@ export class GestionSupervisorComponent implements OnInit {
   private srv = inject(ControlSupervisorService);
   private excelSrv = inject(ExcelExportService);
   private snack = inject(MatSnackBar);
+  private auth = inject(AuthService);
+  private cap = inject(CapSedesService);
+  private tiendas = new AsesoresPorTienda(this.cap);
+
+  readonly tiendasOpciones = TIENDAS_REALZZA;
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  tiendaFiltro = this.tiendaGestor || 'REALZZA';
 
   @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
 
@@ -64,9 +75,9 @@ export class GestionSupervisorComponent implements OnInit {
     try {
       const desde = new Date(this.form.value.fechaInicio); desde.setHours(0, 0, 0, 0);
       const hasta = new Date(this.form.value.fechaFin); hasta.setHours(23, 59, 59, 999);
-      const data = await lastValueFrom(this.srv.listar({ desde, hasta }));
+      const [data] = await Promise.all([lastValueFrom(this.srv.listar({ desde, hasta })), this.tiendas.cargar()]);
       this.registros = (data || []).map(r => this.aFila(r));
-      this.asesoresDisponibles = Array.from(new Set(this.registros.map(r => r.asesor).filter(Boolean))).sort();
+      this.refrescarAsesoresDisponibles();
       this.aplicarFiltros();
     } catch (e) {
       console.error('❌ gestion-supervisor:', e);
@@ -89,7 +100,21 @@ export class GestionSupervisorComponent implements OnInit {
     const { asesor, tipo } = this.form.value;
     this.vista = this.registros.filter(r =>
       (!asesor || r.asesor === asesor) &&
+      this.tiendas.pertenece(r.asesor, this.tiendaFiltro) &&
       (!tipo || r.tipoLabel === tipo));
+  }
+
+  setTiendaFiltro(t: string): void {
+    if (this.tiendaGestor) return;
+    this.tiendaFiltro = t || 'REALZZA';
+    this.form.patchValue({ asesor: '' });
+    this.refrescarAsesoresDisponibles();
+    this.aplicarFiltros();
+  }
+
+  private refrescarAsesoresDisponibles(): void {
+    this.asesoresDisponibles = Array.from(new Set(
+      this.registros.map(r => r.asesor).filter(a => !!a && this.tiendas.pertenece(a, this.tiendaFiltro)))).sort();
   }
 
   // ── Editar / eliminar (persisten en la BD) ──

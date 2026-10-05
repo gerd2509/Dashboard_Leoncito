@@ -5,6 +5,10 @@ import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
 import { nombresRealzza } from '../../shared/asesores';
+import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
+import { CapSedesService } from '../../services/cap-sedes.service';
+import { AuthService } from '../../services/auth.service';
 
 type TipoGestion = 'BD' | 'KOMMO' | 'MARKET PLACE';
 interface Registro {
@@ -35,6 +39,13 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 export class ActividadRealzzaComponent implements OnInit {
   private sheets = inject(SheetsService);
   private fb = inject(UntypedFormBuilder);
+  private auth = inject(AuthService);
+  private cap = inject(CapSedesService);
+  private tiendas = new AsesoresPorTienda(this.cap);
+
+  readonly tiendasOpciones = TIENDAS_REALZZA;
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  tiendaFiltro = this.tiendaGestor || 'REALZZA';
 
   private readonly CORTOS: Record<string, string> = {
     'MONTALVO LUYO ERNESTO ADOLFO': 'ERNESTO', 'PEREZ TINEO MARICIELO TATIANA': 'TATIANA',
@@ -99,7 +110,7 @@ export class ActividadRealzzaComponent implements OnInit {
     if (!desde || !hasta) return;
     this.cargando = true;
     const rango = { desde, hasta };
-    forkJoin({
+    this.tiendas.cargar().then(() => forkJoin({
       gestion: this.sheets.getSheetDataCampoRango(rango),
       kommo: this.sheets.getSheetKOMMORango(rango),
     }).subscribe({
@@ -109,7 +120,18 @@ export class ActividadRealzzaComponent implements OnInit {
         this.cargando = false; this.yaCargo = true;
       },
       error: () => { this.cargando = false; this.yaCargo = true; },
-    });
+    }));
+  }
+
+  setTienda(t: string): void {
+    if (this.tiendaGestor) return;
+    this.tiendaFiltro = t || 'REALZZA';
+    this.selectedAsesor = '';
+    this.cargar();
+  }
+
+  private baseAsesoras(): string[] {
+    return (this.tiendas.listaDe(this.tiendaFiltro) ?? nombresRealzza()).map(n => n.toUpperCase().trim());
   }
 
   /** Arma la lista de registros etiquetados por tipo, del rango. */
@@ -121,6 +143,7 @@ export class ActividadRealzzaComponent implements OnInit {
       const asesor = (r['ASESOR REALZZA'] ?? '').toString().trim().toUpperCase();
       if (!asesor) return;
       if (this.EXCLUIDOS.has(this.normNom(asesor))) return;   // supervisora (CARMONA) fuera
+      if (!this.tiendas.pertenece(asesor, this.tiendaFiltro)) return;
       const p = this.parseMarca((r['Marca temporal'] ?? '').toString());
       if (!p || p.ymd < d0 || p.ymd > d1) return;
       regs.push({
@@ -142,7 +165,7 @@ export class ActividadRealzzaComponent implements OnInit {
     this.registrosAll = regs;
 
     // Combo de asesores: registradas + las que aparezcan.
-    const base = new Set<string>(nombresRealzza().map(n => n.toUpperCase().trim()));
+    const base = new Set<string>(this.baseAsesoras());
     for (const r of regs) base.add(r.asesor);
     this.asesorOptions = [{ value: '', text: 'Todas las asesoras' },
       ...Array.from(base).map(a => ({ value: a, text: this.corto(a) })).sort((x, y) => x.text.localeCompare(y.text))];
@@ -154,7 +177,7 @@ export class ActividadRealzzaComponent implements OnInit {
     const regs = sel ? this.registrosAll.filter(r => r.asesor === sel) : this.registrosAll;
 
     // Base de filas (asesoras): si hay uno seleccionado, solo ese.
-    const base = new Set<string>(sel ? [sel] : [...nombresRealzza().map(n => n.toUpperCase().trim()), ...this.registrosAll.map(r => r.asesor)]);
+    const base = new Set<string>(sel ? [sel] : [...this.baseAsesoras(), ...this.registrosAll.map(r => r.asesor)]);
 
     const porAsesor = new Map<string, Registro[]>();
     for (const r of regs) { if (!porAsesor.has(r.asesor)) porAsesor.set(r.asesor, []); porAsesor.get(r.asesor)!.push(r); }

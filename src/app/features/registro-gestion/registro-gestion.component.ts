@@ -7,7 +7,7 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { RegistroGestionService, GestionPayload, GestionRealzzaPayload, GestionCallPayload } from '../../services/registro-gestion.service';
 import { ASESORES_CALL } from '../../shared/asesores';
-import { asesorGestion, sedeRealzzaDeUsuario } from '../../shared/canal-usuario';
+import { asesorGestion, esGestorTiendaRealzza, sedeRealzzaDeUsuario, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 
 // Asesores para cuando un admin/supervisor registra a nombre de otro (no vendedor).
@@ -200,6 +200,10 @@ export class RegistroGestionComponent implements OnInit {
   elegirCanal = false;
   readonly asesoresCall = ASESORES_CALL.map(a => a.nombre).sort();
   readonly asesoresRealzza = [...ASESORES_REALZZA_LISTA].sort();
+  rzGestor = false;                 // gerente/supervisor de Piura/Lima: asesores de su CAP
+  asesoresGestor: string[] = [];
+  get asesoresRealzzaVista(): string[] { return this.rzGestor ? this.asesoresGestor : this.asesoresRealzza; }
+  get rzSedeLabel(): string { return sedeRealzzaDeUsuario(this.auth.getUsuario()); }
   get asesorActual(): string { return this.canal === 'call' ? this.call.asesor : this.rz.asesor; }
 
   modelo: Modelo = this.modeloVacio();
@@ -239,7 +243,13 @@ export class RegistroGestionComponent implements OnInit {
       // 'key' incluye 'realzzapiura'/'realzzalima' (tiendas nuevas), no solo 'realzza'.
       if (canalU === 'realzza' || key === 'realzza' || key.includes('realzza')) {
         this.canal = 'realzza';
-        this.rz.asesor = asesor;
+        if (esGestorTiendaRealzza(u)) {
+          // Gerente/supervisor de tienda: elige a sus asesores (CAP de su tienda).
+          this.rzGestor = true;
+          this.cap.vendedoresActivos(tiendaFijaRealzza(u)).then(l => this.asesoresGestor = l);
+        } else {
+          this.rz.asesor = asesor;
+        }
         return;
       }
       // Call Center → solo formulario Call; el asesor sale del login.
@@ -612,7 +622,7 @@ export class RegistroGestionComponent implements OnInit {
 
   /** Admin/supervisor: falta elegir el asesor a nombre de quien se registra (Call/Realzza). */
   get faltaAsesor(): boolean {
-    return this.elegirCanal && this.canal !== 'sede' && !this.asesorActual;
+    return (this.elegirCanal || this.rzGestor) && this.canal !== 'sede' && !this.asesorActual;
   }
 
   // ══ Visibilidad de secciones (formulario de UNA PÁGINA) ══

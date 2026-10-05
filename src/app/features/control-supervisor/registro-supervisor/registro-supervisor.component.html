@@ -8,6 +8,13 @@
       </div>
     </div>
 
+    <!-- Tienda Realzza (Chiclayo / Piura / Lima); el gerente de tienda queda fijo -->
+    <div class="rs-tienda" *ngIf="!tiendaGestor">
+      <dx-select-box [dataSource]="tiendasOpciones" displayExpr="viewValue" valueExpr="value" [value]="tiendaFiltro"
+        (onValueChanged)="setTiendaFiltro($event.value)" label="Tienda" labelMode="floating" stylingMode="outlined"></dx-select-box>
+    </div>
+    <p class="rs-tienda-fija" *ngIf="tiendaGestor"><mat-icon>storefront</mat-icon> {{ tiendaGestor }}</p>
+
     <!-- Selector de tipo de control -->
     <div class="rs-tabs">
       <button [class.active]="tipo === 'GESTION'" (click)="setTipo('GESTION')">

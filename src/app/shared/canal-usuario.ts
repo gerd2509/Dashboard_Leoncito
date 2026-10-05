@@ -62,8 +62,37 @@ export function asesorGestion(u: any): string {
  * tal cual se guardaba antes de que existieran otras tiendas Realzza.
  */
 export function sedeRealzzaDeUsuario(u: any): string {
+  return tiendaFijaRealzza(u) || 'REALZZA';
+}
+
+/** Tienda Realzza fijada por el login (Piura/Lima); '' para Chiclayo o cuentas globales. */
+export function tiendaFijaRealzza(u: any): '' | 'REALZZA PIURA' | 'REALZZA LIMA' {
   const sede = (u?.sede || '').toString().trim().toLowerCase();
   if (sede === 'realzzapiura') return 'REALZZA PIURA';
   if (sede === 'realzzalima') return 'REALZZA LIMA';
-  return 'REALZZA';
+  return '';
+}
+
+/**
+ * Gerente o supervisor de una tienda nueva (Piura/Lima): su vista se acota a esa tienda
+ * y a los asesores de su CAP. Chiclayo y cuentas globales (sede "todas") no entran aquí.
+ */
+export function esGestorTiendaRealzza(u: any): boolean {
+  const rol = (u?.rol || '').toString().toLowerCase();
+  return (rol === 'gerente' || rol === 'supervisor') && !!tiendaFijaRealzza(u);
+}
+
+/** Opciones de tienda Realzza para los filtros (Chiclayo = histórico, sin Piura/Lima). */
+export const TIENDAS_REALZZA = [
+  { value: 'REALZZA', viewValue: 'REALZZA CHICLAYO' },
+  { value: 'REALZZA PIURA', viewValue: 'REALZZA PIURA' },
+  { value: 'REALZZA LIMA', viewValue: 'REALZZA LIMA' },
+] as const;
+
+/** ¿La fila (campo SEDE) pertenece a la tienda elegida? 'REALZZA' = Chiclayo/histórico. */
+export function enTiendaRealzza(sedeFila: any, tienda: string): boolean {
+  const s = (sedeFila ?? '').toString().trim().toUpperCase();
+  if (!tienda) return true;
+  if (tienda === 'REALZZA') return s !== 'REALZZA PIURA' && s !== 'REALZZA LIMA';
+  return s === tienda;
 }

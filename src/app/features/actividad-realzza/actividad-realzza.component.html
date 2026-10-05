@@ -29,6 +29,8 @@
 
     <!-- Combo de asesor -->
     <div class="ar-combo">
+      <dx-select-box *ngIf="!tiendaGestor" [dataSource]="tiendasOpciones" displayExpr="viewValue" valueExpr="value"
+        [value]="tiendaFiltro" (onValueChanged)="setTienda($event.value)" stylingMode="outlined" [width]="190"></dx-select-box>
       <mat-icon>person_search</mat-icon>
       <span>Asesor:</span>
       <dx-select-box [dataSource]="asesorOptions" displayExpr="text" valueExpr="value"

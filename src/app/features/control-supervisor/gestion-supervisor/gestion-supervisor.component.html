@@ -5,6 +5,9 @@
       labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
     <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Hasta"
       labelMode="floating" stylingMode="underlined" displayFormat="dd/MM/yyyy"></dx-date-box>
+    <dx-select-box *ngIf="!tiendaGestor" style="min-width: 190px;" [dataSource]="tiendasOpciones" displayExpr="viewValue"
+      valueExpr="value" [value]="tiendaFiltro" (onValueChanged)="setTiendaFiltro($event.value)"
+      label="Tienda" labelMode="floating" stylingMode="underlined"></dx-select-box>
     <dx-select-box style="min-width: 230px;" formControlName="asesor" [dataSource]="asesoresDisponibles"
       label="Asesor" labelMode="floating" stylingMode="underlined" [showClearButton]="true"
       placeholder="Todos" (onValueChanged)="aplicarFiltros()"></dx-select-box>

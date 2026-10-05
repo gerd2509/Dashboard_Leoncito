@@ -6,6 +6,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../../services/auth.service';
 import { ControlSupervisorService, ControlSupervisorPayload } from '../../../services/control-supervisor.service';
 import { SheetsService } from '../../../services/service-google.service';
+import { CapSedesService } from '../../../services/cap-sedes.service';
+import { AsesoresPorTienda } from '../../../shared/asesores-por-tienda';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../../shared/canal-usuario';
 
 /** Una gestión (Realzza o KOMMO) que el supervisor puede seleccionar para controlar. */
 interface GestionRapida {
@@ -53,8 +56,14 @@ export class RegistroSupervisorComponent implements OnInit {
   private srv = inject(ControlSupervisorService);
   private snack = inject(MatSnackBar);
   private sheets = inject(SheetsService);
+  private cap = inject(CapSedesService);
+  private tiendas = new AsesoresPorTienda(this.cap);
 
-  readonly asesores = ASESORES_REALZZA;
+  readonly tiendasOpciones = TIENDAS_REALZZA;
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  tiendaFiltro = this.tiendaGestor || 'REALZZA';
+
+  get asesores(): string[] { return this.tiendas.listaDe(this.tiendaFiltro) ?? ASESORES_REALZZA; }
   // En Gestión solo aplican estos tipos de base.
   readonly tiposBase = ['BBDD', 'KOMMO', 'BBDD KOMMO', "MARKET PLACE"];
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
@@ -125,6 +134,13 @@ export class RegistroSupervisorComponent implements OnInit {
   // ── Carga de la lista seleccionable ──────────────────────────────────────────
   cambioFechaLista(): void { if (this.usandoRapido) this.cargarListaRapida(); }
 
+  setTiendaFiltro(t: string): void {
+    if (this.tiendaGestor) return;
+    this.tiendaFiltro = t || 'REALZZA';
+    this.g.asesor = ''; this.mp.asesor = ''; this.filtroAsesorLista = '';
+    if (this.usandoRapido) this.cargarListaRapida();
+  }
+
   cargarListaRapida(): void {
     const esKommo = this.tipo !== 'GESTION';   // en modo rápido, MARKET_PLACE ⇒ KOMMO plataforma
     const dia = this.gestFecha || new Date();
@@ -136,25 +152,7 @@ export class RegistroSupervisorComponent implements OnInit {
       ctrl: this.srv.listar(rango),
     }).subscribe({
       next: ({ ges, ctrl }) => {
-        const controladas = new Set(
-          (ctrl || []).map(c => `${this.soloDig(c.dni_cliente)}|${this.norm(c.asesor)}`)
-        );
-        const vistos = new Set<string>();
-        const rows: GestionRapida[] = [];
-        (ges || []).forEach(g => {
-          const r = this.normalizarGestion(g, esKommo);
-          if (!r) return;
-          const clave = `${r.dni}|${this.norm(r.asesor)}`;
-          if (vistos.has(clave)) return;       // 1 control por cliente+asesor/día
-          vistos.add(clave);
-          r.controlada = controladas.has(clave);
-          rows.push(r);
-        });
-        this.gestionesRapidas = rows;
-        this.asesoresEnLista = Array.from(new Set(rows.map(r => r.asesor).filter(Boolean))).sort();
-        if (this.filtroAsesorLista && !this.asesoresEnLista.includes(this.filtroAsesorLista)) this.filtroAsesorLista = '';
-        this.aplicarFiltro();
-        this.listaCargando = false;
+        this.tiendas.cargar().then(() => this.armarLista(ges, ctrl, esKommo));
       },
       error: () => {
         this.gestionesRapidas = [];
@@ -194,6 +192,28 @@ export class RegistroSupervisorComponent implements OnInit {
   asesoresEnLista: string[] = [];
   listaFiltrada: GestionRapida[] = [];
   pendientesCount = 0;
+
+  private armarLista(ges: any[], ctrl: any[], esKommo: boolean): void {
+    const controladas = new Set(
+      (ctrl || []).map(c => `${this.soloDig(c.dni_cliente)}|${this.norm(c.asesor)}`)
+    );
+    const vistos = new Set<string>();
+    const rows: GestionRapida[] = [];
+    (ges || []).forEach(g => {
+      const r = this.normalizarGestion(g, esKommo);
+      if (!r) return;
+      const clave = `${r.dni}|${this.norm(r.asesor)}`;
+      if (vistos.has(clave)) return;       // 1 control por cliente+asesor/día
+      vistos.add(clave);
+      r.controlada = controladas.has(clave);
+      rows.push(r);
+    });
+    this.gestionesRapidas = rows.filter(r => this.tiendas.pertenece(r.asesor, this.tiendaFiltro));
+    this.asesoresEnLista = Array.from(new Set(this.gestionesRapidas.map(r => r.asesor).filter(Boolean))).sort();
+    if (this.filtroAsesorLista && !this.asesoresEnLista.includes(this.filtroAsesorLista)) this.filtroAsesorLista = '';
+    this.aplicarFiltro();
+    this.listaCargando = false;
+  }
 
   /** Recalcula la lista visible y contadores según los filtros actuales. */
   aplicarFiltro(): void {
