@@ -10,7 +10,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 import { AuthService } from '../../services/auth.service';
 import { TIENDAS_REALZZA, enTiendaRealzza, esGestorTiendaRealzza, esSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { CapSedesService } from '../../services/cap-sedes.service';
-import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
+import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -926,7 +926,7 @@ export class VentasCampoComponent implements OnInit {
     // es Realzza y suma a su asesor Realzza real (no se separa a "CALL").
     if ((tipoBase || '').toString().trim().toUpperCase() === 'CALL') return 'CALL';
     if (this.grupoBrilla.has(vendedorOriginal)) return 'BRILLA';
-    return this.nombresCortos[vendedorOriginal] || vendedorOriginal;
+    return this.nombresCortos[vendedorOriginal] || NOMBRE_CORTO_PIURA[vendedorOriginal] || vendedorOriginal;
   }
 
   generarChartData(): void {
