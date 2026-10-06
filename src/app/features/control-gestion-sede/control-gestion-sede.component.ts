@@ -373,8 +373,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           afiliaciones: this.afiliacionesData.get(objetivo)?.[claveFechaSel] ?? 0,
         };
       })
-      // Roster activo de la sede siempre visible (aunque no gestione ese día); el resto, solo con actividad.
-      .filter(f => f.total > 0 || f.afiliaciones > 0 || cubiertos.has(this.normNombre(f.asesor)));
+      // Se muestran los asesores con gestión en el día O con afiliaciones importadas.
+      .filter(f => f.total > 0 || f.afiliaciones > 0);
 
       const totalLlamadas         = filas.reduce((s, f) => s + f.llamadaContacto + f.llamadaNoContacto, 0);
       const totalCartas           = filas.reduce((s, f) => s + f.cartaContacto   + f.cartaNoContacto,   0);
