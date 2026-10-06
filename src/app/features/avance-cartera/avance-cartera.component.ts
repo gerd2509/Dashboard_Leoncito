@@ -598,6 +598,7 @@ export class AvanceCarteraComponent implements OnInit {
     // Fila "Call Center" (Patricia/Maria/Juana) al final de cada tabla por sede — aparte
     // del avance de piso (no se cuenta arriba), pero visible como 1 fila más ahí mismo.
     if (this.clientesCallCenter.length) {
+      this.sedesDisponiblesDetalle = [...this.sedesDisponiblesDetalle, { key: 'call-center', nombre: 'Call Center' }];
       const filaCC = this.construirFilaCallCenter(this.clientesCallCenter, `cartera:${ym}:call-center`);
       this.resumenSedes = [...this.resumenSedes, filaCC];
       this.consolidado = [...this.consolidado, filaCC];
@@ -685,20 +686,25 @@ export class AvanceCarteraComponent implements OnInit {
     this.recomputarVista();
   }
 
-  /** Click en una fila de "Avance por sede": la fila "Call Center" no es una sede física
-   *  (no tiene clientes en `this.clientes`) → no abre un detalle vacío. */
+  /** Click en una fila de "Avance por sede" (incluida Call Center, que vive en su propia lista). */
   seleccionarSede(r: ResumenSede): void {
-    if (r.sedeKey === 'call-center') return;
     this.sedeDetalle = r.sedeKey || 'sin-sede';
     this.onSedeDetalleChanged();
   }
 
   get nombreSedeDetalle(): string {
+    if (this.sedeDetalle === 'call-center') return 'Call Center';
     return this.sedesDisponiblesDetalle.find(x => x.key === this.sedeDetalle)?.nombre ?? '';
   }
 
+  /** Ventas (operaciones y monto) por asesor de la sede en detalle, o de Call Center. */
+  ventasAsesor: Record<string, { ops: number; monto: number }> = {};
+  ventaDe(asesor: string): { ops: number; monto: number } { return this.ventasAsesor[asesor] ?? { ops: 0, monto: 0 }; }
+
+
   /** Subconjunto de clientes según el scope actual (sede seleccionada en Piso). */
   private subsetActual(): ClienteCartera[] {
+    if (this.modo === 'piso' && this.sedeDetalle === 'call-center') return this.clientesCallCenter;
     return (this.modo === 'piso' && this.sedeDetalle)
       ? this.clientes.filter(c => (c.sedeKey || 'sin-sede') === this.sedeDetalle)
       : this.clientes;
@@ -713,6 +719,29 @@ export class AvanceCarteraComponent implements OnInit {
     this.construirProyeccion();
     // En Piso global (sin sede) la tabla principal es "por sede"; con sede, "por asesor".
     this.resumenAsesores = (this.esPiso && !this.sedeDetalle) ? [] : this.agregarPorAsesor(subset);
+    this.ventasAsesor = this.calcularVentasAsesor(subset);
+  }
+
+  /** Concreción por asesor: ventas de los DNIs de su cartera cerradas en la sede en detalle
+   *  (en Call Center, en cualquier sede). Cada DNI cuenta una vez por asesor. */
+  private calcularVentasAsesor(clientes: ClienteCartera[]): Record<string, { ops: number; monto: number }> {
+    const out: Record<string, { ops: number; monto: number }> = {};
+    const enCC = this.sedeDetalle === 'call-center';
+    const vistos = new Set<string>();
+    for (const c of clientes) {
+      if (!c.dni || vistos.has(`${c.asesor}|${c.dni}`)) continue;
+      vistos.add(`${c.asesor}|${c.dni}`);
+      const porSede = this.ventasPorDni.get(c.dni);
+      if (!porSede) continue;
+      let ops = 0, monto = 0;
+      for (const [sk, agg] of porSede) {
+        if (enCC || sk === this.sedeDetalle) { ops += agg.ops; monto += agg.monto; }
+      }
+      if (!ops) continue;
+      const o = out[c.asesor] ?? { ops: 0, monto: 0 };
+      o.ops += ops; o.monto += monto; out[c.asesor] = o;
+    }
+    return out;
   }
 
   private construirPorDia(clientes: ClienteCartera[]): void {

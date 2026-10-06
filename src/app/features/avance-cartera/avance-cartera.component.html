@@ -156,7 +156,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of resumenSedes" [class.fila-click]="r.sedeKey !== 'call-center'"
+              <tr *ngFor="let r of resumenSedes" class="fila-click"
                   [class.fila-call-center]="r.sedeKey === 'call-center'" (click)="seleccionarSede(r)">
                 <td class="left">{{ r.sede }}</td>
                 <td>{{ r.asignados }}</td>
@@ -197,6 +197,8 @@
                 <th class="left">Asesor</th>
                 <th>Asignados</th><th>Gestionados</th><th>Contacto</th>
                 <th>No contacto</th><th>Faltan</th><th>% Avance</th>
+                <th *ngIf="esPiso && sedeDetalle">Ventas (ops)</th>
+                <th *ngIf="esPiso && sedeDetalle">Monto vendido</th>
               </tr>
             </thead>
             <tbody>
@@ -211,6 +213,8 @@
                   <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
                   <b>{{ r.avance }}%</b>
                 </td>
+                <td *ngIf="esPiso && sedeDetalle"><b>{{ ventaDe(r.asesor).ops }}</b></td>
+                <td *ngIf="esPiso && sedeDetalle">S/ {{ ventaDe(r.asesor).monto | number:'1.0-0' }}</td>
               </tr>
             </tbody>
           </table>
