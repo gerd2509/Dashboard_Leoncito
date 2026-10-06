@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { AuthService } from '../../services/auth.service';
 import { TIENDAS_REALZZA, enTiendaRealzza, esGestorTiendaRealzza, esSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
+import { CapSedesService } from '../../services/cap-sedes.service';
+import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -22,6 +24,8 @@ export class VentasCampoComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private ventasSvc = inject(CargaVentasService);
   private auth = inject(AuthService);
+  private cap = inject(CapSedesService);
+  private tiendas = new AsesoresPorTienda(this.cap);
 
   // Tienda: Chiclayo por defecto (sin cambios); Piura / Lima por la etiqueta de sede de la venta;
   // el gerente de Piura o Lima queda fijo a su tienda.
@@ -32,6 +36,8 @@ export class VentasCampoComponent implements OnInit {
   setTiendaVentas(t: string): void {
     if (this.tiendaGestor) return;
     this.tiendaVentas = t || 'REALZZA';
+    this.formVentas.patchValue({ Asesores: '' });
+    this.refrescarAsesores();
     this.cargarDesdeBD();
     this.buscarMotosFuente();
   }
@@ -193,8 +199,8 @@ export class VentasCampoComponent implements OnInit {
 
 
 
-  // Lista para el filtro manual (Dropdown)
-  asesores = [
+  // Chiclayo (lista fija, sin cambios). Piura / Lima salen del CAP (ver refrescarAsesores).
+  private readonly asesoresChiclayo = [
     { value: '', viewValue: 'SELECCIONE ASESOR' },
     { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
     { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
@@ -209,6 +215,19 @@ export class VentasCampoComponent implements OnInit {
     { value: 'AV11', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
     { value: 'AV12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' },
   ];
+  asesores: { value: string; viewValue: string }[] = this.asesoresChiclayo;
+
+  private get esTiendaNueva(): boolean { return this.tiendaVentas === 'REALZZA PIURA' || this.tiendaVentas === 'REALZZA LIMA'; }
+  private refrescarAsesores(): void {
+    const deTienda = (t: string) => (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
+    if (this.esTiendaNueva) {
+      this.asesores = [{ value: '', viewValue: 'SELECCIONE ASESOR' }, ...deTienda(this.tiendaVentas)];
+    } else if (this.tiendaVentas === 'TODAS') {
+      this.asesores = [...this.asesoresChiclayo, ...deTienda('REALZZA PIURA'), ...deTienda('REALZZA LIMA')];
+    } else {
+      this.asesores = this.asesoresChiclayo;
+    }
+  }
 
   nombresCortos: Record<string, string> = {
     'MONTALVO LUYO ERNESTO ADOLFO': 'ERNESTO',
@@ -252,6 +271,7 @@ export class VentasCampoComponent implements OnInit {
   }
 
   async ngOnInit() {
+    this.tiendas.cargar().then(() => this.refrescarAsesores());
     this.cargarDesdeBD();   // carga la data real de ventas_realzza al abrir el módulo
     this.buscarMotosFuente();   // carga "Motos por mes" con su propio rango por defecto
   }
