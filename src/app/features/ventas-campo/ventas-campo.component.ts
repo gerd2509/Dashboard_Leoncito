@@ -7,6 +7,8 @@ import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms
 import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { AuthService } from '../../services/auth.service';
+import { TIENDAS_REALZZA, enTiendaRealzza, esGestorTiendaRealzza, esSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -19,6 +21,20 @@ import { catchError } from 'rxjs/operators';
 export class VentasCampoComponent implements OnInit {
   protected excelService = inject(ExcelExportService);
   private ventasSvc = inject(CargaVentasService);
+  private auth = inject(AuthService);
+
+  // Tienda: Chiclayo por defecto (sin cambios); Piura / Lima por la etiqueta de sede de la venta;
+  // el gerente de Piura o Lima queda fijo a su tienda.
+  readonly tiendasOpciones = [...TIENDAS_REALZZA, { value: 'TODAS', viewValue: 'TODAS LAS TIENDAS' }];
+  readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
+  tiendaVentas: string = this.tiendaGestor || 'REALZZA';
+  private esRzSel(sede: string): boolean { return esSedeRealzza(sede) && enTiendaRealzza(sede, this.tiendaVentas); }
+  setTiendaVentas(t: string): void {
+    if (this.tiendaGestor) return;
+    this.tiendaVentas = t || 'REALZZA';
+    this.cargarDesdeBD();
+    this.buscarMotosFuente();
+  }
   importando = false;   // overlay animado mientras se procesa el Excel
   cargandoBD = false;   // overlay mientras se trae la data de ventas_realzza (BD)
 
@@ -261,7 +277,7 @@ export class VentasCampoComponent implements OnInit {
     // el TipoBase de ventas_realzza (Realzza tal cual; CALL solo si se puso a mano).
     const ventasReq = yrs.map(a => this.ventasSvc.obtenerVentasRealzzaModulo(a).pipe(catchError(() => of([] as any[]))));
     const margenReq = yrs.map(a => this.ventasSvc.obtenerMargen(a).pipe(catchError(() => of([] as any[]))));
-    const evoReq = this.ventasSvc.obtenerVentasRealzzaEvolutivo().pipe(catchError(() => of([] as any[])));
+    const evoReq = this.ventasSvc.obtenerVentasRealzzaEvolutivo(this.tiendaVentas).pipe(catchError(() => of([] as any[])));
     // Metas por tipo de base (BD, editables en el maestro) → para la columna Meta/%avance.
     const metasReq = yrs.map(a => this.ventasSvc.getMetaTipoBaseAnio(a).pipe(catchError(() => of([] as any[]))));
     forkJoin({ ventas: forkJoin(ventasReq), margen: forkJoin(margenReq), evo: evoReq, metas: forkJoin(metasReq) }).subscribe({
@@ -313,7 +329,7 @@ export class VentasCampoComponent implements OnInit {
     this.ventasSvc.obtenerVentasRealzzaMotosFuente({
       anioDesde: desde.getFullYear(), mesDesde: desde.getMonth() + 1,
       anioHasta: hasta.getFullYear(), mesHasta: hasta.getMonth() + 1,
-    }).pipe(catchError(() => of([] as any[]))).subscribe(rows => {
+    }, this.tiendaVentas).pipe(catchError(() => of([] as any[]))).subscribe(rows => {
       this.setMotosFuente(rows);
       this.cargandoMotosFuente = false;
     });
@@ -377,7 +393,7 @@ export class VentasCampoComponent implements OnInit {
       const esNC = this.esVentaReductora(estadoVenta);
       const id = (r.codigo_cv ?? '').toString().trim();
       const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
-      if (sede !== 'SEDE REALZZA STORE') continue;
+      if (!this.esRzSel(sede)) continue;
 
       if (!esNC && monto > 0) {
         const items = margenMap.get(id) || [];
@@ -515,7 +531,7 @@ export class VentasCampoComponent implements OnInit {
         const esNC = this.esVentaReductora(estadoVenta);
         const idventa = (row['IDVENTA'] || '').toString().trim();
 
-        if (sede === 'SEDE REALZZA STORE' && !esNC && monto > 0) {
+        if (this.esRzSel(sede) && !esNC && monto > 0) {
           // Línea principal: la de mayor ValorVenta en MARGEN para este IDVENTA
           const margenItems = margenMap.get(idventa) || [];
           const primaryLinea = margenItems.length > 0
@@ -545,7 +561,7 @@ export class VentasCampoComponent implements OnInit {
         }
 
         // Capturar Notas de Crédito con las 3 columnas AF
-        if (sede === 'SEDE REALZZA STORE' && esNC) {
+        if (this.esRzSel(sede) && esNC) {
           // Distribución proporcional del NC entre las líneas reales del IDVENTA
           const ncItems = margenMap.get(idventa) || [];
           const ncTotalVV = ncItems.reduce((s, i) => s + i.valorVenta, 0);
@@ -576,7 +592,7 @@ export class VentasCampoComponent implements OnInit {
         }
 
         // Capturar ventas Global GO solo de SEDE REALZZA STORE
-        if (sede === 'SEDE REALZZA STORE' && entidad === 'GLOBAL GO' && !esNC && monto > 0) {
+        if (this.esRzSel(sede) && entidad === 'GLOBAL GO' && !esNC && monto > 0) {
           this.dataGlobalGo.push({
             ClienteVenta: row['ClienteVenta'],
             DocIdentidad: row['DocIdentidad'],

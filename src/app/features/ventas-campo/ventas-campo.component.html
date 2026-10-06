@@ -14,6 +14,10 @@
     <dx-date-box formControlName="fechaFin" type="date" [openOnFieldClick]="true" label="Fecha Fin"
         labelMode="floating" stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
+    <dx-select-box *ngIf="!tiendaGestor" style="width: 190px;" [dataSource]="tiendasOpciones" displayExpr="viewValue"
+        valueExpr="value" [value]="tiendaVentas" label="Tienda" labelMode="floating" stylingMode="underlined"
+        (onValueChanged)="setTiendaVentas($event.value)" />
+    <span class="cs-tienda-fija" *ngIf="tiendaGestor"><mat-icon>storefront</mat-icon> {{ tiendaGestor }}</span>
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
         valueExpr="value" label="Filtrar Vendedor" labelMode="floating" stylingMode="underlined" placeholder=""
         (onValueChanged)="onAsesorChanged($event)" [showClearButton]="true" />

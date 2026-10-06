@@ -89,10 +89,21 @@ export const TIENDAS_REALZZA = [
   { value: 'REALZZA LIMA', viewValue: 'REALZZA LIMA' },
 ] as const;
 
+/** Tienda Realzza según la etiqueta de sede (venta o gestión): PIURA / LIMA; el resto = Chiclayo. */
+export function tiendaDeSedeRealzza(sedeFila: any): 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA' {
+  const s = (sedeFila ?? '').toString().toUpperCase();
+  if (s.includes('PIURA')) return 'REALZZA PIURA';
+  if (s.includes('LIMA')) return 'REALZZA LIMA';
+  return 'REALZZA';
+}
+
+/** ¿La etiqueta de sede es de Realzza (Chiclayo, Piura o Lima)? */
+export function esSedeRealzza(sedeFila: any): boolean {
+  return (sedeFila ?? '').toString().toUpperCase().includes('REALZZA');
+}
+
 /** ¿La fila (campo SEDE) pertenece a la tienda elegida? 'REALZZA' = Chiclayo/histórico. */
 export function enTiendaRealzza(sedeFila: any, tienda: string): boolean {
-  const s = (sedeFila ?? '').toString().trim().toUpperCase();
-  if (!tienda) return true;
-  if (tienda === 'REALZZA') return s !== 'REALZZA PIURA' && s !== 'REALZZA LIMA';
-  return s === tienda;
+  if (!tienda || tienda === 'TODAS') return true;
+  return tiendaDeSedeRealzza(sedeFila) === tienda;
 }
