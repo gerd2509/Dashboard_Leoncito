@@ -138,7 +138,7 @@ export class AvanceCarteraComponent implements OnInit {
   private ventasPorDni = new Map<string, Map<string, { ops: number; monto: number }>>();
   // Ventas de Call atribuidas a cada asesora (por nombre) y DNI — para la concreción de Call Center.
   private ventasLista = new Map<string, VentaLista[]>();   // dni → ventas (cerradas) con su sede
-  detVentas: { sede: string; tipo: 'in' | 'out'; lista: DetalleVenta[] } | null = null;
+  detVentas: { sede: string; tipo: 'in' | 'out'; lista: DetalleVenta[]; tabla: ResumenSede[] } | null = null;
   private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
   // sedeKey → dni → nº de gestiones registradas ese mes (para Intensidad, acotado al
   // grupo/cuadro que se esté mostrando — no el total de la sede completa).
@@ -752,9 +752,9 @@ export class AvanceCarteraComponent implements OnInit {
   }
 
   /** Abre/cierra el detalle de ventas de otra base (↙ entran) o de esta base cerradas en otra sede (↗). */
-  verDetalleVentas(r: ResumenSede, tipo: 'in' | 'out'): void {
-    if (this.detVentas?.sede === r.sede && this.detVentas?.tipo === tipo) { this.detVentas = null; return; }
-    this.detVentas = { sede: r.sede, tipo, lista: tipo === 'in' ? r.detEntran : r.detSalen };
+  verDetalleVentas(r: ResumenSede, tipo: 'in' | 'out', tabla: ResumenSede[]): void {
+    if (this.detVentas?.sede === r.sede && this.detVentas?.tipo === tipo && this.detVentas?.tabla === tabla) { this.detVentas = null; return; }
+    this.detVentas = { sede: r.sede, tipo, lista: tipo === 'in' ? r.detEntran : r.detSalen, tabla };
   }
 
   /** Ventas (operaciones y monto) por asesor de la sede en detalle, o de Call Center. */
