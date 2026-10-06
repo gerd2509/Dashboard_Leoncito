@@ -199,3 +199,4 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 }
 .cruce-in  { background: #e7f6ea; color: #2E7D32; }   /* entran de otra base */
 .cruce-out { background: #fff4e0; color: #b26a00; }   /* salen a otra sede */
+.cruce.clic { cursor: pointer; }

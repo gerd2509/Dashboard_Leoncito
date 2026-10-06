@@ -107,7 +107,12 @@ interface ResumenSede {
   proyeccion: number;       // monto proyectado a fin de mes
   avanceMeta: number;       // % monto ÷ meta
   metaKey: string;          // clave de persistencia de la meta (cartera:[grupo:]<sede>)
+  detEntran: DetalleVenta[];  // ventas cerradas aquí de clientes de otra base (↙)
+  detSalen: DetalleVenta[];   // ventas de clientes de esta base cerradas en otra sede (↗)
 }
+
+interface DetalleVenta { dni: string; cv: string; asesorBase: string; sedeBase: string; sedeVenta: string; monto: number; fecha: string; }
+interface VentaLista { cv: string; sedeKey: string; sedeNombre: string; monto: number; fecha: string; }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
@@ -132,6 +137,8 @@ export class AvanceCarteraComponent implements OnInit {
   // dni → (sedeKey donde se CERRÓ la venta → { ops, monto })
   private ventasPorDni = new Map<string, Map<string, { ops: number; monto: number }>>();
   // Ventas de Call atribuidas a cada asesora (por nombre) y DNI — para la concreción de Call Center.
+  private ventasLista = new Map<string, VentaLista[]>();   // dni → ventas (cerradas) con su sede
+  detVentas: { sede: string; tipo: 'in' | 'out'; lista: DetalleVenta[] } | null = null;
   private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
   // sedeKey → dni → nº de gestiones registradas ese mes (para Intensidad, acotado al
   // grupo/cuadro que se esté mostrando — no el total de la sede completa).
@@ -464,6 +471,7 @@ export class AvanceCarteraComponent implements OnInit {
   private async cargarVentasYMetasSede(): Promise<void> {
     const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
     this.ventasPorDni = new Map();
+    this.ventasLista = new Map();
     const vistos = new Set<string>();   // codigo_cv ya contados (evita duplicados)
     try {
       const rows = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
@@ -483,6 +491,9 @@ export class AvanceCarteraComponent implements OnInit {
         cur.ops += 1; cur.monto += monto;
         porSede.set(sedeVenta, cur);
         this.ventasPorDni.set(dni, porSede);
+        const listaDni = this.ventasLista.get(dni) ?? [];
+        listaDni.push({ cv, sedeKey: sedeVenta, sedeNombre: this.sedeCfg.getConfig(sedeVenta)?.nombre ?? String(r.sede ?? ''), monto, fecha: String(r.fecha_cv ?? '').slice(0, 10) });
+        this.ventasLista.set(dni, listaDni);
       }
     } catch { /* sin ventas → el cuadro muestra 0 */ }
     this.ventasCallPorAsesor = new Map();
@@ -550,7 +561,7 @@ export class AvanceCarteraComponent implements OnInit {
     const map = new Map<string, ResumenSede>();
     const nuevaFila = (sedeKey: string, nombre: string): ResumenSede => ({
       sedeKey, sede: nombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0,
-      pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0,
+      pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0, detEntran: [], detSalen: [],
       ventasEntran: 0, ventasSalen: 0, meta: 0, proyeccion: 0, avanceMeta: 0, metaKey: '',
     });
     // ── Base (cartera): asignados/gestionados por sede + DNIs únicos con su sede de base ──
@@ -564,6 +575,8 @@ export class AvanceCarteraComponent implements OnInit {
       else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
       if (c.dni && !baseSedeDeDni.has(c.dni)) baseSedeDeDni.set(c.dni, key);   // DNI repetido → una sola vez
     }
+    const asesorDeDni = new Map<string, string>();
+    for (const c of clientes) if (c.dni && !asesorDeDni.has(c.dni)) asesorDeDni.set(c.dni, c.asesor);
     // ── Ventas: cada DNI (único) cuenta sus ventas EN LA SEDE DONDE SE CERRARON ──
     for (const [dni, baseKey] of baseSedeDeDni) {
       const porSede = this.ventasPorDni.get(dni);
@@ -578,6 +591,13 @@ export class AvanceCarteraComponent implements OnInit {
           r.ventasEntran += agg.ops;                     // entró de la base de otra sede
           const base = map.get(baseKey);
           if (base) base.ventasSalen += agg.ops;         // salió: su base cerró en otra sede
+          const asesorBase = asesorDeDni.get(dni) ?? '';
+          const sedeBase = base?.sede ?? '';
+          for (const v of (this.ventasLista.get(dni) ?? []).filter(x => x.sedeKey === ventaKey)) {
+            const det: DetalleVenta = { dni, cv: v.cv, asesorBase, sedeBase, sedeVenta: v.sedeNombre, monto: v.monto, fecha: v.fecha };
+            r.detEntran.push(det);
+            base?.detSalen.push(det);
+          }
         }
       }
     }
@@ -657,7 +677,7 @@ export class AvanceCarteraComponent implements OnInit {
     return {
       sedeKey: 'call-center', sede: 'Call Center', asignados, gestionados, contacto, noContacto, pendientes,
       avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0,
-      gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0,
+      gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0, detEntran: [], detSalen: [],
       ventasEntran: 0, ventasSalen: 0, meta: this.metasCartera[metaKey] || 0, proyeccion: 0, avanceMeta: 0, metaKey,
     };
   }
@@ -729,6 +749,12 @@ export class AvanceCarteraComponent implements OnInit {
   get nombreSedeDetalle(): string {
     if (this.sedeDetalle === 'call-center') return 'Call Center';
     return this.sedesDisponiblesDetalle.find(x => x.key === this.sedeDetalle)?.nombre ?? '';
+  }
+
+  /** Abre/cierra el detalle de ventas de otra base (↙ entran) o de esta base cerradas en otra sede (↗). */
+  verDetalleVentas(r: ResumenSede, tipo: 'in' | 'out'): void {
+    if (this.detVentas?.sede === r.sede && this.detVentas?.tipo === tipo) { this.detVentas = null; return; }
+    this.detVentas = { sede: r.sede, tipo, lista: tipo === 'in' ? r.detEntran : r.detSalen };
   }
 
   /** Ventas (operaciones y monto) por asesor de la sede en detalle, o de Call Center. */

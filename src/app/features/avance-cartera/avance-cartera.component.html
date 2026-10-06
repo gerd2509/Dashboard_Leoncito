@@ -182,6 +182,35 @@
         </ng-container>
       </ng-container>
 
+      <!-- Detalle de ventas cruzadas entre bases (↙ / ↗) -->
+      <div class="tabla-asesores" *ngIf="esPiso && !sedeDetalle && detVentas">
+        <div class="asesor-head">
+          <h3>{{ detVentas.tipo === 'in'
+            ? 'Ventas cerradas en ' + detVentas.sede + ' de clientes de OTRA base'
+            : 'Ventas de clientes de la base de ' + detVentas.sede + ' cerradas en OTRA sede' }} <small>({{ detVentas.lista.length }})</small></h3>
+          <button class="btn-regresar" (click)="detVentas = null"><mat-icon>close</mat-icon> Cerrar</button>
+        </div>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="left">DNI</th><th>Código CV</th><th>Fecha venta</th>
+                <th class="left">Asesor (base)</th><th class="left">Sede de la base</th>
+                <th class="left">Sede donde se cerró</th><th>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of detVentas.lista">
+                <td class="left">{{ d.dni }}</td><td>{{ d.cv }}</td><td>{{ d.fecha }}</td>
+                <td class="left">{{ d.asesorBase }}</td><td class="left">{{ d.sedeBase }}</td>
+                <td class="left">{{ d.sedeVenta }}</td><td class="mono">{{ soles(d.monto) }}</td>
+              </tr>
+              <tr *ngIf="!detVentas.lista.length" class="vacio"><td colspan="7">Sin ventas</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Tabla por asesor (Call / Realzza, o Piso con sede seleccionada) -->
       <div class="tabla-asesores" *ngIf="!esPiso || sedeDetalle">
         <div class="asesor-head">
@@ -262,8 +291,8 @@
             <td *ngIf="showInt">{{ r.intensidad | number:'1.2-2' }}</td>
             <td>
               {{ r.nVentas }}
-              <span *ngIf="r.ventasEntran" class="cruce cruce-in" title="Ventas cerradas en esta sede cuyo cliente pertenecía a la base de OTRA sede">↙{{ r.ventasEntran }}</span>
-              <span *ngIf="r.ventasSalen" class="cruce cruce-out" title="Ventas de clientes de ESTA base que se cerraron en OTRA sede">↗{{ r.ventasSalen }}</span>
+              <span *ngIf="r.ventasEntran" class="cruce cruce-in clic" (click)="verDetalleVentas(r, 'in')" title="Ver ventas cerradas aquí de clientes de otra base">↙{{ r.ventasEntran }}</span>
+              <span *ngIf="r.ventasSalen" class="cruce cruce-out clic" (click)="verDetalleVentas(r, 'out')" title="Ver ventas de clientes de esta base cerradas en otra sede">↗{{ r.ventasSalen }}</span>
             </td>
             <td class="mono">{{ soles(r.monto) }}</td>
             <td class="mono">{{ soles(r.ticket) }}</td>
