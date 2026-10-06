@@ -318,7 +318,7 @@
                             <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum" [displayFormat]="'{0}'" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" [displayFormat]="'{0}'" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                            <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
+                            <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="pctTotalRealzza" />
                         </dxo-summary>
                     </dx-data-grid>
                 </div>
@@ -436,7 +436,7 @@
                         <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
                             [displayFormat]="'{0}'" />
                         <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
+                        <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="pctTotalCall" />
                     </dxo-summary>
                 </dx-data-grid>
             </div>
@@ -459,7 +459,7 @@
                         <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
                             [displayFormat]="'{0}'" />
                         <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="PORCENTAJE" displayFormat="{0}%" />
+                        <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="pctTotalRealzza" />
                     </dxo-summary>
                 </dx-data-grid>
             </div>

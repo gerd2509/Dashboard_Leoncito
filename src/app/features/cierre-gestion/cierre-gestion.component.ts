@@ -6,7 +6,7 @@ import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
-import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
+import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
@@ -228,6 +228,15 @@ export class CierreGestionComponent implements OnInit {
       .map(id => this.asesoresCall.find(a => a.value === id))
       .filter((a): a is { value: string; viewValue: string } => !!a);
   }
+  // % total de la tabla Realzza: contactos / gestiones de la tabla (no el conteo de filas).
+  readonly pctTotalRealzza = () => this.textoPctTotal(this.dataContactabilidadRealzza);
+  readonly pctTotalCall = () => this.textoPctTotal(this.dataContactabilidadCall);
+  private textoPctTotal(d: any[]): string {
+    const c = d.reduce((a, r) => a + (r['CONTACTO'] || 0), 0);
+    const t = d.reduce((a, r) => a + (r['TOTAL'] || 0), 0);
+    return `${t > 0 ? Math.round((c / t) * 100) : 0}%`;
+  }
+
   get asesoresKommoRealzza() {
     if (this.esTiendaNueva) return this.asesoresRealzza;
     return this.kommoRealzzaIds
@@ -255,7 +264,7 @@ export class CierreGestionComponent implements OnInit {
 
   // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo
   private nombreCorto(asesor: { value: string; viewValue: string }): string {
-    return this.nombresCortos[asesor.value] || asesor.viewValue;
+    return this.nombresCortos[asesor.value] || NOMBRE_CORTO_PIURA[asesor.viewValue.toUpperCase().trim()] || asesor.viewValue;
   }
 
   dataResumen: any[] = [];

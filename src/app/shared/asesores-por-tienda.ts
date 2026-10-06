@@ -3,6 +3,15 @@ import { CapSedesService } from '../services/cap-sedes.service';
 /** Tiendas Realzza nuevas (Piura/Lima). Chiclayo ('REALZZA') es todo lo que no sea de estas. */
 export const TIENDAS_NUEVAS_REALZZA = ['REALZZA PIURA', 'REALZZA LIMA'] as const;
 
+/** Nombres cortos de los vendedores de Piura (nombre completo del CAP → nombre mostrado). */
+export const NOMBRE_CORTO_PIURA: Record<string, string> = {
+  'GARCIA ABAD JOSE DANIEL': 'DANIEL',
+  'REYES TUANAMA MAYKY JORDAN': 'JORDAN',
+  'GARCIA HUAYUNGA LEYDI GIANINA': 'LEYDI',
+  'SANDOVAL MARIN LUZ GABRIELA': 'LUZ',
+  'ZAPATA MENDOZA CINTHIA ELIZABETH': 'CINTHIA',
+};
+
 /**
  * Asesores activos por tienda Realzza según el CAP. Sirve a la supervisión (Control,
  * Registro y Gestión Supervisor, Actividad) para acotar a la tienda elegida.
