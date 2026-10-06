@@ -113,6 +113,7 @@ interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { ASESORES_CALL } from '../../shared/asesores';
 
 @Component({
   selector: 'app-avance-cartera',
@@ -130,6 +131,8 @@ export class AvanceCarteraComponent implements OnInit {
   // Consolidado Piso: ventas de la BASE (por DNI del cliente en la cartera) + metas.
   // dni → (sedeKey donde se CERRÓ la venta → { ops, monto })
   private ventasPorDni = new Map<string, Map<string, { ops: number; monto: number }>>();
+  // Ventas de Call atribuidas a cada asesora (por nombre) y DNI — para la concreción de Call Center.
+  private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
   // sedeKey → dni → nº de gestiones registradas ese mes (para Intensidad, acotado al
   // grupo/cuadro que se esté mostrando — no el total de la sede completa).
   private gestionesPorSedeDni = new Map<string, Map<string, number>>();
@@ -482,6 +485,29 @@ export class AvanceCarteraComponent implements OnInit {
         this.ventasPorDni.set(dni, porSede);
       }
     } catch { /* sin ventas → el cuadro muestra 0 */ }
+    this.ventasCallPorAsesor = new Map();
+    try {
+      const rowsCall = await lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio, mes }));
+      const vistosCall = new Set<string>();
+      for (const r of (rowsCall || [])) {
+        const est = (r.estado_venta || '').toString().toUpperCase();
+        if (/NOTA DE/.test(est) || /INCAUTAC/.test(est)) continue;
+        const monto = Number(r.monto_consolidado) || 0;
+        if (monto <= 0) continue;
+        const cv = String(r.codigo_cv ?? '');
+        if (cv && vistosCall.has(cv)) continue;
+        if (cv) vistosCall.add(cv);
+        const dni = this.soloDigitos(String(r.doc_identidad ?? ''));
+        const vend = String(r.vendedor ?? '').trim().toUpperCase();
+        const nombre = ASESORES_CALL.find(a => a.value === vend || a.nombre === vend)?.nombre;
+        if (!dni || !nombre) continue;
+        const porDni = this.ventasCallPorAsesor.get(nombre) ?? new Map<string, { ops: number; monto: number }>();
+        const cur = porDni.get(dni) ?? { ops: 0, monto: 0 };
+        cur.ops += 1; cur.monto += monto;
+        porDni.set(dni, cur);
+        this.ventasCallPorAsesor.set(nombre, porDni);
+      }
+    } catch { /* sin ventas de Call → Call Center muestra 0 */ }
     try {
       this.metasCartera = (await lastValueFrom(this.ventasSrv.obtenerMetasAvance())) || {};
     } catch { this.metasCartera = {}; }
@@ -744,11 +770,16 @@ export class AvanceCarteraComponent implements OnInit {
     for (const c of clientes) {
       if (!c.dni || vistos.has(`${c.asesor}|${c.dni}`)) continue;
       vistos.add(`${c.asesor}|${c.dni}`);
-      const porSede = this.ventasPorDni.get(c.dni);
-      if (!porSede) continue;
       let ops = 0, monto = 0;
-      for (const [sk, agg] of porSede) {
-        if (enCC || sk === this.sedeDetalle) { ops += agg.ops; monto += agg.monto; }
+      if (enCC) {
+        const d = this.ventasCallPorAsesor.get(c.asesor)?.get(c.dni);
+        if (d) { ops = d.ops; monto = d.monto; }
+      } else {
+        const porSede = this.ventasPorDni.get(c.dni);
+        if (!porSede) continue;
+        for (const [sk, agg] of porSede) {
+          if (sk === this.sedeDetalle) { ops += agg.ops; monto += agg.monto; }
+        }
       }
       if (!ops) continue;
       const o = out[c.asesor] ?? { ops: 0, monto: 0 };
