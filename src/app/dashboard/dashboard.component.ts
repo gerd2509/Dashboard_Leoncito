@@ -321,7 +321,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   /** Marca (Leoncito / Realzza) según la sede del usuario. */
   get brand(): Brand {
-    return this.brandSvc.fromSede(this.auth.getUsuario()?.sede);
+    return this.brandSvc.fromUsuario(this.auth.getUsuario());
   }
 
   /** Dispara la animación de celebración (confeti + festejo) por un instante. */

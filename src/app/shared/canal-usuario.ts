@@ -43,6 +43,18 @@ export function canalDeUsuario(u: any): '' | Canal {
 }
 
 /**
+ * Gerente o supervisor de TODAS las sedes cuyos módulos son mayormente de Realzza (jefe
+ * Realzza general): su marca y vista son Realzza. Chiclayo/Piura/Lima ya se detectan por sede.
+ */
+export function esGerenteRealzzaGeneral(u: any): boolean {
+  const rol = (u?.rol || '').toString().toLowerCase();
+  if (rol !== 'gerente' && rol !== 'supervisor') return false;
+  if ((u?.sede || '').toString().trim().toLowerCase() !== 'todas') return false;
+  const mods: string[] = Array.isArray(u?.modulos) ? u.modulos : [];
+  return mods.filter(m => MODS_REALZZA.includes(m)).length > mods.filter(m => MODS_CALL.includes(m)).length;
+}
+
+/**
  * Nombre CANÓNICO del asesor para las GESTIONES: es el que guardan los registros
  * (Call/Realzza/KOMMO) y por el que Mi Panel filtra. Usa `vendedor` (identidad
  * estable) y NO `nombre` (que puede tener typos/variantes, p.ej. "Aurora Guilllen").

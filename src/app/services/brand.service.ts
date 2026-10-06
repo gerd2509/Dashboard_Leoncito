@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { esGerenteRealzzaGeneral } from '../shared/canal-usuario';
 
 export type BrandId = 'leoncito' | 'realzza';
 
@@ -23,15 +24,20 @@ export class BrandService {
 
   byId(id: BrandId): Brand { return BRANDS[id]; }
 
-  /** Resuelve la marca según la sede: 'realzza' → Realzza; cualquier otra → Leoncito. */
+  /** Resuelve la marca según la sede: cualquier sede Realzza (Chiclayo, Piura, Lima) → Realzza. */
   fromSede(sede: string | null | undefined): Brand {
-    return this.normalizar(sede) === 'realzza' ? BRANDS.realzza : BRANDS.leoncito;
+    return this.normalizar(sede).includes('realzza') ? BRANDS.realzza : BRANDS.leoncito;
+  }
+
+  /** Marca del usuario: por su sede, o por ser jefe Realzza general (sede 'todas'). */
+  fromUsuario(u: any): Brand {
+    return (this.fromSede(u?.sede).id === 'realzza' || esGerenteRealzzaGeneral(u)) ? BRANDS.realzza : BRANDS.leoncito;
   }
 
   /** Acepta una marca/sede textual (lo que devuelva el backend) y la mapea a una marca. */
   fromValor(valor: string | null | undefined): Brand {
     const v = this.normalizar(valor);
-    if (v === 'realzza') return BRANDS.realzza;
+    if (v.includes('realzza')) return BRANDS.realzza;
     if (v === 'leoncito') return BRANDS.leoncito;
     return this.fromSede(valor);
   }

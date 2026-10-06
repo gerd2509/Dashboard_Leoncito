@@ -23,7 +23,7 @@ export class VendedorShellComponent {
   private brandSvc = inject(BrandService);
 
   get usuario() { return this.auth.getUsuario(); }
-  get brand(): Brand { return this.brandSvc.fromSede(this.auth.getUsuario()?.sede); }
+  get brand(): Brand { return this.brandSvc.fromUsuario(this.auth.getUsuario()); }
 
   logout() { this.auth.logout(); }
 }
