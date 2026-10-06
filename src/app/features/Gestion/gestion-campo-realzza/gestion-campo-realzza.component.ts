@@ -9,7 +9,7 @@ import { custom } from 'devextreme/ui/dialog';
 import { lastValueFrom } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { CapSedesService } from '../../../services/cap-sedes.service';
-import { esGestorTiendaRealzza, tiendaFijaRealzza } from '../../../shared/canal-usuario';
+import { enTiendaRealzza, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../../shared/canal-usuario';
 
 import { LoadingOverlayComponent } from '../../../shared/loading-overlay/loading-overlay.component';
 
@@ -161,6 +161,11 @@ export class GestionCampoRealzzaComponent implements OnInit {
     await this.cargasIniciales();
   }
 
+  /** Tienda del filtro (o la fija del gerente): Chiclayo = todo lo que no sea Piura/Lima. */
+  private enTiendaActual(item: any): boolean {
+    return enTiendaRealzza(item['SEDE'], (this.formGestion.value.Sede || '').toString().trim().toUpperCase());
+  }
+
   async cargasIniciales() {
     this.isLoading = true;
     try {
@@ -173,7 +178,7 @@ export class GestionCampoRealzzaComponent implements OnInit {
         COMENTARIO_ADICIONAL_DINAMICA: this.obtenerComentrarioAdicional(item)
       }));
 
-      this.dataFiltrada = [...this.listData];
+      this.dataFiltrada = this.listData.filter(item => this.enTiendaActual(item));
     } catch (error) {
       console.error('Error al cargar los datos:', error);
     } finally {
