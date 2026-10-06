@@ -199,6 +199,7 @@
                 <th>No contacto</th><th>Faltan</th><th>% Avance</th>
                 <th *ngIf="esPiso && sedeDetalle">Ventas (ops)</th>
                 <th *ngIf="esPiso && sedeDetalle">Monto vendido</th>
+                <th *ngIf="esPiso && sedeDetalle">Concreción</th>
               </tr>
             </thead>
             <tbody>
@@ -215,6 +216,7 @@
                 </td>
                 <td *ngIf="esPiso && sedeDetalle"><b>{{ ventaDe(r.asesor).ops }}</b></td>
                 <td *ngIf="esPiso && sedeDetalle">S/ {{ ventaDe(r.asesor).monto | number:'1.0-0' }}</td>
+                <td *ngIf="esPiso && sedeDetalle">{{ concrecionAsesor(r) }}%</td>
               </tr>
             </tbody>
           </table>
@@ -248,7 +250,7 @@
             <th class="left">Sede</th>
             <th>N° Asignados</th><th>N° Gestionados</th><th>Sin Gestionar</th>
             <th *ngIf="showInt">Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
-            <th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
+            <th>Concreción</th><th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
           </tr>
         </thead>
         <tbody>
@@ -265,6 +267,7 @@
             </td>
             <td class="mono">{{ soles(r.monto) }}</td>
             <td class="mono">{{ soles(r.ticket) }}</td>
+            <td>{{ r.concrecion }}%</td>
             <td class="meta-cell">
               <input type="number" class="meta-in" [value]="r.meta || ''" placeholder="0"
                 (change)="onMetaCartera(r, $any($event.target).value)" />
@@ -272,7 +275,7 @@
             <td class="mono">{{ soles(r.proyeccion) }}</td>
             <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
           </tr>
-          <tr *ngIf="!filas.length" class="vacio"><td [attr.colspan]="showInt ? 11 : 10">Sin datos para el periodo</td></tr>
+          <tr *ngIf="!filas.length" class="vacio"><td [attr.colspan]="showInt ? 12 : 11">Sin datos para el periodo</td></tr>
         </tbody>
         <tfoot *ngIf="filas.length">
           <tr>
@@ -288,6 +291,7 @@
             </td>
             <td class="mono">{{ soles(tot(filas).monto) }}</td>
             <td class="mono">{{ soles(tot(filas).ticket) }}</td>
+            <td>{{ tot(filas).concrecion }}%</td>
             <td class="mono">{{ soles(tot(filas).meta) }}</td>
             <td class="mono">{{ soles(tot(filas).proyeccion) }}</td>
             <td><b [class]="claseMeta(tot(filas).avanceMeta)" class="pct-badge">{{ tot(filas).avanceMeta }}%</b></td>

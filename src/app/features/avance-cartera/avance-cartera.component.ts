@@ -100,6 +100,7 @@ interface ResumenSede {
   nVentas: number;          // # de ventas (por codigo_cv) CERRADAS en la sede (de clientes de alguna base)
   monto: number;            // monto vendido CERRADO en la sede
   ticket: number;           // monto ÷ nVentas
+  concrecion: number;       // nVentas ÷ contactados (CONTACTO), en %
   ventasEntran: number;     // ventas cerradas aquí cuyo cliente pertenecía a la base de OTRA sede
   ventasSalen: number;      // ventas de clientes de ESTA base que se cerraron en OTRA sede
   meta: number;             // meta editable por sede (y grupo de tipo)
@@ -518,7 +519,7 @@ export class AvanceCarteraComponent implements OnInit {
     const map = new Map<string, ResumenSede>();
     const nuevaFila = (sedeKey: string, nombre: string): ResumenSede => ({
       sedeKey, sede: nombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0,
-      pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0,
+      pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0,
       ventasEntran: 0, ventasSalen: 0, meta: 0, proyeccion: 0, avanceMeta: 0, metaKey: '',
     });
     // ── Base (cartera): asignados/gestionados por sede + DNIs únicos con su sede de base ──
@@ -565,6 +566,7 @@ export class AvanceCarteraComponent implements OnInit {
       r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
       r.ticket = r.nVentas > 0 ? Math.round(r.monto / r.nVentas) : 0;
+      r.concrecion = r.contacto > 0 ? Math.round((r.nVentas / r.contacto) * 100) : 0;
       const sk = r.sedeKey || 'sin-sede';
       r.metaKey = metaPrefix + sk;   // se guarda por mes
       r.meta = this.metasCartera[r.metaKey] || (legacyPrefix ? this.metasCartera[legacyPrefix + sk] : 0) || 0;   // respaldo: clave anterior
@@ -624,7 +626,7 @@ export class AvanceCarteraComponent implements OnInit {
     return {
       sedeKey: 'call-center', sede: 'Call Center', asignados, gestionados, contacto, noContacto, pendientes,
       avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0,
-      gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0,
+      gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0,
       ventasEntran: 0, ventasSalen: 0, meta: this.metasCartera[metaKey] || 0, proyeccion: 0, avanceMeta: 0, metaKey,
     };
   }
@@ -650,11 +652,12 @@ export class AvanceCarteraComponent implements OnInit {
     const meta = s.reduce((a, r) => a + r.meta, 0);
     const proyeccion = s.reduce((a, r) => a + r.proyeccion, 0);
     const pendientes = s.reduce((a, r) => a + r.pendientes, 0);
+    const contacto = s.reduce((a, r) => a + r.contacto, 0);
     const ventasEntran = s.reduce((a, r) => a + r.ventasEntran, 0);
     const ventasSalen = s.reduce((a, r) => a + r.ventasSalen, 0);
     return {
       asignados, gestionados, gestionesTotal, nVentas, monto, meta, proyeccion, pendientes,
-      ventasEntran, ventasSalen,
+      ventasEntran, ventasSalen, concrecion: contacto > 0 ? Math.round((nVentas / contacto) * 100) : 0,
       intensidad: gestionados > 0 ? Math.round((gestionesTotal / gestionados) * 100) / 100 : 0,
       ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
       avanceMeta: meta > 0 ? Math.round((monto / meta) * 100) : 0,
@@ -700,6 +703,11 @@ export class AvanceCarteraComponent implements OnInit {
   /** Ventas (operaciones y monto) por asesor de la sede en detalle, o de Call Center. */
   ventasAsesor: Record<string, { ops: number; monto: number }> = {};
   ventaDe(asesor: string): { ops: number; monto: number } { return this.ventasAsesor[asesor] ?? { ops: 0, monto: 0 }; }
+  /** Concreción del asesor: ventas ÷ contactados (CONTACTO) de su cartera, en %. */
+  concrecionAsesor(r: { asesor: string; contacto: number }): number {
+    const ops = this.ventaDe(r.asesor).ops;
+    return r.contacto > 0 ? Math.round((ops / r.contacto) * 100) : 0;
+  }
 
 
   /** Subconjunto de clientes según el scope actual (sede seleccionada en Piso). */
