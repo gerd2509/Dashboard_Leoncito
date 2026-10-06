@@ -287,6 +287,10 @@ export class AvanceCarteraComponent implements OnInit {
     // Índices de gestión del mes seleccionado.
     const idxGlobal = this.modo === 'piso' ? null : await this.cargarGestion();
     const idxPorSede = this.modo === 'piso' ? await this.cargarGestionSedes() : null;
+    // Call Center (Patricia/Maria/Juana) gestiona en gestion_call, no en la gestión de sedes.
+    const gestMesPrev = this.gestionesMes;
+    const idxCallCenter = this.modo === 'piso' ? await this.cargarGestion() : null;
+    if (this.modo === 'piso') this.gestionesMes = gestMesPrev;
     // Piso: ventas (BD) + metas por sede para el cuadro consolidado.
     if (this.modo === 'piso') await this.cargarVentasYMetasSede();
 
@@ -304,6 +308,7 @@ export class AvanceCarteraComponent implements OnInit {
         sedeKey = this.sedeCfg.normalizar(raw);
         sedeNombre = this.sedeCfg.getConfig(sedeKey)?.nombre ?? (raw || 'SIN SEDE');
         idx = idxPorSede!.get(sedeKey) ?? null;
+        if (ASESORES_CALL_CENTER_CARTERA.has(asesor)) idx = idxCallCenter;
       }
 
       const candidatos: RegGestion[] = [];
