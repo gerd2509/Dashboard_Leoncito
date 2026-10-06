@@ -7,7 +7,7 @@ import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
-import { TIENDAS_REALZZA, enTiendaRealzza, esGestorTiendaRealzza, esSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
 
@@ -977,7 +977,7 @@ export class CierreGestionComponent implements OnInit {
 
         // 🔹 Lógica específica para Realzza: Solo "SEDE REALZZA STORE"
         if (v.Equipo === 'REALZZA') {
-          return esSedeRealzza(v.Sede) && enTiendaRealzza(v.Sede, this.tiendaCierre);
+          return v.Sede === 'SEDE REALZZA STORE';
         }
 
         // Para Call Center o cualquier otro, pasa normal si es CALL
