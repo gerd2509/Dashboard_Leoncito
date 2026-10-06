@@ -12,7 +12,7 @@
   padding: 8px 4px 40px;
   color: var(--texto);
 }
-.ac-wrap { width: 100%; max-width: 1500px; margin: 0 auto; }
+.ac-wrap { max-width: 1180px; margin: 0 auto; }
 
 /* Encabezado */
 .encabezado { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
