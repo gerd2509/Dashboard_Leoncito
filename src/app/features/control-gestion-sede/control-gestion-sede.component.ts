@@ -216,7 +216,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     await this.cap.cargar();
     for (const s of this.sedesObjetivo) {
       this.capPorSede.set(s.key, await this.cap.vendedoresActivos(s.key));
-      this.supPorSede.set(s.key, await this.cap.supervisoresPorVendedor(s.key));
+      const sup = await this.cap.supervisoresPorVendedor(s.key);
+      // Quien ya no figura ACTIVO conserva el supervisor de su última fila CAP (no "sin supervisor").
+      for (const r of (await this.cap.cargar()).filter(x => x.sedeKey === s.key && x.supervisor)) {
+        const n = r.vendedor.toUpperCase();
+        if (!sup.has(n)) sup.set(n, r.supervisor.toUpperCase());
+      }
+      this.supPorSede.set(s.key, sup);
     }
     if (this.listData.length) this.calcular();
   }
@@ -357,7 +363,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
         return {
           asesor: asesorNombre,
-          supervisor: supMap?.get(asesorNombre) ?? 'SIN SUPERVISOR',
+          supervisor: supMap?.get(asesorNombre) ?? 'NO EN CAP',
           llamadas: llamadaContacto + llamadaNoContacto,
           cartas: cartaContacto + cartaNoContacto,
           llamadaContacto, llamadaNoContacto,
@@ -367,8 +373,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           afiliaciones: this.afiliacionesData.get(objetivo)?.[claveFechaSel] ?? 0,
         };
       })
-      // Se muestran los asesores con gestión en el día O con afiliaciones importadas.
-      .filter(f => f.total > 0 || f.afiliaciones > 0);
+      // Roster activo de la sede siempre visible (aunque no gestione ese día); el resto, solo con actividad.
+      .filter(f => f.total > 0 || f.afiliaciones > 0 || cubiertos.has(this.normNombre(f.asesor)));
 
       const totalLlamadas         = filas.reduce((s, f) => s + f.llamadaContacto + f.llamadaNoContacto, 0);
       const totalCartas           = filas.reduce((s, f) => s + f.cartaContacto   + f.cartaNoContacto,   0);
