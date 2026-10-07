@@ -30,26 +30,10 @@ const CANDIDATOS_ASESOR = [
 ];
 const CANDIDATOS_ZONA = ['ZONA', 'ZONAS', 'SEDE', 'TIENDA', 'TIENDA SEDE'];
 
-/** Asesoras de Call Center que a veces figuran en la columna de asesor/asignación de
- *  la cartera de PISO importada, pero NO son vendedoras de piso — si un cliente de la
- *  cartera piso aparece asignado a alguna de ellas, no cuenta en el avance de piso
- *  (no es trabajo del vendedor físico de esa sede). Aplica solo en modo 'piso'. */
-const ASESORES_CALL_EN_CARTERA_PISO = new Set([
-  'MORETO DELGADO PATRICIA ESTEFANY',
-  'QUISPE FONSECA KAREN AIMEE',
-  'MORALES ÑIQUE MARIA CANDELARIA',
-  'TORRES ALVARADO JUDY ESMERALDA',
-  'SANDOVAL OTINIANO JUANA DEL PILAR',
-]);
-
-/** Subconjunto de ASESORES_CALL_EN_CARTERA_PISO que hoy SÍ gestiona cartera de piso
- *  por Call Center (Patricia, Maria, Juana) — para el cuadro aparte "Call Center" del
- *  avance por sede. El avance de PISO (arriba) sigue excluyendo a las 5 tal cual. */
-const ASESORES_CALL_CENTER_CARTERA = new Set([
-  'MORETO DELGADO PATRICIA ESTEFANY',
-  'MORALES ÑIQUE MARIA CANDELARIA',
-  'SANDOVAL OTINIANO JUANA DEL PILAR',
-]);
+// ASESORES_CALL_EN_CARTERA_PISO / ASESORES_CALL_CENTER_CARTERA: fuente única en
+// shared/asesores.ts (también la usa Comparativo Cartera Ventas Piso). Aplica solo en
+// modo 'piso': el avance de PISO excluye a las 5; el cuadro "Call Center" solo a las 3
+// que hoy sí gestionan cartera (Patricia, Maria, Juana).
 const CANDIDATOS_TIPO_CLIENTE = [
   'TIPO CLIENTE', 'TIPO DE CLIENTE', 'TIPOCLIENTE', 'TIPO_CLIENTE', 'TIPO DE CLIENTES',
   'CLIENTE TIPO', 'TIPO CLIENTES', 'SEGMENTO', 'SEGMENTO CLIENTE',
@@ -118,7 +102,7 @@ interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
-import { ASESORES_CALL } from '../../shared/asesores';
+import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA, ASESORES_CALL_EN_CARTERA_PISO } from '../../shared/asesores';
 
 @Component({
   selector: 'app-avance-cartera',
@@ -674,12 +658,31 @@ export class AvanceCarteraComponent implements OnInit {
       if (c.estado === 'PENDIENTE') pendientes++;
       else { gestionados++; if (c.estado === 'CONTACTO') contacto++; else noContacto++; }
     }
+    const { ops: nVentas, monto } = this.calcularVentasCCTotales(clientes);
     return {
       sedeKey: 'call-center', sede: 'Call Center', asignados, gestionados, contacto, noContacto, pendientes,
       avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0,
-      gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0, detEntran: [], detSalen: [],
+      gestionesTotal: 0, intensidad: 0, nVentas, monto: Math.round(monto),
+      ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
+      concrecion: contacto > 0 ? Math.round((nVentas / contacto) * 100) : 0,
+      detEntran: [], detSalen: [],
       ventasEntran: 0, ventasSalen: 0, meta: this.metasCartera[metaKey] || 0, proyeccion: 0, avanceMeta: 0, metaKey,
     };
+  }
+
+  /** Ventas de Call atribuidas a las 3 asesoras de Call Center, cruzadas por DNI con los
+   *  clientes dados — antes la fila "Call Center" siempre mostraba 0 ventas aquí, aunque
+   *  el detalle por asesor sí las traía. */
+  private calcularVentasCCTotales(clientes: ClienteCartera[]): { ops: number; monto: number } {
+    let ops = 0, monto = 0;
+    const vistos = new Set<string>();
+    for (const c of clientes) {
+      if (!c.dni || vistos.has(`${c.asesor}|${c.dni}`)) continue;
+      vistos.add(`${c.asesor}|${c.dni}`);
+      const d = this.ventasCallPorAsesor.get(c.asesor)?.get(c.dni);
+      if (d) { ops += d.ops; monto += d.monto; }
+    }
+    return { ops, monto };
   }
 
   /** Agrupa el valor crudo de TipoCliente en el nombre de cuadro (como el Excel):

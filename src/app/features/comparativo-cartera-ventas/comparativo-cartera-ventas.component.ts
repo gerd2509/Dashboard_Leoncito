@@ -10,6 +10,7 @@ import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { SedeConfigService } from '../../services/sede-config.service';
+import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA, ASESORES_CALL_EN_CARTERA_PISO } from '../../shared/asesores';
 
 interface FilaCartera {
   dni: string;
@@ -83,6 +84,11 @@ export class ComparativoCarteraVentasComponent {
   sedesDisponibles: string[] = [];
   private asignadosPorSede = new Map<string, number>();
   private totalAsignados = 0;
+
+  // Ventas de Call atribuidas a cada una de las 3 asesoras de Call Center (por nombre y
+  // DNI) — así "Call Center" no se cruza con cualquier venta de piso del mismo DNI, sino
+  // solo con lo que ELLAS vendieron (mismo criterio que Avance de Cartera).
+  private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number; cliente: string }>>();
 
   // Cartera deduplicada (para recontar asignados por CAP) + CAP por sede.
   private carteraUnica: FilaCartera[] = [];
@@ -200,6 +206,7 @@ export class ComparativoCarteraVentasComponent {
       const nMes = mes.getMonth() + 1;
 
       const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes: nMes }));
+      await this.cargarVentasCall(anio, nMes);
 
       // Índice de VENTAS REALES DE PISO por DNI:
       //  - solo sedes de piso (se excluyen La Victoria, Incautados, Realzza, almacenes,
@@ -225,6 +232,10 @@ export class ComparativoCarteraVentasComponent {
       });
 
       // Recorre la cartera (dedup por DNI). Solo los que tienen venta neta quedan.
+      // Las 5 asesoras de Call Center (ASESORES_CALL_EN_CARTERA_PISO) no son vendedoras
+      // físicas: se sacan de las sedes. Las 3 que hoy sí gestionan cartera por Call
+      // (ASESORES_CALL_CENTER_CARTERA) se agrupan aparte como sede "Call Center", cruzadas
+      // SOLO con lo que ELLAS vendieron en Call (no cualquier venta del mismo DNI).
       const vistos = new Set<string>();
       const convertidos: VentaCartera[] = [];
       const carteraUnica: FilaCartera[] = [];
@@ -234,6 +245,22 @@ export class ComparativoCarteraVentasComponent {
         const dni = this.soloDigitos(r.dni);
         if (!dni || vistos.has(dni)) continue;
         vistos.add(dni);
+
+        if (ASESORES_CALL_EN_CARTERA_PISO.has(r.vendedor)) {
+          if (!ASESORES_CALL_CENTER_CARTERA.has(r.vendedor)) continue;   // Karen/Esmeralda: ya no gestionan cartera
+          totalAsignados++;
+          const sede = 'Call Center';
+          asignadosPorSede.set(sede, (asignadosPorSede.get(sede) || 0) + 1);
+          carteraUnica.push({ dni: r.dni, vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente, sede });
+          const hitCC = this.ventasCallPorAsesor.get(r.vendedor)?.get(dni);
+          if (!hitCC) continue;
+          convertidos.push({
+            vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente,
+            tipoClienteAfect: 'CALL', sede, dni: r.dni, cliente: hitCC.cliente, ops: hitCC.ops, monto: hitCC.monto,
+          });
+          continue;
+        }
+
         totalAsignados++;
         const sede = r.sede || 'SIN SEDE';
         asignadosPorSede.set(sede, (asignadosPorSede.get(sede) || 0) + 1);
@@ -287,6 +314,7 @@ export class ComparativoCarteraVentasComponent {
       this.totalAsignados = totalAsignados;
       this.sedesDisponibles = Array.from(new Set(this.cartera.map(c => c.sede)))
         .filter(s => s && s !== '' && s !== 'SIN SEDE').sort();
+      if (asignadosPorSede.has('Call Center')) this.sedesDisponibles = [...this.sedesDisponibles, 'Call Center'];
       this.yaCruzado = true;
       this.aplicarSede();
 
@@ -299,6 +327,34 @@ export class ComparativoCarteraVentasComponent {
     } finally {
       this.isLoading = false;
     }
+  }
+
+  /** Ventas de Call (ventas_call) del mes, atribuidas por nombre de asesora (mismo
+   *  criterio de estado real/monto>0 que `estadoExcluido`, 1 vez por código de venta). */
+  private async cargarVentasCall(anio: number, mes: number): Promise<void> {
+    this.ventasCallPorAsesor = new Map();
+    try {
+      const rows = await lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio, mes }));
+      const vistosCv = new Set<string>();
+      for (const r of (rows || [])) {
+        if (this.estadoExcluido(r.estado_venta)) continue;
+        const monto = Number(r.monto_consolidado) || 0;
+        if (monto <= 0) continue;
+        const cv = String(r.codigo_cv ?? '');
+        if (cv && vistosCv.has(cv)) continue;
+        if (cv) vistosCv.add(cv);
+        const dni = this.soloDigitos(r.doc_identidad);
+        if (!dni) continue;
+        const vend = String(r.vendedor ?? '').trim().toUpperCase();
+        const nombre = ASESORES_CALL.find(a => a.value === vend || a.nombre === vend)?.nombre;
+        if (!nombre) continue;
+        const porDni = this.ventasCallPorAsesor.get(nombre) ?? new Map<string, { ops: number; monto: number; cliente: string }>();
+        const cur = porDni.get(dni) ?? { ops: 0, monto: 0, cliente: (r.cliente_venta || '').toString() };
+        cur.ops += 1; cur.monto += monto;
+        porDni.set(dni, cur);
+        this.ventasCallPorAsesor.set(nombre, porDni);
+      }
+    } catch { /* sin ventas de Call → Call Center muestra 0 */ }
   }
 
   // Construye el mapa CAP: sedeKey → nombres normalizados de asesores ACTIVOS.

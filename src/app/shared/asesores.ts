@@ -34,6 +34,25 @@ export const ASESORES_REALZZA: AsesorRef[] = [
   { value: 'CC12', nombre: 'BERNAL BAZAN BRENDA NICOL' },
 ];
 
+/** Asesoras de Call Center que a veces figuran en la columna de asesor/asignación de
+ *  la cartera de PISO importada, pero NO son vendedoras de piso (no cuentan en el
+ *  avance de la sede física). Usado en Avance de Cartera y Comparativo Cartera Ventas. */
+export const ASESORES_CALL_EN_CARTERA_PISO = new Set([
+  'MORETO DELGADO PATRICIA ESTEFANY',
+  'QUISPE FONSECA KAREN AIMEE',
+  'MORALES ÑIQUE MARIA CANDELARIA',
+  'TORRES ALVARADO JUDY ESMERALDA',
+  'SANDOVAL OTINIANO JUANA DEL PILAR',
+]);
+
+/** Subconjunto de ASESORES_CALL_EN_CARTERA_PISO que hoy SÍ gestiona cartera de piso
+ *  por Call Center (Patricia, Maria, Juana) — para el cuadro aparte "Call Center". */
+export const ASESORES_CALL_CENTER_CARTERA = new Set([
+  'MORETO DELGADO PATRICIA ESTEFANY',
+  'MORALES ÑIQUE MARIA CANDELARIA',
+  'SANDOVAL OTINIANO JUANA DEL PILAR',
+]);
+
 /** Nombres (solo) de un canal Call/Realzza. */
 export const nombresCall = () => ASESORES_CALL.map(a => a.nombre);
 export const nombresRealzza = () => ASESORES_REALZZA.map(a => a.nombre);
