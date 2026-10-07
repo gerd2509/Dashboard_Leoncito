@@ -111,27 +111,24 @@ export class ComparativoCarteraVentasComponent {
     return (v ?? '').toString().replace(/\D/g, '').replace(/^0+/, '');
   }
 
-  // Sedes que NO son piso → se excluyen del cruce (fragmentos, sin tildes/MAYÚS).
-  // Cubre: incautados, La Victoria, Realzza, almacenes, oficinas, fábrica, insumos,
-  // productos terminados, distribuciones y Chiclayo (no es piso).
-  private readonly SEDES_EXCLUIDAS = [
-    'INCAUTAD', 'LA VICTORIA', 'REALZZA', 'ALMACEN', 'OFICINA', 'FABRICA',
-    'INSUMOS', 'PRODUCTOS TERMINADOS', 'DISTRIBUCIONES', 'CHICLAYO',
-  ];
-  // Estados que NO son venta real → se excluyen (sin tildes).
-  private readonly ESTADOS_EXCLUIDOS = [
-    'NOTA DE CREDITO', 'INCAUTACION', 'CLASIFICADO A PERDIDA', 'CLASIFICADO A LEGAL',
-    'ERROR DEL SISTEMA', 'MORAS MAL COBRADAS',
-  ];
   private sinTildes(v: any): string {
     return (v ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
   }
-  private sedeExcluida(sede: any): boolean {
-    const s = this.sinTildes(sede);
-    return this.SEDES_EXCLUIDAS.some(x => s.includes(x));
+  /** Sede de la venta normalizada igual que Avance de Cartera (quita el prefijo del
+   *  sistema de ventas). Solo cuentan las sedes de PISO dadas de alta en el catálogo:
+   *  automáticamente deja fuera Incautados, La Victoria, Oficina Central, Realzza,
+   *  almacenes, etc., sin tener que mantener una lista de exclusión aparte. */
+  private sedeKeyVenta(raw: any): string {
+    return this.sedeCfg.normalizar((raw ?? '').toString()).replace(/^sederelenor/, '');
   }
+  private sedeReconocida(sede: any): boolean {
+    return !!this.sedeCfg.getConfig(this.sedeKeyVenta(sede))?.nombre;
+  }
+  /** Mismo criterio que Avance de Cartera: solo Nota de Crédito e Incautación no son
+   *  venta real. Pronto Pago, Cancelado, Activo, etc. sí cuentan. */
   private estadoExcluido(estado: any): boolean {
-    return this.ESTADOS_EXCLUIDOS.includes(this.sinTildes(estado));
+    const s = this.sinTildes(estado);
+    return /NOTA DE/.test(s) || /INCAUTAC/.test(s);
   }
   private detectar(headers: string[], exactos: string[], fragmentos: string[]): string | null {
     const H = headers.map(h => ({ raw: h, n: this.norm(h).replace(/\s+/g, '') }));
@@ -208,15 +205,14 @@ export class ComparativoCarteraVentasComponent {
       const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes: nMes }));
       await this.cargarVentasCall(anio, nMes);
 
-      // Índice de VENTAS REALES DE PISO por DNI:
-      //  - solo sedes de piso (se excluyen La Victoria, Incautados, Realzza, almacenes,
-      //    oficinas, fábrica, insumos, productos terminados, distribuciones y Chiclayo),
-      //  - solo estados de venta real (se excluyen NC, incautación, clasificado a
-      //    pérdida/legal, error del sistema, moras mal cobradas), y monto > 0.
+      // Índice de VENTAS REALES DE PISO por DNI (mismo criterio que Avance de Cartera):
+      //  - solo sedes de piso dadas de alta en el catálogo (deja fuera La Victoria,
+      //    Incautados, Oficina Central, Realzza, etc. sin necesidad de listarlas),
+      //  - solo estados de venta real (se excluyen Nota de Crédito e Incautación), y monto > 0.
       const idx = new Map<string, { monto: number; ops: number; nombre: string; tipoCliente: string }>();
       const ventasValidas: { dni: string; estado: string; monto: number }[] = [];
       (ventas || []).forEach(v => {
-        if (this.sedeExcluida(v.sede)) return;
+        if (!this.sedeReconocida(v.sede)) return;
         if (this.estadoExcluido(v.estado_venta)) return;
         const monto = Number(v.monto_consolidado) || 0;
         if (monto <= 0) return;
