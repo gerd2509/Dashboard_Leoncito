@@ -205,11 +205,15 @@ export class ComparativoCarteraVentasComponent {
       const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes: nMes }));
       await this.cargarVentasCall(anio, nMes);
 
-      // Índice de VENTAS REALES DE PISO por DNI (mismo criterio que Avance de Cartera):
-      //  - solo sedes de piso dadas de alta en el catálogo (deja fuera La Victoria,
-      //    Incautados, Oficina Central, Realzza, etc. sin necesidad de listarlas),
-      //  - solo estados de venta real (se excluyen Nota de Crédito e Incautación), y monto > 0.
-      const idx = new Map<string, { monto: number; ops: number; nombre: string; tipoCliente: string }>();
+      // Ventas REALES DE PISO, indexadas por DNI y por SEDE DE CIERRE (mismo criterio que
+      // Avance de Cartera): solo sedes de piso dadas de alta en el catálogo (deja fuera La
+      // Victoria, Incautados, Oficina Central, Realzza, etc.), solo estados de venta real
+      // (Nota de Crédito e Incautación fuera), monto > 0. La venta cuenta en la sede donde
+      // se CERRÓ, no en la de la base (cartera) — igual que Avance de Cartera. "N° Ventas"
+      // cuenta OPERACIONES (si un cliente compró 2 veces, cuenta 2), también igual.
+      const ventasPorDniSede = new Map<string, Map<string, { ops: number; monto: number }>>();
+      const nombrePorDni = new Map<string, string>();
+      const tipoClientePorDni = new Map<string, string>();
       const ventasValidas: { dni: string; estado: string; monto: number }[] = [];
       (ventas || []).forEach(v => {
         if (!this.sedeReconocida(v.sede)) return;
@@ -219,63 +223,87 @@ export class ComparativoCarteraVentasComponent {
         const dni = this.soloDigitos(v.doc_identidad);
         if (!dni) return;
         ventasValidas.push({ dni, estado: this.sinTildes(v.estado_venta), monto });
-        const cur = idx.get(dni) || { monto: 0, ops: 0, nombre: '', tipoCliente: '' };
-        cur.monto += monto;
-        cur.ops += 1;
-        if (!cur.nombre) cur.nombre = (v.cliente_venta || '').toString();
-        if (!cur.tipoCliente) cur.tipoCliente = (v.tipo_cliente || '').toString().trim().toUpperCase();
-        idx.set(dni, cur);
+        const sedeKey = this.sedeKeyVenta(v.sede);
+        const porSede = ventasPorDniSede.get(dni) ?? new Map<string, { ops: number; monto: number }>();
+        const cur = porSede.get(sedeKey) ?? { ops: 0, monto: 0 };
+        cur.ops += 1; cur.monto += monto;
+        porSede.set(sedeKey, cur);
+        ventasPorDniSede.set(dni, porSede);
+        if (!nombrePorDni.has(dni) && v.cliente_venta) nombrePorDni.set(dni, (v.cliente_venta || '').toString());
+        if (!tipoClientePorDni.has(dni) && v.tipo_cliente) tipoClientePorDni.set(dni, (v.tipo_cliente || '').toString().trim().toUpperCase());
       });
 
-      // Recorre la cartera (dedup por DNI). Solo los que tienen venta neta quedan.
+      // Recorre la cartera (dedup por DNI): guarda la BASE de cada cliente (sede asignada
+      // en el Excel, normalizada igual que el catálogo) + su vendedor/tipoBase/tipoCliente.
       // Las 5 asesoras de Call Center (ASESORES_CALL_EN_CARTERA_PISO) no son vendedoras
       // físicas: se sacan de las sedes. Las 3 que hoy sí gestionan cartera por Call
       // (ASESORES_CALL_CENTER_CARTERA) se agrupan aparte como sede "Call Center", cruzadas
       // SOLO con lo que ELLAS vendieron en Call (no cualquier venta del mismo DNI).
       const vistos = new Set<string>();
-      const convertidos: VentaCartera[] = [];
       const carteraUnica: FilaCartera[] = [];
-      const asignadosPorSede = new Map<string, number>();
+      const infoPorDni = new Map<string, { vendedor: string; tipoBase: string; tipoCliente: string }>();
+      const baseSedeKeyPorDni = new Map<string, string>();
+      const asignadosPorSedeKey = new Map<string, { nombre: string; asignados: number }>();
       let totalAsignados = 0;
       for (const r of this.cartera) {
         const dni = this.soloDigitos(r.dni);
         if (!dni || vistos.has(dni)) continue;
         vistos.add(dni);
+        infoPorDni.set(dni, { vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente });
 
         if (ASESORES_CALL_EN_CARTERA_PISO.has(r.vendedor)) {
           if (!ASESORES_CALL_CENTER_CARTERA.has(r.vendedor)) continue;   // Karen/Esmeralda: ya no gestionan cartera
           totalAsignados++;
-          const sede = 'Call Center';
-          asignadosPorSede.set(sede, (asignadosPorSede.get(sede) || 0) + 1);
-          carteraUnica.push({ dni: r.dni, vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente, sede });
-          const hitCC = this.ventasCallPorAsesor.get(r.vendedor)?.get(dni);
-          if (!hitCC) continue;
-          convertidos.push({
-            vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente,
-            tipoClienteAfect: 'CALL', sede, dni: r.dni, cliente: hitCC.cliente, ops: hitCC.ops, monto: hitCC.monto,
-          });
+          baseSedeKeyPorDni.set(dni, 'call-center');
+          const g = asignadosPorSedeKey.get('call-center') ?? { nombre: 'Call Center', asignados: 0 };
+          g.asignados++; asignadosPorSedeKey.set('call-center', g);
+          carteraUnica.push({ dni: r.dni, vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente, sede: 'Call Center' });
           continue;
         }
 
         totalAsignados++;
-        const sede = r.sede || 'SIN SEDE';
-        asignadosPorSede.set(sede, (asignadosPorSede.get(sede) || 0) + 1);
-        carteraUnica.push({ dni: r.dni, vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente, sede });
-        const hit = idx.get(dni);
-        if (!hit) continue;
-        convertidos.push({
-          vendedor: r.vendedor,
-          tipoBase: r.tipoBase,
-          tipoCliente: r.tipoCliente,
-          tipoClienteAfect: hit.tipoCliente || 'SIN TIPO',
-          sede,
-          dni: r.dni,
-          cliente: hit.nombre,
-          ops: hit.ops,
-          monto: hit.monto,
-        });
+        const key = this.sedeCfg.normalizar(r.sede || '') || 'sin-sede';
+        const nombre = this.sedeCfg.getConfig(key)?.nombre ?? (r.sede || 'SIN SEDE');
+        baseSedeKeyPorDni.set(dni, key);
+        const g = asignadosPorSedeKey.get(key) ?? { nombre, asignados: 0 };
+        g.asignados++; asignadosPorSedeKey.set(key, g);
+        carteraUnica.push({ dni: r.dni, vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente, sede: nombre });
       }
       this.carteraUnica = carteraUnica;
+
+      // Ventas: cada DNI (único) cuenta sus operaciones EN LA SEDE DONDE SE CERRARON (igual
+      // que Avance de Cartera); Call Center se cruza aparte con ventasCallPorAsesor.
+      const convertidos: VentaCartera[] = [];
+      const vendidosPorSedeKey = new Map<string, { nombre: string; vendidos: number; monto: number }>();
+      for (const [dni, key] of baseSedeKeyPorDni) {
+        const info = infoPorDni.get(dni)!;
+        if (key === 'call-center') {
+          const hitCC = this.ventasCallPorAsesor.get(info.vendedor)?.get(dni);
+          if (!hitCC) continue;
+          const g = vendidosPorSedeKey.get(key) ?? { nombre: 'Call Center', vendidos: 0, monto: 0 };
+          g.vendidos += hitCC.ops; g.monto += hitCC.monto;
+          vendidosPorSedeKey.set(key, g);
+          convertidos.push({
+            vendedor: info.vendedor, tipoBase: info.tipoBase, tipoCliente: info.tipoCliente,
+            tipoClienteAfect: 'CALL', sede: 'Call Center', dni, cliente: hitCC.cliente, ops: hitCC.ops, monto: hitCC.monto,
+          });
+          continue;
+        }
+        const porSede = ventasPorDniSede.get(dni);
+        if (!porSede) continue;
+        for (const [sedeKeyVenta, agg] of porSede) {
+          const nombreVenta = this.sedeCfg.getConfig(sedeKeyVenta)?.nombre;
+          if (!nombreVenta) continue;   // ya filtrado arriba, por seguridad
+          const g = vendidosPorSedeKey.get(sedeKeyVenta) ?? { nombre: nombreVenta, vendidos: 0, monto: 0 };
+          g.vendidos += agg.ops; g.monto += agg.monto;
+          vendidosPorSedeKey.set(sedeKeyVenta, g);
+          convertidos.push({
+            vendedor: info.vendedor, tipoBase: info.tipoBase, tipoCliente: info.tipoCliente,
+            tipoClienteAfect: tipoClientePorDni.get(dni) || 'SIN TIPO',
+            sede: nombreVenta, dni, cliente: nombrePorDni.get(dni) || '', ops: agg.ops, monto: agg.monto,
+          });
+        }
+      }
 
       // Desglose por estado de las ventas que cruzaron con la cartera (ej. cuántas PRONTO PAGO).
       const porEstado = new Map<string, { cantidad: number; monto: number }>();
@@ -293,24 +321,23 @@ export class ComparativoCarteraVentasComponent {
       // CAP por sede: solo asesores ACTIVOS que pertenecen a cada sede.
       await this.cargarCap();
 
-      // Ventas de cartera agrupadas por sede (para el resumen / avance).
-      const vendidosPorSede = new Map<string, { vendidos: number; monto: number }>();
-      convertidos.forEach(c => {
-        const cur = vendidosPorSede.get(c.sede) || { vendidos: 0, monto: 0 };
-        cur.vendidos++; cur.monto += c.monto;
-        vendidosPorSede.set(c.sede, cur);
-      });
-      this.resumenSedes = Array.from(asignadosPorSede.entries()).map(([sede, asig]) => {
-        const v = vendidosPorSede.get(sede) || { vendidos: 0, monto: 0 };
-        return { sede, asignados: asig, vendidos: v.vendidos, monto: Math.round(v.monto), conversion: asig ? v.vendidos / asig : 0 };
+      // Resumen por sede: unión de las sedes con cartera asignada y las que solo recibieron
+      // ventas de otra base (igual que Avance de Cartera).
+      const claves = new Set<string>([...asignadosPorSedeKey.keys(), ...vendidosPorSedeKey.keys()]);
+      this.resumenSedes = Array.from(claves).map(key => {
+        const a = asignadosPorSedeKey.get(key);
+        const v = vendidosPorSedeKey.get(key);
+        const sede = a?.nombre ?? v?.nombre ?? key;
+        const asignados = a?.asignados ?? 0;
+        return { sede, asignados, vendidos: v?.vendidos ?? 0, monto: Math.round(v?.monto ?? 0), conversion: asignados ? (v?.vendidos ?? 0) / asignados : 0 };
       }).sort((a, b) => b.monto - a.monto || b.vendidos - a.vendidos);
 
       this.convertidosAll = convertidos;
-      this.asignadosPorSede = asignadosPorSede;
+      this.asignadosPorSede = new Map(Array.from(asignadosPorSedeKey.values()).map(g => [g.nombre, g.asignados]));
       this.totalAsignados = totalAsignados;
-      this.sedesDisponibles = Array.from(new Set(this.cartera.map(c => c.sede)))
-        .filter(s => s && s !== '' && s !== 'SIN SEDE').sort();
-      if (asignadosPorSede.has('Call Center')) this.sedesDisponibles = [...this.sedesDisponibles, 'Call Center'];
+      this.sedesDisponibles = this.resumenSedes.map(s => s.sede)
+        .filter(s => s && s !== 'SIN SEDE' && s !== 'Call Center').sort();
+      if (asignadosPorSedeKey.has('call-center')) this.sedesDisponibles = [...this.sedesDisponibles, 'Call Center'];
       this.yaCruzado = true;
       this.aplicarSede();
 
@@ -382,7 +409,7 @@ export class ComparativoCarteraVentasComponent {
     if (!sede) {
       this.ventasCartera = this.convertidosAll;
       this.kAsignados = this.totalAsignados;
-      this.kVendidos = this.ventasCartera.length;
+      this.kVendidos = this.ventasCartera.reduce((s, c) => s + c.ops, 0);
       this.kMonto = Math.round(this.ventasCartera.reduce((s, c) => s + c.monto, 0));
       this.todoExpandido = false;
       this.calcularTipoCliente();
@@ -395,7 +422,7 @@ export class ComparativoCarteraVentasComponent {
     const vista = this.convertidosAll.filter(c => c.sede === sede);
     this.ventasCartera = vista;
     this.kAsignados = this.carteraUnica.filter(c => c.sede === sede).length;
-    this.kVendidos = vista.length;
+    this.kVendidos = vista.reduce((s, c) => s + c.ops, 0);
     this.kMonto = Math.round(vista.reduce((s, c) => s + c.monto, 0));
     this.todoExpandido = false;
     this.calcularTipoCliente();
