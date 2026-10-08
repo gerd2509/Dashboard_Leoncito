@@ -72,6 +72,8 @@
 
     <!-- Resultado -->
     <div class="resultado" *ngIf="listo">
+      <app-loading-overlay [visible]="procesando" mensaje="Recalculando…"
+        submensaje="Actualizando gestión y ventas hasta la fecha elegida" icon="event"></app-loading-overlay>
 
       <div class="res-header">
         <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
