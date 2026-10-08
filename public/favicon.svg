@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Fondo circular oscuro, igual al badge que ya usa el login/sidebar -->
+  <circle cx="32" cy="32" r="31" fill="#120b05"/>
+  <circle cx="32" cy="32" r="31" fill="none" stroke="#F2A22C" stroke-width="2.2" opacity="0.95"/>
+
+  <!-- Leoncito (mismo trazado que app-lion-icon, variant leoncito), escalado y centrado -->
+  <g transform="translate(32 32) scale(0.82) translate(-32 -32)">
+    <g fill="#F2A22C">
+      <circle cx="50"   cy="29"   r="9"/>
+      <circle cx="47.6" cy="38"   r="9"/>
+      <circle cx="41"   cy="44.6" r="9"/>
+      <circle cx="32"   cy="47"   r="9"/>
+      <circle cx="23"   cy="44.6" r="9"/>
+      <circle cx="16.4" cy="38"   r="9"/>
+      <circle cx="14"   cy="29"   r="9"/>
+      <circle cx="16.4" cy="20"   r="9"/>
+      <circle cx="23"   cy="13.4" r="9"/>
+      <circle cx="32"   cy="11"   r="9"/>
+      <circle cx="41"   cy="13.4" r="9"/>
+      <circle cx="47.6" cy="20"   r="9"/>
+    </g>
+    <circle fill="#F2A22C" cx="21" cy="16" r="6"/>
+    <circle fill="#F2A22C" cx="43" cy="16" r="6"/>
+    <circle fill="#5E2F0C" cx="21" cy="16" r="2.6" opacity="0.45"/>
+    <circle fill="#5E2F0C" cx="43" cy="16" r="2.6" opacity="0.45"/>
+    <circle fill="#FFD27A" cx="32" cy="30" r="15.5"/>
+    <circle fill="#5E2F0C" cx="26" cy="28" r="2.7"/>
+    <circle fill="#5E2F0C" cx="38" cy="28" r="2.7"/>
+    <path fill="#5E2F0C" d="M32 39 l-4.2 -4.2 q4.2 -2.4 8.4 0 z"/>
+    <path stroke="#5E2F0C" fill="none" stroke-width="1.8" stroke-linecap="round"
+          d="M32 39 v3.2 M32 42.2 q-4 3.4 -8 1 M32 42.2 q4 3.4 8 1"/>
+  </g>
+</svg>
