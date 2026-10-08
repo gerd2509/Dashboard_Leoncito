@@ -141,6 +141,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     { monto:  40000, bono:  300 }, { monto:  35000, bono:  200 }, { monto:  30000, bono:  150 },
     { monto:  25000, bono:  100 }, { monto:  20000, bono:   75 }, { monto:  15000, bono:   50 },
   ];
+  // Realzza Chiclayo.
   private readonly bonosRealzza = [
     { monto: 150000, bono: 2500 }, { monto: 145000, bono: 2400 }, { monto: 140000, bono: 2300 },
     { monto: 135000, bono: 2200 }, { monto: 130000, bono: 2100 }, { monto: 125000, bono: 2000 },
@@ -152,6 +153,17 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     { monto:  45000, bono:  400 }, { monto:  40000, bono:  350 }, { monto:  35000, bono:  300 },
     { monto:  30000, bono:  250 }, { monto:  25000, bono:  200 }, { monto:  20000, bono:  150 },
     { monto:  15000, bono:  100 }, { monto:  10000, bono:   50 },
+  ];
+  // Realzza Piura (escala propia, distinta a Chiclayo). Lima: aún no definida por el
+  // negocio → usa esta misma de momento hasta que se indique su propia escala.
+  private readonly bonosRealzzaPiura = [
+    { monto: 126000, bono: 1500 }, { monto: 120000, bono: 1400 }, { monto: 114000, bono: 1300 },
+    { monto: 108000, bono: 1200 }, { monto: 102000, bono: 1100 }, { monto:  96000, bono: 1000 },
+    { monto:  90000, bono:  900 }, { monto:  84000, bono:  700 }, { monto:  78000, bono:  600 },
+    { monto:  72000, bono:  550 }, { monto:  66000, bono:  500 }, { monto:  60000, bono:  450 },
+    { monto:  54000, bono:  400 }, { monto:  48000, bono:  350 }, { monto:  42000, bono:  300 },
+    { monto:  36000, bono:  250 }, { monto:  30000, bono:  200 }, { monto:  24000, bono:  150 },
+    { monto:  18000, bono:  100 }, { monto:  12000, bono:   50 },
   ];
 
   // ── Alertas de seguimiento 1-3-5-7 (Realzza) — clientes por llamar hoy/atrasados ──
@@ -999,11 +1011,16 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     }
     return this.esCall;
   }
-  /** Bono (comisión) según el monto vendido, con la tabla del canal (por fecha si aplica). */
+  /** Bono (comisión) según el monto vendido, con la tabla del canal/tienda (por fecha si
+   *  aplica el corte Call→Realzza). Realzza: Piura tiene su propia escala; Lima usa la de
+   *  Chiclayo hasta que el negocio defina la suya. */
   private bonoPorMonto(monto: number): number {
-    const call = this.esCallSueldo;
-    const tabla = call ? this.bonosCall : this.bonosRealzza;
-    const min = call ? 15000 : 10000;
+    if (this.esCallSueldo) {
+      return monto >= 15000 ? (this.bonosCall.find(t => monto >= t.monto)?.bono || 0) : 0;
+    }
+    const tienda = sedeRealzzaDeUsuario(this.auth.getUsuario());
+    const tabla = tienda === 'REALZZA PIURA' ? this.bonosRealzzaPiura : this.bonosRealzza;
+    const min = tienda === 'REALZZA PIURA' ? 12000 : 10000;
     return monto >= min ? (tabla.find(t => monto >= t.monto)?.bono || 0) : 0;
   }
   /** Tarifa por moto: Call siempre 125; Realzza 125 si son ≥5, si no 100. */
