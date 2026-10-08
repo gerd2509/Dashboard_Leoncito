@@ -73,6 +73,10 @@
 /* Resultado */
 .resultado { margin-top: 18px; }
 .res-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.res-corte { display: flex; align-items: center; gap: 8px; color: var(--gris); font-size: 13px; font-weight: 600; }
+.res-corte mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--azul); }
+.res-corte mat-icon.girando { animation: ac-spin .8s linear infinite; }
+@keyframes ac-spin { to { transform: rotate(360deg); } }
 .res-archivo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14.5px; }
 .res-archivo mat-icon { color: var(--azul); }
 .btn-secundario {
@@ -137,7 +141,7 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .mini-bar .av-bajo { background: var(--no); }
 
 /* Encabezado del detalle por asesor + botón Regresar */
-.asesor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.asesor-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .asesor-head h3 { margin: 0; }
 .btn-regresar { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--borde);
   background: #fff; color: var(--azul); font-weight: 700; font-size: 13px; padding: 8px 14px;

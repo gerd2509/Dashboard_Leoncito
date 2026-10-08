@@ -166,9 +166,13 @@ export class AvanceCarteraComponent implements OnInit {
   listo = false;
 
   fecha: Date = new Date();
+  readonly hoyMax: Date = new Date();   // no se puede elegir un día futuro
 
   // ── Datos calculados ──
   private headersOriginales: string[] = [];
+  // Filas crudas del último Excel leído — permiten recalcular con otra fecha de corte
+  // (p.ej. "ver hasta ayer") sin tener que volver a subir el archivo.
+  private ultimasFilas: Record<string, any>[] = [];
   clientes: ClienteCartera[] = [];
   resumenAsesores: ResumenAsesor[] = [];      // modo call/realzza
   resumenSedes: ResumenSede[] = [];           // modo piso
@@ -219,7 +223,7 @@ export class AvanceCarteraComponent implements OnInit {
 
   reiniciar(): void {
     this.listo = false; this.error = ''; this.nombreArchivo = '';
-    this.headersOriginales = [];
+    this.headersOriginales = []; this.ultimasFilas = [];
     this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.clientesCallCenter = [];
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
@@ -241,6 +245,7 @@ export class AvanceCarteraComponent implements OnInit {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const filas = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: '', raw: false });
         if (!filas.length) throw new Error('El archivo no contiene filas de datos.');
+        this.ultimasFilas = filas;
         await this.calcularAvance(filas);
         this.listo = true;
       } catch (err: any) {
@@ -251,6 +256,21 @@ export class AvanceCarteraComponent implements OnInit {
     };
     reader.onerror = () => { this.error = 'Error al leer el archivo.'; this.procesando = false; };
     reader.readAsArrayBuffer(file);
+  }
+
+  /** Recalcula con la fecha de corte elegida, sin volver a subir el Excel (usa las
+   *  mismas filas ya leídas). Pensado para "ver el avance hasta [día]". */
+  async actualizarCorte(): Promise<void> {
+    if (!this.ultimasFilas.length || this.procesando) return;
+    this.procesando = true;
+    this.error = '';
+    try {
+      await this.calcularAvance(this.ultimasFilas);
+    } catch (err: any) {
+      this.error = err?.message ?? 'No se pudo recalcular con esa fecha.';
+    } finally {
+      this.procesando = false;
+    }
   }
 
   // ── Núcleo: cruzar cartera con la gestión ──
@@ -379,8 +399,11 @@ export class AvanceCarteraComponent implements OnInit {
   /** Gestión Call/Realzza → índice por DNI y por teléfono del mes seleccionado. */
   private async cargarGestion(): Promise<IndiceGestion> {
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
-    // Solo el mes seleccionado (la BD filtra por marca_temporal) → payload mínimo.
-    const desde = new Date(anio, mes, 1), hasta = new Date(anio, mes + 1, 0);
+    // Solo hasta la fecha de corte elegida (nunca más allá del mes) → payload mínimo.
+    const desde = new Date(anio, mes, 1);
+    const finMes = new Date(anio, mes + 1, 0);
+    const corte = this.finDeCorte();
+    const hasta = corte < finMes ? corte : finMes;
     let data: any[] = [];
     try {
       data = this.modo === 'realzza'
@@ -395,7 +418,7 @@ export class AvanceCarteraComponent implements OnInit {
     let count = 0;
     for (const item of data) {
       const fecha = this.parseMarcaTemporal(item[G_FECHA]);
-      if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) continue;
+      if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio || fecha > corte) continue;
       const estado = this.mapEstado(item[G_ESTADO]);
       count++;
       const dni = this.soloDigitos(String(item[G_DNI] ?? ''));
@@ -412,9 +435,11 @@ export class AvanceCarteraComponent implements OnInit {
    *  + lo registrado directo por plataforma), NO el Google Sheet. */
   private async cargarGestionSedes(): Promise<Map<string, IndiceGestion>> {
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
-    // Solo el mes seleccionado (la BD filtra por marca_temporal) → payload mínimo.
+    // Solo hasta la fecha de corte elegida (nunca más allá del mes) → payload mínimo.
     const desde = new Date(anio, mes, 1);
-    const hasta = new Date(anio, mes + 1, 0);
+    const finMes = new Date(anio, mes + 1, 0);
+    const corte = this.finDeCorte();
+    const hasta = corte < finMes ? corte : finMes;
     let data: any[] = [];
     try {
       data = await lastValueFrom(this.sheets.getGestionSedesDB({ desde, hasta }));
@@ -427,7 +452,7 @@ export class AvanceCarteraComponent implements OnInit {
     let count = 0;
     for (const item of data) {
       const fecha = this.parseMarcaTemporal(item[GS_FECHA]);
-      if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio) continue;
+      if (!fecha || fecha.getMonth() !== mes || fecha.getFullYear() !== anio || fecha > corte) continue;
       const sedeKey = this.sedeCfg.normalizar(item[GS_SEDE] ?? '');
       if (!sedeKey) continue;
       const estado = this.mapEstado(item[GS_ESTADO]);
@@ -454,12 +479,15 @@ export class AvanceCarteraComponent implements OnInit {
    *  venta se cuenta 1 vez por `codigo_cv` (si el cliente compró 2 → cuentan 2). */
   private async cargarVentasYMetasSede(): Promise<void> {
     const anio = this.fecha.getFullYear(), mes = this.fecha.getMonth() + 1;
+    const corte = this.finDeCorte();   // usado en ambos cruces de ventas de abajo
     this.ventasPorDni = new Map();
     this.ventasLista = new Map();
     const vistos = new Set<string>();   // codigo_cv ya contados (evita duplicados)
     try {
       const rows = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
       for (const r of (rows || [])) {
+        const fv = new Date(Number(r.anio_cv) || 0, (Number(r.mes_cv) || 1) - 1, Number(r.dia_cv) || 1);
+        if (fv > corte) continue;   // respeta la fecha de corte elegida
         const est = (r.estado_venta || '').toString().toUpperCase();
         if (/NOTA DE/.test(est) || /INCAUTAC/.test(est)) continue;   // solo ventas efectivas
         const monto = Number(r.monto_consolidado) || 0;
@@ -485,6 +513,8 @@ export class AvanceCarteraComponent implements OnInit {
       const rowsCall = await lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio, mes }));
       const vistosCall = new Set<string>();
       for (const r of (rowsCall || [])) {
+        const fv = new Date(Number(r.anio_cv) || 0, (Number(r.mes_cv) || 1) - 1, Number(r.dia_cv) || 1);
+        if (fv > corte) continue;
         const est = (r.estado_venta || '').toString().toUpperCase();
         if (/NOTA DE/.test(est) || /INCAUTAC/.test(est)) continue;
         const monto = Number(r.monto_consolidado) || 0;
@@ -511,6 +541,13 @@ export class AvanceCarteraComponent implements OnInit {
   /** Normaliza la sede de una venta al mismo esquema de clave que la cartera (quita el
    *  prefijo 'SEDE RELENOR'). Las sedes no-piso (Realzza store / oficina) quedan con una
    *  clave propia que NO coincide con ninguna sede piso → no se atribuyen al consolidado. */
+  /** Fin del día de corte elegido (fecha), 23:59:59.999 — todo lo posterior se descarta. */
+  private finDeCorte(): Date {
+    const c = new Date(this.fecha);
+    c.setHours(23, 59, 59, 999);
+    return c;
+  }
+
   private sedeKeyVenta(raw: string): string {
     return this.sedeCfg.normalizar(raw || '').replace(/^sederelenor/, '');
   }
@@ -596,7 +633,9 @@ export class AvanceCarteraComponent implements OnInit {
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
     const diasMes = new Date(this.fecha.getFullYear(), this.fecha.getMonth() + 1, 0).getDate();
-    const diasTrans = esMesActual ? Math.max(1, hoy.getDate()) : diasMes;
+    // Si el corte es hoy, es el día actual (como antes); si es un día anterior del mes en
+    // curso, se usa ESE día (no se puede proyectar con más días de los que de verdad pasaron).
+    const diasTrans = esMesActual ? Math.max(1, Math.min(this.fecha.getDate(), hoy.getDate())) : diasMes;
     map.forEach(r => {
       r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0;
       r.intensidad = r.gestionados > 0 ? Math.round((r.gestionesTotal / r.gestionados) * 100) / 100 : 0;
@@ -842,7 +881,7 @@ export class AvanceCarteraComponent implements OnInit {
   private construirProyeccion(): void {
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
-    this.diasTranscurridos = esMesActual ? hoy.getDate() : this.diasMes;
+    this.diasTranscurridos = esMesActual ? Math.min(this.fecha.getDate(), hoy.getDate()) : this.diasMes;
     this.ritmoDiario = this.diasTranscurridos > 0 ? Math.round(this.totalGestionados / this.diasTranscurridos) : 0;
     this.diasParaTerminar = this.ritmoDiario > 0 ? Math.ceil(this.totalPendientes / this.ritmoDiario) : 0;
   }

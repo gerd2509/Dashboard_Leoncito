@@ -34,14 +34,14 @@
 
   <ng-container *ngIf="modo">
 
-    <!-- Mes + carga -->
+    <!-- Fecha de corte + carga -->
     <div class="barra" *ngIf="!listo">
       <div class="campo">
-        <label>Mes de gestión</label>
-        <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
-          [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
+        <label>Ver avance hasta</label>
+        <dx-date-box [(value)]="fecha" type="date" displayFormat="dd/MM/yyyy"
+          [max]="hoyMax" stylingMode="outlined" [width]="150"></dx-date-box>
       </div>
-      <span class="barra-nota"><mat-icon>info</mat-icon> Se comparará contra la gestión de ese mes.</span>
+      <span class="barra-nota"><mat-icon>info</mat-icon> Se compara contra la gestión y las ventas de ese mes, solo hasta el día elegido (por defecto, hoy).</span>
     </div>
 
     <div *ngIf="!listo" class="dropzone"
@@ -75,6 +75,15 @@
 
       <div class="res-header">
         <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
+        <div class="res-corte">
+          <mat-icon>event</mat-icon>
+          <span>Ver avance hasta</span>
+          <dx-date-box [(value)]="fecha" type="date" displayFormat="dd/MM/yyyy" [max]="hoyMax"
+            [openOnFieldClick]="true" stylingMode="outlined" [width]="135" [disabled]="procesando"></dx-date-box>
+          <button class="btn-secundario" (click)="actualizarCorte()" [disabled]="procesando">
+            <mat-icon [class.girando]="procesando">refresh</mat-icon> {{ procesando ? 'Actualizando…' : 'Actualizar' }}
+          </button>
+        </div>
         <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otra</button>
       </div>
 
