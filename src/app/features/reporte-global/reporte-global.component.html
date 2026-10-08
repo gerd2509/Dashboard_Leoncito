@@ -38,26 +38,99 @@
   </div>
 
   <div class="rg-comp-resultados" *ngIf="comparando">
+    <!-- ── Indicadores de compañía, con variación % vs el periodo anterior ── -->
     <div class="am-scroll">
-      <table class="am-table">
+      <table class="am-table rg-comp-kpi-tabla">
         <thead>
           <tr>
             <th class="ta-l">Indicador (compañía)</th>
-            <th *ngFor="let c of comparativoCols">{{ c.label }}</th>
+            <th *ngFor="let c of comparativoCols; let i = index" [class.ultima]="i === comparativoCols.length - 1">{{ c.label }}</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let k of comparativoKpis">
             <td class="ta-l">{{ k.label }}</td>
-            <td *ngFor="let c of comparativoCols">{{ k.moneda ? soles(k.valores[c.key]) : (k.valores[c.key] | number) }}</td>
+            <td *ngFor="let c of comparativoCols; let i = index" [class.ultima]="i === comparativoCols.length - 1">
+              <span class="rg-valor">{{ k.moneda ? soles(k.valores[c.key]) : (k.valores[c.key] | number) }}</span>
+              <span class="rg-delta" *ngIf="deltaPct(k, i) !== null" [class.up]="deltaPct(k, i)! > 0" [class.down]="deltaPct(k, i)! < 0">
+                <mat-icon>{{ deltaPct(k, i)! > 0 ? 'arrow_drop_up' : (deltaPct(k, i)! < 0 ? 'arrow_drop_down' : 'remove') }}</mat-icon>
+                {{ deltaPct(k, i)! > 0 ? '+' : '' }}{{ deltaPct(k, i) }}%
+              </span>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="am-cardhead moto rg-comp-sub"><mat-icon>two_wheeler</mat-icon> Motos GLOBAL GO por Sede × Periodo <em>(# motos, incl. Piura/Lima)</em></div>
+    <!-- ── Motos por sede × periodo: Propio y GLOBAL GO, operaciones y S/ (incl. Piura/Lima) ── -->
+    <div class="am-cardhead moto rg-comp-sub"><mat-icon>two_wheeler</mat-icon> Motos por Sede × Periodo <em>(Propio y GLOBAL GO · operaciones y S/)</em></div>
     <div class="am-scroll">
-      <ng-container *ngTemplateOutlet="tabla; context: { $implicit: comparativoMotosSede, moneda: false }"></ng-container>
+      <table class="am-table rg-comp-motos-tabla">
+        <thead>
+          <tr>
+            <th class="ta-l" rowspan="2">Sede</th>
+            <th class="rg-grp-head" colspan="2" *ngFor="let c of comparativoCols">{{ c.label }}</th>
+          </tr>
+          <tr>
+            <ng-container *ngFor="let c of comparativoCols">
+              <th class="rg-sub">Propio</th>
+              <th class="rg-sub">Global GO</th>
+            </ng-container>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of comparativoMotosDetalle">
+            <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
+            <ng-container *ngFor="let c of comparativoCols">
+              <td class="rg-celda-moto">
+                <b>{{ (f.porPeriodo[c.key]?.propioOps || 0) | number }}</b>
+                <small>{{ soles(f.porPeriodo[c.key]?.propioMonto || 0) }}</small>
+              </td>
+              <td class="rg-celda-moto">
+                <b>{{ (f.porPeriodo[c.key]?.globalOps || 0) | number }}</b>
+                <small>{{ soles(f.porPeriodo[c.key]?.globalMonto || 0) }}</small>
+              </td>
+            </ng-container>
+          </tr>
+          <tr *ngIf="!comparativoMotosDetalle.length" class="vacio"><td [attr.colspan]="comparativoCols.length * 2 + 1">Sin datos para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="comparativoMotosDetalleTot && comparativoMotosDetalle.length">
+          <tr>
+            <td class="ta-l">TOTAL</td>
+            <ng-container *ngFor="let c of comparativoCols">
+              <td class="rg-celda-moto tot">
+                <b>{{ comparativoMotosDetalleTot.porPeriodo[c.key].propioOps | number }}</b>
+                <small>{{ soles(comparativoMotosDetalleTot.porPeriodo[c.key].propioMonto) }}</small>
+              </td>
+              <td class="rg-celda-moto tot">
+                <b>{{ comparativoMotosDetalleTot.porPeriodo[c.key].globalOps | number }}</b>
+                <small>{{ soles(comparativoMotosDetalleTot.porPeriodo[c.key].globalMonto) }}</small>
+              </td>
+            </ng-container>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ── Motos por marca × periodo (compañía completa) ── -->
+    <div class="am-cardhead moto rg-comp-sub"><mat-icon>sell</mat-icon> Motos por Marca × Periodo <em>(# operaciones, compañía)</em></div>
+    <div class="am-scroll">
+      <table class="am-table" *ngIf="comparativoMarca">
+        <thead>
+          <tr><th class="ta-l">Marca</th><th *ngFor="let c of comparativoCols">{{ c.label }}</th><th>Total</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let f of comparativoMarca.filas">
+            <td class="ta-l">{{ f.sede }}</td>
+            <td *ngFor="let c of comparativoCols">{{ f.valores[c.key] | number }}</td>
+            <td class="tot">{{ f.total | number }}</td>
+          </tr>
+          <tr *ngIf="!comparativoMarca.filas.length" class="vacio"><td [attr.colspan]="comparativoCols.length + 2">Sin datos para el periodo</td></tr>
+        </tbody>
+        <tfoot *ngIf="comparativoMarca.filas.length">
+          <tr><td class="ta-l">TOTAL</td><td *ngFor="let c of comparativoCols">{{ comparativoMarca.totales[c.key] | number }}</td><td class="tot">{{ comparativoMarca.totalGeneral | number }}</td></tr>
+        </tfoot>
+      </table>
     </div>
   </div>
 </div>

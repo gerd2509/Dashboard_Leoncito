@@ -46,6 +46,23 @@
 .rg-comp-resultados { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 6px; }
 .rg-comp-sub { margin: 10px -16px 0; border-radius: 0; }
 
+/* Tabla de indicadores: columna del periodo más reciente resaltada + variación % */
+.rg-comp-kpi-tabla th.ultima, .rg-comp-kpi-tabla td.ultima { background: #eef7f6; }
+.rg-comp-kpi-tabla td { text-align: right; }
+.rg-valor { display: block; font-weight: 700; color: #1E3A5F; }
+.rg-delta { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; color: #90a4ae; margin-top: 1px; }
+.rg-delta mat-icon { font-size: 15px; width: 15px; height: 15px; }
+.rg-delta.up { color: #2E7D32; }
+.rg-delta.down { color: #C62828; }
+
+/* Tabla de motos por sede × periodo: encabezado agrupado + celda ops/monto combinada */
+.rg-comp-motos-tabla .rg-grp-head { text-align: center; border-left: 2px solid #fff; background: #FFF3E0; color: #EF6C00; font-weight: 800; }
+.rg-comp-motos-tabla .rg-sub { text-align: center; font-size: 11px; color: #8d6e63; font-weight: 700; background: #FFF8EE; }
+.rg-celda-moto { text-align: center !important; border-left: 1px solid #f3eee6; }
+.rg-celda-moto b { display: block; font-size: 13px; color: #1E3A5F; }
+.rg-celda-moto small { display: block; font-size: 10.5px; color: #8d99a8; }
+.rg-celda-moto.tot b { color: #EF6C00; }
+
 .am-card { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(20,50,90,.05); }
 .am-cardhead { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 800; color: #fff; padding: 12px 16px; background: #283593; }
 .am-cardhead.cred { background: #1A5FAD; }

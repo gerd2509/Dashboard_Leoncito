@@ -20,6 +20,13 @@ interface RankSede {
   sedeKey: string; sede: string; color: string; vendedores: RankVendedor[]; propio: number; global: number; total: number;
   propioWanxin: number; propioSsenda: number; globalWanxin: number; globalSsenda: number;
 }
+/** Celda del detalle de motos por sede×periodo del comparativo: ops + monto, Propio y Global GO. */
+interface MotoCelda { propioOps: number; propioMonto: number; globalOps: number; globalMonto: number; }
+interface ComparMotoSedeFila {
+  sedeKey: string; sede: string; color: string;
+  porPeriodo: Partial<Record<string, MotoCelda>>;   // puede faltar un periodo (0 motos ese mes)
+  totPropioOps: number; totPropioMonto: number; totGlobalOps: number; totGlobalMonto: number;
+}
 
 @Component({
   selector: 'app-reporte-global',
@@ -80,8 +87,12 @@ export class ReporteGlobalComponent implements OnInit {
   comparando = false;
   cargandoComparativo = false;
   comparativoKpis: { key: string; label: string; moneda: boolean; valores: Record<string, number> }[] = [];
-  comparativoMotosSede: Pivot | null = null;
   comparativoCols: ColPivot[] = [];
+  // Detalle de motos por sede × periodo (Propio + GLOBAL GO, ops y S/, incl. Piura/Lima).
+  comparativoMotosDetalle: ComparMotoSedeFila[] = [];
+  comparativoMotosDetalleTot: { porPeriodo: Record<string, MotoCelda> } | null = null;
+  // Motos por marca (Wanxin/Ssenda) × periodo, a nivel compañía (# operaciones).
+  comparativoMarca: Pivot | null = null;
 
   private readonly coloresSede: Record<string, string> = {
     motupe: '#1565C0', olmos: '#00695C', ferrenafe: '#6A1B9A', jayanca: '#E65100',
@@ -151,9 +162,22 @@ export class ReporteGlobalComponent implements OnInit {
   limpiarComparativo(): void {
     this.comparando = false;
     this.comparativoKpis = [];
-    this.comparativoMotosSede = null;
+    this.comparativoMotosDetalle = [];
+    this.comparativoMotosDetalleTot = null;
+    this.comparativoMarca = null;
     this.comparativoCols = [];
   }
+
+  /** % de cambio de una fila KPI entre el periodo en `idx` y el anterior (null = sin base). */
+  deltaPct(fila: { valores: Record<string, number> }, idx: number): number | null {
+    if (idx === 0) return null;
+    const prev = fila.valores[this.comparativoCols[idx - 1].key] || 0;
+    const cur = fila.valores[this.comparativoCols[idx].key] || 0;
+    if (prev === 0) return cur === 0 ? 0 : null;
+    return Math.round(((cur - prev) / prev) * 1000) / 10;
+  }
+
+  private celdaVacia(): MotoCelda { return { propioOps: 0, propioMonto: 0, globalOps: 0, globalMonto: 0 }; }
 
   private construirComparativo(resultados: { periodo: { key: string; label: string }; rows: any[]; motos: any[]; margen: any[] }[]): void {
     const norm = (e: string | null) => (e || '').toString().trim().toUpperCase();
@@ -162,37 +186,79 @@ export class ReporteGlobalComponent implements OnInit {
 
     const kpiDefs: { key: string; label: string; moneda: boolean }[] = [
       { key: 'neto', label: 'Neto Global', moneda: true },
+      { key: 'netoOps', label: 'Operaciones Totales', moneda: false },
       { key: 'aliados', label: 'Aliados (neto)', moneda: true },
+      { key: 'aliadosOps', label: 'Operaciones Aliados', moneda: false },
       { key: 'motosOps', label: 'Motos GLOBAL GO (#)', moneda: false },
       { key: 'motosNeto', label: 'Motos GLOBAL GO (S/)', moneda: true },
+      { key: 'motosPropioOps', label: 'Motos Propio (#)', moneda: false },
+      { key: 'motosPropioNeto', label: 'Motos Propio (S/)', moneda: true },
       { key: 'margen', label: 'Margen Total', moneda: true },
     ];
     this.comparativoKpis = kpiDefs.map(d => ({ ...d, valores: {} }));
 
-    const entMotosSede: { sedeKey: string; sede: string; col: string; value: number }[] = [];
+    const bySede = new Map<string, ComparMotoSedeFila>();
+    const totPorPeriodo: Record<string, MotoCelda> = {};
+    const marcaEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
+
     for (const r of resultados) {
+      const k = r.periodo.key;
       const rows = r.rows.filter(x => this.sedeInfo(x.sede).key !== 'otras');
       const neto = rows.reduce((s, x) => s + (x.neto || 0), 0);
-      const aliados = rows.filter(x => norm(x.entidad) && norm(x.entidad) !== 'LEONCITO').reduce((s, x) => s + (x.neto || 0), 0);
+      const netoOps = rows.reduce((s, x) => s + (x.ops || 0), 0);
+      const aliadosRows = rows.filter(x => norm(x.entidad) && norm(x.entidad) !== 'LEONCITO');
+      const aliados = aliadosRows.reduce((s, x) => s + (x.neto || 0), 0);
+      const aliadosOps = aliadosRows.reduce((s, x) => s + (x.ops || 0), 0);
       const motosGG = rows.filter(x => x.es_moto && norm(x.entidad) === 'GLOBAL GO');
       const motosOps = motosGG.reduce((s, x) => s + (x.ops || 0), 0);
       const motosNeto = motosGG.reduce((s, x) => s + (x.neto || 0), 0);
+      const motosProp = rows.filter(x => x.es_moto && norm(x.entidad) === 'LEONCITO');
+      const motosPropioOps = motosProp.reduce((s, x) => s + (x.ops || 0), 0);
+      const motosPropioNeto = motosProp.reduce((s, x) => s + (x.neto || 0), 0);
       const margenRows = r.margen.filter((x: any) => this.sedeInfo(x.sede).key !== 'otras');
       const margenTotal = margenRows.reduce((s: number, x: any) => s + (x.margen_total || 0), 0);
 
-      this.comparativoKpis[0].valores[r.periodo.key] = neto;
-      this.comparativoKpis[1].valores[r.periodo.key] = aliados;
-      this.comparativoKpis[2].valores[r.periodo.key] = motosOps;
-      this.comparativoKpis[3].valores[r.periodo.key] = motosNeto;
-      this.comparativoKpis[4].valores[r.periodo.key] = margenTotal;
+      this.comparativoKpis[0].valores[k] = neto;
+      this.comparativoKpis[1].valores[k] = netoOps;
+      this.comparativoKpis[2].valores[k] = aliados;
+      this.comparativoKpis[3].valores[k] = aliadosOps;
+      this.comparativoKpis[4].valores[k] = motosOps;
+      this.comparativoKpis[5].valores[k] = motosNeto;
+      this.comparativoKpis[6].valores[k] = motosPropioOps;
+      this.comparativoKpis[7].valores[k] = motosPropioNeto;
+      this.comparativoKpis[8].valores[k] = margenTotal;
 
-      const motosGGSede = r.motos.filter((m: any) => m.credito === 'GLOBAL' && this.sedeInfo(m.sede).key !== 'otras');
-      for (const m of motosGGSede) {
-        const info = this.sedeInfo(m.sede);
-        entMotosSede.push({ sedeKey: info.key, sede: info.nombre, col: r.periodo.key, value: m.motos || 0 });
+      // Detalle de motos por sede: Propio (LEONCITO) + GLOBAL GO, ops y monto neto.
+      totPorPeriodo[k] = this.celdaVacia();
+      for (const x of rows.filter(x => x.es_moto)) {
+        const esGlobal = norm(x.entidad) === 'GLOBAL GO';
+        const esPropio = norm(x.entidad) === 'LEONCITO';
+        if (!esGlobal && !esPropio) continue;   // "Otros" créditos: fuera del detalle propio/global.
+        const info = this.sedeInfo(x.sede);
+        let f = bySede.get(info.key);
+        if (!f) { f = { sedeKey: info.key, sede: info.nombre, color: this.color(info.key), porPeriodo: {}, totPropioOps: 0, totPropioMonto: 0, totGlobalOps: 0, totGlobalMonto: 0 }; bySede.set(info.key, f); }
+        if (!f.porPeriodo[k]) f.porPeriodo[k] = this.celdaVacia();
+        if (esGlobal) {
+          f.porPeriodo[k].globalOps += x.ops || 0; f.porPeriodo[k].globalMonto += x.neto || 0;
+          f.totGlobalOps += x.ops || 0; f.totGlobalMonto += x.neto || 0;
+          totPorPeriodo[k].globalOps += x.ops || 0; totPorPeriodo[k].globalMonto += x.neto || 0;
+        } else {
+          f.porPeriodo[k].propioOps += x.ops || 0; f.porPeriodo[k].propioMonto += x.neto || 0;
+          f.totPropioOps += x.ops || 0; f.totPropioMonto += x.neto || 0;
+          totPorPeriodo[k].propioOps += x.ops || 0; totPorPeriodo[k].propioMonto += x.neto || 0;
+        }
       }
+
+      // Motos por marca (Wanxin/Ssenda/Otras) — compañía completa, en # operaciones.
+      const motosSede = r.motos.filter((m: any) => this.sedeInfo(m.sede).key !== 'otras');
+      const porMarca = new Map<string, number>();
+      motosSede.forEach((m: any) => porMarca.set(m.marca, (porMarca.get(m.marca) || 0) + (m.motos || 0)));
+      porMarca.forEach((v, marca) => marcaEnt.push({ sedeKey: marca, sede: this.titulo(marca), col: k, value: v }));
     }
-    this.comparativoMotosSede = this.buildPivot(entMotosSede, cols);
+
+    this.comparativoMotosDetalle = [...bySede.values()].sort((a, b) => (b.totGlobalMonto + b.totPropioMonto) - (a.totGlobalMonto + a.totPropioMonto));
+    this.comparativoMotosDetalleTot = { porPeriodo: totPorPeriodo };
+    this.comparativoMarca = this.buildPivot(marcaEnt, cols);
   }
 
   private color(k: string): string { return this.coloresSede[k] || '#607D8B'; }
