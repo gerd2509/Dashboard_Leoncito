@@ -88,6 +88,19 @@
         </div>
         <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otra</button>
       </div>
+      <!-- Marca cuándo el encabezado sale de la vista al scrollear (ver ngAfterViewChecked) -->
+      <div #headerSentinel></div>
+
+      <!-- Panel flotante: la fecha "a la mano" cuando el encabezado ya no se ve -->
+      <div class="float-fecha" *ngIf="floatVisible">
+        <button class="float-x" (click)="cerrarFloat()" title="Cerrar"><mat-icon>close</mat-icon></button>
+        <div class="float-row"><mat-icon>event</mat-icon><span>Ver avance hasta</span></div>
+        <dx-date-box [(value)]="fecha" type="date" displayFormat="dd/MM/yyyy" [max]="hoyMax"
+          [openOnFieldClick]="true" stylingMode="outlined" [disabled]="procesando"></dx-date-box>
+        <button class="btn-secundario" (click)="actualizarCorte()" [disabled]="procesando">
+          <mat-icon [class.girando]="procesando">refresh</mat-icon> {{ procesando ? 'Actualizando…' : 'Actualizar' }}
+        </button>
+      </div>
 
       <!-- Piso: selector de sede que enfoca TODA la vista -->
       <div class="piso-bar" *ngIf="esPiso">

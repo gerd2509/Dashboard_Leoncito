@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnDestroy, ViewChild, inject, OnInit } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { lastValueFrom } from 'rxjs';
@@ -111,7 +111,7 @@ import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA, ASESORES_CALL_EN_CARTERA_P
   templateUrl: './avance-cartera.component.html',
   styleUrls: ['./avance-cartera.component.css'],
 })
-export class AvanceCarteraComponent implements OnInit {
+export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestroy {
   private sheets = inject(SheetsService);
   private sedeCfg = inject(SedeConfigService);
   private auth = inject(AuthService);
@@ -167,6 +167,37 @@ export class AvanceCarteraComponent implements OnInit {
 
   fecha: Date = new Date();
   readonly hoyMax: Date = new Date();   // no se puede elegir un día futuro
+
+  // ── Panel flotante de "Ver avance hasta" (aparece al scrollear más allá del encabezado) ──
+  @ViewChild('headerSentinel') private headerSentinel?: ElementRef<HTMLElement>;
+  floatVisible = false;
+  private floatCerrado = false;          // cerrado con la X: no vuelve a salir hasta que subas y bajes de nuevo
+  private floatObserver?: IntersectionObserver;
+  private floatObserverEl?: HTMLElement;
+
+  /** Engancha el observer al "centinela" del encabezado en cuanto existe en el DOM (tras cargar el Excel). */
+  ngAfterViewChecked(): void {
+    const el = this.headerSentinel?.nativeElement;
+    if (el && el !== this.floatObserverEl) {
+      this.floatObserver?.disconnect();
+      this.floatObserverEl = el;
+      this.floatObserver = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) { this.floatCerrado = false; this.floatVisible = false; }
+        else { this.floatVisible = !this.floatCerrado; }
+      });
+      this.floatObserver.observe(el);
+    } else if (!el && this.floatObserverEl) {
+      this.floatObserver?.disconnect();
+      this.floatObserver = undefined;
+      this.floatObserverEl = undefined;
+      this.floatVisible = false;
+      this.floatCerrado = false;
+    }
+  }
+
+  cerrarFloat(): void { this.floatVisible = false; this.floatCerrado = true; }
+
+  ngOnDestroy(): void { this.floatObserver?.disconnect(); }
 
   // ── Datos calculados ──
   private headersOriginales: string[] = [];

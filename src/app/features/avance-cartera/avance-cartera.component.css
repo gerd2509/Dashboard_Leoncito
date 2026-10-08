@@ -75,8 +75,32 @@
 .res-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .res-corte { display: flex; align-items: center; gap: 8px; color: var(--gris); font-size: 13px; font-weight: 600; }
 .res-corte mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--azul); }
-.res-corte mat-icon.girando { animation: ac-spin .8s linear infinite; }
+mat-icon.girando { animation: ac-spin .8s linear infinite; }
 @keyframes ac-spin { to { transform: rotate(360deg); } }
+
+/* Panel flotante: la fecha "a la mano" cuando el encabezado ya no se ve. */
+.float-fecha {
+  position: fixed; top: 100px; right: 18px; z-index: 500; width: 190px;
+  display: flex; flex-direction: column; gap: 8px;
+  background: #fff; border: 1px solid var(--borde); border-radius: 14px;
+  padding: 14px 16px 12px;
+  box-shadow: 0 12px 32px rgba(10, 25, 50, .18);
+  animation: ff-in .18s ease both;
+}
+@keyframes ff-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.float-x {
+  position: absolute; top: 6px; right: 6px; border: none; background: transparent;
+  cursor: pointer; color: var(--gris); padding: 2px; border-radius: 6px; line-height: 0;
+}
+.float-x:hover { background: #f0f4fa; color: #1E3A5F; }
+.float-x mat-icon { font-size: 16px; width: 16px; height: 16px; }
+.float-fecha .float-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--gris); }
+.float-fecha .float-row mat-icon { font-size: 16px; width: 16px; height: 16px; color: var(--azul); }
+.float-fecha .btn-secundario { justify-content: center; }
+@media (max-width: 640px) {
+  .float-fecha { left: 12px; right: 12px; top: auto; bottom: 14px; width: auto; flex-direction: row; align-items: center; }
+  .float-fecha .float-row { display: none; }
+}
 .res-archivo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14.5px; }
 .res-archivo mat-icon { color: var(--azul); }
 .btn-secundario {
