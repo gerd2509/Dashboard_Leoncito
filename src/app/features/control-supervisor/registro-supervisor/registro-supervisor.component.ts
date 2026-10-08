@@ -19,6 +19,7 @@ interface GestionRapida {
   tipoBase: string;      // Realzza: 'TIPO DE BASE' de la fila · KOMMO: fijo 'KOMMO'
   estadoAsesor: string;  // estado que registró el asesor (referencia)
   hora: string;          // HH:mm de la gestión
+  cliente: string;       // KOMMO: 'NOMBRE CLIENTE' del lead (Realzza: vacío)
   fuente: 'REALZZA' | 'KOMMO';
   controlada: boolean;   // ya tiene un control del supervisor ese día
 }
@@ -181,6 +182,7 @@ export class RegistroSupervisorComponent implements OnInit {
       tipoBase: esKommo ? 'KOMMO' : ((g['TIPO DE BASE'] || '').toString().trim()),
       estadoAsesor: ((esKommo ? g['ESTADO DE GESTIÓN REALZZA'] : g['ESTADO DE GESTIÓN']) || '').toString().trim(),
       hora: this.horaDe(g['Marca temporal']),
+      cliente: esKommo ? (g['NOMBRE CLIENTE'] || '').toString().trim() : '',
       fuente: esKommo ? 'KOMMO' : 'REALZZA',
       controlada: false,
     };
@@ -228,14 +230,23 @@ export class RegistroSupervisorComponent implements OnInit {
     this.seleccion = row;
     this.intento = false;
     if (!row) return;
-    // En modo rápido siempre se registra como control de GESTIÓN (cruza por DNI):
-    // Realzza usa su tipo de base; KOMMO se registra con tipo_base 'KOMMO'.
-    this.g.asesor = row.asesor;
-    this.g.tipo_base = row.tipoBase;
-    this.g.dni_cliente = row.dni;
-    this.g.celular = row.celular;
-    this.g.estado_gestion = '';
-    this.g.comentario = '';
+    if (this.tipo === 'GESTION') {
+      // Gestión Realzza: control de GESTIÓN (cruza por DNI).
+      this.g.asesor = row.asesor;
+      this.g.tipo_base = row.tipoBase;
+      this.g.dni_cliente = row.dni;
+      this.g.celular = row.celular;
+      this.g.estado_gestion = '';
+      this.g.comentario = '';
+    } else {
+      // KOMMO Plataforma: mismo control que el manual (estado del lead + fotos),
+      // partiendo del asesor/cliente que ya registró su propia gestión.
+      this.mp.asesor = row.asesor;
+      this.mp.cliente = row.cliente;
+      this.mp.estadoLead = '';
+      this.mp.comentario = '';
+      this.mp.fotos = [];
+    }
   }
 
   /** Salta a una gestión pendiente al azar (para ir controlando al azar). */
@@ -338,10 +349,14 @@ export class RegistroSupervisorComponent implements OnInit {
 
   private get errores(): string[] {
     const e: string[] = [];
-    // Modo selección rápida: basta con elegir una gestión + marcar si contestó.
+    // Modo selección rápida: basta con elegir una gestión + el control correspondiente.
     if (this.usandoRapido) {
       if (!this.seleccion) e.push('Selecciona una gestión de la lista.');
-      if (!this.g.estado_gestion) e.push('Marca si contestó (Contacto / No contacto).');
+      if (this.tipo === 'GESTION') {
+        if (!this.g.estado_gestion) e.push('Marca si contestó (Contacto / No contacto).');
+      } else {
+        if (!this.mp.estadoLead) e.push('Selecciona el estado del lead.');
+      }
       return e;
     }
     if (this.tipo === 'GESTION') {
@@ -382,10 +397,24 @@ export class RegistroSupervisorComponent implements OnInit {
     this.guardando = true;
 
     let payload: ControlSupervisorPayload;
-    if (this.usandoRapido) {
-      // Selección rápida ⇒ control de GESTIÓN con los datos de la fila elegida.
-      // (KOMMO se registra con tipo_base 'KOMMO' para que cruce contra la gestión Kommo.)
+    if (this.usandoRapido && this.tipo === 'GESTION') {
+      // Selección rápida (Gestión Realzza) ⇒ control de GESTIÓN con los datos de la fila elegida.
       payload = { tipo_control: 'GESTION', registrado_por: this.supervisor, ...this.g };
+    } else if (this.usandoRapido) {
+      // Selección rápida (KOMMO Plataforma) ⇒ mismo control que el manual, pero
+      // guardando también dni_cliente/celular de la fila para el cruce de "ya controlada".
+      payload = {
+        tipo_control: 'MARKET_PLACE',
+        mp_subtipo: 'KOMMO PLATAFORMA',
+        registrado_por: this.supervisor,
+        asesor: this.mp.asesor,
+        dni_cliente: this.seleccion?.dni || '',
+        celular: this.seleccion?.celular || '',
+        cliente: this.mp.cliente,
+        estado_lead: this.mp.estadoLead,
+        comentario: this.mp.comentario,
+        fotos: this.mp.fotos,
+      };
     } else if (this.tipo === 'GESTION') {
       payload = { tipo_control: 'GESTION', registrado_por: this.supervisor, ...this.g };
     } else if (this.mpSubtipo === 'KOMMO PLATAFORMA') {
@@ -435,6 +464,7 @@ export class RegistroSupervisorComponent implements OnInit {
       }
       this.aplicarFiltro();
       this.g = { asesor: '', tipo_base: '', dni_cliente: '', celular: '', estado_gestion: '', comentario: '' };
+      this.mp = { asesor: '', fechaPub: null, sinPub: false, sePublico: false, cliente: '', estadoLead: '', comentario: '', fotos: [] };
       this.seleccion = null;
       this.intento = false;
       return;

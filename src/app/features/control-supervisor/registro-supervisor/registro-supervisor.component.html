@@ -74,6 +74,7 @@
         <dxi-column dataField="asesor" caption="Asesor" [width]="180"></dxi-column>
         <dxi-column dataField="dni" caption="DNI" [width]="100"></dxi-column>
         <dxi-column dataField="celular" caption="Celular" [width]="100"></dxi-column>
+        <dxi-column dataField="cliente" caption="Cliente" [width]="160" [visible]="tipo === 'MARKET_PLACE'"></dxi-column>
         <dxi-column dataField="tipoBase" caption="Tipo base" [width]="110"></dxi-column>
         <dxi-column dataField="estadoAsesor" caption="Estado asesor" [width]="130"></dxi-column>
         <dxi-column dataField="hora" caption="Hora" [width]="70"></dxi-column>
@@ -92,16 +93,61 @@
             <span>DNI {{ seleccion.dni }}<ng-container *ngIf="seleccion.celular"> · Cel {{ seleccion.celular }}</ng-container> · {{ seleccion.tipoBase }}</span>
           </div>
         </div>
-        <div class="rs-field rs-full">
-          <label>¿El cliente contestó? <span class="req">*</span></label>
-          <dx-radio-group [items]="estados" [(value)]="g.estado_gestion" (onValueChanged)="touched()"
-            [isValid]="!(intento && !g.estado_gestion)" layout="horizontal"></dx-radio-group>
-        </div>
-        <div class="rs-field rs-full">
-          <label>Comentario</label>
-          <dx-text-area [(value)]="g.comentario" [height]="80"
-            placeholder="Observación del control (opcional)" stylingMode="outlined"></dx-text-area>
-        </div>
+        <!-- Gestión Realzza: ¿contestó? -->
+        <ng-container *ngIf="tipo === 'GESTION'">
+          <div class="rs-field rs-full">
+            <label>¿El cliente contestó? <span class="req">*</span></label>
+            <dx-radio-group [items]="estados" [(value)]="g.estado_gestion" (onValueChanged)="touched()"
+              [isValid]="!(intento && !g.estado_gestion)" layout="horizontal"></dx-radio-group>
+          </div>
+          <div class="rs-field rs-full">
+            <label>Comentario</label>
+            <dx-text-area [(value)]="g.comentario" [height]="80"
+              placeholder="Observación del control (opcional)" stylingMode="outlined"></dx-text-area>
+          </div>
+        </ng-container>
+
+        <!-- KOMMO Plataforma: estado del lead + comentario + fotos (igual que el manual) -->
+        <ng-container *ngIf="tipo === 'MARKET_PLACE'">
+          <div class="rs-field">
+            <label>Nombre del cliente (Kommo Plataforma)</label>
+            <dx-text-box [(value)]="mp.cliente" placeholder="Nombre del cliente/lead" stylingMode="outlined"></dx-text-box>
+          </div>
+          <div class="rs-field rs-full">
+            <label>Estado del lead <span class="req">*</span></label>
+            <dx-select-box [dataSource]="estadosLead" [(value)]="mp.estadoLead" [isValid]="!(intento && invMpEstadoLead)" (onValueChanged)="touched()"
+              placeholder="Selecciona el estado" stylingMode="outlined"></dx-select-box>
+          </div>
+          <div class="rs-field rs-full">
+            <label>Comentario</label>
+            <dx-text-area [(value)]="mp.comentario" [height]="80"
+              placeholder="Observación de la revisión (opcional)" stylingMode="outlined"></dx-text-area>
+          </div>
+          <div class="rs-field rs-full">
+            <label>Fotos de la publicación (pruebas)</label>
+            <div class="rs-fotos-btns">
+              <label class="rs-foto-btn">
+                <input type="file" accept="image/*" capture="environment" (change)="onFotosSeleccionadas($event)" hidden />
+                <mat-icon>photo_camera</mat-icon> Tomar foto
+              </label>
+              <label class="rs-foto-btn ghost">
+                <input type="file" accept="image/*" multiple (change)="onFotosSeleccionadas($event)" hidden />
+                <mat-icon>add_photo_alternate</mat-icon> Subir foto(s)
+              </label>
+              <span class="rs-fotos-info" *ngIf="mp.fotos.length">
+                {{ mp.fotos.length }} foto(s) · {{ fotosMb }} MB
+                <span class="rs-fotos-warn" *ngIf="fotosMb > MAX_FOTOS_MB"> · supera {{ MAX_FOTOS_MB }} MB</span>
+              </span>
+              <span class="rs-fotos-info" *ngIf="procesandoFotos">procesando…</span>
+            </div>
+            <div class="rs-fotos-grid" *ngIf="mp.fotos.length">
+              <div class="rs-foto" *ngFor="let f of mp.fotos; let i = index">
+                <img [src]="f" alt="prueba" />
+                <button class="rs-foto-x" (click)="quitarFoto(i)"><mat-icon>close</mat-icon></button>
+              </div>
+            </div>
+          </div>
+        </ng-container>
       </div>
       <ng-template #sinSel>
         <div class="rs-sel-empty"><mat-icon>ads_click</mat-icon> Selecciona una gestión de la lista para registrar el control.</div>
