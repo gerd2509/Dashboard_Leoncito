@@ -125,6 +125,62 @@
 .card-real   .valor { color: #3D9B2F !important; }
 
 /* =========================================================
+   VENTAS CRUZADAS ENTRE TIENDAS REALZZA
+   ========================================================= */
+.rz-cruce {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 0 0 16px;
+}
+
+.rz-cruce-col {
+    background: #F2F8EE;
+    border: 1px solid #BFE2AC;
+    border-left: 4px solid #3D9B2F;
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+
+.rz-cruce-col.rz-cruce-salen {
+    background: #FBF4EC;
+    border-color: #F2D2AE;
+    border-left-color: #F07420;
+}
+
+.rz-cruce-titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #3D9B2F;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 8px;
+}
+
+.rz-cruce-salen .rz-cruce-titulo { color: #F07420; }
+
+.rz-cruce-titulo mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+.rz-cruce-fila {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    font-size: 12.5px;
+    border-top: 1px dashed rgba(0,0,0,0.08);
+}
+
+.rz-cruce-fila:first-of-type { border-top: none; }
+
+.rz-cruce-tienda { font-weight: 700; color: #1A5FAD; min-width: 110px; }
+.rz-cruce-vendedor { flex: 1; color: #333; }
+.rz-cruce-ops { color: #7A9BB8; font-weight: 600; }
+.rz-cruce-monto { font-weight: 700; color: #222; min-width: 90px; text-align: right; }
+
+/* =========================================================
    NOTAS DE CRÉDITO
    ========================================================= */
 .nc-section {

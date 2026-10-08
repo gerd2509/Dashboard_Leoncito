@@ -57,6 +57,32 @@
         <div class="valor">S/. {{ proyeccion | number:'1.0-0' }}</div>
     </div>
 </div>
+
+<!-- ===== VENTAS CRUZADAS ENTRE TIENDAS REALZZA ===== -->
+<div class="rz-cruce" *ngIf="tiendaVentas !== 'TODAS' && (detEntranRz.length || detSalenRz.length)">
+    <div class="rz-cruce-col" *ngIf="detEntranRz.length">
+        <div class="rz-cruce-titulo">
+            <mat-icon>call_received</mat-icon> Ventas de otras tiendas que SUMAN aquí (por vendedor)
+        </div>
+        <div class="rz-cruce-fila" *ngFor="let d of detEntranRz">
+            <span class="rz-cruce-tienda">{{ d.tienda }}</span>
+            <span class="rz-cruce-vendedor">{{ d.vendedor }}</span>
+            <span class="rz-cruce-ops">{{ d.ops }} op.</span>
+            <span class="rz-cruce-monto">S/. {{ d.monto | number:'1.0-0' }}</span>
+        </div>
+    </div>
+    <div class="rz-cruce-col rz-cruce-salen" *ngIf="detSalenRz.length">
+        <div class="rz-cruce-titulo">
+            <mat-icon>call_made</mat-icon> Ventas etiquetadas aquí que son de otra tienda (informativo, no suman)
+        </div>
+        <div class="rz-cruce-fila" *ngFor="let d of detSalenRz">
+            <span class="rz-cruce-tienda">{{ d.tienda }}</span>
+            <span class="rz-cruce-vendedor">{{ d.vendedor }}</span>
+            <span class="rz-cruce-ops">{{ d.ops }} op.</span>
+            <span class="rz-cruce-monto">S/. {{ d.monto | number:'1.0-0' }}</span>
+        </div>
+    </div>
+</div>
 </div><!-- /vd-fixed -->
 
 <!-- ===== ZONA CON SCROLL: tablas, gráficos y análisis ===== -->

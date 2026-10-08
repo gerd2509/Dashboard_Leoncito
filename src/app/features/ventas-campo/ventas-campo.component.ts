@@ -8,7 +8,7 @@ import { DxDataGridComponent } from 'devextreme-angular';
 import * as XLSX from 'xlsx';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { AuthService } from '../../services/auth.service';
-import { TIENDAS_REALZZA, enTiendaRealzza, esGestorTiendaRealzza, esSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
+import { TIENDAS_REALZZA, esGestorTiendaRealzza, esSedeRealzza, tiendaDeSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { forkJoin, of } from 'rxjs';
@@ -32,7 +32,21 @@ export class VentasCampoComponent implements OnInit {
   readonly tiendasOpciones = [...TIENDAS_REALZZA, { value: 'TODAS', viewValue: 'TODAS LAS TIENDAS' }];
   readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
   tiendaVentas: string = this.tiendaGestor || 'REALZZA';
-  private esRzSel(sede: string): boolean { return esSedeRealzza(sede) && enTiendaRealzza(sede, this.tiendaVentas); }
+
+  // La venta cuenta en la tienda del VENDEDOR (su CAP), no en la etiqueta de sede de la
+  // venta — un vendedor de Chiclayo puede vender con etiqueta Piura y viceversa; el monto
+  // y la comisión son de su propia tienda. `detEntranRz`/`detSalenRz` muestran el cruce
+  // (igual que el ↙/↗ de Avance de Cartera, aquí por vendedor en vez de por DNI).
+  detEntranRz: { tienda: string; vendedor: string; ops: number; monto: number }[] = [];
+  detSalenRz: { tienda: string; vendedor: string; ops: number; monto: number }[] = [];
+  /** Acumula el detalle cruzado (ops/monto por tienda+vendedor); mismo criterio de "venta
+   *  válida" que el resto del módulo (sin NC, monto > 0). */
+  private acumularCruceRz(arr: { tienda: string; vendedor: string; ops: number; monto: number }[], tienda: string, vendedor: string, monto: number, esNC: boolean): void {
+    if (esNC || monto <= 0 || !vendedor) return;
+    let fila = arr.find(x => x.tienda === tienda && x.vendedor === vendedor);
+    if (!fila) { fila = { tienda, vendedor, ops: 0, monto: 0 }; arr.push(fila); }
+    fila.ops += 1; fila.monto += monto;
+  }
   setTiendaVentas(t: string): void {
     if (this.tiendaGestor) return;
     this.tiendaVentas = t || 'REALZZA';
@@ -271,7 +285,8 @@ export class VentasCampoComponent implements OnInit {
   }
 
   async ngOnInit() {
-    this.tiendas.cargar().then(() => this.refrescarAsesores());
+    await this.tiendas.cargar();   // el CAP debe estar listo ANTES de procesar (atribuye por vendedor)
+    this.refrescarAsesores();
     this.cargarDesdeBD();   // carga la data real de ventas_realzza al abrir el módulo
     this.buscarMotosFuente();   // carga "Motos por mes" con su propio rango por defecto
   }
@@ -404,16 +419,33 @@ export class VentasCampoComponent implements OnInit {
     this.dataVentas = [];
     this.dataNotasCredito = [];
     this.dataGlobalGo = [];
+    this.detEntranRz = [];
+    this.detSalenRz = [];
 
     for (const r of vrows) {
       const sede = (r.sede || '').toString().trim().toUpperCase();
+      if (!esSedeRealzza(sede)) continue;
       const estadoVenta = (r.estado_venta || '').toString().trim().toUpperCase();
       const entidad = (r.entidad || '').toString().trim().toUpperCase();
       const monto = this.parseNumber(r.monto_consolidado);
       const esNC = this.esVentaReductora(estadoVenta);
       const id = (r.codigo_cv ?? '').toString().trim();
       const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
-      if (!this.esRzSel(sede)) continue;
+      const vendedorNombre = (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
+      const etiquetaTienda = tiendaDeSedeRealzza(sede);
+      const tiendaReal = this.tiendas.tiendaDeVendedor(vendedorNombre);
+      const vistaTodas = this.tiendaVentas === 'TODAS';
+
+      if (!vistaTodas && tiendaReal !== this.tiendaVentas) {
+        // No es de esta tienda por vendedor: si la ETIQUETA de la venta sí es de esta
+        // tienda, es una venta cruzada que "sale" hacia la tienda real — solo informativa.
+        if (etiquetaTienda === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, tiendaReal, vendedorNombre, monto, esNC);
+        continue;
+      }
+      // Es de esta tienda por vendedor (o vista "TODAS"): cuenta en el monto/comisión.
+      if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
+        this.acumularCruceRz(this.detEntranRz, etiquetaTienda, vendedorNombre, monto, esNC);
+      }
 
       if (!esNC && monto > 0) {
         const items = margenMap.get(id) || [];
@@ -542,16 +574,32 @@ export class VentasCampoComponent implements OnInit {
       this.dataVentas = [];
       this.dataNotasCredito = [];
       this.dataGlobalGo = [];
+      this.detEntranRz = [];
+      this.detSalenRz = [];
 
       jsonData.forEach((row: any) => {
         const sede = (row['Sede'] || '').toString().trim().toUpperCase();
+        if (!esSedeRealzza(sede)) return;
         const estadoVenta = (row['EstadoVenta'] || '').toString().trim().toUpperCase();
         const entidad = (row['Entidad'] || '').toString().trim().toUpperCase();
         const monto = this.parseNumber(row['MontoConsolidado']);
         const esNC = this.esVentaReductora(estadoVenta);
         const idventa = (row['IDVENTA'] || '').toString().trim();
+        const vendedorNombre = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
+        const etiquetaTienda = tiendaDeSedeRealzza(sede);
+        const tiendaReal = this.tiendas.tiendaDeVendedor(vendedorNombre);
+        const vistaTodas = this.tiendaVentas === 'TODAS';
 
-        if (this.esRzSel(sede) && !esNC && monto > 0) {
+        if (!vistaTodas && tiendaReal !== this.tiendaVentas) {
+          if (etiquetaTienda === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, tiendaReal, vendedorNombre, monto, esNC);
+          return;
+        }
+        if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
+          this.acumularCruceRz(this.detEntranRz, etiquetaTienda, vendedorNombre, monto, esNC);
+        }
+        const esRz = true;
+
+        if (esRz && !esNC && monto > 0) {
           // Línea principal: la de mayor ValorVenta en MARGEN para este IDVENTA
           const margenItems = margenMap.get(idventa) || [];
           const primaryLinea = margenItems.length > 0
@@ -581,7 +629,7 @@ export class VentasCampoComponent implements OnInit {
         }
 
         // Capturar Notas de Crédito con las 3 columnas AF
-        if (this.esRzSel(sede) && esNC) {
+        if (esRz && esNC) {
           // Distribución proporcional del NC entre las líneas reales del IDVENTA
           const ncItems = margenMap.get(idventa) || [];
           const ncTotalVV = ncItems.reduce((s, i) => s + i.valorVenta, 0);
@@ -612,7 +660,7 @@ export class VentasCampoComponent implements OnInit {
         }
 
         // Capturar ventas Global GO solo de SEDE REALZZA STORE
-        if (this.esRzSel(sede) && entidad === 'GLOBAL GO' && !esNC && monto > 0) {
+        if (esRz && entidad === 'GLOBAL GO' && !esNC && monto > 0) {
           this.dataGlobalGo.push({
             ClienteVenta: row['ClienteVenta'],
             DocIdentidad: row['DocIdentidad'],

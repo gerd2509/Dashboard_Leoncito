@@ -38,4 +38,13 @@ export class AsesoresPorTienda {
     }
     return !!this.mapa[tienda]?.includes(a);
   }
+
+  /** Tienda "dueña" del asesor según el CAP (quién es, no dónde se etiquetó la venta).
+   *  Chiclayo es el valor por defecto: cualquier nombre que no esté en el CAP de Piura
+   *  ni de Lima (incluye vendedores aún no migrados o nombres no encontrados). */
+  tiendaDeVendedor(asesor: string): string {
+    const a = (asesor || '').toString().toUpperCase().trim();
+    for (const t of TIENDAS_NUEVAS_REALZZA) if (this.mapa[t]?.includes(a)) return t;
+    return 'REALZZA';
+  }
 }
