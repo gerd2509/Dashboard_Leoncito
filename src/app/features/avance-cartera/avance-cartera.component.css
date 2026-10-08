@@ -71,7 +71,7 @@
 .btn-link { margin-left: auto; background: none; border: none; color: #B3261E; font-weight: 700; cursor: pointer; text-decoration: underline; }
 
 /* Resultado */
-.resultado { margin-top: 18px; position: relative; min-height: 120px; }
+.resultado { margin-top: 18px; }
 .res-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .res-corte { display: flex; align-items: center; gap: 8px; color: var(--gris); font-size: 13px; font-weight: 600; }
 .res-corte mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--azul); }

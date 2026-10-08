@@ -72,7 +72,7 @@
 
     <!-- Resultado -->
     <div class="resultado" *ngIf="listo">
-      <app-loading-overlay [visible]="procesando" mensaje="Recalculando…"
+      <app-loading-overlay [full]="true" [visible]="procesando" mensaje="Recalculando…"
         submensaje="Actualizando gestión y ventas hasta la fecha elegida" icon="event"></app-loading-overlay>
 
       <div class="res-header">
