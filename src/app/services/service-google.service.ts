@@ -198,6 +198,7 @@ export class SheetsService {
     'PRODUCTO DE INTERES': r.producto_interes,
     'DETALLE(COMENTARIO) CONTACTO': r.detalle_contacto,
     'N° CELULAR ACTUALIZADO': r.celular_actualizado,
+    'DETALLE(COMENTARIO) NO DESEA SIN RAZON': r.detalle_no_desea,
     _origen: r.origen,
   });
   getGestionSedesDB(rango?: { desde?: Date; hasta?: Date }): Observable<any[]> {
@@ -237,6 +238,7 @@ export class SheetsService {
       producto_interes: d['PRODUCTO DE INTERES'], detalle_contacto: d['DETALLE(COMENTARIO) CONTACTO'],
       celular_actualizado: d['N° CELULAR ACTUALIZADO'], valor_venta: d['VALOR DE LA VENTA'],
       fecha_compromiso: d['FECHA DE COMPROMISO O VISITA'],
+      detalle_no_desea: d['DETALLE(COMENTARIO) NO DESEA SIN RAZON'],
     };
   }
   /** Edita una gestión de sede (tabla gestion). */

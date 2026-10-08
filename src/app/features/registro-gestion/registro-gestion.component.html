@@ -81,6 +81,10 @@
         <div class="rg-field"><label>Celular actualizado *</label>
           <dx-text-box [(value)]="modelo.celular_actualizado" (onValueChanged)="modelo.celular_actualizado = soloNum(modelo.celular_actualizado, 9)" mode="tel" [maxLength]="9" stylingMode="outlined"></dx-text-box></div>
       </ng-container>
+      <ng-container *ngIf="sNoDesea">
+        <div class="rg-field rg-2"><label>Detalle (comentario) *</label>
+          <dx-text-area [(value)]="modelo.detalle_no_desea" [height]="60" stylingMode="outlined"></dx-text-area></div>
+      </ng-container>
     </div>
 
     <!-- ══════════ REALZZA ══════════ -->

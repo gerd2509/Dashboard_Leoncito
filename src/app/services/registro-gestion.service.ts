@@ -18,6 +18,7 @@ export interface GestionPayload {
   producto_interes?: string;
   detalle_contacto?: string;
   celular_actualizado?: string;
+  detalle_no_desea?: string;
 }
 
 /** Payload de una gestión Realzza (todo opcional salvo los 3 obligatorios base). */

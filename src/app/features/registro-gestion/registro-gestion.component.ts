@@ -142,6 +142,7 @@ interface Modelo {
   producto_interes: string;
   detalle_contacto: string;
   celular_actualizado: string;
+  detalle_no_desea: string;
 }
 
 @Component({
@@ -499,6 +500,7 @@ export class RegistroGestionComponent implements OnInit {
     this.modelo.producto_interes = '';
     this.modelo.detalle_contacto = '';
     this.modelo.celular_actualizado = '';
+    this.modelo.detalle_no_desea = '';
   }
 
   // ── Sanitizado y validación ──
@@ -596,6 +598,7 @@ export class RegistroGestionComponent implements OnInit {
       if (!m.motivo_contacto) return 'Selecciona el motivo de contacto.';
       if (this.sFormulario && !(m.fecha_compromiso && this.t(m.valor_venta) && m.producto_interes)) return 'Completa fecha, valor y producto de interés.';
       if (this.sDetalle && !(this.t(m.detalle_contacto) && this.d9(m.celular_actualizado))) return 'Completa el detalle y el celular actualizado (9 dígitos).';
+      if (this.sNoDesea && !this.t(m.detalle_no_desea)) return 'Completa el detalle (comentario) de "No desea -sin razón".';
       return '';
     }
     return '';
@@ -615,7 +618,7 @@ export class RegistroGestionComponent implements OnInit {
       case 'motivoNoContacto': return !!m.motivo_no_contacto;
       case 'formulario': return !!m.fecha_compromiso && `${m.valor_venta ?? ''}`.trim().length > 0 && !!m.producto_interes;
       case 'detalle': return m.detalle_contacto.trim().length > 0 && /^\d{9}$/.test((m.celular_actualizado ?? '').toString());
-      case 'resumen': return true;
+      case 'resumen': return !this.sNoDesea || m.detalle_no_desea.trim().length > 0;
       default: return true;
     }
   }
@@ -630,6 +633,7 @@ export class RegistroGestionComponent implements OnInit {
   get sMotivoContacto(): boolean { return this.modelo.resultado === 'CONTACTO'; }
   get sFormulario(): boolean { return MOTIVOS_CONTACTO_FORM.includes(this.modelo.motivo_contacto); }
   get sDetalle(): boolean { return MOTIVOS_CONTACTO_DETALLE.includes(this.modelo.motivo_contacto); }
+  get sNoDesea(): boolean { return this.modelo.motivo_contacto === 'No desea -sin razón'; }
   get sNoContacto(): boolean { return this.modelo.resultado === 'NO CONTACTO'; }
   // Realzza
   get rzNoCont(): boolean { return this.rz.estado_gestion === 'NO CONTACTO'; }
@@ -701,6 +705,7 @@ export class RegistroGestionComponent implements OnInit {
       if (!m.motivo_contacto) return false;
       if (this.sFormulario) return !!m.fecha_compromiso && t(m.valor_venta) && !!m.producto_interes;
       if (this.sDetalle) return t(m.detalle_contacto) && d9(m.celular_actualizado);
+      if (this.sNoDesea) return t(m.detalle_no_desea);
       return true;
     }
     return false;
@@ -739,6 +744,7 @@ export class RegistroGestionComponent implements OnInit {
       producto_interes: m.producto_interes || '',
       detalle_contacto: m.detalle_contacto || '',
       celular_actualizado: m.celular_actualizado || '',
+      detalle_no_desea: m.detalle_no_desea || '',
     };
     this.api.registrar(payload).subscribe({
       next: () => { this.guardando = false; this.guardado = true; },
@@ -897,7 +903,7 @@ export class RegistroGestionComponent implements OnInit {
     return {
       dni_cliente: '', sede: '', sedeKey: '', asesor: '', tipo_gestion: '', resultado: '',
       motivo_contacto: '', motivo_no_contacto: '', fecha_compromiso: '', valor_venta: '',
-      producto_interes: '', detalle_contacto: '', celular_actualizado: '',
+      producto_interes: '', detalle_contacto: '', celular_actualizado: '', detalle_no_desea: '',
     };
   }
 }
