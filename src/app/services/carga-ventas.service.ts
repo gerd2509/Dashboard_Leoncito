@@ -271,6 +271,11 @@ export class CargaVentasService {
   obtenerVentasRealzzaModulo(anio: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.root}/ventas-realzza/modulo`, { params: new HttpParams().set('anio', anio) });
   }
+  /** Ventas Realzza (cualquier tienda, sin acotar mes) atribuidas a un código de Call
+   *  (asesor_venta). Para que Mi Panel sume sus derivaciones a Realzza en el sueldo. */
+  obtenerVentasRealzzaPorCC(cc: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.root}/ventas-realzza/por-cc`, { params: new HttpParams().set('cc', cc) });
+  }
   /** Evolutivo mensual Realzza (neto por mes) desde ventas_realzza; para el gráfico. */
   obtenerVentasRealzzaEvolutivo(tienda?: string): Observable<{ anio: number; mes: number; ventas: number; nc: number; neto: number }[]> {
     const params = tienda ? new HttpParams().set('tienda', tienda) : undefined;

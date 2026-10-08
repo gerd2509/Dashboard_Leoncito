@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
@@ -82,6 +82,10 @@ export class MiPanelComponent implements OnInit, OnDestroy {
 
   private todas: any[] = [];    // todas las ventas del vendedor
   ventas: any[] = [];           // filtradas por el rango (para el detalle)
+  // Call: sus ventas derivadas a Realzza (cualquier tienda) por código CC — aparte de
+  // `todas` (que son solo sus ventas_call) para no alterar el detalle/gráficos existentes;
+  // solo se suman al cálculo del sueldo (ver calcularSueldo/construirMesesSueldo).
+  private todasRzDerivadas: any[] = [];
 
   // KPIs
   montoTotal = 0;
@@ -784,8 +788,14 @@ export class MiPanelComponent implements OnInit, OnDestroy {
       : canal === 'realzza'
         ? this.ventasSvc.obtenerVentasCanal('realzza', { vendedor: this.vendedor })
         : this.ventasSvc.obtenerVentasPorVendedor(this.vendedor);
-    obs.subscribe({
-      next: (rows) => {
+    // Call: además de sus ventas propias (ventas_call), sus derivaciones a Realzza
+    // (Chiclayo/Piura/Lima) cuentan para el sueldo — mismo criterio que la Atribución
+    // Call→Realzza (asesor_venta = su código CC), sin importar la tienda.
+    const rzDerivadas = canal === 'call'
+      ? this.ventasSvc.obtenerVentasRealzzaPorCC(this.codigoCall(this.vendedor))
+      : undefined;
+    forkJoin({ rows: obs, rzDerivadas: rzDerivadas ? rzDerivadas : of(null) }).subscribe({
+      next: ({ rows, rzDerivadas }) => {
         // Fecha de display construida desde dia/mes/anio (evita el corrimiento de
         // -1 día por zona horaria al parsear la columna DATE `fecha_cv`).
         // Todas las ventas del vendedor (incluidas las asistidas por Call), como el
@@ -802,6 +812,10 @@ export class MiPanelComponent implements OnInit, OnDestroy {
               && !r.asesor_manual
               && (r.tipo_base || '').toString().trim().toUpperCase() !== 'CALL'))
           .map(r => ({ ...r, fecha_disp: this.fechaLocal(r) }));
+        // Derivaciones a Realzza de una asesora de Call: SÍ se les aplica la regla de
+        // Realzza (la NC resta en su mes de afectación, no se descarta como en ventas_call).
+        this.todasRzDerivadas = (rzDerivadas || [])
+          .filter((r: any) => !(r.sin_derivacion && !r.extranjero && !r.asesor_manual));
         this.aplicar();
         this.construirMesesSueldo();
         this.calcularSueldo();
@@ -935,7 +949,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   private construirMesesSueldo(): void {
     if (!this.aplicaSueldo) return;
     const set = new Set<string>();
-    for (const r of this.todas) {
+    for (const r of [...this.todas, ...this.todasRzDerivadas]) {
       if (Number(r.anio_cv) && Number(r.mes_cv)) set.add(`${r.anio_cv}-${String(r.mes_cv).padStart(2, '0')}`);
       if (this.esReductor(r) && Number(r.anio_af) && Number(r.mes_af)) set.add(`${r.anio_af}-${String(r.mes_af).padStart(2, '0')}`);
     }
@@ -967,7 +981,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     if (!ay || !am) { this.montoVendidoMes = this.comisionVentas = this.motosGlobal = this.pagoMotos = 0; this.totalGanar = this.sueldoBase; return; }
 
     let monto = 0;
-    for (const r of this.todas) {
+    for (const r of [...this.todas, ...this.todasRzDerivadas]) {
       const m = Number(r.monto_consolidado || 0);
       if (Number(r.anio_cv) === ay && Number(r.mes_cv) === am) monto += m;
       if (this.esReductor(r) && Number(r.anio_af) === ay && Number(r.mes_af) === am) monto -= m;
@@ -978,7 +992,7 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     this.comisionVentas = this.bonoPorMonto(monto);
 
     // Motos GLOBAL GO vendidas en el mes (por su fecha de venta, sin NC/incaut.).
-    this.motosGlobal = this.todas.filter(r =>
+    this.motosGlobal = [...this.todas, ...this.todasRzDerivadas].filter(r =>
       !this.esReductor(r) &&
       Number(r.anio_cv) === ay && Number(r.mes_cv) === am &&
       (r.tipo_producto ?? '').toString().toUpperCase().includes('MOTO') &&
