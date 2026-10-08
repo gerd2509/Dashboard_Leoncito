@@ -4,6 +4,7 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ASESORES_CALL, nombreCorto } from '../../shared/asesores';
+import { TIENDAS_REALZZA } from '../../shared/canal-usuario';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 type Estado = 'DERIVACION' | 'MANUAL' | 'PENDIENTE';
@@ -42,6 +43,9 @@ export class AtribucionCallComponent implements OnInit {
   get esSedes(): boolean { return this.canal === 'sedes'; }
   // Sub-selector de sede (solo en modo Sedes): Lambayeque / Ferreñafe.
   sede: 'LAMBAYEQUE' | 'FERREÑAFE' = 'LAMBAYEQUE';
+  // Sub-selector de tienda (solo en modo Realzza): Chiclayo (por defecto, igual que antes) / Piura / Lima.
+  readonly tiendasRz = TIENDAS_REALZZA;
+  tiendaRz: string = 'REALZZA';
   // Fuente generadora (Sedes) = TIPO DE BASE de la derivación.
   readonly fuenteOpciones = [
     'BBDD', 'CALL', 'REFERIDOS', 'TIENDA', 'CASERIOS', 'RECURRENTES NO ASIGNADOS', 'KOMMO', 'BBDD KOMMO',
@@ -107,6 +111,14 @@ export class AtribucionCallComponent implements OnInit {
     this.ventas = []; this.refrescarFilas();
     this.cargar();
   }
+  /** Cambia la tienda Realzza (Chiclayo/Piura/Lima) y recarga. */
+  setTiendaRz(t: string): void {
+    if (this.tiendaRz === t) return;
+    this.tiendaRz = t || 'REALZZA';
+    this.filtro = 'todos'; this.dni = ''; this.resultados = []; this.yaBusco = false;
+    this.ventas = []; this.refrescarFilas();
+    this.cargar();
+  }
 
   // Dinero como "S/ 2,076.92" (S/ con 2 decimales), igual que antes.
   montoTexto = (info: any): string => {
@@ -144,7 +156,7 @@ export class AtribucionCallComponent implements OnInit {
     this.cargando = true;
     const obs = this.esSedes
       ? this.svc.listarAtribucionSede(this.sede, this.anio || undefined, this.mes || undefined)
-      : this.svc.listarAtribucion(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined);
+      : this.svc.listarAtribucion(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined, this.esRealzza ? this.tiendaRz : undefined);
     obs.subscribe({
       // Solo ventas con MontoConsolidado > 0 (misma regla que el módulo de ventas).
       next: rows => { this.ventas = (rows || []).filter(r => (+r.monto_consolidado || 0) > 0).map(this.mapRow); this.refrescarFilas(); this.cargando = false; },
@@ -192,7 +204,7 @@ export class AtribucionCallComponent implements OnInit {
       });
       return;
     }
-    this.svc.consolidarVentas(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined).subscribe({
+    this.svc.consolidarVentas(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined, this.esRealzza ? this.tiendaRz : undefined).subscribe({
       next: r => {
         this.consolidando = false;
         const destino = this.esRealzza ? 'Ventas Realzza' : 'Ventas Call';
@@ -238,7 +250,7 @@ export class AtribucionCallComponent implements OnInit {
     this.buscando = true; this.yaBusco = true;
     const obs = this.esSedes
       ? this.svc.buscarVentaSede(this.sede, d, this.anio || undefined, this.mes || undefined)
-      : this.svc.buscarVenta(this.canal as 'call' | 'realzza', d, this.anio || undefined, this.mes || undefined);
+      : this.svc.buscarVenta(this.canal as 'call' | 'realzza', d, this.anio || undefined, this.mes || undefined, this.esRealzza ? this.tiendaRz : undefined);
     obs.subscribe({
       next: rows => { this.resultados = (rows || []).map(this.mapRow); this.refrescarFilas(); this.buscando = false; },
       error: () => { this.buscando = false; this.resultados = []; this.toast('❌ No se pudo buscar.', true); },

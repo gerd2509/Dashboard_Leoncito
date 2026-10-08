@@ -304,13 +304,17 @@ export class CargaVentasService {
     return this.http.post<{ success: boolean; actualizados: number; total: number }>(
       `${this.root}/${this.atribBase(canal)}/cruzar`, {}, { params: this.anioMes(anio, mes) });
   }
-  /** Lista TODAS las ventas del mes con su atribución (para la tabla de revisión). */
-  listarAtribucion(canal: 'call' | 'realzza', anio?: number, mes?: number): Observable<any[]> {
-    return this.http.get<any[]>(`${this.root}/${this.atribBase(canal)}/atribucion`, { params: this.anioMes(anio, mes) });
+  /** Lista TODAS las ventas del mes con su atribución (para la tabla de revisión).
+   *  `tienda` (solo Realzza): REALZZA / REALZZA PIURA / REALZZA LIMA — Chiclayo si se omite. */
+  listarAtribucion(canal: 'call' | 'realzza', anio?: number, mes?: number, tienda?: string): Observable<any[]> {
+    let params = this.anioMes(anio, mes);
+    if (tienda) params = params.set('tienda', tienda);
+    return this.http.get<any[]>(`${this.root}/${this.atribBase(canal)}/atribucion`, { params });
   }
   /** Busca ese DNI en las ventas del mes + sugerencia de derivación (asignar a mano). */
-  buscarVenta(canal: 'call' | 'realzza', dni: string, anio?: number, mes?: number): Observable<any[]> {
+  buscarVenta(canal: 'call' | 'realzza', dni: string, anio?: number, mes?: number, tienda?: string): Observable<any[]> {
     let params = this.anioMes(anio, mes).set('dni', dni);
+    if (tienda) params = params.set('tienda', tienda);
     return this.http.get<any[]>(`${this.root}/${this.atribBase(canal)}/buscar`, { params });
   }
   /**
@@ -328,9 +332,11 @@ export class CargaVentasService {
    *  - Call:    merge/upsert desde `ventas` → ventas_call (actualiza + agrega).
    *  - Realzza: agrega desde `ventas` → ventas_realzza SOLO lo nuevo (no cambia lo existente).
    */
-  consolidarVentas(canal: 'call' | 'realzza', anio?: number, mes?: number): Observable<{ success: boolean; insertados: number; actualizados?: number; total?: number }> {
+  consolidarVentas(canal: 'call' | 'realzza', anio?: number, mes?: number, tienda?: string): Observable<{ success: boolean; insertados: number; actualizados?: number; total?: number }> {
+    let params = this.anioMes(anio, mes);
+    if (tienda) params = params.set('tienda', tienda);
     return this.http.post<{ success: boolean; insertados: number; actualizados?: number; total?: number }>(
-      `${this.root}/${this.atribBase(canal)}/consolidar`, {}, { params: this.anioMes(anio, mes) });
+      `${this.root}/${this.atribBase(canal)}/consolidar`, {}, { params });
   }
 
   // ── Atribución de SEDES (Lambayeque / Ferreñafe) → `ventas` × gestion_sedes_deriv ──

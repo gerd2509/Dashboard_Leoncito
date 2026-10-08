@@ -3,7 +3,7 @@
     <mat-icon>how_to_reg</mat-icon>
     <div><b>Atribución de Ventas</b>
       <small *ngIf="canal === 'call'">Call: lista las afectaciones del mes ya con el AsesorVenta y TipoCliente de la última derivación en gestion_call (≤31 días). AsesorVenta / CONTACTO / TipoCliente / TipoBase editables.</small>
-      <small *ngIf="esRealzza">Realzza: lista TODAS las ventas SEDE REALZZA STORE del mes, ya con el TipoBase de la derivación en gestion_realzza + margen/valor. TipoBase / AsesorVenta editables.</small>
+      <small *ngIf="esRealzza">Realzza: lista TODAS las ventas de la tienda elegida (Chiclayo por defecto) del mes, ya con el TipoBase de la derivación en gestion_realzza + margen/valor. TipoBase / AsesorVenta editables.</small>
       <small *ngIf="esSedes">Sedes: ventas de la sede cruzadas por DNI con el formulario de derivación → su <b>fuente generadora</b> (TIPO DE BASE). "Atribuir fuente" la guarda; editable a mano.</small>
     </div>
   </div>
@@ -18,6 +18,12 @@
   <div class="ac-canal ac-subsede" *ngIf="esSedes">
     <button [class.on]="sede === 'LAMBAYEQUE'" (click)="setSede('LAMBAYEQUE')"><mat-icon>place</mat-icon> Lambayeque</button>
     <button [class.on]="sede === 'FERREÑAFE'" (click)="setSede('FERREÑAFE')"><mat-icon>place</mat-icon> Ferreñafe</button>
+  </div>
+  <!-- Sub-selector de tienda Realzza (solo en modo Realzza): Chiclayo por defecto, igual que antes -->
+  <div class="ac-canal ac-subsede" *ngIf="esRealzza">
+    <button *ngFor="let t of tiendasRz" [class.on]="tiendaRz === t.value" (click)="setTiendaRz(t.value)">
+      <mat-icon>place</mat-icon> {{ t.viewValue }}
+    </button>
   </div>
 
   <!-- Toolbar: izquierda (periodo + acciones) · derecha (buscar por DNI) -->
