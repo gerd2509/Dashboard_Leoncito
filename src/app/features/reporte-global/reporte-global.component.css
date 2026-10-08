@@ -35,6 +35,17 @@
 .rg-kpi b { display: block; font-size: 18px; color: #1E3A5F; font-variant-numeric: tabular-nums; }
 .rg-kpi small { display: block; font-size: 11.5px; color: #7d93a8; margin-top: 2px; }
 
+/* Comparativo por rango de días (multi-mes) */
+.rg-comp { margin-bottom: 18px; }
+.rg-comp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.rg-comp-meses { display: flex; flex-wrap: wrap; gap: 8px; }
+.rg-comp-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; border-radius: 20px; padding: 6px 12px; font-size: 12.5px; color: #406a94; cursor: pointer; user-select: none; }
+.rg-comp-chip input { accent-color: #00838F; }
+.rg-comp-chip.sel { background: #e0f2f1; border-color: #00838F; color: #00695C; font-weight: 700; }
+.rg-comp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rg-comp-resultados { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+.rg-comp-sub { margin: 10px -16px 0; border-radius: 0; }
+
 .am-card { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(20,50,90,.05); }
 .am-cardhead { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 800; color: #fff; padding: 12px 16px; background: #283593; }
 .am-cardhead.cred { background: #1A5FAD; }

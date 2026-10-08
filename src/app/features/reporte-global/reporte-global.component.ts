@@ -71,10 +71,23 @@ export class ReporteGlobalComponent implements OnInit {
   kMotosGGNeto = 0;
   kMargenTotal = 0;
 
+  // ── Comparativo por rango de días (multi-mes, mismo día de corte en todos) ──
+  // "Día 1 hasta hoy" en cada mes elegido (clamp al último día si el mes es más corto),
+  // para comparar compañía completa (y por sede, incl. Piura/Lima) entre varios periodos.
+  readonly diaCorte = new Date().getDate();
+  periodosDisponibles: { key: string; anio: number; mes: number; label: string }[] = [];
+  periodosSel = new Set<string>();
+  comparando = false;
+  cargandoComparativo = false;
+  comparativoKpis: { key: string; label: string; moneda: boolean; valores: Record<string, number> }[] = [];
+  comparativoMotosSede: Pivot | null = null;
+  comparativoCols: ColPivot[] = [];
+
   private readonly coloresSede: Record<string, string> = {
     motupe: '#1565C0', olmos: '#00695C', ferrenafe: '#6A1B9A', jayanca: '#E65100',
     mochumi: '#2E7D32', morrope: '#AD1457', lambayeque: '#283593', oyotun: '#558B2F',
-    cayalti: '#00838F', chongoyape: '#4E342E', realzza: '#455A64', otras: '#78909C',
+    cayalti: '#00838F', chongoyape: '#4E342E', realzza: '#455A64',
+    realzzapiura: '#8D6E63', realzzalima: '#C2185B', otras: '#78909C',
   };
   // Orden preferido de las entidades aliadas.
   private readonly ORDEN_ALIADO = ['GLOBAL GO', 'BRILLA', 'EFECTIVA'];
@@ -83,15 +96,117 @@ export class ReporteGlobalComponent implements OnInit {
     this.form = this.fb.group({ anio: [2026], mes: [0] });
   }
 
-  async ngOnInit(): Promise<void> { await this.cargar(); }
+  async ngOnInit(): Promise<void> {
+    this.construirPeriodosDisponibles();
+    await this.cargar();
+  }
+
+  /** Últimos 12 meses (incluido el actual) seleccionables para el comparativo. */
+  private construirPeriodosDisponibles(): void {
+    const hoy = new Date();
+    const arr: { key: string; anio: number; mes: number; label: string }[] = [];
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      const anio = d.getFullYear(), mes = d.getMonth() + 1;
+      const nombreMes = this.meses.find(m => m.v === mes)?.t || '';
+      arr.push({ key: `${anio}-${mes}`, anio, mes, label: i === 0 ? `${nombreMes} ${anio} (actual)` : `${nombreMes} ${anio}` });
+    }
+    this.periodosDisponibles = arr;
+    this.periodosSel = new Set([arr[0].key]);   // mes en curso preseleccionado
+  }
+
+  togglePeriodo(key: string): void {
+    if (this.periodosSel.has(key)) this.periodosSel.delete(key); else this.periodosSel.add(key);
+  }
+
+  private ultimoDiaDe(anio: number, mes: number): number { return new Date(anio, mes, 0).getDate(); }
+
+  /** Trae reporte-global + reporte-global-motos + margen-linea-sede de cada periodo elegido,
+   *  todos con el mismo corte "día 1 al día {diaCorte}" (clamp si el mes es más corto), y arma
+   *  el comparativo de KPIs de compañía + motos GLOBAL GO por sede (Chiclayo/Piura/Lima incl.). */
+  async compararPeriodos(): Promise<void> {
+    const elegidos = this.periodosDisponibles.filter(p => this.periodosSel.has(p.key));
+    if (!elegidos.length) return;
+    this.cargandoComparativo = true;
+    try {
+      const resultados = await Promise.all(elegidos.map(async p => {
+        const dia = Math.min(this.diaCorte, this.ultimoDiaDe(p.anio, p.mes));
+        const [rows, motos, margen] = await Promise.all([
+          lastValueFrom(this.ventas.obtenerReporteGlobal(p.anio, p.mes, dia)),
+          lastValueFrom(this.ventas.obtenerReporteGlobalMotos(p.anio, p.mes, dia)),
+          lastValueFrom(this.ventas.obtenerMargenLineaSede(p.anio, p.mes, dia)),
+        ]);
+        return { periodo: p, rows: rows || [], motos: motos || [], margen: margen || [] };
+      }));
+      // Orden cronológico (el más antiguo primero) para que el comparativo se lea como evolución.
+      resultados.sort((a, b) => (a.periodo.anio - b.periodo.anio) || (a.periodo.mes - b.periodo.mes));
+      this.construirComparativo(resultados);
+      this.comparando = true;
+    } catch (e) {
+      console.error('Error comparativo Reporte Global:', e);
+    }
+    this.cargandoComparativo = false;
+  }
+
+  limpiarComparativo(): void {
+    this.comparando = false;
+    this.comparativoKpis = [];
+    this.comparativoMotosSede = null;
+    this.comparativoCols = [];
+  }
+
+  private construirComparativo(resultados: { periodo: { key: string; label: string }; rows: any[]; motos: any[]; margen: any[] }[]): void {
+    const norm = (e: string | null) => (e || '').toString().trim().toUpperCase();
+    const cols: ColPivot[] = resultados.map(r => ({ key: r.periodo.key, label: r.periodo.label }));
+    this.comparativoCols = cols;
+
+    const kpiDefs: { key: string; label: string; moneda: boolean }[] = [
+      { key: 'neto', label: 'Neto Global', moneda: true },
+      { key: 'aliados', label: 'Aliados (neto)', moneda: true },
+      { key: 'motosOps', label: 'Motos GLOBAL GO (#)', moneda: false },
+      { key: 'motosNeto', label: 'Motos GLOBAL GO (S/)', moneda: true },
+      { key: 'margen', label: 'Margen Total', moneda: true },
+    ];
+    this.comparativoKpis = kpiDefs.map(d => ({ ...d, valores: {} }));
+
+    const entMotosSede: { sedeKey: string; sede: string; col: string; value: number }[] = [];
+    for (const r of resultados) {
+      const rows = r.rows.filter(x => this.sedeInfo(x.sede).key !== 'otras');
+      const neto = rows.reduce((s, x) => s + (x.neto || 0), 0);
+      const aliados = rows.filter(x => norm(x.entidad) && norm(x.entidad) !== 'LEONCITO').reduce((s, x) => s + (x.neto || 0), 0);
+      const motosGG = rows.filter(x => x.es_moto && norm(x.entidad) === 'GLOBAL GO');
+      const motosOps = motosGG.reduce((s, x) => s + (x.ops || 0), 0);
+      const motosNeto = motosGG.reduce((s, x) => s + (x.neto || 0), 0);
+      const margenRows = r.margen.filter((x: any) => this.sedeInfo(x.sede).key !== 'otras');
+      const margenTotal = margenRows.reduce((s: number, x: any) => s + (x.margen_total || 0), 0);
+
+      this.comparativoKpis[0].valores[r.periodo.key] = neto;
+      this.comparativoKpis[1].valores[r.periodo.key] = aliados;
+      this.comparativoKpis[2].valores[r.periodo.key] = motosOps;
+      this.comparativoKpis[3].valores[r.periodo.key] = motosNeto;
+      this.comparativoKpis[4].valores[r.periodo.key] = margenTotal;
+
+      const motosGGSede = r.motos.filter((m: any) => m.credito === 'GLOBAL' && this.sedeInfo(m.sede).key !== 'otras');
+      for (const m of motosGGSede) {
+        const info = this.sedeInfo(m.sede);
+        entMotosSede.push({ sedeKey: info.key, sede: info.nombre, col: r.periodo.key, value: m.motos || 0 });
+      }
+    }
+    this.comparativoMotosSede = this.buildPivot(entMotosSede, cols);
+  }
 
   private color(k: string): string { return this.coloresSede[k] || '#607D8B'; }
 
-  /** Normaliza la sede: quita el prefijo 'SEDE RELENOR', reconoce Realzza y agrupa
-   *  las no-sede (oficinas / incautados / La Victoria) en "Otras". */
+  /** Normaliza la sede: quita el prefijo 'SEDE RELENOR', reconoce Realzza (separando
+   *  Chiclayo/Piura/Lima) y agrupa las no-sede (oficinas / incautados / La Victoria) en "Otras". */
   private sedeInfo(raw: string): { key: string; nombre: string } {
     let n = this.sedeCfg.normalizar(raw || '');
-    if (n.includes('realzza')) return { key: 'realzza', nombre: 'Realzza' };
+    if (n.includes('realzza')) {
+      const up = (raw || '').toString().toUpperCase();
+      if (up.includes('PIURA')) return { key: 'realzzapiura', nombre: 'Realzza Piura' };
+      if (up.includes('LIMA')) return { key: 'realzzalima', nombre: 'Realzza Lima' };
+      return { key: 'realzza', nombre: 'Realzza Chiclayo' };
+    }
     n = n.replace(/^sederelenor/, '');
     const nombre = this.sedeCfg.getConfig(n)?.nombre;
     if (nombre) return { key: n, nombre };

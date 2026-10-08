@@ -13,6 +13,55 @@
   </div>
 </div>
 
+<!-- ══════════ COMPARATIVO POR RANGO DE DÍAS (multi-mes) ══════════ -->
+<div class="am-card rg-comp">
+  <div class="am-cardhead fte">
+    <mat-icon>calendar_month</mat-icon> Comparativo por Rango de Días
+    <em>día 1 al {{ diaCorte }} de cada mes elegido</em>
+  </div>
+  <div class="rg-comp-body">
+    <div class="rg-comp-meses">
+      <label class="rg-comp-chip" *ngFor="let p of periodosDisponibles" [class.sel]="periodosSel.has(p.key)">
+        <input type="checkbox" [checked]="periodosSel.has(p.key)" (change)="togglePeriodo(p.key)">
+        {{ p.label }}
+      </label>
+    </div>
+    <div class="rg-comp-actions">
+      <button class="am-btn" (click)="compararPeriodos()" [disabled]="!periodosSel.size || cargandoComparativo">
+        <mat-icon>{{ cargandoComparativo ? 'hourglass_empty' : 'compare_arrows' }}</mat-icon>
+        {{ cargandoComparativo ? 'Comparando…' : 'Comparar' }}
+      </button>
+      <button class="am-btn" *ngIf="comparando" (click)="limpiarComparativo()">
+        <mat-icon>close</mat-icon> Quitar comparativo
+      </button>
+    </div>
+  </div>
+
+  <div class="rg-comp-resultados" *ngIf="comparando">
+    <div class="am-scroll">
+      <table class="am-table">
+        <thead>
+          <tr>
+            <th class="ta-l">Indicador (compañía)</th>
+            <th *ngFor="let c of comparativoCols">{{ c.label }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let k of comparativoKpis">
+            <td class="ta-l">{{ k.label }}</td>
+            <td *ngFor="let c of comparativoCols">{{ k.moneda ? soles(k.valores[c.key]) : (k.valores[c.key] | number) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="am-cardhead moto rg-comp-sub"><mat-icon>two_wheeler</mat-icon> Motos GLOBAL GO por Sede × Periodo <em>(# motos, incl. Piura/Lima)</em></div>
+    <div class="am-scroll">
+      <ng-container *ngTemplateOutlet="tabla; context: { $implicit: comparativoMotosSede, moneda: false }"></ng-container>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════ KPIs (estáticos) ══════════ -->
 <div class="rg-kpis">
   <div class="rg-kpi"><div class="rg-k-ico" style="background:#1A5FAD"><mat-icon>payments</mat-icon></div>

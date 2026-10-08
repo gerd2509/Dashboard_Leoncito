@@ -129,21 +129,24 @@ export class CargaVentasService {
 
   // ── Reporte Global (módulo nuevo) ──
   /** Neto + # ops por (sede, entidad, es_moto). Aliados = entidad ≠ LEONCITO. */
-  obtenerReporteGlobal(anio: number, mes?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]> {
+  obtenerReporteGlobal(anio: number, mes?: number, dia?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);
+    if (dia) params = params.set('dia', dia);
     return this.http.get<any[]>(`${this.root}/reporte-global`, { params });
   }
   /** Motos a nivel detalle por (sede, credito PROPIO/GLOBAL, marca, tipo, vendedor) + # motos. */
-  obtenerReporteGlobalMotos(anio: number, mes?: number): Observable<{ sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]> {
+  obtenerReporteGlobalMotos(anio: number, mes?: number, dia?: number): Observable<{ sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);
+    if (dia) params = params.set('dia', dia);
     return this.http.get<any[]>(`${this.root}/reporte-global-motos`, { params });
   }
   /** Ventas/margen por (sede, línea real) desde margen_ventas. */
-  obtenerMargenLineaSede(anio: number, mes?: number): Observable<{ sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]> {
+  obtenerMargenLineaSede(anio: number, mes?: number, dia?: number): Observable<{ sede: string; linea_real: string; valor_venta: number; margen_total: number; ops: number }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);
+    if (dia) params = params.set('dia', dia);
     return this.http.get<any[]>(`${this.root}/margen-linea-sede`, { params });
   }
   /** Ventas netas por asesor × mes × categoría (Motos/Melamina/Resto) — módulo Ventas por Línea. */
