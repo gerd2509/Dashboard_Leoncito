@@ -41,7 +41,7 @@ export class GestionSedeComponent implements OnInit {
 
   constructor(private fb: UntypedFormBuilder) {
     this.formGestion = this.fb.group({
-      sede:        [''],
+      sedes:       [[] as string[]],
       asesor:      [''],
       fechaInicio: [null],
       fechaFin:    [null],
@@ -64,9 +64,9 @@ export class GestionSedeComponent implements OnInit {
     }
 
     // Sede inicial = primera disponible
-    const sedeInicial = this.sedesDisponibles[0]?.key ?? '';
-    this.formGestion.patchValue({ sede: sedeInicial });
-    this.actualizarComboAsesores(sedeInicial);
+    const sedesIniciales = this.sedesDisponibles[0] ? [this.sedesDisponibles[0].key] : [];
+    this.formGestion.patchValue({ sedes: sedesIniciales });
+    this.actualizarComboAsesores(sedesIniciales);
 
     // Rango por defecto = mes actual. Antes se pedía TODA la tabla `gestion` (cientos de
     // miles de filas, crece a diario) y se filtraba en el navegador → tumbaba el backend
@@ -121,14 +121,16 @@ export class GestionSedeComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
-    const { sede, asesor, fechaInicio, fechaFin } = this.formGestion.value;
+    const { sedes, asesor, fechaInicio, fechaFin } = this.formGestion.value;
     let filtrados = [...this.listData];
 
-    // 1) Por sede
-    if (sede) {
-      const cfg = this.sedeConfig.getConfig(sede);
-      if (cfg) {
-        filtrados = filtrados.filter(r => this.sedeConfig.mismaSede(r['TIENDA SEDE'], cfg.valorSede));
+    // 1) Por sede (una o varias)
+    if (sedes && sedes.length) {
+      const valores: string[] = sedes
+        .map((k: string) => this.sedeConfig.getConfig(k)?.valorSede)
+        .filter((v: string | undefined): v is string => !!v);
+      if (valores.length) {
+        filtrados = filtrados.filter(r => valores.some(v => this.sedeConfig.mismaSede(r['TIENDA SEDE'], v)));
       }
     }
 
@@ -153,8 +155,8 @@ export class GestionSedeComponent implements OnInit {
   }
 
   onSedeChanged(event: any): void {
-    const sede = event.value;
-    this.actualizarComboAsesores(sede);
+    const sedes: string[] = event.value || [];
+    this.actualizarComboAsesores(sedes);
     this.formGestion.patchValue({ asesor: '' });
     this.aplicarFiltros();
   }
@@ -170,9 +172,13 @@ export class GestionSedeComponent implements OnInit {
     this.cargarData();
   }
 
-  private actualizarComboAsesores(sedeKey: string): void {
-    const cfg = this.sedeConfig.getConfig(sedeKey);
-    this.asesores = cfg ? cfg.asesores : [];
+  private actualizarComboAsesores(sedeKeys: string[]): void {
+    const set = new Set<string>();
+    for (const k of sedeKeys) {
+      const cfg = this.sedeConfig.getConfig(k);
+      (cfg?.asesores || []).forEach(a => set.add(a));
+    }
+    this.asesores = Array.from(set);
   }
 
   exportar(): void {

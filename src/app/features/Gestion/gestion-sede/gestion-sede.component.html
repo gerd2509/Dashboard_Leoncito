@@ -5,9 +5,11 @@
   </span>
   <div class="gk-actions">
     <form class="gk-filtros" [formGroup]="formGestion">
-      <dx-select-box width="180" formControlName="sede" [dataSource]="sedesDisponibles"
+      <dx-tag-box width="220" formControlName="sedes" [dataSource]="sedesDisponibles"
           displayExpr="nombre" valueExpr="key" label="Sede" labelMode="floating"
-          stylingMode="outlined" [disabled]="bloquearSede" (onValueChanged)="onSedeChanged($event)" />
+          stylingMode="outlined" [disabled]="bloquearSede" [showSelectionControls]="true"
+          [showClearButton]="true" [maxDisplayedTags]="2" [searchEnabled]="true"
+          (onValueChanged)="onSedeChanged($event)" />
       <dx-select-box width="220" formControlName="asesor" [dataSource]="asesores"
           label="Asesor" labelMode="floating" stylingMode="outlined"
           [showClearButton]="true" placeholder="Todos" (onValueChanged)="onAsesorChanged($event)" />
