@@ -4,7 +4,15 @@
     <div class="lt-ring lt-r1"></div>
     <div class="lt-ring lt-r2"></div>
     <div class="lt-ring lt-r3"></div>
-    <div class="lt-lion"><app-lion-icon class="lt-emoji" [variant]="brand.id"></app-lion-icon></div>
+    <div class="lt-lion" [class.lt-lion--duo]="adminDual">
+      <ng-container *ngIf="!adminDual; else lionDuoSplash">
+        <app-lion-icon class="lt-emoji" [variant]="brand.id"></app-lion-icon>
+      </ng-container>
+      <ng-template #lionDuoSplash>
+        <app-lion-icon class="lt-emoji lt-emoji--duo" variant="leoncito"></app-lion-icon>
+        <app-lion-icon class="lt-emoji lt-emoji--duo" variant="realzza"></app-lion-icon>
+      </ng-template>
+    </div>
   </div>
   <div class="lt-hola">¡Bienvenido, {{ nombreBienvenida }}!</div>
   <div class="lt-marca" *ngIf="storeLabel">{{ brand.nombre }} · {{ storeLabel }}</div>

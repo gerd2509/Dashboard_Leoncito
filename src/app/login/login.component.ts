@@ -40,6 +40,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   brand: Brand;
   brandConocida = false;
   storeLabel = '';
+  // El admin no pertenece a una sola tienda: ve ambas marcas (como el estado neutral),
+  // tanto en el panel izquierdo como en el splash de bienvenida.
+  adminDual = false;
   private usuario$ = new Subject<string>();
 
   particles = Array.from({ length: 35 }, () => ({
@@ -70,10 +73,15 @@ export class LoginComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe(res => {
-        this.brandConocida = !!res;
-        this.brand = res ? this.brandSvc.fromUsuario(res) : this.brandSvc.default;
-        this.storeLabel = res ? this.brandSvc.storeLabel(res) : '';
+        const admin = this.esAdmin(res);
+        this.brandConocida = !!res && !admin;
+        this.brand = (res && !admin) ? this.brandSvc.fromUsuario(res) : this.brandSvc.default;
+        this.storeLabel = (res && !admin) ? this.brandSvc.storeLabel(res) : '';
       });
+  }
+
+  private esAdmin(u: any): boolean {
+    return (u?.rol || '').toString().trim().toLowerCase() === 'admin';
   }
 
   ngOnDestroy(): void {
@@ -119,8 +127,9 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.nombreBienvenida = nombreCorto(nombre || '') || nombre || '';
     // Recalcula con los datos completos del login (rol/modulos incluidos) — más preciso
     // que la marca detectada mientras se escribía el usuario (que solo tenía la sede).
-    this.brand = this.brandSvc.fromUsuario(datos);
-    this.storeLabel = this.brandSvc.storeLabel(datos);
+    this.adminDual = this.esAdmin(datos);
+    this.brand = this.adminDual ? this.brandSvc.default : this.brandSvc.fromUsuario(datos);
+    this.storeLabel = this.adminDual ? '' : this.brandSvc.storeLabel(datos);
     this.transicion = true;
     setTimeout(() => this.auth.guardarSesion(datos), 2000);
   }

@@ -623,6 +623,10 @@
   animation: lt-run .85s ease-in-out .6s infinite;
 }
 @keyframes lt-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* Admin: ambas marcas lado a lado (no pertenece a una sola tienda). */
+.lt-lion--duo { display: flex; width: 104px; height: 104px; gap: 6px; }
+.lt-emoji--duo { font-size: 40px; }
+.lt-emoji--duo:last-child { animation-delay: .75s; }
 /* "Leoncito corriendo": rebote + ligero vaivén, como si trotara en el sitio. */
 @keyframes lt-run {
   0%, 100% { transform: translateY(0)    rotate(-6deg) scaleX(1);   }
