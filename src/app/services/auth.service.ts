@@ -35,8 +35,8 @@ export class AuthService {
    * para personalizar el branding del login mientras se escribe.
    * Endpoint esperado en el backend: GET /auth/marca?usuario=... → { sede?, marca? }
    */
-  getMarca(usuario: string): Observable<{ sede?: string; marca?: string }> {
-    return this.http.get<{ sede?: string; marca?: string }>(
+  getMarca(usuario: string): Observable<{ sede?: string; marca?: string; rol?: string; modulos?: string[] }> {
+    return this.http.get<{ sede?: string; marca?: string; rol?: string; modulos?: string[] }>(
       `${this.baseUrl}/auth/marca`, { params: { usuario } }
     );
   }

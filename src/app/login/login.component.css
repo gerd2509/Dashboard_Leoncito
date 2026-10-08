@@ -239,6 +239,14 @@
 .bn-realzza  { color: #DCE8FF; text-shadow: 0 0 20px rgba(160,200,255,0.5), 0 2px 4px rgba(0,0,0,0.5); animation-delay: 0.15s; }
 .bn-sep      { color: rgba(255,255,255,0.55); font-size: 30px; font-weight: 700; }
 
+/* Una sola marca (usuario ya identificado): nombre + tienda (Piura/Lima), si aplica. */
+.brand-name--solo { flex-direction: column; align-items: center; gap: 4px; }
+.bn-tienda {
+  font-size: 13px; font-weight: 800; letter-spacing: 3px;
+  color: rgba(255,255,255,0.7);
+  animation: letterEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+}
+
 @keyframes letterEntrance {
   from { opacity: 0; transform: translateY(30px) scale(0.7); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -607,13 +615,31 @@
   box-shadow: 0 10px 40px rgba(var(--brand-rgb), .45);
   animation: lt-pop .6s cubic-bezier(.22,1.2,.36,1) both;
 }
-.lt-emoji { width: 64px; height: 64px; }
+/* font-size (no width/height): el SVG interno se dimensiona con 1em. */
+.lt-emoji {
+  font-size: 64px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,.4));
+  animation: lt-run .85s ease-in-out .6s infinite;
+}
 @keyframes lt-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* "Leoncito corriendo": rebote + ligero vaivén, como si trotara en el sitio. */
+@keyframes lt-run {
+  0%, 100% { transform: translateY(0)    rotate(-6deg) scaleX(1);   }
+  25%      { transform: translateY(-9px) rotate(4deg)  scaleX(.96); }
+  50%      { transform: translateY(0)    rotate(-2deg) scaleX(1);   }
+  75%      { transform: translateY(-5px) rotate(6deg)  scaleX(.97); }
+}
 
 .lt-hola {
   color: #fff; font-size: 24px; font-weight: 800; letter-spacing: .3px;
   text-shadow: 0 2px 12px rgba(0,0,0,.4);
   animation: lt-up .5s ease .15s both;
+}
+.lt-marca {
+  color: rgb(var(--brand-rgb)); font-size: 12px; font-weight: 800; letter-spacing: 2.5px;
+  text-transform: uppercase;
+  animation: lt-up .5s ease .22s both;
 }
 .lt-sub {
   color: #b9c9dc; font-size: 14px; font-weight: 600;

@@ -33,8 +33,13 @@ export class LoginComponent implements OnInit, OnDestroy {
   errorCambio = '';
   private datosSesion: any = null;   // datos del login, se guardan tras cambiar la clave
 
-  // Marca mostrada en el panel izquierdo (cambia según el usuario que se escribe)
+  // Marca mostrada en el panel izquierdo (cambia según el usuario que se escribe).
+  // brandConocida = false → aún no se identificó al usuario (se ven ambas marcas,
+  // como ahora); true → se detectó una sola marca (Leoncito o Realzza), con su tienda
+  // (Piura/Lima) si aplica. No cambia colores ni interfaz, solo qué se muestra.
   brand: Brand;
+  brandConocida = false;
+  storeLabel = '';
   private usuario$ = new Subject<string>();
 
   particles = Array.from({ length: 35 }, () => ({
@@ -65,9 +70,9 @@ export class LoginComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe(res => {
-        this.brand = res
-          ? this.brandSvc.fromValor(res.marca ?? res.sede)
-          : this.brandSvc.default;
+        this.brandConocida = !!res;
+        this.brand = res ? this.brandSvc.fromUsuario(res) : this.brandSvc.default;
+        this.storeLabel = res ? this.brandSvc.storeLabel(res) : '';
       });
   }
 
@@ -112,6 +117,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   /** Muestra el splash de bienvenida y guarda la sesión. */
   private entrar(nombre: string, datos: any): void {
     this.nombreBienvenida = nombreCorto(nombre || '') || nombre || '';
+    // Recalcula con los datos completos del login (rol/modulos incluidos) — más preciso
+    // que la marca detectada mientras se escribía el usuario (que solo tenía la sede).
+    this.brand = this.brandSvc.fromUsuario(datos);
+    this.storeLabel = this.brandSvc.storeLabel(datos);
     this.transicion = true;
     setTimeout(() => this.auth.guardarSesion(datos), 2000);
   }

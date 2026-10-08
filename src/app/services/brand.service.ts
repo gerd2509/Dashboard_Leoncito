@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { esGerenteRealzzaGeneral } from '../shared/canal-usuario';
+import { esGerenteRealzzaGeneral, tiendaFijaRealzza } from '../shared/canal-usuario';
 
 export type BrandId = 'leoncito' | 'realzza';
 
@@ -32,6 +32,14 @@ export class BrandService {
   /** Marca del usuario: por su sede, o por ser jefe Realzza general (sede 'todas'). */
   fromUsuario(u: any): Brand {
     return (this.fromSede(u?.sede).id === 'realzza' || esGerenteRealzzaGeneral(u)) ? BRANDS.realzza : BRANDS.leoncito;
+  }
+
+  /** Distintivo de tienda Realzza a mostrar junto a la marca: 'PIURA'/'LIMA'; '' para
+   *  Chiclayo, Leoncito o cuando aún no se conoce la sede (no cambia colores ni interfaz,
+   *  solo un texto adicional para diferenciar las 3 tiendas Realzza). */
+  storeLabel(u: any): string {
+    const t = tiendaFijaRealzza(u);
+    return t ? t.replace('REALZZA ', '') : '';
   }
 
   /** Acepta una marca/sede textual (lo que devuelva el backend) y la mapea a una marca. */

@@ -7,6 +7,7 @@
     <div class="lt-lion"><app-lion-icon class="lt-emoji" [variant]="brand.id"></app-lion-icon></div>
   </div>
   <div class="lt-hola">¡Bienvenido, {{ nombreBienvenida }}!</div>
+  <div class="lt-marca" *ngIf="storeLabel">{{ brand.nombre }} · {{ storeLabel }}</div>
   <div class="lt-sub">Preparando tu panel…</div>
   <div class="lt-bar"><span></span></div>
 </div>
@@ -36,19 +37,23 @@
   <div class="brand-side" [style.--brand-rgb]="brand.rgb">
     <div class="brand-content">
 
-      <!-- Anillos animados + ambos leoncitos (Leoncito + Realzza) -->
+      <!-- Anillos animados + leoncito(s): ambas marcas hasta identificar al usuario,
+           luego solo la suya (con su tienda, si es Realzza Piura/Lima) -->
       <div class="lion-stage">
         <div class="ring ring-1"></div>
         <div class="ring ring-2"></div>
         <div class="ring ring-3"></div>
 
-        <div class="lion-duo">
+        <div class="lion-duo" *ngIf="!brandConocida">
           <div class="lion-circle">
             <app-lion-icon class="lion-emoji" variant="leoncito"></app-lion-icon>
           </div>
           <div class="lion-circle">
             <app-lion-icon class="lion-emoji" variant="realzza"></app-lion-icon>
           </div>
+        </div>
+        <div class="lion-circle" *ngIf="brandConocida">
+          <app-lion-icon class="lion-emoji" [variant]="brand.id"></app-lion-icon>
         </div>
 
         <!-- Estrellas orbitales -->
@@ -57,11 +62,15 @@
         <span class="orbit-star s3">✦</span>
       </div>
 
-      <!-- Nombre: ambas marcas -->
-      <div class="brand-name brand-name--duo">
+      <!-- Nombre: ambas marcas hasta identificar al usuario, luego solo la suya -->
+      <div class="brand-name brand-name--duo" *ngIf="!brandConocida">
         <span class="bn-word bn-leoncito">LEONCITO</span>
         <span class="bn-sep">·</span>
         <span class="bn-word bn-realzza">REALZZA</span>
+      </div>
+      <div class="brand-name brand-name--solo" *ngIf="brandConocida">
+        <span class="bn-word" [class.bn-leoncito]="brand.id === 'leoncito'" [class.bn-realzza]="brand.id === 'realzza'">{{ brand.nombre }}</span>
+        <span class="bn-tienda" *ngIf="storeLabel">{{ storeLabel }}</span>
       </div>
 
       <p class="brand-tagline">Sistema de Gestión Integral</p>
