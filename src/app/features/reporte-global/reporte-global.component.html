@@ -15,10 +15,12 @@
 
 <!-- ══════════ COMPARATIVO POR RANGO DE DÍAS (multi-mes) ══════════ -->
 <div class="am-card rg-comp">
-  <div class="am-cardhead fte">
+  <div class="am-cardhead fte rg-comp-head" (click)="toggleComparativoAbierto()">
     <mat-icon>calendar_month</mat-icon> Comparativo por Rango de Días
     <em>día 1 al {{ diaCorte }} de cada mes elegido</em>
+    <mat-icon class="rg-comp-chevron">{{ comparativoAbierto ? 'expand_less' : 'expand_more' }}</mat-icon>
   </div>
+  <ng-container *ngIf="comparativoAbierto">
   <div class="rg-comp-body">
     <div class="rg-comp-meses">
       <label class="rg-comp-chip" *ngFor="let p of periodosDisponibles" [class.sel]="periodosSel.has(p.key)">
@@ -133,6 +135,7 @@
       </table>
     </div>
   </div>
+  </ng-container>
 </div>
 
 <!-- ══════════ KPIs (estáticos) ══════════ -->

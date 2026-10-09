@@ -37,6 +37,9 @@
 
 /* Comparativo por rango de días (multi-mes) */
 .rg-comp { margin-bottom: 18px; }
+.rg-comp-head { cursor: pointer; user-select: none; }
+.rg-comp-head:hover { background: #007a79; }
+.rg-comp-chevron { margin-left: auto; }
 .rg-comp-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
 .rg-comp-meses { display: flex; flex-wrap: wrap; gap: 8px; }
 .rg-comp-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; border-radius: 20px; padding: 6px 12px; font-size: 12.5px; color: #406a94; cursor: pointer; user-select: none; }

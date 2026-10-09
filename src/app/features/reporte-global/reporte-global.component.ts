@@ -82,6 +82,8 @@ export class ReporteGlobalComponent implements OnInit {
   // "Día 1 hasta hoy" en cada mes elegido (clamp al último día si el mes es más corto),
   // para comparar compañía completa (y por sede, incl. Piura/Lima) entre varios periodos.
   readonly diaCorte = new Date().getDate();
+  comparativoAbierto = false;
+  toggleComparativoAbierto(): void { this.comparativoAbierto = !this.comparativoAbierto; }
   periodosDisponibles: { key: string; anio: number; mes: number; label: string }[] = [];
   periodosSel = new Set<string>();
   comparando = false;
