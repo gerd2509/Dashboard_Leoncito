@@ -398,8 +398,11 @@ export class CierreGestionComponent implements OnInit {
 
   calcularContactabilidadRealzza() {
     // Contactabilidad Realzza: TODOS los asesores, tengan o no gestión.
+    // dedupePorDni=true → un DNI cuenta como 1 gestión aunque lo hayan llamado varias
+    // veces (igual que Call, arriba, y que Mi Panel — antes faltaba acá y las "Llamadas"
+    // de Realzza salían infladas frente al resto de la app).
     this.dataContactabilidadRealzza = this
-      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA');
+      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA', true);
   }
 
   calcularContactabilidadKOMMOCall() {
