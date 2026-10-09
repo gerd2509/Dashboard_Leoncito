@@ -209,12 +209,14 @@ export class ReporteGlobalComponent implements OnInit {
       const aliadosRows = rows.filter(x => norm(x.entidad) && norm(x.entidad) !== 'LEONCITO');
       const aliados = aliadosRows.reduce((s, x) => s + (x.neto || 0), 0);
       const aliadosOps = aliadosRows.reduce((s, x) => s + (x.ops || 0), 0);
+      // Motos: BRUTO (solo ventas del periodo, sin restar NC/incautaciones arrastradas de
+      // otros meses) — así cuadra con "Ventas Campo", que cuenta motos por fecha de venta.
       const motosGG = rows.filter(x => x.es_moto && norm(x.entidad) === 'GLOBAL GO');
-      const motosOps = motosGG.reduce((s, x) => s + (x.ops || 0), 0);
-      const motosNeto = motosGG.reduce((s, x) => s + (x.neto || 0), 0);
+      const motosOps = motosGG.reduce((s, x) => s + (x.ops_bruto || 0), 0);
+      const motosNeto = motosGG.reduce((s, x) => s + (x.monto_bruto || 0), 0);
       const motosProp = rows.filter(x => x.es_moto && norm(x.entidad) === 'LEONCITO');
-      const motosPropioOps = motosProp.reduce((s, x) => s + (x.ops || 0), 0);
-      const motosPropioNeto = motosProp.reduce((s, x) => s + (x.neto || 0), 0);
+      const motosPropioOps = motosProp.reduce((s, x) => s + (x.ops_bruto || 0), 0);
+      const motosPropioNeto = motosProp.reduce((s, x) => s + (x.monto_bruto || 0), 0);
       const margenRows = r.margen.filter((x: any) => this.sedeInfo(x.sede).key !== 'otras');
       const margenTotal = margenRows.reduce((s: number, x: any) => s + (x.margen_total || 0), 0);
 
@@ -228,7 +230,7 @@ export class ReporteGlobalComponent implements OnInit {
       this.comparativoKpis[7].valores[k] = motosPropioNeto;
       this.comparativoKpis[8].valores[k] = margenTotal;
 
-      // Detalle de motos por sede: Propio (LEONCITO) + GLOBAL GO, ops y monto neto.
+      // Detalle de motos por sede: Propio (LEONCITO) + GLOBAL GO, ops y monto BRUTO.
       totPorPeriodo[k] = this.celdaVacia();
       for (const x of rows.filter(x => x.es_moto)) {
         const esGlobal = norm(x.entidad) === 'GLOBAL GO';
@@ -239,20 +241,20 @@ export class ReporteGlobalComponent implements OnInit {
         if (!f) { f = { sedeKey: info.key, sede: info.nombre, color: this.color(info.key), porPeriodo: {}, totPropioOps: 0, totPropioMonto: 0, totGlobalOps: 0, totGlobalMonto: 0 }; bySede.set(info.key, f); }
         if (!f.porPeriodo[k]) f.porPeriodo[k] = this.celdaVacia();
         if (esGlobal) {
-          f.porPeriodo[k].globalOps += x.ops || 0; f.porPeriodo[k].globalMonto += x.neto || 0;
-          f.totGlobalOps += x.ops || 0; f.totGlobalMonto += x.neto || 0;
-          totPorPeriodo[k].globalOps += x.ops || 0; totPorPeriodo[k].globalMonto += x.neto || 0;
+          f.porPeriodo[k].globalOps += x.ops_bruto || 0; f.porPeriodo[k].globalMonto += x.monto_bruto || 0;
+          f.totGlobalOps += x.ops_bruto || 0; f.totGlobalMonto += x.monto_bruto || 0;
+          totPorPeriodo[k].globalOps += x.ops_bruto || 0; totPorPeriodo[k].globalMonto += x.monto_bruto || 0;
         } else {
-          f.porPeriodo[k].propioOps += x.ops || 0; f.porPeriodo[k].propioMonto += x.neto || 0;
-          f.totPropioOps += x.ops || 0; f.totPropioMonto += x.neto || 0;
-          totPorPeriodo[k].propioOps += x.ops || 0; totPorPeriodo[k].propioMonto += x.neto || 0;
+          f.porPeriodo[k].propioOps += x.ops_bruto || 0; f.porPeriodo[k].propioMonto += x.monto_bruto || 0;
+          f.totPropioOps += x.ops_bruto || 0; f.totPropioMonto += x.monto_bruto || 0;
+          totPorPeriodo[k].propioOps += x.ops_bruto || 0; totPorPeriodo[k].propioMonto += x.monto_bruto || 0;
         }
       }
 
-      // Motos por marca (Wanxin/Ssenda/Otras) — compañía completa, en # operaciones.
+      // Motos por marca (Wanxin/Ssenda/Otras) — compañía completa, en # operaciones (bruto).
       const motosSede = r.motos.filter((m: any) => this.sedeInfo(m.sede).key !== 'otras');
       const porMarca = new Map<string, number>();
-      motosSede.forEach((m: any) => porMarca.set(m.marca, (porMarca.get(m.marca) || 0) + (m.motos || 0)));
+      motosSede.forEach((m: any) => porMarca.set(m.marca, (porMarca.get(m.marca) || 0) + (m.motos_bruto || 0)));
       porMarca.forEach((v, marca) => marcaEnt.push({ sedeKey: marca, sede: this.titulo(marca), col: k, value: v }));
     }
 
@@ -321,7 +323,7 @@ export class ReporteGlobalComponent implements OnInit {
     return { cols, filas, totales, totalGeneral };
   }
 
-  private construir(rowsAll: { sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]): void {
+  private construir(rowsAll: { sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number; monto_bruto: number; ops_bruto: number }[]): void {
     // Solo sedes reconocidas (10 físicas + Realzza). Se excluye "Otras" (oficina/online,
     // incautados, La Victoria, variantes RETAIL) de todas las tablas y KPIs.
     const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
@@ -330,9 +332,11 @@ export class ReporteGlobalComponent implements OnInit {
     this.kNetoGlobal = rows.reduce((s, r) => s + (r.neto || 0), 0);
     this.kAliadosNeto = rows.filter(r => norm(r.entidad) && norm(r.entidad) !== 'LEONCITO').reduce((s, r) => s + (r.neto || 0), 0);
     this.kAliadosPct = this.kNetoGlobal > 0 ? Math.round((this.kAliadosNeto / this.kNetoGlobal) * 1000) / 10 : 0;
+    // Motos: BRUTO (solo ventas del periodo, sin restar NC/incautaciones arrastradas de otros
+    // meses) para cuadrar con "Ventas Campo", que cuenta motos por fecha de venta.
     const motosGG = rows.filter(r => r.es_moto && norm(r.entidad) === 'GLOBAL GO');
-    this.kMotosGGOps = motosGG.reduce((s, r) => s + (r.ops || 0), 0);
-    this.kMotosGGNeto = motosGG.reduce((s, r) => s + (r.neto || 0), 0);
+    this.kMotosGGOps = motosGG.reduce((s, r) => s + (r.ops_bruto || 0), 0);
+    this.kMotosGGNeto = motosGG.reduce((s, r) => s + (r.monto_bruto || 0), 0);
 
     // ── A) Aliados por entidad × sede (entidad ≠ LEONCITO) ──
     const aliRows = rows.filter(r => norm(r.entidad) && norm(r.entidad) !== 'LEONCITO');
@@ -360,8 +364,8 @@ export class ReporteGlobalComponent implements OnInit {
     for (const r of motoRows) {
       const info = this.sedeInfo(r.sede);
       const b = bucketMoto(norm(r.entidad));
-      opsMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.ops || 0 });
-      montoMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.neto || 0 });
+      opsMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.ops_bruto || 0 });
+      montoMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.monto_bruto || 0 });
     }
     this.motosOps = this.buildPivot(opsMoto, motoCols);
     this.motosMonto = this.buildPivot(montoMoto, motoCols);
@@ -386,9 +390,11 @@ export class ReporteGlobalComponent implements OnInit {
   }
 
   /** Tablas de motos: por marca × sede, por tipo × sede y ranking de vendedores por sede. */
-  private construirMotos(rowsAll: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]): void {
-    // Solo sedes reconocidas (se excluye "Otras").
-    const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
+  private construirMotos(rowsAll: { sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number; motos_bruto: number }[]): void {
+    // Solo sedes reconocidas (se excluye "Otras"). Se usa BRUTO (motos_bruto, solo del
+    // periodo) en vez del neto, para cuadrar con "Ventas Campo" — ver nota en construir().
+    const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras')
+      .map(r => ({ ...r, motos: r.motos_bruto }));
     this.motosRowsCache = rows;
     // ── Motos por MARCA × sede (# motos) ──
     const ordenMarca = ['WANXIN', 'SSENDA'];

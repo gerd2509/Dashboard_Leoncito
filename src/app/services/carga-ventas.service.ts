@@ -129,14 +129,15 @@ export class CargaVentasService {
 
   // ── Reporte Global (módulo nuevo) ──
   /** Neto + # ops por (sede, entidad, es_moto). Aliados = entidad ≠ LEONCITO. */
-  obtenerReporteGlobal(anio: number, mes?: number, dia?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number }[]> {
+  obtenerReporteGlobal(anio: number, mes?: number, dia?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number; monto_bruto: number; ops_bruto: number }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);
     if (dia) params = params.set('dia', dia);
     return this.http.get<any[]>(`${this.root}/reporte-global`, { params });
   }
-  /** Motos a nivel detalle por (sede, credito PROPIO/GLOBAL, marca, tipo, vendedor) + # motos. */
-  obtenerReporteGlobalMotos(anio: number, mes?: number, dia?: number): Observable<{ sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number }[]> {
+  /** Motos a nivel detalle por (sede, credito PROPIO/GLOBAL, marca, tipo, vendedor) + # motos
+   *  (neto, restando NC/incautaciones arrastradas) y motos_bruto (solo del periodo). */
+  obtenerReporteGlobalMotos(anio: number, mes?: number, dia?: number): Observable<{ sede: string; credito: 'PROPIO' | 'GLOBAL'; marca: string; tipo: string; vendedor: string; motos: number; motos_bruto: number }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);
     if (dia) params = params.set('dia', dia);
