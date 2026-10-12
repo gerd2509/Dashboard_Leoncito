@@ -20,6 +20,7 @@ export interface GestionPayload {
   detalle_contacto?: string;
   celular_actualizado?: string;
   detalle_no_desea?: string;
+  detalle_politica_fem?: string;
 }
 
 /** Payload de una gestión Realzza (todo opcional salvo los 3 obligatorios base). */

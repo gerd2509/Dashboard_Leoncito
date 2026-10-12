@@ -144,6 +144,7 @@ interface Modelo {
   detalle_contacto: string;
   celular_actualizado: string;
   detalle_no_desea: string;
+  detalle_politica_fem: string;
 }
 
 @Component({
@@ -495,6 +496,7 @@ export class RegistroGestionComponent implements OnInit {
     this.limpiarCondicionales();
   }
   onMotivoContactoChange(): void { this.limpiarCondicionales(); }
+  onMotivoNoContactoChange(): void { this.limpiarCondicionales(); }
   private limpiarCondicionales(): void {
     this.modelo.fecha_compromiso = '';
     this.modelo.valor_venta = '';
@@ -502,6 +504,7 @@ export class RegistroGestionComponent implements OnInit {
     this.modelo.detalle_contacto = '';
     this.modelo.celular_actualizado = '';
     this.modelo.detalle_no_desea = '';
+    this.modelo.detalle_politica_fem = '';
   }
 
   // ── Sanitizado y validación ──
@@ -602,12 +605,17 @@ export class RegistroGestionComponent implements OnInit {
     if (!m.asesor) return 'Selecciona el asesor.';
     if (!m.tipo_gestion) return 'Selecciona el tipo de gestión.';
     if (!m.resultado) return 'Selecciona el resultado.';
-    if (this.sNoContacto) return m.motivo_no_contacto ? '' : 'Indica el motivo de no contacto.';
+    if (this.sNoContacto) {
+      if (!m.motivo_no_contacto) return 'Indica el motivo de no contacto.';
+      if (this.sPoliticaFem && !this.t(m.detalle_politica_fem)) return 'Completa el detalle (comentario) de "Política FEM".';
+      return '';
+    }
     if (this.sMotivoContacto) {
       if (!m.motivo_contacto) return 'Selecciona el motivo de contacto.';
       if (this.sFormulario && !(m.fecha_compromiso && this.t(m.valor_venta) && m.producto_interes)) return 'Completa fecha, valor y producto de interés.';
       if (this.sDetalle && !(this.t(m.detalle_contacto) && this.d9(m.celular_actualizado))) return 'Completa el detalle y el celular actualizado (9 dígitos).';
       if (this.sNoDesea && !this.t(m.detalle_no_desea)) return 'Completa el detalle (comentario) de "No desea -sin razón".';
+      if (this.sPoliticaFem && !this.t(m.detalle_politica_fem)) return 'Completa el detalle (comentario) de "Política FEM".';
       return '';
     }
     return '';
@@ -627,7 +635,7 @@ export class RegistroGestionComponent implements OnInit {
       case 'motivoNoContacto': return !!m.motivo_no_contacto;
       case 'formulario': return !!m.fecha_compromiso && `${m.valor_venta ?? ''}`.trim().length > 0 && !!m.producto_interes;
       case 'detalle': return m.detalle_contacto.trim().length > 0 && /^\d{9}$/.test((m.celular_actualizado ?? '').toString());
-      case 'resumen': return !this.sNoDesea || m.detalle_no_desea.trim().length > 0;
+      case 'resumen': return (!this.sNoDesea || m.detalle_no_desea.trim().length > 0) && (!this.sPoliticaFem || m.detalle_politica_fem.trim().length > 0);
       default: return true;
     }
   }
@@ -643,6 +651,8 @@ export class RegistroGestionComponent implements OnInit {
   get sFormulario(): boolean { return MOTIVOS_CONTACTO_FORM.includes(this.modelo.motivo_contacto); }
   get sDetalle(): boolean { return MOTIVOS_CONTACTO_DETALLE.includes(this.modelo.motivo_contacto); }
   get sNoDesea(): boolean { return this.modelo.motivo_contacto === 'No desea -sin razón'; }
+  // "Política FEM" existe como motivo tanto de contacto como de no contacto.
+  get sPoliticaFem(): boolean { return this.modelo.motivo_contacto === 'Política FEM' || this.modelo.motivo_no_contacto === 'Política FEM'; }
   get sNoContacto(): boolean { return this.modelo.resultado === 'NO CONTACTO'; }
   // Realzza
   get rzNoCont(): boolean { return this.rz.estado_gestion === 'NO CONTACTO'; }
@@ -709,12 +719,17 @@ export class RegistroGestionComponent implements OnInit {
     }
     const m = this.modelo;
     if (!d8(m.dni_cliente) || !d9(m.celular_gestionado) || !m.sede || !m.asesor || !m.tipo_gestion || !m.resultado) return false;
-    if (this.sNoContacto) return !!m.motivo_no_contacto;
+    if (this.sNoContacto) {
+      if (!m.motivo_no_contacto) return false;
+      if (this.sPoliticaFem) return t(m.detalle_politica_fem);
+      return true;
+    }
     if (this.sMotivoContacto) {
       if (!m.motivo_contacto) return false;
       if (this.sFormulario) return !!m.fecha_compromiso && t(m.valor_venta) && !!m.producto_interes;
       if (this.sDetalle) return t(m.detalle_contacto) && d9(m.celular_actualizado);
       if (this.sNoDesea) return t(m.detalle_no_desea);
+      if (this.sPoliticaFem) return t(m.detalle_politica_fem);
       return true;
     }
     return false;
@@ -755,6 +770,7 @@ export class RegistroGestionComponent implements OnInit {
       detalle_contacto: m.detalle_contacto || '',
       celular_actualizado: m.celular_actualizado || '',
       detalle_no_desea: m.detalle_no_desea || '',
+      detalle_politica_fem: m.detalle_politica_fem || '',
     };
     this.api.registrar(payload).subscribe({
       next: () => { this.guardando = false; this.guardado = true; },
@@ -913,7 +929,7 @@ export class RegistroGestionComponent implements OnInit {
     return {
       dni_cliente: '', celular_gestionado: '', sede: '', sedeKey: '', asesor: '', tipo_gestion: '', resultado: '',
       motivo_contacto: '', motivo_no_contacto: '', fecha_compromiso: '', valor_venta: '',
-      producto_interes: '', detalle_contacto: '', celular_actualizado: '', detalle_no_desea: '',
+      producto_interes: '', detalle_contacto: '', celular_actualizado: '', detalle_no_desea: '', detalle_politica_fem: '',
     };
   }
 }
