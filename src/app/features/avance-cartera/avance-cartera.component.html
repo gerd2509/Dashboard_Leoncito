@@ -206,6 +206,36 @@
         </ng-container>
       </ng-container>
 
+      <!-- ══════ Detalle de Intensidad: cuántas veces se gestionó CADA cliente ══════ -->
+      <div class="tabla-asesores" *ngIf="esPiso && !sedeDetalle && detalleIntensidad.length">
+        <div class="asesor-head intensidad-head" (click)="toggleIntensidadAbierta()">
+          <h3><mat-icon>call</mat-icon> Detalle de Intensidad
+            <small>Gestiones reales por cliente (con repeticiones) — general y por grupo (Lover A/B, Afiliaciones)</small>
+          </h3>
+          <mat-icon class="chev">{{ intensidadAbierta ? 'expand_less' : 'expand_more' }}</mat-icon>
+        </div>
+        <ng-container *ngIf="intensidadAbierta">
+          <div class="intensidad-acciones">
+            <button class="btn-regresar" (click)="exportarIntensidad()"><mat-icon>download</mat-icon> Exportar</button>
+          </div>
+          <dx-data-grid [dataSource]="detalleIntensidad" [showBorders]="true" [hoverStateEnabled]="true"
+              [columnAutoWidth]="true" [height]="420">
+            <dxo-paging [pageSize]="20"></dxo-paging>
+            <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[20, 50, 100]"></dxo-pager>
+            <dxo-filter-row [visible]="true"></dxo-filter-row>
+            <dxo-search-panel [visible]="true" [width]="220" placeholder="Buscar DNI / teléfono / asesor…"></dxo-search-panel>
+            <dxo-sorting mode="multiple"></dxo-sorting>
+            <dxi-column dataField="sede" caption="Sede" [width]="150"></dxi-column>
+            <dxi-column dataField="grupo" caption="Grupo" [width]="210"></dxi-column>
+            <dxi-column dataField="asesor" caption="Asesor" [width]="180"></dxi-column>
+            <dxi-column dataField="dni" caption="DNI" [width]="100"></dxi-column>
+            <dxi-column dataField="telefono" caption="Teléfono" [width]="180"></dxi-column>
+            <dxi-column dataField="estado" caption="Estado" [width]="110"></dxi-column>
+            <dxi-column dataField="gestiones" caption="N° Gestiones" [width]="120" sortOrder="desc" dataType="number"></dxi-column>
+          </dx-data-grid>
+        </ng-container>
+      </div>
+
       <!-- Tabla por asesor (Call / Realzza, o Piso con sede seleccionada) -->
       <div class="tabla-asesores" *ngIf="!esPiso || sedeDetalle">
         <div class="asesor-head">
