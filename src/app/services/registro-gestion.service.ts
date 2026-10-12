@@ -7,6 +7,7 @@ import { environment } from '../../environments/environment';
 export interface GestionPayload {
   registrado_por?: string;
   dni_cliente: string;
+  celular_gestionado: string;
   sede: string;
   asesor: string;
   tipo_gestion: string;

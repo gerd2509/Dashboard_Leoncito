@@ -30,14 +30,14 @@ const MOTIVOS_CONTACTO_DETALLE = [
   'Sin trabajo-Sin liquidez', 'Notificacion con familiar', 'Fuera de zona',
   'No aplica por políticas de crédito', 'Ya compro en el mes',
 ];
-const MOTIVOS_CONTACTO_FIN = ['Venta cerrada', 'fallecido', 'No desea -sin razón'];
+const MOTIVOS_CONTACTO_FIN = ['Venta cerrada', 'fallecido', 'No desea -sin razón', 'Política FEM'];
 const MOTIVOS_CONTACTO = [
-  'Venta cerrada', ...MOTIVOS_CONTACTO_FORM, ...MOTIVOS_CONTACTO_DETALLE, 'fallecido', 'No desea -sin razón',
+  'Venta cerrada', ...MOTIVOS_CONTACTO_FORM, ...MOTIVOS_CONTACTO_DETALLE, 'fallecido', 'No desea -sin razón', 'Política FEM',
 ];
 
 const MOTIVOS_NO_CONTACTO = [
   'No contesta-Se mensajeo wsp', 'Numero equivocado', 'Carta bajo puerta',
-  'Celular suspendido-no existe', 'Celular apagado-Se mensajeo wsp',
+  'Celular suspendido-no existe', 'Celular apagado-Se mensajeo wsp', 'Política FEM',
 ];
 
 const PRODUCTOS = [
@@ -130,6 +130,7 @@ interface RzModelo {
 
 interface Modelo {
   dni_cliente: string;
+  celular_gestionado: string;   // número al que realmente se llamó/gestionó (obligatorio, todas las gestiones)
   sede: string;                // nombre de la sede
   sedeKey: string;             // clave normalizada (para el CAP)
   asesor: string;
@@ -517,6 +518,12 @@ export class RegistroGestionComponent implements OnInit {
     const c = (this.modelo.celular_actualizado ?? '').toString();
     return c.length > 0 && !/^\d{9}$/.test(c);
   }
+  /** Celular Gestionado: obligatorio en TODA gestión (a diferencia de "Celular actualizado",
+   *  que solo aplica cuando el motivo de contacto cae en la categoría "detalle"). */
+  celularGestionadoInvalido(): boolean {
+    const c = (this.modelo.celular_gestionado ?? '').toString();
+    return c.length > 0 && !/^\d{9}$/.test(c);
+  }
 
   // ── Marcado en rojo del campo inválido + pista del primer faltante ──
   // El rojo aparece solo tras la 1ª interacción (`intento`) para no abrir el form todo en rojo.
@@ -527,6 +534,7 @@ export class RegistroGestionComponent implements OnInit {
   private t(v: any): boolean { return `${v ?? ''}`.trim().length > 0; }
   // "Bad" = no cumple el mínimo (vacío o formato incorrecto) → para el borde rojo.
   get sDniBad(): boolean { return !this.d8(this.modelo.dni_cliente); }
+  get sCelGestBad(): boolean { return !this.d9(this.modelo.celular_gestionado); }
   get rzDniBad(): boolean { return !this.d8(this.rz.dni_cliente); }
   get rzCelBad(): boolean { return !this.d9(this.rz.celular_gestionado); }
   get callDniBad(): boolean { return !this.d8(this.call.dni_cliente); }
@@ -589,6 +597,7 @@ export class RegistroGestionComponent implements OnInit {
     }
     const m = this.modelo;
     if (!this.d8(m.dni_cliente)) return 'El DNI debe tener 8 dígitos.';
+    if (!this.d9(m.celular_gestionado)) return 'El celular gestionado debe tener 9 dígitos.';
     if (!m.sede) return 'Selecciona la sede.';
     if (!m.asesor) return 'Selecciona el asesor.';
     if (!m.tipo_gestion) return 'Selecciona el tipo de gestión.';
@@ -699,7 +708,7 @@ export class RegistroGestionComponent implements OnInit {
       return true;
     }
     const m = this.modelo;
-    if (!d8(m.dni_cliente) || !m.sede || !m.asesor || !m.tipo_gestion || !m.resultado) return false;
+    if (!d8(m.dni_cliente) || !d9(m.celular_gestionado) || !m.sede || !m.asesor || !m.tipo_gestion || !m.resultado) return false;
     if (this.sNoContacto) return !!m.motivo_no_contacto;
     if (this.sMotivoContacto) {
       if (!m.motivo_contacto) return false;
@@ -733,6 +742,7 @@ export class RegistroGestionComponent implements OnInit {
     const payload: GestionPayload = {
       registrado_por: this.auth.getUsuario()?.nombre ?? '',
       dni_cliente: m.dni_cliente.trim(),
+      celular_gestionado: m.celular_gestionado.trim(),
       sede: m.sede,
       asesor: m.asesor,
       tipo_gestion: m.tipo_gestion,
@@ -901,7 +911,7 @@ export class RegistroGestionComponent implements OnInit {
 
   private modeloVacio(): Modelo {
     return {
-      dni_cliente: '', sede: '', sedeKey: '', asesor: '', tipo_gestion: '', resultado: '',
+      dni_cliente: '', celular_gestionado: '', sede: '', sedeKey: '', asesor: '', tipo_gestion: '', resultado: '',
       motivo_contacto: '', motivo_no_contacto: '', fecha_compromiso: '', valor_venta: '',
       producto_interes: '', detalle_contacto: '', celular_actualizado: '', detalle_no_desea: '',
     };

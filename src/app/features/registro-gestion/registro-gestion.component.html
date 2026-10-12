@@ -52,6 +52,11 @@
           [isValid]="!(intento && sDniBad)" validationError="El DNI debe tener 8 dígitos" stylingMode="outlined"></dx-text-box>
       </div>
       <div class="rg-field">
+        <label>Celular Gestionado *</label>
+        <dx-text-box [(value)]="modelo.celular_gestionado" (onValueChanged)="modelo.celular_gestionado = soloNum(modelo.celular_gestionado, 9)" mode="tel" [maxLength]="9"
+          [isValid]="!(intento && sCelGestBad)" validationError="El celular gestionado debe tener 9 dígitos" stylingMode="outlined"></dx-text-box>
+      </div>
+      <div class="rg-field">
         <label>Tipo de gestión *</label>
         <dx-select-box [dataSource]="tipos" [(value)]="modelo.tipo_gestion" [isValid]="!(intento && !modelo.tipo_gestion)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>
       </div>

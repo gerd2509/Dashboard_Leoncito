@@ -191,6 +191,7 @@ export class SheetsService {
     'TIPO DE GESTION': r.tipo_gestion,
     'RESULTADO DE GESTION': r.resultado,
     'DNI CLIENTE': r.dni_cliente,
+    'CELULAR GESTIONADO': r.celular_gestionado,
     'MOTIVOS "CONTACTO EN LA GESTION"': r.motivo_contacto,
     'MOTIVOS "NO CONTACTO EN LA GESTION"': r.motivo_no_contacto,
     'FECHA DE COMPROMISO O VISITA': r.fecha_compromiso,
@@ -232,7 +233,7 @@ export class SheetsService {
   /** Mapea una fila con forma de sheet → columnas de la tabla gestion (para editar). */
   private mapSheetToGestionDb(d: any) {
     return {
-      dni_cliente: d['DNI CLIENTE'], sede: d['TIENDA SEDE'], asesor: d['ASESOR'],
+      dni_cliente: d['DNI CLIENTE'], celular_gestionado: d['CELULAR GESTIONADO'], sede: d['TIENDA SEDE'], asesor: d['ASESOR'],
       tipo_gestion: d['TIPO DE GESTION'], resultado: d['RESULTADO DE GESTION'],
       motivo_contacto: d['MOTIVOS "CONTACTO EN LA GESTION"'], motivo_no_contacto: d['MOTIVOS "NO CONTACTO EN LA GESTION"'],
       producto_interes: d['PRODUCTO DE INTERES'], detalle_contacto: d['DETALLE(COMENTARIO) CONTACTO'],

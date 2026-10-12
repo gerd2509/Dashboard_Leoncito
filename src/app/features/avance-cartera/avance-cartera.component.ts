@@ -48,6 +48,10 @@ const G_FECHA = 'Marca temporal';
 // Columnas de la gestión SEDES (tabla `gestion` de BD vía getGestionSedesDB; mismas cabeceras que la hoja).
 const GS_SEDE = 'TIENDA SEDE';
 const GS_DNI = 'DNI CLIENTE';
+// "Celular Gestionado" (obligatorio en TODA gestión) es el número REAL que se marcó;
+// "N° CELULAR ACTUALIZADO" solo se llena en una rama puntual del formulario (motivo de
+// contacto "detalle") — se usa como respaldo para gestiones viejas que no tengan el nuevo.
+const GS_CELULAR_GESTIONADO = 'CELULAR GESTIONADO';
 const GS_CELULAR = 'N° CELULAR ACTUALIZADO';
 const GS_ESTADO = 'RESULTADO DE GESTION';
 const GS_FECHA = 'Marca temporal';
@@ -554,6 +558,9 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       count++;
       if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map() });
       const idx = porSede.get(sedeKey)!;
+      // Celular realmente gestionado: el nuevo campo (obligatorio) manda; si la gestión es
+      // vieja y no lo tiene, se cae al "celular actualizado" (solo existía en una rama).
+      const celularReal = this.soloDigitos(String(item[GS_CELULAR_GESTIONADO] || item[GS_CELULAR] || ''));
       const dni = this.soloDigitos(String(item[GS_DNI] ?? ''));
       if (dni) {
         this.guardarUltima(idx.porDni, dni, { fecha, estado });
@@ -563,12 +570,12 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
           fecha,
           tipo: (item['TIPO DE GESTION'] || '').toString().trim(),
           estado: (item[GS_ESTADO] || '').toString().trim(),
-          celular: this.soloDigitos(String(item[GS_CELULAR] ?? '')),
+          celular: celularReal,
           motivo: (item['MOTIVOS "CONTACTO EN LA GESTION"'] || item['MOTIVOS "NO CONTACTO EN LA GESTION"'] || '').toString().trim(),
         };
         const arr = porDniSede.get(dni); if (arr) arr.push(reg); else porDniSede.set(dni, [reg]);
       }
-      const tel = this.soloDigitos(String(item[GS_CELULAR] ?? '')).slice(-9);
+      const tel = celularReal.slice(-9);
       if (tel.length >= 9) this.guardarUltima(idx.porTel, tel, { fecha, estado });
     }
     this.gestionesMes = count;
