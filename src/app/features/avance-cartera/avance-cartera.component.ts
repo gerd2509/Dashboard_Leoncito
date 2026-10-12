@@ -97,11 +97,16 @@ interface ResumenSede {
 
 interface DetalleVenta { dni: string; cv: string; asesorBase: string; sedeBase: string; sedeVenta: string; monto: number; fecha: string; }
 interface VentaLista { cv: string; sedeKey: string; sedeNombre: string; monto: number; fecha: string; }
+/** Un registro de gestión real (fecha/resultado) para el detalle de un cliente —
+ *  detrás del número de "N° Gestiones" de la Intensidad. */
+interface RegistroGestionDetalle { fecha: Date; tipo: string; estado: string; celular: string; motivo: string; }
+
 /** Fila del detalle de Intensidad: cuántas veces se gestionó CADA cliente (no el
  *  promedio de la sede) — para ver quién recibe muchas llamadas y quién casi ninguna. */
 interface DetalleIntensidad {
   sedeKey: string; sede: string; grupo: string; asesor: string;
-  dni: string; telefono: string; estado: EstadoCliente; gestiones: number;
+  dni: string; telefonos: string[]; estado: EstadoCliente;
+  gestiones: number; gestionesDetalle: RegistroGestionDetalle[];
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
@@ -130,25 +135,55 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   private ventasLista = new Map<string, VentaLista[]>();   // dni → ventas (cerradas) con su sede
   detVentas: { sede: string; tipo: 'in' | 'out'; lista: DetalleVenta[]; tabla: ResumenSede[] } | null = null;
   private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
-  // sedeKey → dni → nº de gestiones registradas ese mes (para Intensidad, acotado al
-  // grupo/cuadro que se esté mostrando — no el total de la sede completa).
-  private gestionesPorSedeDni = new Map<string, Map<string, number>>();
+  // sedeKey → dni → registros de gestión reales ese mes (para Intensidad, acotado al
+  // grupo/cuadro que se esté mostrando — no el total de la sede completa). El # de
+  // gestiones = registros.length; se guarda el detalle para poder verlo caso por caso.
+  private gestionesPorSedeDni = new Map<string, Map<string, RegistroGestionDetalle[]>>();
   private metasCartera: Record<string, number> = {};
   // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
   consolidado: ResumenSede[] = [];
   consolidadoGrupos: { grupo: string; filas: ResumenSede[] }[] = [];
   // Detalle de Intensidad: 1 fila por cliente con su # de gestiones real (con repeticiones).
-  // Se abre al hacer clic en una sede del cuadro consolidado (como detVentas con ↙/↗).
+  // Se abre como ventana (modal) al hacer clic en una sede del cuadro consolidado.
   detalleIntensidad: DetalleIntensidad[] = [];
-  detIntensidad: { sedeKey: string; sede: string; grupo: string | null; tabla: ResumenSede[] } | null = null;
-  verDetalleIntensidad(r: ResumenSede, filas: ResumenSede[], grupo: string | null): void {
-    this.detIntensidad = { sedeKey: r.sedeKey, sede: r.sede, grupo, tabla: filas };
+  detIntensidad: { sedeKey: string; sede: string; grupo: string | null } | null = null;
+  filtroIntensidad = '';
+  colapsadasIntensidad = new Set<string>();
+  // Sub-ventana: el detalle de gestiones (fecha/resultado) de UN cliente, al hacer clic
+  // en su número de "N° Gestiones".
+  detGestionCliente: { dni: string; asesor: string; registros: RegistroGestionDetalle[] } | null = null;
+
+  verDetalleIntensidad(r: ResumenSede, grupo: string | null): void {
+    this.detIntensidad = { sedeKey: r.sedeKey, sede: r.sede, grupo };
+    this.filtroIntensidad = '';
+    // Todos los asesores arrancan colapsados (solo se ve el resumen por asesor).
+    this.colapsadasIntensidad = new Set(this.filasIntensidadActual.map(f => f.asesor));
   }
-  /** Filas del detalle para la sede/grupo que se está viendo (grupo=null → todos los grupos). */
+  cerrarIntensidad(): void { this.detIntensidad = null; this.detGestionCliente = null; }
+  toggleAsesorIntensidad(asesor: string): void {
+    this.colapsadasIntensidad.has(asesor) ? this.colapsadasIntensidad.delete(asesor) : this.colapsadasIntensidad.add(asesor);
+  }
+  verDetalleGestionesCliente(c: DetalleIntensidad): void {
+    this.detGestionCliente = { dni: c.dni, asesor: c.asesor, registros: c.gestionesDetalle };
+  }
+
+  /** Filas del detalle para la sede/grupo que se está viendo (grupo=null → todos los grupos),
+   *  con el filtro de búsqueda (DNI / teléfono / asesor) aplicado. */
   get filasIntensidadActual(): DetalleIntensidad[] {
     const d = this.detIntensidad;
     if (!d) return [];
-    return this.detalleIntensidad.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
+    let filas = this.detalleIntensidad.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
+    const q = this.filtroIntensidad.trim().toLowerCase();
+    if (q) filas = filas.filter(f => f.dni.includes(q) || f.asesor.toLowerCase().includes(q) || f.telefonos.some(t => t.includes(q)));
+    return filas;
+  }
+  /** Agrupa el detalle actual por asesor (desplegable), ordenado por quien más gestiona. */
+  get gruposIntensidadActual(): { asesor: string; filas: DetalleIntensidad[]; clientes: number; gestionesTotal: number }[] {
+    const map = new Map<string, DetalleIntensidad[]>();
+    for (const f of this.filasIntensidadActual) { const arr = map.get(f.asesor) ?? []; arr.push(f); map.set(f.asesor, arr); }
+    return [...map.entries()]
+      .map(([asesor, filas]) => ({ asesor, filas, clientes: filas.length, gestionesTotal: filas.reduce((s, f) => s + f.gestiones, 0) }))
+      .sort((a, b) => b.gestionesTotal - a.gestionesTotal);
   }
   // Clientes de la cartera asignados a Call Center (Patricia/Maria/Juana), deduplicados —
   // se usan para agregar la fila "Call Center" en cada tabla por sede (no entran al avance
@@ -275,7 +310,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.listo = false; this.error = ''; this.nombreArchivo = '';
     this.headersOriginales = []; this.ultimasFilas = [];
     this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.clientesCallCenter = [];
-    this.detalleIntensidad = []; this.detIntensidad = null;
+    this.detalleIntensidad = []; this.detIntensidad = null; this.detGestionCliente = null;
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
@@ -515,7 +550,14 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         this.guardarUltima(idx.porDni, dni, { fecha, estado });
         if (!this.gestionesPorSedeDni.has(sedeKey)) this.gestionesPorSedeDni.set(sedeKey, new Map());
         const porDniSede = this.gestionesPorSedeDni.get(sedeKey)!;
-        porDniSede.set(dni, (porDniSede.get(dni) || 0) + 1);
+        const reg: RegistroGestionDetalle = {
+          fecha,
+          tipo: (item['TIPO DE GESTION'] || '').toString().trim(),
+          estado: (item[GS_ESTADO] || '').toString().trim(),
+          celular: this.soloDigitos(String(item[GS_CELULAR] ?? '')),
+          motivo: (item['MOTIVOS "CONTACTO EN LA GESTION"'] || item['MOTIVOS "NO CONTACTO EN LA GESTION"'] || '').toString().trim(),
+        };
+        const arr = porDniSede.get(dni); if (arr) arr.push(reg); else porDniSede.set(dni, [reg]);
       }
       const tel = this.soloDigitos(String(item[GS_CELULAR] ?? '')).slice(-9);
       if (tel.length >= 9) this.guardarUltima(idx.porTel, tel, { fecha, estado });
@@ -679,7 +721,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     for (const [dni, baseKey] of baseSedeDeDni) {
       const r = map.get(baseKey);
       if (!r) continue;
-      r.gestionesTotal += this.gestionesPorSedeDni.get(baseKey)?.get(dni) || 0;
+      r.gestionesTotal += this.gestionesPorSedeDni.get(baseKey)?.get(dni)?.length || 0;
     }
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
@@ -702,7 +744,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   }
 
   private construirResumenSedes(clientes: ClienteCartera[]): void {
-    this.detIntensidad = null;   // cierra el detalle abierto: las filas/tabla de antes ya no son válidas
+    this.detIntensidad = null; this.detGestionCliente = null;   // cierra lo abierto: ya no es válido
     // Prefijo por MES seleccionado → las metas se guardan por mes (cada mes independiente).
     const ym = `${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
     // Respaldo de las metas ya cargadas (clave sin mes): solo se usa en el mes en curso,
@@ -748,16 +790,20 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
    *  recibió muchas llamadas y quién casi ninguna. Mismo criterio de grupo (Lover A/B,
    *  Afiliaciones) que los cuadros consolidados. */
   private construirDetalleIntensidad(clientes: ClienteCartera[]): void {
-    this.detalleIntensidad = clientes.map(c => ({
-      sedeKey: c.sedeKey || 'sin-sede',
-      sede: c.sedeNombre || 'SIN SEDE',
-      grupo: this.grupoTipo(c.tipoCliente),
-      asesor: c.asesor,
-      dni: c.dni,
-      telefono: (c.telefonos || []).filter(Boolean).join(' / '),
-      estado: c.estado,
-      gestiones: this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || 0,
-    })).sort((a, b) => b.gestiones - a.gestiones);
+    this.detalleIntensidad = clientes.map(c => {
+      const detalle = this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || [];
+      return {
+        sedeKey: c.sedeKey || 'sin-sede',
+        sede: c.sedeNombre || 'SIN SEDE',
+        grupo: this.grupoTipo(c.tipoCliente),
+        asesor: c.asesor,
+        dni: c.dni,
+        telefonos: (c.telefonos || []).filter(Boolean),
+        estado: c.estado,
+        gestiones: detalle.length,
+        gestionesDetalle: [...detalle].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()),
+      };
+    }).sort((a, b) => b.gestiones - a.gestiones);
   }
 
   /** Una fila "Call Center" (Patricia/Maria/Juana) para agregar al final de cualquier
@@ -994,7 +1040,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
     });
     for (const d of lista) {
-      ws.addRow([d.sede, d.grupo, d.asesor, d.dni, d.telefono, d.estado, d.gestiones]);
+      const telefonos = d.telefonos.length ? d.telefonos : ['(sin teléfono)'];
+      for (const tel of telefonos) ws.addRow([d.sede, d.grupo, d.asesor, d.dni, tel, d.estado, d.gestiones]);
     }
     ws.columns.forEach((col, i) => { col.width = i === 4 ? 24 : 16; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
