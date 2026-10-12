@@ -153,9 +153,17 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   // en su número de "N° Gestiones".
   detGestionCliente: { dni: string; asesor: string; registros: RegistroGestionDetalle[] } | null = null;
 
+  // Resultado cacheado (NO getters): un getter devolvería arrays/objetos nuevos en cada
+  // ciclo de detección de cambios → *ngFor sin trackBy destruye y reconstruye TODO en
+  // cada clic, y el desplegable "pierde" el propio clic que lo abre. Se recalculan solo
+  // cuando de verdad cambian (abrir, buscar, togglear un asesor no los toca).
+  filasIntensidadActual: DetalleIntensidad[] = [];
+  gruposIntensidadActual: { asesor: string; filas: DetalleIntensidad[]; clientes: number; gestionesTotal: number }[] = [];
+
   verDetalleIntensidad(r: ResumenSede, grupo: string | null): void {
     this.detIntensidad = { sedeKey: r.sedeKey, sede: r.sede, grupo };
     this.filtroIntensidad = '';
+    this.recalcularIntensidadActual();
     // Todos los asesores arrancan colapsados (solo se ve el resumen por asesor).
     this.colapsadasIntensidad = new Set(this.filasIntensidadActual.map(f => f.asesor));
   }
@@ -166,23 +174,24 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   verDetalleGestionesCliente(c: DetalleIntensidad): void {
     this.detGestionCliente = { dni: c.dni, asesor: c.asesor, registros: c.gestionesDetalle };
   }
+  /** Se llama al escribir en el buscador del modal de Intensidad. */
+  onFiltroIntensidadChange(): void { this.recalcularIntensidadActual(); }
+  trackByAsesor(_i: number, g: { asesor: string }): string { return g.asesor; }
+  trackByDni(_i: number, c: DetalleIntensidad): string { return c.dni; }
 
-  /** Filas del detalle para la sede/grupo que se está viendo (grupo=null → todos los grupos),
-   *  con el filtro de búsqueda (DNI / teléfono / asesor) aplicado. */
-  get filasIntensidadActual(): DetalleIntensidad[] {
+  /** Recalcula filasIntensidadActual (sede/grupo/búsqueda) y el agrupado por asesor. */
+  private recalcularIntensidadActual(): void {
     const d = this.detIntensidad;
-    if (!d) return [];
+    if (!d) { this.filasIntensidadActual = []; this.gruposIntensidadActual = []; return; }
     let filas = this.detalleIntensidad.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
     const q = this.filtroIntensidad.trim().toLowerCase();
     if (q) filas = filas.filter(f => f.dni.includes(q) || f.asesor.toLowerCase().includes(q) || f.telefonos.some(t => t.includes(q)));
-    return filas;
-  }
-  /** Agrupa el detalle actual por asesor (desplegable), ordenado por quien más gestiona. */
-  get gruposIntensidadActual(): { asesor: string; filas: DetalleIntensidad[]; clientes: number; gestionesTotal: number }[] {
+    this.filasIntensidadActual = filas;
+
     const map = new Map<string, DetalleIntensidad[]>();
-    for (const f of this.filasIntensidadActual) { const arr = map.get(f.asesor) ?? []; arr.push(f); map.set(f.asesor, arr); }
-    return [...map.entries()]
-      .map(([asesor, filas]) => ({ asesor, filas, clientes: filas.length, gestionesTotal: filas.reduce((s, f) => s + f.gestiones, 0) }))
+    for (const f of filas) { const arr = map.get(f.asesor) ?? []; arr.push(f); map.set(f.asesor, arr); }
+    this.gruposIntensidadActual = [...map.entries()]
+      .map(([asesor, fs]) => ({ asesor, filas: fs, clientes: fs.length, gestionesTotal: fs.reduce((s, f) => s + f.gestiones, 0) }))
       .sort((a, b) => b.gestionesTotal - a.gestionesTotal);
   }
   // Clientes de la cartera asignados a Call Center (Patricia/Maria/Juana), deduplicados —

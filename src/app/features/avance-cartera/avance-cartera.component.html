@@ -377,13 +377,13 @@
       <div class="modal-toolbar">
         <div class="buscador">
           <mat-icon>search</mat-icon>
-          <input type="text" placeholder="Buscar DNI / teléfono / asesor…" [(ngModel)]="filtroIntensidad" />
+          <input type="text" placeholder="Buscar DNI / teléfono / asesor…" [(ngModel)]="filtroIntensidad" (ngModelChange)="onFiltroIntensidadChange()" />
         </div>
         <button class="btn-regresar" (click)="exportarIntensidad()"><mat-icon>download</mat-icon> Exportar</button>
       </div>
 
       <div class="grupos-asesor" *ngIf="gruposIntensidadActual.length; else sinClientesIntensidad">
-        <div class="grupo-asesor" *ngFor="let g of gruposIntensidadActual">
+        <div class="grupo-asesor" *ngFor="let g of gruposIntensidadActual; trackBy: trackByAsesor">
           <div class="grupo-asesor-head" (click)="toggleAsesorIntensidad(g.asesor)">
             <mat-icon class="chev">{{ colapsadasIntensidad.has(g.asesor) ? 'chevron_right' : 'expand_more' }}</mat-icon>
             <span class="ga-nombre">{{ g.asesor }}</span>
@@ -399,7 +399,7 @@
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let c of g.filas">
+                <ng-container *ngFor="let c of g.filas; trackBy: trackByDni">
                   <tr *ngFor="let tel of (c.telefonos.length ? c.telefonos : ['—'])">
                     <td class="left">{{ c.dni }}</td>
                     <td class="left mono">{{ tel }}</td>
