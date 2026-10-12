@@ -138,9 +138,18 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   consolidado: ResumenSede[] = [];
   consolidadoGrupos: { grupo: string; filas: ResumenSede[] }[] = [];
   // Detalle de Intensidad: 1 fila por cliente con su # de gestiones real (con repeticiones).
+  // Se abre al hacer clic en una sede del cuadro consolidado (como detVentas con ↙/↗).
   detalleIntensidad: DetalleIntensidad[] = [];
-  intensidadAbierta = false;
-  toggleIntensidadAbierta(): void { this.intensidadAbierta = !this.intensidadAbierta; }
+  detIntensidad: { sedeKey: string; sede: string; grupo: string | null; tabla: ResumenSede[] } | null = null;
+  verDetalleIntensidad(r: ResumenSede, filas: ResumenSede[], grupo: string | null): void {
+    this.detIntensidad = { sedeKey: r.sedeKey, sede: r.sede, grupo, tabla: filas };
+  }
+  /** Filas del detalle para la sede/grupo que se está viendo (grupo=null → todos los grupos). */
+  get filasIntensidadActual(): DetalleIntensidad[] {
+    const d = this.detIntensidad;
+    if (!d) return [];
+    return this.detalleIntensidad.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
+  }
   // Clientes de la cartera asignados a Call Center (Patricia/Maria/Juana), deduplicados —
   // se usan para agregar la fila "Call Center" en cada tabla por sede (no entran al avance
   // de piso). Se filtran por grupo/tipo igual que `this.clientes` para cada cuadro.
@@ -266,7 +275,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.listo = false; this.error = ''; this.nombreArchivo = '';
     this.headersOriginales = []; this.ultimasFilas = [];
     this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.clientesCallCenter = [];
-    this.detalleIntensidad = [];
+    this.detalleIntensidad = []; this.detIntensidad = null;
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
@@ -693,6 +702,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   }
 
   private construirResumenSedes(clientes: ClienteCartera[]): void {
+    this.detIntensidad = null;   // cierra el detalle abierto: las filas/tabla de antes ya no son válidas
     // Prefijo por MES seleccionado → las metas se guardan por mes (cada mes independiente).
     const ym = `${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
     // Respaldo de las metas ya cargadas (clave sin mes): solo se usa en el mes en curso,
@@ -713,6 +723,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         }))
       : [];   // si no hay tipos reales, no muestra cuadros por grupo
 
+    // Call Center no entra aquí: su gestión se indexa aparte (idxCallCenter) y no queda
+    // registrada en gestionesPorSedeDni por sede, así que su fila no abre este detalle.
     this.construirDetalleIntensidad(this.clientes);
 
     // Fila "Call Center" (Patricia/Maria/Juana) al final de cada tabla por sede — aparte
@@ -969,8 +981,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     await this.exportarClientes(subset, 'Detalle', suf, true);
   }
 
+  /** Exporta el detalle de intensidad que se está viendo (la sede/grupo abiertos). */
   async exportarIntensidad(): Promise<void> {
-    if (!this.detalleIntensidad.length) return;
+    const lista = this.filasIntensidadActual;
+    if (!lista.length || !this.detIntensidad) return;
     const wb = new Workbook();
     const ws = wb.addWorksheet('Intensidad');
     const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Teléfono', 'Estado', 'N° Gestiones'];
@@ -979,7 +993,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
     });
-    for (const d of this.detalleIntensidad) {
+    for (const d of lista) {
       ws.addRow([d.sede, d.grupo, d.asesor, d.dni, d.telefono, d.estado, d.gestiones]);
     }
     ws.columns.forEach((col, i) => { col.width = i === 4 ? 24 : 16; });
@@ -987,7 +1001,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const nombre = this.nombreArchivo.replace(/\.[^/.]+$/, '') || 'cartera';
-    FileSaver.saveAs(blob, `${nombre}_INTENSIDAD.xlsx`);
+    const sufGrupo = this.detIntensidad.grupo ? `_${this.detIntensidad.grupo}` : '';
+    FileSaver.saveAs(blob, `${nombre}_INTENSIDAD_${this.detIntensidad.sede}${sufGrupo}.xlsx`.replace(/\s+/g, '_'));
   }
 
   private async exportarClientes(lista: ClienteCartera[], hoja: string, sufijo: string, conEstado: boolean): Promise<void> {
