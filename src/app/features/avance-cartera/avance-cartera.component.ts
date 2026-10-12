@@ -32,8 +32,8 @@ const CANDIDATOS_ZONA = ['ZONA', 'ZONAS', 'SEDE', 'TIENDA', 'TIENDA SEDE'];
 
 // ASESORES_CALL_EN_CARTERA_PISO / ASESORES_CALL_CENTER_CARTERA: fuente única en
 // shared/asesores.ts (también la usa Comparativo Cartera Ventas Piso). Aplica solo en
-// modo 'piso': el avance de PISO excluye a las 5; el cuadro "Call Center" solo a las 3
-// que hoy sí gestionan cartera (Patricia, Maria, Juana).
+// modo 'piso': el avance de PISO excluye a las 6 asesoras de Call Center; el cuadro
+// "Call Center" las agrupa a todas aparte (Patricia, Dexy, Karen, Maria, Judy, Juana).
 const CANDIDATOS_TIPO_CLIENTE = [
   'TIPO CLIENTE', 'TIPO DE CLIENTE', 'TIPOCLIENTE', 'TIPO_CLIENTE', 'TIPO DE CLIENTES',
   'CLIENTE TIPO', 'TIPO CLIENTES', 'SEGMENTO', 'SEGMENTO CLIENTE',

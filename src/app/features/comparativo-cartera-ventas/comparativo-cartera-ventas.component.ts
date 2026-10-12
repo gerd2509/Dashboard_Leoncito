@@ -85,9 +85,9 @@ export class ComparativoCarteraVentasComponent {
   private asignadosPorSede = new Map<string, number>();
   private totalAsignados = 0;
 
-  // Ventas de Call atribuidas a cada una de las 3 asesoras de Call Center (por nombre y
-  // DNI) — así "Call Center" no se cruza con cualquier venta de piso del mismo DNI, sino
-  // solo con lo que ELLAS vendieron (mismo criterio que Avance de Cartera).
+  // Ventas de Call atribuidas a cada asesora de Call Center (por nombre y DNI) — así
+  // "Call Center" no se cruza con cualquier venta de piso del mismo DNI, sino solo con
+  // lo que ELLAS vendieron (mismo criterio que Avance de Cartera).
   private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number; cliente: string }>>();
 
   // Cartera deduplicada (para recontar asignados por CAP) + CAP por sede.
@@ -235,8 +235,8 @@ export class ComparativoCarteraVentasComponent {
 
       // Recorre la cartera (dedup por DNI): guarda la BASE de cada cliente (sede asignada
       // en el Excel, normalizada igual que el catálogo) + su vendedor/tipoBase/tipoCliente.
-      // Las 5 asesoras de Call Center (ASESORES_CALL_EN_CARTERA_PISO) no son vendedoras
-      // físicas: se sacan de las sedes. Las 3 que hoy sí gestionan cartera por Call
+      // Las asesoras de Call Center (ASESORES_CALL_EN_CARTERA_PISO) no son vendedoras
+      // físicas: se sacan de las sedes. Las que hoy sí gestionan cartera por Call
       // (ASESORES_CALL_CENTER_CARTERA) se agrupan aparte como sede "Call Center", cruzadas
       // SOLO con lo que ELLAS vendieron en Call (no cualquier venta del mismo DNI).
       const vistos = new Set<string>();
@@ -252,7 +252,7 @@ export class ComparativoCarteraVentasComponent {
         infoPorDni.set(dni, { vendedor: r.vendedor, tipoBase: r.tipoBase, tipoCliente: r.tipoCliente });
 
         if (ASESORES_CALL_EN_CARTERA_PISO.has(r.vendedor)) {
-          if (!ASESORES_CALL_CENTER_CARTERA.has(r.vendedor)) continue;   // Karen/Esmeralda: ya no gestionan cartera
+          if (!ASESORES_CALL_CENTER_CARTERA.has(r.vendedor)) continue;   // no gestiona cartera de piso
           totalAsignados++;
           baseSedeKeyPorDni.set(dni, 'call-center');
           const g = asignadosPorSedeKey.get('call-center') ?? { nombre: 'Call Center', asignados: 0 };

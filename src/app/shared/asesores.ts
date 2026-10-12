@@ -39,17 +39,21 @@ export const ASESORES_REALZZA: AsesorRef[] = [
  *  avance de la sede física). Usado en Avance de Cartera y Comparativo Cartera Ventas. */
 export const ASESORES_CALL_EN_CARTERA_PISO = new Set([
   'MORETO DELGADO PATRICIA ESTEFANY',
+  'VALDERA PISCOYA DEXY ROSARIO',
   'QUISPE FONSECA KAREN AIMEE',
   'MORALES ÑIQUE MARIA CANDELARIA',
   'TORRES ALVARADO JUDY ESMERALDA',
   'SANDOVAL OTINIANO JUANA DEL PILAR',
 ]);
 
-/** Subconjunto de ASESORES_CALL_EN_CARTERA_PISO que hoy SÍ gestiona cartera de piso
- *  por Call Center (Patricia, Maria, Juana) — para el cuadro aparte "Call Center". */
+/** Asesoras de Call Center que gestionan cartera de piso — para el cuadro aparte
+ *  "Call Center" (hoy, las 6 de ASESORES_CALL_EN_CARTERA_PISO). */
 export const ASESORES_CALL_CENTER_CARTERA = new Set([
   'MORETO DELGADO PATRICIA ESTEFANY',
+  'VALDERA PISCOYA DEXY ROSARIO',
+  'QUISPE FONSECA KAREN AIMEE',
   'MORALES ÑIQUE MARIA CANDELARIA',
+  'TORRES ALVARADO JUDY ESMERALDA',
   'SANDOVAL OTINIANO JUANA DEL PILAR',
 ]);
 
