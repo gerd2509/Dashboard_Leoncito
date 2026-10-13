@@ -573,12 +573,22 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       if (dni) {
         this.guardarUltima(porDni, dni, { fecha, estado });
         if (colectarDetalle) {
+          // OJO: cargarGestion() lee Call/Realzza (gestion_call / gestion_realzza), que NO
+          // tienen "TIPO DE GESTION" ni los campos "MOTIVOS ..." de Sedes — es un formulario
+          // bien distinto, con un motivo separado por cada rama (interés, no interés, no
+          // contacto, no cierre, etc.). Se toma el primero que venga lleno, en el orden en
+          // que se recorren esas ramas en el propio formulario.
+          const motivo = [
+            item['MOTIVO INTERÉS'], item['MOTIVO NO INTERÉS'], item['MOTIVO AGENDAMIENTO'],
+            item['MOTIVO NO ATENDIBLE'], item['MOTIVOS TERCERO RELACIONADO'],
+            item['MOTIVO NO CONTACTO'], item['MOTIVO DE NO CIERRE'],
+          ].find(v => (v || '').toString().trim()) || '';
           const reg: RegistroGestionDetalle = {
             fecha,
-            tipo: (item['TIPO DE GESTION'] || '').toString().trim(),
+            tipo: (item['MEDIO DE PRIMER CONTACTO'] || '').toString().trim(),
             estado: (item[G_ESTADO] || '').toString().trim(),
             celular: this.soloDigitos(String(item[G_CELULAR] || '')),
-            motivo: (item['MOTIVOS "CONTACTO EN LA GESTION"'] || item['MOTIVOS "NO CONTACTO EN LA GESTION"'] || '').toString().trim(),
+            motivo: motivo.toString().trim(),
           };
           const arr = colectarDetalle.get(dni); if (arr) arr.push(reg); else colectarDetalle.set(dni, [reg]);
         }
