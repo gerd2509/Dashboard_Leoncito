@@ -216,11 +216,11 @@ export class CierreGestionComponent implements OnInit {
       ? ['CC2', 'CC5', 'CC15']
       : ['CC2', 'CC5', 'CC15', 'CC8', 'CC12'];
   }
-  // Realzza KOMMO: NATALY, ANYELA, TATIANA, MERLY, FELICITA, ANA RUT, YUDITH (+KELLY, ANITA, BRENDA desde sep)
-  private get kommoRealzzaIds() {
-    return this.kellyAnitaRealzza
-      ? ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8', 'CC8', 'CC21', 'CC12']
-      : ['RZ2', 'RZ3', 'RZ4', 'RZ5', 'RZ6', 'RZ7', 'RZ8'];
+  // Ana Rut (RZ8) y Nataly (RZ2) no participan en Contactabilidad, KOMMO ni Market Place
+  // de Realzza Chiclayo — el resto de la tienda (incl. Jesus) sí, en los 3 cuadros.
+  private readonly SIN_CONTACTABILIDAD_REALZZA = ['RZ2', 'RZ8'];
+  get asesoresRealzzaContactables() {
+    return this.asesoresRealzza.filter(a => !this.SIN_CONTACTABILIDAD_REALZZA.includes(a.value));
   }
 
   get asesoresKommoCall() {
@@ -239,9 +239,7 @@ export class CierreGestionComponent implements OnInit {
 
   get asesoresKommoRealzza() {
     if (this.esTiendaNueva) return this.asesoresRealzza;
-    return this.kommoRealzzaIds
-      .map(id => this.asesoresRealzza.find(a => a.value === id))
-      .filter((a): a is { value: string; viewValue: string } => !!a);
+    return this.asesoresRealzzaContactables;
   }
 
   asesorMap: { [codigo: string]: string } = {
@@ -397,12 +395,12 @@ export class CierreGestionComponent implements OnInit {
   }
 
   calcularContactabilidadRealzza() {
-    // Contactabilidad Realzza: TODOS los asesores, tengan o no gestión.
+    // Contactabilidad Realzza: TODOS los asesores (salvo Ana Rut/Nataly), tengan o no gestión.
     // dedupePorDni=true → un DNI cuenta como 1 gestión aunque lo hayan llamado varias
     // veces (igual que Call, arriba, y que Mi Panel — antes faltaba acá y las "Llamadas"
     // de Realzza salían infladas frente al resto de la app).
     this.dataContactabilidadRealzza = this
-      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA', true);
+      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzzaContactables, 'ASESOR REALZZA', true);
   }
 
   calcularContactabilidadKOMMOCall() {
@@ -418,15 +416,15 @@ export class CierreGestionComponent implements OnInit {
   }
 
   calcularContactabilidadKOMMORealzza() {
-    // KOMMO Realzza (NO market place): SOLO Nataly, Anyela, Tatiana, Merly, Felicita, Ana Rut, Yudith.
+    // KOMMO Realzza (NO market place): TODOS los asesores (salvo Ana Rut/Nataly).
     this.dataContactabilidadKOMMORealzza = this
       .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresKommoRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false);
   }
 
   calcularContactabilidadKOMMORealzzaMarket() {
-    // KOMMO Realzza MARKET PLACE: TODOS los asesores, tengan o no registros.
+    // KOMMO Realzza MARKET PLACE: TODOS los asesores (salvo Ana Rut/Nataly), tengan o no registros.
     this.dataContactabilidadKOMMORealzzaMarket = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true);
+      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzzaContactables, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true);
   }
 
   private procesarContactabilidad(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string, dedupePorDni = false): any[] {
