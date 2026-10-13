@@ -280,12 +280,11 @@
         <tbody>
           <tr *ngFor="let r of filas" [class.fila-call-center]="r.sedeKey === 'call-center'">
             <td class="left">
-              <span *ngIf="r.sedeKey !== 'call-center'; else sedeSinDetalle" class="sede-clic"
+              <span class="sede-clic"
                 (click)="verDetalleIntensidad(r, titulo === 'Asignados Totales' ? null : titulo)"
                 title="Ver detalle de intensidad por cliente">
                 {{ r.sede }} <mat-icon>search</mat-icon>
               </span>
-              <ng-template #sedeSinDetalle>{{ r.sede }}</ng-template>
             </td>
             <td>{{ r.asignados }}</td>
             <td>{{ r.gestionados }}</td>

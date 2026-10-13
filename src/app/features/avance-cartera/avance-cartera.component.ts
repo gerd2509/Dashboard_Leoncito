@@ -153,6 +153,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   // grupo/cuadro que se esté mostrando — no el total de la sede completa). El # de
   // gestiones = registros.length; se guarda el detalle para poder verlo caso por caso.
   private gestionesPorSedeDni = new Map<string, Map<string, RegistroGestionDetalle[]>>();
+  // dni → registros de gestión reales de Call Center (Patricia/Maria/Juana) ese mes —
+  // igual que gestionesPorSedeDni, pero sin sede (gestion_call es una tabla única, no
+  // por sede) para que "Call Center" también pueda abrir el detalle de Intensidad.
+  private gestionesCallCenterPorDni = new Map<string, RegistroGestionDetalle[]>();
   private metasCartera: Record<string, number> = {};
   // Consolidado (Todos) + un cuadro separado por cada grupo de tipo de cliente.
   consolidado: ResumenSede[] = [];
@@ -362,6 +366,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.listo = false; this.error = ''; this.nombreArchivo = '';
     this.headersOriginales = []; this.ultimasFilas = [];
     this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.clientesCallCenter = [];
+    this.gestionesCallCenterPorDni = new Map();
     this.detalleIntensidad = []; this.detIntensidad = null; this.detGestionCliente = null;
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
@@ -440,8 +445,11 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     const idxGlobal = this.modo === 'piso' ? null : await this.cargarGestion();
     const idxPorSede = this.modo === 'piso' ? await this.cargarGestionSedes() : null;
     // Call Center (Patricia/Maria/Juana) gestiona en gestion_call, no en la gestión de sedes.
+    // Se pide también el detalle completo (no solo la última) para que su fila "Call
+    // Center" pueda abrir el mismo detalle de Intensidad que las demás sedes.
     const gestMesPrev = this.gestionesMes;
-    const idxCallCenter = this.modo === 'piso' ? await this.cargarGestion() : null;
+    this.gestionesCallCenterPorDni = new Map();
+    const idxCallCenter = this.modo === 'piso' ? await this.cargarGestion(this.gestionesCallCenterPorDni) : null;
     if (this.modo === 'piso') this.gestionesMes = gestMesPrev;
     // Piso: ventas (BD) + metas por sede para el cuadro consolidado.
     if (this.modo === 'piso') await this.cargarVentasYMetasSede();
@@ -534,8 +542,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     return [...map.values(), ...sinDni];
   }
 
-  /** Gestión Call/Realzza → índice por DNI y por teléfono del mes seleccionado. */
-  private async cargarGestion(): Promise<IndiceGestion> {
+  /** Gestión Call/Realzza → índice por DNI y por teléfono del mes seleccionado. Si se
+   *  pasa `colectarDetalle`, además junta ahí TODOS los registros (no solo el último)
+   *  por DNI — lo que necesita Call Center para su propio detalle de Intensidad. */
+  private async cargarGestion(colectarDetalle?: Map<string, RegistroGestionDetalle[]>): Promise<IndiceGestion> {
     const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
     // Solo hasta la fecha de corte elegida (nunca más allá del mes) → payload mínimo.
     const desde = new Date(anio, mes, 1);
@@ -560,7 +570,19 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       const estado = this.mapEstado(item[G_ESTADO]);
       count++;
       const dni = this.soloDigitos(String(item[G_DNI] ?? ''));
-      if (dni) this.guardarUltima(porDni, dni, { fecha, estado });
+      if (dni) {
+        this.guardarUltima(porDni, dni, { fecha, estado });
+        if (colectarDetalle) {
+          const reg: RegistroGestionDetalle = {
+            fecha,
+            tipo: (item['TIPO DE GESTION'] || '').toString().trim(),
+            estado: (item[G_ESTADO] || '').toString().trim(),
+            celular: this.soloDigitos(String(item[G_CELULAR] || '')),
+            motivo: (item['MOTIVOS "CONTACTO EN LA GESTION"'] || item['MOTIVOS "NO CONTACTO EN LA GESTION"'] || '').toString().trim(),
+          };
+          const arr = colectarDetalle.get(dni); if (arr) arr.push(reg); else colectarDetalle.set(dni, [reg]);
+        }
+      }
       const tel = this.soloDigitos(String(item[G_CELULAR] ?? '')).slice(-9);
       if (tel.length >= 9) this.guardarUltima(porTel, tel, { fecha, estado });
     }
@@ -827,8 +849,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         }))
       : [];   // si no hay tipos reales, no muestra cuadros por grupo
 
-    // Call Center no entra aquí: su gestión se indexa aparte (idxCallCenter) y no queda
-    // registrada en gestionesPorSedeDni por sede, así que su fila no abre este detalle.
+    // Incluye también a Call Center (su gestión vive aparte, en gestionesCallCenterPorDni,
+    // sin sede) para que su fila pueda abrir el mismo detalle de Intensidad que las demás.
     this.construirDetalleIntensidad(this.clientes);
 
     // Fila "Call Center" (Patricia/Maria/Juana) al final de cada tabla por sede — aparte
@@ -852,29 +874,38 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
    *  recibió muchas llamadas y quién casi ninguna. Mismo criterio de grupo (Lover A/B,
    *  Afiliaciones) que los cuadros consolidados. */
   private construirDetalleIntensidad(clientes: ClienteCartera[]): void {
-    this.detalleIntensidad = clientes.map(c => {
-      const detalle = this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || [];
-      const gestionesDetalle = [...detalle].sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
-      return {
-        sedeKey: c.sedeKey || 'sin-sede',
-        sede: c.sedeNombre || 'SIN SEDE',
-        grupo: this.grupoTipo(c.tipoCliente),
-        asesor: c.asesor,
-        dni: c.dni,
-        telefonos: (c.telefonos || []).filter(Boolean),
-        estado: c.estado,
-        gestiones: detalle.length,
-        gestionesDetalle,
-        telefonosGestionados: this.agruparPorTelefonoGestionado(gestionesDetalle),
-        ultimaGestionFecha: gestionesDetalle[0]?.fecha ?? null,
-      };
-    }).sort((a, b) => {
+    const deSede = clientes.map(c =>
+      this.armarDetalleIntensidadCliente(c, this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || []));
+    // Call Center (Patricia/Maria/Juana): su gestión es por DNI sin sede (gestion_call es
+    // una tabla única) — se les asigna la sede "call-center" para que calcen con esa fila.
+    const deCallCenter = this.clientesCallCenter.map(c =>
+      this.armarDetalleIntensidadCliente(
+        { ...c, sedeKey: 'call-center', sedeNombre: 'Call Center' },
+        this.gestionesCallCenterPorDni.get(c.dni) || []));
+    this.detalleIntensidad = [...deSede, ...deCallCenter].sort((a, b) => {
       // Más reciente primero; los clientes sin ninguna gestión quedan al final.
       if (!a.ultimaGestionFecha && !b.ultimaGestionFecha) return 0;
       if (!a.ultimaGestionFecha) return 1;
       if (!b.ultimaGestionFecha) return -1;
       return b.ultimaGestionFecha.getTime() - a.ultimaGestionFecha.getTime();
     });
+  }
+
+  private armarDetalleIntensidadCliente(c: ClienteCartera, detalle: RegistroGestionDetalle[]): DetalleIntensidad {
+    const gestionesDetalle = [...detalle].sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+    return {
+      sedeKey: c.sedeKey || 'sin-sede',
+      sede: c.sedeNombre || 'SIN SEDE',
+      grupo: this.grupoTipo(c.tipoCliente),
+      asesor: c.asesor,
+      dni: c.dni,
+      telefonos: (c.telefonos || []).filter(Boolean),
+      estado: c.estado,
+      gestiones: detalle.length,
+      gestionesDetalle,
+      telefonosGestionados: this.agruparPorTelefonoGestionado(gestionesDetalle),
+      ultimaGestionFecha: gestionesDetalle[0]?.fecha ?? null,
+    };
   }
 
   /** Agrupa las gestiones REALES de un cliente por el número que de verdad se marcó en
@@ -908,17 +939,19 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
    *  tabla por sede — mismas columnas de avance (sin ventas, que no les aplica; la meta
    *  queda editable igual que las demás filas, con su propia clave de persistencia). */
   private construirFilaCallCenter(clientes: ClienteCartera[], metaKey: string): ResumenSede {
-    let asignados = 0, gestionados = 0, contacto = 0, noContacto = 0, pendientes = 0;
+    let asignados = 0, gestionados = 0, contacto = 0, noContacto = 0, pendientes = 0, gestionesTotal = 0;
     for (const c of clientes) {
       asignados++;
       if (c.estado === 'PENDIENTE') pendientes++;
       else { gestionados++; if (c.estado === 'CONTACTO') contacto++; else noContacto++; }
+      gestionesTotal += this.gestionesCallCenterPorDni.get(c.dni)?.length || 0;
     }
     const { ops: nVentas, monto } = this.calcularVentasCCTotales(clientes);
     return {
       sedeKey: 'call-center', sede: 'Call Center', asignados, gestionados, contacto, noContacto, pendientes,
       avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0,
-      gestionesTotal: 0, intensidad: 0, nVentas, monto: Math.round(monto),
+      gestionesTotal, intensidad: gestionados > 0 ? Math.round((gestionesTotal / gestionados) * 100) / 100 : 0,
+      nVentas, monto: Math.round(monto),
       ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
       concrecion: contacto > 0 ? Math.round((nVentas / contacto) * 100) : 0,
       detEntran: [], detSalen: [],
