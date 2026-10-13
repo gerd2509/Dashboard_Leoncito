@@ -558,9 +558,16 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       count++;
       if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map() });
       const idx = porSede.get(sedeKey)!;
-      // Celular realmente gestionado: el nuevo campo (obligatorio) manda; si la gestión es
-      // vieja y no lo tiene, se cae al "celular actualizado" (solo existía en una rama).
-      const celularReal = this.soloDigitos(String(item[GS_CELULAR_GESTIONADO] || item[GS_CELULAR] || ''));
+      // Para el DETALLE de gestiones (lo que ve el supervisor en el popup): SOLO el
+      // celular gestionado real de ESA gestión puntual. Si es un registro viejo que no
+      // lo tiene (el campo recién se agregó), se deja VACÍO — no se rellena con "celular
+      // actualizado", que es un dato distinto (el número confirmado del cliente, no
+      // necesariamente el que se marcó en esa llamada) y mostrarlo ahí sería engañoso.
+      const celularGestionadoReal = this.soloDigitos(String(item[GS_CELULAR_GESTIONADO] || ''));
+      // Para el CRUCE por teléfono (decidir si un cliente de la cartera fue gestionado,
+      // cuando el DNI no calza) sí se mantiene el respaldo a "celular actualizado": es
+      // para no perder cobertura en todo el histórico que aún no tiene el campo nuevo.
+      const telParaCruce = this.soloDigitos(String(item[GS_CELULAR_GESTIONADO] || item[GS_CELULAR] || ''));
       const dni = this.soloDigitos(String(item[GS_DNI] ?? ''));
       if (dni) {
         this.guardarUltima(idx.porDni, dni, { fecha, estado });
@@ -570,12 +577,12 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
           fecha,
           tipo: (item['TIPO DE GESTION'] || '').toString().trim(),
           estado: (item[GS_ESTADO] || '').toString().trim(),
-          celular: celularReal,
+          celular: celularGestionadoReal,
           motivo: (item['MOTIVOS "CONTACTO EN LA GESTION"'] || item['MOTIVOS "NO CONTACTO EN LA GESTION"'] || '').toString().trim(),
         };
         const arr = porDniSede.get(dni); if (arr) arr.push(reg); else porDniSede.set(dni, [reg]);
       }
-      const tel = celularReal.slice(-9);
+      const tel = telParaCruce.slice(-9);
       if (tel.length >= 9) this.guardarUltima(idx.porTel, tel, { fecha, estado });
     }
     this.gestionesMes = count;
