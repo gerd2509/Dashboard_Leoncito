@@ -256,6 +256,18 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .tabla-intensidad tbody tr:hover { background: #fafcff; }
 .tabla-intensidad .vacio td { text-align: center; color: #9db1c7; font-style: italic; padding: 16px; }
 .vacio-txt { text-align: center; color: #9db1c7; font-style: italic; padding: 24px; }
+
+/* Fila de cliente (DNI) desplegable dentro del detalle de Intensidad. */
+.fila-cliente.clic { cursor: pointer; }
+.fila-cliente .chev { font-size: 18px; width: 18px; height: 18px; color: var(--azul); vertical-align: middle; }
+.compendio-tel { color: #46586c; }
+.fila-telefono { background: #fafbfe; }
+.fila-telefono td { border-bottom: 1px solid #f1f4f9; }
+.fila-telefono .tel-ico { font-size: 15px; width: 15px; height: 15px; color: #9db1c7; vertical-align: middle; }
+.fila-telefono.sin-num .tel-ico { color: var(--no); }
+.fila-telefono.sin-num td.mono { color: var(--no); font-style: italic; }
+.fila-telefono .tel-fecha { display: block; font-size: 10.5px; color: #9db1c7; margin-top: 2px; }
+.fila-telefono.vacio td { text-align: left; color: #9db1c7; font-style: italic; }
 .consol-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .consol-head h3 { margin: 0; }
 .consol-filtro { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: #46586c; }

@@ -393,23 +393,45 @@
             <table class="tabla-intensidad">
               <thead>
                 <tr>
-                  <th class="left">DNI</th><th class="left">Teléfono</th>
+                  <th class="left"></th><th class="left">DNI</th><th class="left">Teléfono</th>
                   <th class="left" *ngIf="!detIntensidad.grupo">Grupo</th>
                   <th>Estado</th><th>N° Gestiones</th>
                 </tr>
               </thead>
               <tbody>
                 <ng-container *ngFor="let c of g.filas; trackBy: trackByDni">
-                  <tr *ngFor="let tel of (c.telefonos.length ? c.telefonos : ['—'])">
+                  <tr class="fila-cliente clic" (click)="toggleClienteIntensidad(c.dni)">
+                    <td class="left"><mat-icon class="chev">{{ expandidasIntensidad.has(c.dni) ? 'expand_more' : 'chevron_right' }}</mat-icon></td>
                     <td class="left">{{ c.dni }}</td>
-                    <td class="left mono">{{ tel }}</td>
+                    <td class="left mono compendio-tel">{{ compendioTelefonos(c) }}</td>
                     <td class="left" *ngIf="!detIntensidad.grupo">{{ c.grupo }}</td>
                     <td><span class="estado-chip" [ngClass]="c.estado === 'CONTACTO' ? 'ok' : c.estado === 'NO CONTACTO' ? 'no' : 'pend'">{{ c.estado }}</span></td>
                     <td>
                       <span class="gest-chip clic" [ngClass]="c.gestiones >= 6 ? 'alta' : c.gestiones >= 3 ? 'media' : 'baja'"
-                        (click)="verDetalleGestionesCliente(c)" title="Ver el detalle de estas gestiones">{{ c.gestiones }}</span>
+                        (click)="$event.stopPropagation(); verDetalleGestionesCliente(c)" title="Ver todas las gestiones de este cliente">{{ c.gestiones }}</span>
                     </td>
                   </tr>
+                  <ng-container *ngIf="expandidasIntensidad.has(c.dni)">
+                    <tr class="fila-telefono" [class.sin-num]="!t.numero"
+                        *ngFor="let t of c.telefonosGestionados; trackBy: trackByTelefono">
+                      <td class="left"></td>
+                      <td class="left tel-sub-ico"><mat-icon class="tel-ico">{{ t.numero ? 'call' : 'phonelink_erase' }}</mat-icon></td>
+                      <td class="left mono">{{ t.label }}</td>
+                      <td class="left" *ngIf="!detIntensidad.grupo"></td>
+                      <td>
+                        <span class="estado-chip" *ngIf="t.estado" [ngClass]="t.estado === 'CONTACTO' ? 'ok' : 'no'">{{ t.estado }}</span>
+                        <span *ngIf="t.fecha" class="tel-fecha">{{ t.fecha | date:'dd/MM/yy' }}</span>
+                      </td>
+                      <td>
+                        <span class="gest-chip clic" [ngClass]="t.gestiones >= 6 ? 'alta' : t.gestiones >= 3 ? 'media' : 'baja'"
+                          (click)="verDetalleGestionesTelefono(c, t)" title="Ver las gestiones hechas a este número">{{ t.gestiones }}</span>
+                      </td>
+                    </tr>
+                    <tr class="fila-telefono vacio" *ngIf="!c.telefonosGestionados.length">
+                      <td class="left"></td>
+                      <td class="left" colspan="4">Sin gestiones registradas para este cliente.</td>
+                    </tr>
+                  </ng-container>
                 </ng-container>
               </tbody>
             </table>
@@ -428,7 +450,7 @@
       <div class="modal-head-ico"><mat-icon>history</mat-icon></div>
       <div class="modal-head-txt">
         <h2>Gestiones — DNI {{ detGestionCliente.dni }}</h2>
-        <small>{{ detGestionCliente.asesor }} · {{ detGestionCliente.registros.length }} registro(s)</small>
+        <small>{{ detGestionCliente.asesor }}<ng-container *ngIf="detGestionCliente.telefono"> · Número: {{ detGestionCliente.telefono }}</ng-container> · {{ detGestionCliente.registros.length }} registro(s)</small>
       </div>
       <button class="modal-close" (click)="detGestionCliente = null"><mat-icon>close</mat-icon></button>
     </div>

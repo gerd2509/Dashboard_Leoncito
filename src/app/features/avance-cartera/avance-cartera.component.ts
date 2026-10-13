@@ -105,12 +105,22 @@ interface VentaLista { cv: string; sedeKey: string; sedeNombre: string; monto: n
  *  detrás del número de "N° Gestiones" de la Intensidad. */
 interface RegistroGestionDetalle { fecha: Date; tipo: string; estado: string; celular: string; motivo: string; }
 
+/** Las gestiones de UN cliente agrupadas por el número REAL que se marcó en cada
+ *  una (celular_gestionado) — así se ve, número por número, cuántas veces se llamó
+ *  a cada uno. numero==='' agrupa las gestiones viejas que no capturaban el campo
+ *  (anteriores al rollout) y que antes no tenían ningún número registrado. */
+interface TelefonoGestionado {
+  numero: string; label: string; gestiones: number;
+  estado: string | null; fecha: Date | null; registros: RegistroGestionDetalle[];
+}
+
 /** Fila del detalle de Intensidad: cuántas veces se gestionó CADA cliente (no el
  *  promedio de la sede) — para ver quién recibe muchas llamadas y quién casi ninguna. */
 interface DetalleIntensidad {
   sedeKey: string; sede: string; grupo: string; asesor: string;
   dni: string; telefonos: string[]; estado: EstadoCliente;
   gestiones: number; gestionesDetalle: RegistroGestionDetalle[];
+  telefonosGestionados: TelefonoGestionado[];
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
@@ -153,9 +163,12 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   detIntensidad: { sedeKey: string; sede: string; grupo: string | null } | null = null;
   filtroIntensidad = '';
   colapsadasIntensidad = new Set<string>();
-  // Sub-ventana: el detalle de gestiones (fecha/resultado) de UN cliente, al hacer clic
-  // en su número de "N° Gestiones".
-  detGestionCliente: { dni: string; asesor: string; registros: RegistroGestionDetalle[] } | null = null;
+  // DNIs expandidos (despliegan el desglose por teléfono real gestionado) — todos
+  // arrancan colapsados, solo se ve el resumen del cliente hasta que se abre.
+  expandidasIntensidad = new Set<string>();
+  // Sub-ventana: el detalle de gestiones (fecha/resultado) de UN cliente (o de UN
+  // teléfono puntual suyo, si viene de un desglose), al hacer clic en "N° Gestiones".
+  detGestionCliente: { dni: string; asesor: string; telefono?: string; registros: RegistroGestionDetalle[] } | null = null;
 
   // Resultado cacheado (NO getters): un getter devolvería arrays/objetos nuevos en cada
   // ciclo de detección de cambios → *ngFor sin trackBy destruye y reconstruye TODO en
@@ -170,18 +183,43 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.recalcularIntensidadActual();
     // Todos los asesores arrancan colapsados (solo se ve el resumen por asesor).
     this.colapsadasIntensidad = new Set(this.filasIntensidadActual.map(f => f.asesor));
+    this.expandidasIntensidad = new Set();
   }
   cerrarIntensidad(): void { this.detIntensidad = null; this.detGestionCliente = null; }
   toggleAsesorIntensidad(asesor: string): void {
     this.colapsadasIntensidad.has(asesor) ? this.colapsadasIntensidad.delete(asesor) : this.colapsadasIntensidad.add(asesor);
   }
+  /** Despliega/colapsa el desglose por teléfono de UN cliente (DNI). */
+  toggleClienteIntensidad(dni: string): void {
+    this.expandidasIntensidad.has(dni) ? this.expandidasIntensidad.delete(dni) : this.expandidasIntensidad.add(dni);
+  }
+  /** Abre el sub-modal con TODAS las gestiones del cliente (sin importar el número). */
   verDetalleGestionesCliente(c: DetalleIntensidad): void {
     this.detGestionCliente = { dni: c.dni, asesor: c.asesor, registros: c.gestionesDetalle };
+  }
+  /** Abre el sub-modal solo con las gestiones hechas a UN número puntual del cliente. */
+  verDetalleGestionesTelefono(c: DetalleIntensidad, t: TelefonoGestionado): void {
+    this.detGestionCliente = { dni: c.dni, asesor: c.asesor, telefono: t.label, registros: t.registros };
   }
   /** Se llama al escribir en el buscador del modal de Intensidad. */
   onFiltroIntensidadChange(): void { this.recalcularIntensidadActual(); }
   trackByAsesor(_i: number, g: { asesor: string }): string { return g.asesor; }
   trackByDni(_i: number, c: DetalleIntensidad): string { return c.dni; }
+  trackByTelefono(_i: number, t: TelefonoGestionado): string { return t.numero; }
+
+  /** Resumen de los números REALMENTE gestionados de un cliente, para la fila colapsada
+   *  (antes de desplegar el desglose). Ej: "987654321" · "3 números" · "2 números + 1 sin registrar". */
+  compendioTelefonos(c: DetalleIntensidad): string {
+    const reales = c.telefonosGestionados.filter(t => t.numero);
+    const sinNumero = c.telefonosGestionados.some(t => !t.numero);
+    if (!c.telefonosGestionados.length) return 'Sin gestiones';
+    let base: string;
+    if (reales.length === 0) base = '';
+    else if (reales.length === 1) base = reales[0].numero;
+    else base = `${reales.length} números`;
+    const extra = sinNumero ? (base ? ' + sin registrar' : 'Sin número registrado') : '';
+    return base + extra;
+  }
 
   /** Recalcula filasIntensidadActual (sede/grupo/búsqueda) y el agrupado por asesor. */
   private recalcularIntensidadActual(): void {
@@ -189,7 +227,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     if (!d) { this.filasIntensidadActual = []; this.gruposIntensidadActual = []; return; }
     let filas = this.detalleIntensidad.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
     const q = this.filtroIntensidad.trim().toLowerCase();
-    if (q) filas = filas.filter(f => f.dni.includes(q) || f.asesor.toLowerCase().includes(q) || f.telefonos.some(t => t.includes(q)));
+    if (q) filas = filas.filter(f => f.dni.includes(q) || f.asesor.toLowerCase().includes(q)
+      || f.telefonos.some(t => t.includes(q)) || f.telefonosGestionados.some(t => t.numero.includes(q)));
     this.filasIntensidadActual = filas;
 
     const map = new Map<string, DetalleIntensidad[]>();
@@ -815,6 +854,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   private construirDetalleIntensidad(clientes: ClienteCartera[]): void {
     this.detalleIntensidad = clientes.map(c => {
       const detalle = this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || [];
+      const gestionesDetalle = [...detalle].sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
       return {
         sedeKey: c.sedeKey || 'sin-sede',
         sede: c.sedeNombre || 'SIN SEDE',
@@ -824,9 +864,31 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         telefonos: (c.telefonos || []).filter(Boolean),
         estado: c.estado,
         gestiones: detalle.length,
-        gestionesDetalle: [...detalle].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()),
+        gestionesDetalle,
+        telefonosGestionados: this.agruparPorTelefonoGestionado(gestionesDetalle),
       };
     }).sort((a, b) => b.gestiones - a.gestiones);
+  }
+
+  /** Agrupa las gestiones REALES de un cliente por el número que de verdad se marcó en
+   *  cada una (celular_gestionado) — no por los teléfonos de la cartera. Las gestiones
+   *  sin número capturado (anteriores al campo nuevo) van en un bucket aparte, visible,
+   *  para no perder de vista que antes "no se tenía número registrado" en esas llamadas. */
+  private agruparPorTelefonoGestionado(gestionesDetalle: RegistroGestionDetalle[]): TelefonoGestionado[] {
+    const map = new Map<string, RegistroGestionDetalle[]>();
+    for (const g of gestionesDetalle) {
+      const key = g.celular || '';
+      const arr = map.get(key); if (arr) arr.push(g); else map.set(key, [g]);
+    }
+    return [...map.entries()]
+      .map(([numero, registros]) => ({
+        numero, label: numero || 'Sin número registrado',
+        gestiones: registros.length,
+        estado: registros[0]?.estado || null,
+        fecha: registros[0]?.fecha || null,
+        registros,
+      }))
+      .sort((a, b) => (a.numero === '' ? 1 : b.numero === '' ? -1 : b.gestiones - a.gestiones));
   }
 
   /** Una fila "Call Center" (Patricia/Maria/Juana) para agregar al final de cualquier
@@ -1056,17 +1118,17 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     if (!lista.length || !this.detIntensidad) return;
     const wb = new Workbook();
     const ws = wb.addWorksheet('Intensidad');
-    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Teléfono', 'Estado', 'N° Gestiones'];
+    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Estado Cliente', 'Teléfono Gestionado', 'N° Gestiones a ese número'];
     const hr = ws.addRow(headers);
     hr.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
     });
     for (const d of lista) {
-      const telefonos = d.telefonos.length ? d.telefonos : ['(sin teléfono)'];
-      for (const tel of telefonos) ws.addRow([d.sede, d.grupo, d.asesor, d.dni, tel, d.estado, d.gestiones]);
+      const tels = d.telefonosGestionados.length ? d.telefonosGestionados : [{ label: '(sin gestiones)', gestiones: 0 } as TelefonoGestionado];
+      for (const t of tels) ws.addRow([d.sede, d.grupo, d.asesor, d.dni, d.estado, t.label, t.gestiones]);
     }
-    ws.columns.forEach((col, i) => { col.width = i === 4 ? 24 : 16; });
+    ws.columns.forEach((col, i) => { col.width = i === 5 ? 24 : 16; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
