@@ -395,6 +395,7 @@
                 <tr>
                   <th class="left"></th><th class="left">DNI</th><th class="left">Teléfono</th>
                   <th class="left" *ngIf="!detIntensidad.grupo">Grupo</th>
+                  <th class="left">Última Gestión</th>
                   <th>Estado</th><th>N° Gestiones</th>
                 </tr>
               </thead>
@@ -405,6 +406,7 @@
                     <td class="left">{{ c.dni }}</td>
                     <td class="left mono compendio-tel">{{ compendioTelefonos(c) }}</td>
                     <td class="left" *ngIf="!detIntensidad.grupo">{{ c.grupo }}</td>
+                    <td class="left mono">{{ c.ultimaGestionFecha ? (c.ultimaGestionFecha | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
                     <td><span class="estado-chip" [ngClass]="c.estado === 'CONTACTO' ? 'ok' : c.estado === 'NO CONTACTO' ? 'no' : 'pend'">{{ c.estado }}</span></td>
                     <td>
                       <span class="gest-chip clic" [ngClass]="c.gestiones >= 6 ? 'alta' : c.gestiones >= 3 ? 'media' : 'baja'"
@@ -418,9 +420,9 @@
                       <td class="left tel-sub-ico"><mat-icon class="tel-ico">{{ t.numero ? 'call' : 'phonelink_erase' }}</mat-icon></td>
                       <td class="left mono">{{ t.label }}</td>
                       <td class="left" *ngIf="!detIntensidad.grupo"></td>
+                      <td class="left mono">{{ t.fecha ? (t.fecha | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
                       <td>
                         <span class="estado-chip" *ngIf="t.estado" [ngClass]="t.estado === 'CONTACTO' ? 'ok' : 'no'">{{ t.estado }}</span>
-                        <span *ngIf="t.fecha" class="tel-fecha">{{ t.fecha | date:'dd/MM/yy' }}</span>
                       </td>
                       <td>
                         <span class="gest-chip clic" [ngClass]="t.gestiones >= 6 ? 'alta' : t.gestiones >= 3 ? 'media' : 'baja'"
@@ -429,7 +431,7 @@
                     </tr>
                     <tr class="fila-telefono vacio" *ngIf="!c.telefonosGestionados.length">
                       <td class="left"></td>
-                      <td class="left" colspan="4">Sin gestiones registradas para este cliente.</td>
+                      <td class="left" [attr.colspan]="detIntensidad.grupo ? 5 : 6">Sin gestiones registradas para este cliente.</td>
                     </tr>
                   </ng-container>
                 </ng-container>

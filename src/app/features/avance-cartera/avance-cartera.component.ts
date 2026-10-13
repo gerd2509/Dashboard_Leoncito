@@ -120,7 +120,7 @@ interface DetalleIntensidad {
   sedeKey: string; sede: string; grupo: string; asesor: string;
   dni: string; telefonos: string[]; estado: EstadoCliente;
   gestiones: number; gestionesDetalle: RegistroGestionDetalle[];
-  telefonosGestionados: TelefonoGestionado[];
+  telefonosGestionados: TelefonoGestionado[]; ultimaGestionFecha: Date | null;
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
@@ -866,8 +866,15 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         gestiones: detalle.length,
         gestionesDetalle,
         telefonosGestionados: this.agruparPorTelefonoGestionado(gestionesDetalle),
+        ultimaGestionFecha: gestionesDetalle[0]?.fecha ?? null,
       };
-    }).sort((a, b) => b.gestiones - a.gestiones);
+    }).sort((a, b) => {
+      // Más reciente primero; los clientes sin ninguna gestión quedan al final.
+      if (!a.ultimaGestionFecha && !b.ultimaGestionFecha) return 0;
+      if (!a.ultimaGestionFecha) return 1;
+      if (!b.ultimaGestionFecha) return -1;
+      return b.ultimaGestionFecha.getTime() - a.ultimaGestionFecha.getTime();
+    });
   }
 
   /** Agrupa las gestiones REALES de un cliente por el número que de verdad se marcó en
@@ -888,7 +895,13 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         fecha: registros[0]?.fecha || null,
         registros,
       }))
-      .sort((a, b) => (a.numero === '' ? 1 : b.numero === '' ? -1 : b.gestiones - a.gestiones));
+      .sort((a, b) => {
+        // "Sin número registrado" siempre al final; el resto por fecha de última
+        // gestión a ese número, de más reciente a más antigua.
+        if (a.numero === '') return 1;
+        if (b.numero === '') return -1;
+        return (b.fecha?.getTime() ?? 0) - (a.fecha?.getTime() ?? 0);
+      });
   }
 
   /** Una fila "Call Center" (Patricia/Maria/Juana) para agregar al final de cualquier
@@ -1118,15 +1131,15 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     if (!lista.length || !this.detIntensidad) return;
     const wb = new Workbook();
     const ws = wb.addWorksheet('Intensidad');
-    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Estado Cliente', 'Teléfono Gestionado', 'N° Gestiones a ese número'];
+    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Estado Cliente', 'Teléfono Gestionado', 'Última Gestión', 'N° Gestiones a ese número'];
     const hr = ws.addRow(headers);
     hr.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
     });
     for (const d of lista) {
-      const tels = d.telefonosGestionados.length ? d.telefonosGestionados : [{ label: '(sin gestiones)', gestiones: 0 } as TelefonoGestionado];
-      for (const t of tels) ws.addRow([d.sede, d.grupo, d.asesor, d.dni, d.estado, t.label, t.gestiones]);
+      const tels = d.telefonosGestionados.length ? d.telefonosGestionados : [{ label: '(sin gestiones)', gestiones: 0, fecha: null } as TelefonoGestionado];
+      for (const t of tels) ws.addRow([d.sede, d.grupo, d.asesor, d.dni, d.estado, t.label, t.fecha ? t.fecha.toLocaleString('es-PE') : '', t.gestiones]);
     }
     ws.columns.forEach((col, i) => { col.width = i === 5 ? 24 : 16; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];

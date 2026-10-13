@@ -266,7 +266,6 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .fila-telefono .tel-ico { font-size: 15px; width: 15px; height: 15px; color: #9db1c7; vertical-align: middle; }
 .fila-telefono.sin-num .tel-ico { color: var(--no); }
 .fila-telefono.sin-num td.mono { color: var(--no); font-style: italic; }
-.fila-telefono .tel-fecha { display: block; font-size: 10.5px; color: #9db1c7; margin-top: 2px; }
 .fila-telefono.vacio td { text-align: left; color: #9db1c7; font-style: italic; }
 .consol-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .consol-head h3 { margin: 0; }
