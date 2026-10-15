@@ -14,6 +14,16 @@ import { ASESORES_CALL, ASESORES_REALZZA, nombreCorto } from '../../shared/aseso
 const CODIGO_A_NOMBRE: Record<string, string> = Object.fromEntries(
   [...ASESORES_CALL, ...ASESORES_REALZZA].map(a => [a.value, a.nombre]));
 
+// En la vista REALZZA, el `vendedor` de la tabla `ventas` a veces trae ventas que en
+// realidad son de un asesor de CALL (derivación/cruce cobrado como venta Realzza) —
+// esas deben agruparse TODAS en una sola fila "CALL", no una fila por cada asesora.
+const NOMBRES_CALL = new Set(ASESORES_CALL.map(a => a.nombre.toUpperCase().trim()));
+// Variantes/typos del mismo asesor que no calzan con el nombre exacto del roster
+// (ej. "NICOLL" vs "NICOL") y terminaban como una segunda fila aparte, duplicada.
+const ALIAS_REALZZA: Record<string, string> = {
+  'BERNAL BAZAN BRENDA NICOLL': 'BERNAL BAZAN BRENDA NICOL',
+};
+
 interface MesCol { anio: number; mes: number; label: string; proyeccion: boolean; }
 interface FilaLinea { asesor: string; nombre: string; valores: number[]; total: number; }
 type Categoria = 'MOTOS' | 'MELAMINA' | 'RESTO';
@@ -124,8 +134,25 @@ export class VentasLineaComponent implements OnInit {
       const valores = porAsesor.get(key) || new Array(nCols).fill(0);
       filas.push({ asesor: key, nombre: nombreCorto(a.nombre), valores, total: valores.reduce((s, v) => s + v, 0) });
     });
+    let acumCall: number[] | null = null;
     porAsesor.forEach((valores, key) => {
       if (vistos.has(key)) return;
+      if (this.canal === 'REALZZA') {
+        // Typo/variante conocida del mismo asesor (ya tiene su fila del roster): se
+        // suma ahí en vez de crear una fila nueva, en blanco, aparte.
+        const alias = ALIAS_REALZZA[key];
+        if (alias) {
+          const fila = filas.find(f => f.asesor === alias);
+          if (fila) { valores.forEach((v, i) => fila.valores[i] += v); fila.total += valores.reduce((s, v) => s + v, 0); return; }
+        }
+        // Venta de un asesor de CALL (derivación cobrada como venta Realzza): se
+        // acumula en un solo bucket "CALL", no una fila por cada asesora.
+        if (NOMBRES_CALL.has(key)) {
+          if (!acumCall) acumCall = new Array(nCols).fill(0);
+          valores.forEach((v, i) => acumCall![i] += v);
+          return;
+        }
+      }
       const total = valores.reduce((s, v) => s + v, 0);
       if (total === 0) return;
       // Código/nombre fuera del roster ACTUAL de este canal (ej. pasó al otro canal
@@ -134,6 +161,10 @@ export class VentasLineaComponent implements OnInit {
       const nombre = this.canal === 'CALL' ? (CODIGO_A_NOMBRE[key] ? nombreCorto(CODIGO_A_NOMBRE[key]) : key) : nombreCorto(key);
       filas.push({ asesor: key, nombre, valores, total });
     });
+    if (acumCall) {
+      const total = (acumCall as number[]).reduce((s, v) => s + v, 0);
+      if (total !== 0) filas.push({ asesor: 'CALL', nombre: 'CALL', valores: acumCall, total });
+    }
     filas.sort((a, b) => b.total - a.total);
     this.filas = filas;
 
