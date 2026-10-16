@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
@@ -73,6 +73,7 @@ export class CierreGestionSedesComponent implements OnInit {
   mostrarDetalle = false;   // el detalle (grillas grandes) arranca colapsado
   toggleDetalle(): void { this.mostrarDetalle = !this.mostrarDetalle; }
 
+  @ViewChild('cgsScroll') cgsScroll?: ElementRef<HTMLElement>;
   @ViewChild('gridLC') gridLC!: DxDataGridComponent;
   @ViewChild('gridMP') gridMP!: DxDataGridComponent;
   @ViewChild('gridDV') gridDV!: DxDataGridComponent;
@@ -149,6 +150,12 @@ export class CierreGestionSedesComponent implements OnInit {
       this.aplicar();
     } finally {
       this.isLoading = false;
+      // El DOM recién se arma/reordena con la data nueva (secciones que aparecen o
+      // desaparecen arriba): el navegador a veces "ancla" el scroll a algo que ya no
+      // está en su lugar y deja el contenedor desplazado — se ve como si el título y
+      // la fila de arriba de las tarjetas quedaran cortados. Se fuerza arriba del todo
+      // una vez que Angular terminó de pintar.
+      setTimeout(() => { if (this.cgsScroll) this.cgsScroll.nativeElement.scrollTop = 0; });
     }
   }
 

@@ -6,11 +6,13 @@
 
 /* Zona scrolleable: ocupa el alto restante del viewport → solo esta parte se mueve,
    el header+KPIs no. Así no hay "bleed" del contenido por encima al scrollear. */
-/* padding-top: antes el primer bloque siempre era .fem-sec (una caja con su propio
-   padding), que disimulaba cualquier recorte del borde superior del scroll. Al pasar
-   "Resumen por sede" (sin caja/padding propio) a ser el primero, ese recorte quedaba
-   a la vista — se corta el título y la fila de arriba de las tarjetas. */
-.cgs-scroll { overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 285px); padding-top: 10px; padding-right: 4px; }
+/* overflow-anchor:none — el verdadero problema: el navegador hace "scroll anchoring"
+   (ajusta solo el scroll para "no saltar" cuando el contenido de arriba cambia de
+   tamaño). Como la data llega async y el DOM se arma/reordena mientras carga, el
+   navegador termina auto-scrolleando este contenedor unos px hacia abajo apenas
+   carga — se ve como si el título y la fila de arriba quedaran "cortados". El
+   padding-top solo no alcanza porque el scroll real SÍ queda en >0, no en 0. */
+.cgs-scroll { overflow-y: auto; overflow-x: hidden; overflow-anchor: none; max-height: calc(100vh - 285px); padding-top: 10px; padding-right: 4px; }
 .cgs-scroll::-webkit-scrollbar { width: 8px; }
 .cgs-scroll::-webkit-scrollbar-track { background: transparent; }
 .cgs-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
