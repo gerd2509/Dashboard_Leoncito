@@ -1,18 +1,13 @@
-:host { display: block; position: relative; }
+:host { display: block; height: 100%; min-height: 0; position: relative; }
 
-/* Parte superior ESTÁTICA: solo header + KPIs. Queda fija (flujo normal) y todo lo
-   demás (resumen/tablas por asesor + detalle) scrollea dentro de .cgs-scroll. */
+/* Mismo patrón "header fijo + cuerpo con scroll" que ya usan ventas-sedes/ventas-campo
+   (clases globales .vd-shell/.vd-fixed/.vd-scroll en styles.css, vía flexbox). Antes
+   esta pantalla reinventaba lo mismo con un `max-height: calc(100vh - 285px)` a mano
+   — un número mágico frágil (se desajusta si el header cambia de alto) que además
+   combinado con scroll anchoring dejaba el panel recortado al cargar. Usando el mismo
+   flex de las demás pantallas, el alto se calcula solo y se evita todo eso. */
 .cgs-top { background: #EEF2F8; padding-bottom: 6px; }
-
-/* Zona scrolleable: ocupa el alto restante del viewport → solo esta parte se mueve,
-   el header+KPIs no. Así no hay "bleed" del contenido por encima al scrollear. */
-/* overflow-anchor:none — el verdadero problema: el navegador hace "scroll anchoring"
-   (ajusta solo el scroll para "no saltar" cuando el contenido de arriba cambia de
-   tamaño). Como la data llega async y el DOM se arma/reordena mientras carga, el
-   navegador termina auto-scrolleando este contenedor unos px hacia abajo apenas
-   carga — se ve como si el título y la fila de arriba quedaran "cortados". El
-   padding-top solo no alcanza porque el scroll real SÍ queda en >0, no en 0. */
-.cgs-scroll { overflow-y: auto; overflow-x: hidden; overflow-anchor: none; max-height: calc(100vh - 285px); padding-top: 10px; padding-right: 4px; }
+.cgs-scroll { overflow-x: hidden; overflow-anchor: none; padding-top: 10px; padding-right: 4px; }
 .cgs-scroll::-webkit-scrollbar { width: 8px; }
 .cgs-scroll::-webkit-scrollbar-track { background: transparent; }
 .cgs-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }

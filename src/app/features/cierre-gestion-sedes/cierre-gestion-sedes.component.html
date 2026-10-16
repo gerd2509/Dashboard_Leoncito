@@ -1,9 +1,10 @@
 
+<div class="vd-shell">
 <div class="cgs-loading" *ngIf="isLoading">
   <app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Cargando gestión de sedes…" icon="location_city"></app-loading-overlay>
 </div>
 
-<div class="cgs-top">
+<div class="cgs-top vd-fixed">
 <div class="cgs-head" [style.borderTopColor]="colorActual">
   <span class="cgs-title">
     <button class="cgs-volver" *ngIf="esVistaSede && !bloquearSede" (click)="volverGlobal()" title="Volver a todas las sedes">
@@ -55,7 +56,7 @@
 </div>
 </div><!-- /.cgs-top (solo header + KPIs quedan estáticos) -->
 
-<div class="cgs-scroll" #cgsScroll>
+<div class="cgs-scroll vd-scroll" #cgsScroll>
 
 <!-- ═══════════ Resumen coloreado por sede (solo "Todas") ═══════════ -->
 <div class="resumen-sedes" *ngIf="resumenSedes.length">
@@ -282,3 +283,4 @@
   </div>
 </div>
 </div><!-- /.cgs-scroll -->
+</div><!-- /.vd-shell -->
