@@ -57,6 +57,23 @@
 
 <div class="cgs-scroll">
 
+<!-- ═══════════ Resumen coloreado por sede (solo "Todas") ═══════════ -->
+<div class="resumen-sedes" *ngIf="resumenSedes.length">
+  <h3 class="sec-titulo"><mat-icon>dashboard</mat-icon> Resumen por sede</h3>
+  <div class="rs-grid">
+    <button class="rs-card" *ngFor="let s of resumenSedes" [style.borderTopColor]="s.color" (click)="verSede(s.key)">
+      <div class="rs-head"><span class="rs-dot" [style.background]="s.color"></span><b>{{ s.nombre }}</b></div>
+      <div class="rs-metrics">
+        <div><span>Llamadas</span><b>{{ s.llamadas | number }}</b></div>
+        <div><span>Cartas</span><b>{{ s.cartas | number }}</b></div>
+        <div><span>Contact.</span><b>{{ contactabilidadSede(s) }}%</b></div>
+        <div><span>Market P.</span><b>{{ s.marketplace | number }}</b></div>
+        <div><span>Derivac.</span><b>{{ s.derivaciones | number }}</b></div>
+      </div>
+    </button>
+  </div>
+</div>
+
 <!-- ═══════════ Política FEM por sede — SIEMPRE visible, sin entrar a cada sede ═══════════ -->
 <div class="fem-sec" *ngIf="resumenFEM.length">
   <h3 class="sec-titulo fem"><mat-icon>gavel</mat-icon> Política FEM por Sede <em>({{ totalFEM | number }} en total)</em></h3>
@@ -83,23 +100,6 @@
         <tfoot><tr><td class="ta-l">TOTAL</td><td class="tot">{{ totalFEM }}</td></tr></tfoot>
       </table>
     </div>
-  </div>
-</div>
-
-<!-- ═══════════ Resumen coloreado por sede (solo "Todas") ═══════════ -->
-<div class="resumen-sedes" *ngIf="resumenSedes.length">
-  <h3 class="sec-titulo"><mat-icon>dashboard</mat-icon> Resumen por sede</h3>
-  <div class="rs-grid">
-    <button class="rs-card" *ngFor="let s of resumenSedes" [style.borderTopColor]="s.color" (click)="verSede(s.key)">
-      <div class="rs-head"><span class="rs-dot" [style.background]="s.color"></span><b>{{ s.nombre }}</b></div>
-      <div class="rs-metrics">
-        <div><span>Llamadas</span><b>{{ s.llamadas | number }}</b></div>
-        <div><span>Cartas</span><b>{{ s.cartas | number }}</b></div>
-        <div><span>Contact.</span><b>{{ contactabilidadSede(s) }}%</b></div>
-        <div><span>Market P.</span><b>{{ s.marketplace | number }}</b></div>
-        <div><span>Derivac.</span><b>{{ s.derivaciones | number }}</b></div>
-      </div>
-    </button>
   </div>
 </div>
 
@@ -187,15 +187,16 @@
   </div>
 </div>
 
-<!-- Botón para mostrar/ocultar el detalle (solo en vista por sede; en Global va siempre visible) -->
-<div class="detalle-toggle" *ngIf="esVistaSede">
+<!-- Botón para mostrar/ocultar el detalle — SIEMPRE arranca colapsado (Global y por sede),
+     igual que en los demás módulos (ventas-sedes, ventas-campo, etc.). -->
+<div class="detalle-toggle">
   <button class="cgs-btn" (click)="toggleDetalle()">
     <mat-icon>{{ mostrarDetalle ? 'expand_less' : 'expand_more' }}</mat-icon>
     {{ mostrarDetalle ? 'Ocultar detalle' : 'Ver detalle' }}
   </button>
 </div>
 
-<div class="grid-container" *ngIf="!esVistaSede || mostrarDetalle">
+<div class="grid-container" *ngIf="mostrarDetalle">
   <!-- ═══════════ Llamadas y Cartas ═══════════ -->
   <div class="tabla-sec">
     <div class="ts-head" [style.borderLeftColor]="colorActual">
