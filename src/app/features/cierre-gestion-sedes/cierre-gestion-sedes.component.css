@@ -6,7 +6,11 @@
 
 /* Zona scrolleable: ocupa el alto restante del viewport → solo esta parte se mueve,
    el header+KPIs no. Así no hay "bleed" del contenido por encima al scrollear. */
-.cgs-scroll { overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 285px); padding-right: 4px; }
+/* padding-top: antes el primer bloque siempre era .fem-sec (una caja con su propio
+   padding), que disimulaba cualquier recorte del borde superior del scroll. Al pasar
+   "Resumen por sede" (sin caja/padding propio) a ser el primero, ese recorte quedaba
+   a la vista — se corta el título y la fila de arriba de las tarjetas. */
+.cgs-scroll { overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 285px); padding-top: 10px; padding-right: 4px; }
 .cgs-scroll::-webkit-scrollbar { width: 8px; }
 .cgs-scroll::-webkit-scrollbar-track { background: transparent; }
 .cgs-scroll::-webkit-scrollbar-thumb { background: #CCDAEE; border-radius: 4px; }
