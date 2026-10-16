@@ -62,11 +62,11 @@
   <h3 class="sec-titulo fem"><mat-icon>gavel</mat-icon> Política FEM por Sede <em>({{ totalFEM | number }} en total)</em></h3>
   <div class="fem-body">
     <div class="fem-chart">
-      <dx-chart [dataSource]="resumenFEM" [customizePoint]="customizeFEMPoint">
-        <dxi-series valueField="total" argumentField="nombre" type="bar"
-            [label]="{ visible: true, font: { size: 11, weight: 700 } }"></dxi-series>
-        <dxo-argument-axis [label]="{ rotationAngle: -20 }"></dxo-argument-axis>
-        <dxo-value-axis [label]="{ format: { type: 'fixedPoint', precision: 0 } }"></dxo-value-axis>
+      <dx-chart [dataSource]="resumenFEM" [customizePoint]="customizeFEMPoint" [barGroupPadding]="0.5" [rotated]="false">
+        <dxi-series valueField="total" argumentField="nombre" type="bar" [cornerRadius]="4"
+            [label]="{ visible: true, position: 'outside', font: { size: 11, weight: 700 } }"></dxi-series>
+        <dxo-argument-axis [label]="{ rotationAngle: -20 }" [discreteAxisDivisionMode]="'crossLabels'"></dxo-argument-axis>
+        <dxo-value-axis [min]="0" [label]="{ format: { type: 'fixedPoint', precision: 0 } }"></dxo-value-axis>
         <dxo-legend [visible]="false"></dxo-legend>
         <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeFEMTooltip"></dxo-tooltip>
       </dx-chart>
