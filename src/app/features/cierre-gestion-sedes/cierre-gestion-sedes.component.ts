@@ -161,10 +161,17 @@ export class CierreGestionSedesComponent implements OnInit {
   private esLlamada(tipo: any): boolean { return (tipo || '').toString().toUpperCase().includes('LLAMADA'); }
   private esCarta(tipo: any):   boolean { return (tipo || '').toString().toUpperCase().includes('CARTA'); }
   /** Política FEM puede venir del motivo de Contacto o del de No Contacto (el mismo
-   *  motivo está en ambas listas del formulario). */
+   *  motivo está en ambas listas del formulario). Comparación sin tildes/mayúsculas:
+   *  nuestra app guarda "Política FEM", pero el formulario de las OTRAS sedes (que es
+   *  de donde viene todo el dato real hasta ahora) lo guarda como "Politica FEM", sin
+   *  tilde — si se compara exacto, nunca calza y el panel queda vacío. */
+  private esMotivoFEM(v: any): boolean {
+    const s = (v || '').toString().trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return s === 'POLITICA FEM';
+  }
   private motivoPoliticaFEM(r: any): 'Contacto' | 'No Contacto' | null {
-    if (r['MOTIVOS "CONTACTO EN LA GESTION"'] === 'Política FEM') return 'Contacto';
-    if (r['MOTIVOS "NO CONTACTO EN LA GESTION"'] === 'Política FEM') return 'No Contacto';
+    if (this.esMotivoFEM(r['MOTIVOS "CONTACTO EN LA GESTION"'])) return 'Contacto';
+    if (this.esMotivoFEM(r['MOTIVOS "NO CONTACTO EN LA GESTION"'])) return 'No Contacto';
     return null;
   }
 
