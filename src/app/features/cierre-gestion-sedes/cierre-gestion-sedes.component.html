@@ -57,6 +57,35 @@
 
 <div class="cgs-scroll">
 
+<!-- ═══════════ Política FEM por sede — SIEMPRE visible, sin entrar a cada sede ═══════════ -->
+<div class="fem-sec" *ngIf="resumenFEM.length">
+  <h3 class="sec-titulo fem"><mat-icon>gavel</mat-icon> Política FEM por Sede <em>({{ totalFEM | number }} en total)</em></h3>
+  <div class="fem-body">
+    <div class="fem-chart">
+      <dx-chart [dataSource]="resumenFEM" [customizePoint]="customizeFEMPoint">
+        <dxi-series valueField="total" argumentField="nombre" type="bar"
+            [label]="{ visible: true, font: { size: 11, weight: 700 } }"></dxi-series>
+        <dxo-argument-axis [label]="{ rotationAngle: -20 }"></dxo-argument-axis>
+        <dxo-value-axis [label]="{ format: { type: 'fixedPoint', precision: 0 } }"></dxo-value-axis>
+        <dxo-legend [visible]="false"></dxo-legend>
+        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeFEMTooltip"></dxo-tooltip>
+      </dx-chart>
+    </div>
+    <div class="fem-tabla">
+      <table class="ar-table">
+        <thead><tr><th class="ta-l">Sede</th><th>Registros</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let s of resumenFEM" class="fem-fila" (click)="verSede(s.key)">
+            <td class="ta-l"><span class="rs-dot" [style.background]="s.color"></span>{{ s.nombre }}</td>
+            <td class="tot">{{ s.total }}</td>
+          </tr>
+        </tbody>
+        <tfoot><tr><td class="ta-l">TOTAL</td><td class="tot">{{ totalFEM }}</td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ Resumen coloreado por sede (solo "Todas") ═══════════ -->
 <div class="resumen-sedes" *ngIf="resumenSedes.length">
   <h3 class="sec-titulo"><mat-icon>dashboard</mat-icon> Resumen por sede</h3>
@@ -133,6 +162,28 @@
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════ Política FEM — detalle de registros (solo al ver UNA sede) ═══════════ -->
+<div class="fem-detalle" *ngIf="esVistaSede && registrosFEM.length">
+  <h3 class="sec-titulo fem"><mat-icon>gavel</mat-icon> Política FEM — Detalle <em>({{ registrosFEM.length | number }})</em></h3>
+  <div class="ar-scroll">
+    <table class="ar-table fem-detalle-tabla">
+      <thead>
+        <tr><th class="ta-l">Fecha</th><th class="ta-l">DNI</th><th class="ta-l">Asesor</th><th>Rama</th><th class="ta-l">Celular</th><th class="ta-l">Detalle</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of registrosFEM">
+          <td class="ta-l">{{ r.fecha }}</td>
+          <td class="ta-l">{{ r.dni }}</td>
+          <td class="ta-l">{{ r.asesor }}</td>
+          <td><span class="fem-rama" [class.no]="r.rama === 'No Contacto'">{{ r.rama }}</span></td>
+          <td class="ta-l">{{ r.celular || '—' }}</td>
+          <td class="ta-l">{{ r.detalle || '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </div>
 

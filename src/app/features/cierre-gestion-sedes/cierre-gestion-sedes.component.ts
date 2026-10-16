@@ -17,6 +17,10 @@ interface ResumenSede {
 }
 // Resumen por asesor (contacto / no contacto / total) — estilo tabla KOMMO.
 interface ResumenAsesor { nombre: string; contacto: number; noContacto: number; total: number; }
+// Política FEM: conteo por sede (SIEMPRE todas, no depende de la sede elegida en el
+// combo) + el registro puntual (solo se arma cuando se está viendo UNA sede).
+interface ResumenFEM { key: string; nombre: string; color: string; total: number; }
+interface RegistroFEM { fecha: any; dni: string; asesor: string; rama: string; detalle: string; celular: string; }
 
 @Component({
   selector: 'app-cierre-gestion-sedes',
@@ -50,6 +54,11 @@ export class CierreGestionSedesComponent implements OnInit {
   kpi = { llamadas: 0, cartas: 0, contacto: 0, gestiones: 0, contactabilidad: 0, marketplace: 0, derivaciones: 0 };
   // Resumen por sede (solo cuando se ve "Todas").
   resumenSedes: ResumenSede[] = [];
+  // Política FEM: resumen por sede (siempre, a simple vista) + detalle de registros
+  // (solo al entrar a una sede puntual).
+  resumenFEM: ResumenFEM[] = [];
+  totalFEM = 0;
+  registrosFEM: RegistroFEM[] = [];
 
   // Resúmenes por asesor (solo cuando se ve UNA sede) — estilo imagen KOMMO.
   resumenLlam: ResumenAsesor[] = [];  // Llamadas (contacto/no contacto)
@@ -151,6 +160,13 @@ export class CierreGestionSedesComponent implements OnInit {
   }
   private esLlamada(tipo: any): boolean { return (tipo || '').toString().toUpperCase().includes('LLAMADA'); }
   private esCarta(tipo: any):   boolean { return (tipo || '').toString().toUpperCase().includes('CARTA'); }
+  /** Política FEM puede venir del motivo de Contacto o del de No Contacto (el mismo
+   *  motivo está en ambas listas del formulario). */
+  private motivoPoliticaFEM(r: any): 'Contacto' | 'No Contacto' | null {
+    if (r['MOTIVOS "CONTACTO EN LA GESTION"'] === 'Política FEM') return 'Contacto';
+    if (r['MOTIVOS "NO CONTACTO EN LA GESTION"'] === 'Política FEM') return 'No Contacto';
+    return null;
+  }
 
   private aplicar(): void {
     const sedeKey = this.form.value.sede;
@@ -176,6 +192,20 @@ export class CierreGestionSedesComponent implements OnInit {
 
     // Resumen coloreado por sede (solo en la vista "Todas").
     this.resumenSedes = todas ? this.construirResumen() : [];
+
+    // Política FEM — resumen por sede SIEMPRE (no depende de qué sede esté elegida
+    // en el combo, se arma del rango completo sin filtrar) para tenerlo a simple
+    // vista; el detalle de registros solo cuando se está viendo UNA sede puntual.
+    this.resumenFEM = this.construirResumenFEM();
+    this.totalFEM = this.resumenFEM.reduce((s, r) => s + r.total, 0);
+    this.registrosFEM = todas ? [] : this.llamadasCartas
+      .filter(r => this.motivoPoliticaFEM(r))
+      .map(r => ({
+        fecha: r['Marca temporal'], dni: r['DNI CLIENTE'], asesor: r['ASESOR'],
+        rama: this.motivoPoliticaFEM(r)!,
+        detalle: r['DETALLE(COMENTARIO) POLITICA FEM'] || '',
+        celular: r['CELULAR GESTIONADO'] || '',
+      }));
 
     // Resúmenes por asesor (solo al ver UNA sede). Llamadas y Cartas van SEPARADAS.
     if (todas) {
@@ -261,6 +291,34 @@ export class CierreGestionSedesComponent implements OnInit {
   contactabilidadSede(s: ResumenSede): number {
     return s.gestiones ? Math.round((s.contacto / s.gestiones) * 100) : 0;
   }
+
+  /** Conteo de registros con motivo "Política FEM" por sede, SIEMPRE sobre el rango
+   *  completo (this.rawGestion, sin filtrar por la sede elegida en el combo) — para
+   *  que el gráfico comparativo esté visible sin tener que entrar a cada sede. */
+  private construirResumenFEM(): ResumenFEM[] {
+    const norm = (s: any) => this.sedeConfig.normalizar(s);
+    const map = new Map<string, ResumenFEM>();
+    for (const r of this.rawGestion) {
+      if (!this.motivoPoliticaFEM(r)) continue;
+      const key = norm(r['TIENDA SEDE']);
+      if (!key) continue;
+      let s = map.get(key);
+      if (!s) {
+        const cfg = this.sedeConfig.getConfig(key);
+        s = { key, nombre: cfg?.nombre ?? key, color: this.colorSede(key), total: 0 };
+        map.set(key, s);
+      }
+      s.total++;
+    }
+    return [...map.values()].sort((a, b) => b.total - a.total);
+  }
+
+  // Color por sede en el gráfico de Política FEM (misma paleta que el resto del módulo).
+  customizeFEMPoint = (pointInfo: any) => {
+    const s = this.resumenFEM.find(x => x.nombre === pointInfo.argument);
+    return { color: s?.color || '#1A5FAD' };
+  };
+  customizeFEMTooltip = (arg: any) => ({ text: `${arg.argumentText}: ${arg.value} registro(s)` });
 
   // Al hacer clic en una tarjeta de sede del resumen → filtra a esa sede.
   verSede(key: string): void {
