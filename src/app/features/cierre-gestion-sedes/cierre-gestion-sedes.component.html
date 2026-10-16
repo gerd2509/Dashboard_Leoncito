@@ -76,31 +76,32 @@
 </div>
 
 <!-- ═══════════ Política FEM por sede — SIEMPRE visible, sin entrar a cada sede ═══════════ -->
+<!-- Mismo patrón que "Resumen Comparativo" + "Ventas Netas por Sede" en Ventas Sedes:
+     tabla arriba, gráfico ABAJO, cada uno a todo el ancho (no lado a lado) — así el
+     gráfico tiene aire real para crecer y no se pisa con lo que viene después. -->
 <div class="fem-sec" *ngIf="resumenFEM.length">
   <h3 class="sec-titulo fem"><mat-icon>gavel</mat-icon> Política FEM por Sede <em>({{ totalFEM | number }} en total)</em></h3>
-  <div class="fem-body">
-    <div class="fem-chart">
-      <dx-chart [dataSource]="resumenFEM" [customizePoint]="customizeFEMPoint" [barGroupPadding]="0.5" [rotated]="false">
-        <dxi-series valueField="total" argumentField="nombre" type="bar" [cornerRadius]="4"
-            [label]="{ visible: true, position: 'outside', font: { size: 11, weight: 700 } }"></dxi-series>
-        <dxo-argument-axis [label]="{ rotationAngle: -20 }" [discreteAxisDivisionMode]="'crossLabels'"></dxo-argument-axis>
-        <dxo-value-axis [min]="0" [label]="{ format: { type: 'fixedPoint', precision: 0 } }"></dxo-value-axis>
-        <dxo-legend [visible]="false"></dxo-legend>
-        <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeFEMTooltip"></dxo-tooltip>
-      </dx-chart>
-    </div>
-    <div class="fem-tabla">
-      <table class="ar-table">
-        <thead><tr><th class="ta-l">Sede</th><th>Registros</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let s of resumenFEM" class="fem-fila" (click)="verSede(s.key)">
-            <td class="ta-l"><span class="rs-dot" [style.background]="s.color"></span>{{ s.nombre }}</td>
-            <td class="tot">{{ s.total }}</td>
-          </tr>
-        </tbody>
-        <tfoot><tr><td class="ta-l">TOTAL</td><td class="tot">{{ totalFEM }}</td></tr></tfoot>
-      </table>
-    </div>
+  <div class="fem-tabla">
+    <table class="ar-table">
+      <thead><tr><th class="ta-l">Sede</th><th>Registros</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let s of resumenFEM" class="fem-fila" (click)="verSede(s.key)">
+          <td class="ta-l"><span class="rs-dot" [style.background]="s.color"></span>{{ s.nombre }}</td>
+          <td class="tot">{{ s.total }}</td>
+        </tr>
+      </tbody>
+      <tfoot><tr><td class="ta-l">TOTAL</td><td class="tot">{{ totalFEM }}</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="fem-chart-card">
+    <dx-chart [dataSource]="resumenFEM" [customizePoint]="customizeFEMPoint" [barGroupPadding]="0.6" [rotated]="false">
+      <dxi-series valueField="total" argumentField="nombre" type="bar" [cornerRadius]="4"
+          [label]="{ visible: true, position: 'outside', font: { size: 11, weight: 700 } }"></dxi-series>
+      <dxo-argument-axis [label]="{ rotationAngle: -20 }" [discreteAxisDivisionMode]="'crossLabels'"></dxo-argument-axis>
+      <dxo-value-axis [min]="0" [label]="{ format: { type: 'fixedPoint', precision: 0 } }"></dxo-value-axis>
+      <dxo-legend [visible]="false"></dxo-legend>
+      <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeFEMTooltip"></dxo-tooltip>
+    </dx-chart>
   </div>
 </div>
 
