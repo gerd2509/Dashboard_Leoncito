@@ -294,7 +294,7 @@
               <span *ngIf="r.segBase; else sinSeguimiento" class="seg-chip clic"
                 [ngClass]="r.segPct >= 80 ? 'ok' : r.segPct >= 40 ? 'media' : 'baja'"
                 (click)="verDetalleSeguimiento(r, titulo === 'Asignados Totales' ? null : titulo)"
-                title="Ver detalle: clientes con última llamada NO CONTACTO, con/sin carta posterior">
+                title="Ver detalle: clientes en estado NO CONTACTO (igual que arriba), con/sin carta en su historial">
                 {{ r.segOk }}/{{ r.segBase }} · {{ r.segPct }}%
               </span>
               <ng-template #sinSeguimiento>—</ng-template>
@@ -461,7 +461,7 @@
       <div class="modal-head-ico"><mat-icon>mail</mat-icon></div>
       <div class="modal-head-txt">
         <h2>Seguimiento No Contacto → Carta — {{ detSeguimiento.sede }}</h2>
-        <small>{{ detSeguimiento.grupo || 'Todos los grupos' }} · {{ filasSeguimientoActual.length }} cliente(s) con última llamada NO CONTACTO</small>
+        <small>{{ detSeguimiento.grupo || 'Todos los grupos' }} · {{ filasSeguimientoActual.length }} cliente(s) en estado NO CONTACTO</small>
       </div>
       <button class="modal-close" (click)="cerrarSeguimiento()"><mat-icon>close</mat-icon></button>
     </div>
@@ -488,8 +488,8 @@
                 <tr>
                   <th class="left">DNI</th>
                   <th class="left" *ngIf="!detSeguimiento.grupo">Grupo</th>
-                  <th class="left">Última Llamada (No Contacto)</th>
-                  <th>Estado</th>
+                  <th class="left">Última Gestión</th>
+                  <th>Seguimiento</th>
                   <th class="left">Fecha Carta</th>
                 </tr>
               </thead>
@@ -497,8 +497,11 @@
                 <tr *ngFor="let f of g.filas; trackBy: trackByDniSeguimiento">
                   <td class="left">{{ f.dni }}</td>
                   <td class="left" *ngIf="!detSeguimiento.grupo">{{ f.grupo }}</td>
-                  <td class="left mono">{{ f.fechaNoContacto | date:'dd/MM/yyyy HH:mm' }}</td>
-                  <td><span class="estado-chip" [ngClass]="f.tieneCarta ? 'ok' : 'no'">{{ f.tieneCarta ? 'Con carta' : 'Pendiente' }}</span></td>
+                  <td class="left mono">
+                    {{ f.fechaUltima | date:'dd/MM/yyyy HH:mm' }}
+                    <span *ngIf="f.tipoUltima" class="tipo-gestion-chip">{{ f.tipoUltima }}</span>
+                  </td>
+                  <td><span class="estado-chip" [ngClass]="f.tieneCarta ? 'ok' : 'no'">{{ f.tieneCarta ? 'Con carta' : 'Sin carta' }}</span></td>
                   <td class="left mono">{{ f.fechaCarta ? (f.fechaCarta | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
                 </tr>
               </tbody>

@@ -130,11 +130,14 @@ interface DetalleIntensidad {
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
 
-/** Fila del detalle de Seguimiento No Contacto → Carta: UN cliente cuya última
- *  llamada fue NO CONTACTO, con su fecha, y si ya se le entregó carta después. */
+/** Fila del detalle de Seguimiento No Contacto → Carta: UN cliente que está en estado
+ *  NO CONTACTO (misma definición que el KPI general — última gestión de CUALQUIER
+ *  tipo, llamada o carta; si una carta posterior logra contacto, el cliente deja de
+ *  estar aquí solo). Se muestra su última gestión real (fecha/tipo) y si tiene una
+ *  carta en su historial o sigue pendiente de ese paso. */
 interface DetalleSeguimiento {
   sedeKey: string; sede: string; grupo: string; asesor: string; dni: string;
-  fechaNoContacto: Date; tieneCarta: boolean; fechaCarta: Date | null;
+  fechaUltima: Date; tipoUltima: string; tieneCarta: boolean; fechaCarta: Date | null;
 }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
@@ -230,7 +233,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     if (!lista.length || !this.detSeguimiento) return;
     const wb = new Workbook();
     const ws = wb.addWorksheet('Seguimiento');
-    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Última Llamada (No Contacto)', 'Estado', 'Fecha Carta'];
+    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Última Gestión', 'Tipo', 'Seguimiento', 'Fecha Carta'];
     const hr = ws.addRow(headers);
     hr.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -238,11 +241,11 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     });
     for (const f of lista) {
       ws.addRow([
-        f.sede, f.grupo, f.asesor, f.dni, f.fechaNoContacto.toLocaleString('es-PE'),
-        f.tieneCarta ? 'Con carta' : 'Pendiente', f.fechaCarta ? f.fechaCarta.toLocaleString('es-PE') : '',
+        f.sede, f.grupo, f.asesor, f.dni, f.fechaUltima.toLocaleString('es-PE'), f.tipoUltima,
+        f.tieneCarta ? 'Con carta' : 'Sin carta', f.fechaCarta ? f.fechaCarta.toLocaleString('es-PE') : '',
       ]);
     }
-    ws.columns.forEach((col, i) => { col.width = (i === 4 || i === 6) ? 22 : 16; });
+    ws.columns.forEach((col, i) => { col.width = (i === 4 || i === 7) ? 22 : 16; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -896,14 +899,19 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       if (!r) continue;
       r.gestionesTotal += this.gestionesPorSedeDni.get(baseKey)?.get(dni)?.length || 0;
     }
-    // ── Seguimiento No Contacto → Carta: de los clientes cuya ÚLTIMA llamada fue NO
-    // CONTACTO (mismos registros de gestión de arriba), cuántos ya tienen una carta
-    // posterior. Solo aplica a quien de verdad tuvo ese caso — el resto no entra. ──
-    for (const [dni, baseKey] of baseSedeDeDni) {
-      const r = map.get(baseKey);
+    // ── Seguimiento No Contacto → Carta: MISMA población que "Sin Gestionar"/No
+    // Contacto de arriba (c.estado, última gestión de CUALQUIER tipo) — así el número
+    // siempre calza con el que ya se ve ahí y se autoajusta si el cliente cambia de
+    // estado (ej. una carta posterior logra contacto → deja de contar aquí). De esos,
+    // cuántos ya tienen una carta en su historial. ──
+    for (const c of clientes) {
+      if (c.estado !== 'NO CONTACTO') continue;
+      const key = c.sedeKey || 'sin-sede';
+      const r = map.get(key);
       if (!r) continue;
-      const seg = this.calcularSeguimientoCliente(this.gestionesPorSedeDni.get(baseKey)?.get(dni) || []);
-      if (seg) { r.segBase++; if (seg.tieneCarta) r.segOk++; }
+      const registros = this.gestionesPorSedeDni.get(key)?.get(c.dni) || [];
+      r.segBase++;
+      if (this.armarSeguimientoCliente(c, registros).tieneCarta) r.segOk++;
     }
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
@@ -1011,48 +1019,47 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     };
   }
 
-  /** Detalle de Seguimiento No Contacto → Carta: 1 fila por cliente (DNI) cuya ÚLTIMA
-   *  llamada fue NO CONTACTO, con si ya tiene carta posterior o sigue pendiente. Solo
-   *  sedes (Call Center no gestiona con cartas). */
+  /** Detalle de Seguimiento No Contacto → Carta: 1 fila por cliente (DNI) que está en
+   *  estado NO CONTACTO (misma población que el KPI general de arriba), con su última
+   *  gestión real (fecha/tipo) y si tiene una carta en su historial o sigue pendiente.
+   *  Solo sedes (Call Center no gestiona con cartas). */
   private construirDetalleSeguimiento(clientes: ClienteCartera[]): void {
     const filas: DetalleSeguimiento[] = [];
     for (const c of clientes) {
+      if (c.estado !== 'NO CONTACTO') continue;
       const registros = this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || [];
-      const seg = this.calcularSeguimientoCliente(registros);
-      if (!seg) continue;
+      const seg = this.armarSeguimientoCliente(c, registros);
       filas.push({
         sedeKey: c.sedeKey || 'sin-sede', sede: c.sedeNombre || 'SIN SEDE',
         grupo: this.grupoTipo(c.tipoCliente), asesor: c.asesor, dni: c.dni,
-        fechaNoContacto: seg.fechaNoContacto, tieneCarta: seg.tieneCarta, fechaCarta: seg.fechaCarta,
+        fechaUltima: seg.fechaUltima, tipoUltima: seg.tipoUltima,
+        tieneCarta: seg.tieneCarta, fechaCarta: seg.fechaCarta,
       });
     }
-    // Pendientes primero (lo accionable hoy); dentro de cada grupo, la no-contacto más reciente primero.
+    // Pendientes primero (lo accionable hoy); dentro de cada grupo, la gestión más reciente primero.
     filas.sort((a, b) => (a.tieneCarta !== b.tieneCarta)
       ? (a.tieneCarta ? 1 : -1)
-      : b.fechaNoContacto.getTime() - a.fechaNoContacto.getTime());
+      : b.fechaUltima.getTime() - a.fechaUltima.getTime());
     this.detalleSeguimiento = filas;
   }
 
-  private esLlamadaTipo(tipo: string): boolean { return (tipo || '').toUpperCase().includes('LLAMADA'); }
   private esCartaTipo(tipo: string): boolean { return (tipo || '').toUpperCase().includes('CARTA'); }
 
-  /** Si la ÚLTIMA llamada (TIPO DE GESTION) de este cliente fue NO CONTACTO, devuelve
-   *  esa fecha y si hay una carta (cualquier resultado) posterior a ella — sin importar
-   *  cuántos días después, basta con que exista. null si su última llamada no fue "no
-   *  contacto" (no aplica el protocolo) o si nunca tuvo una llamada. */
-  private calcularSeguimientoCliente(registros: RegistroGestionDetalle[]): { fechaNoContacto: Date; tieneCarta: boolean; fechaCarta: Date | null } | null {
-    const llamadas = registros.filter(r => this.esLlamadaTipo(r.tipo));
-    if (!llamadas.length) return null;
-    const ultimaLlamada = llamadas.reduce((a, b) => (b.fecha > a.fecha ? b : a));
-    if (ultimaLlamada.estado.toUpperCase().trim() !== 'NO CONTACTO') return null;
-    const fechaNoContacto = ultimaLlamada.fecha;
-    const cartasPosteriores = registros
-      .filter(r => this.esCartaTipo(r.tipo) && r.fecha.getTime() > fechaNoContacto.getTime())
-      .sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+  /** Arma el detalle de seguimiento de UN cliente ya sabido NO CONTACTO: su última
+   *  gestión real (fecha/tipo — puede ser la propia llamada o una carta que tampoco
+   *  logró contacto) y si en algún momento de su historial hubo una carta, para
+   *  distinguir "nunca se le mandó carta" de "se le mandó carta y aun así sigue sin
+   *  contacto". Si por algún motivo no hay registros propios (desajuste de datos:
+   *  el estado vino de un cruce por teléfono con otro DNI), usa fechaGestion de la
+   *  cartera como respaldo — así el detalle nunca queda más corto que segBase. */
+  private armarSeguimientoCliente(c: ClienteCartera, registros: RegistroGestionDetalle[]): { fechaUltima: Date; tipoUltima: string; tieneCarta: boolean; fechaCarta: Date | null } {
+    const ultima = registros.length ? registros.reduce((a, b) => (b.fecha > a.fecha ? b : a)) : null;
+    const cartas = registros.filter(r => this.esCartaTipo(r.tipo)).sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
     return {
-      fechaNoContacto,
-      tieneCarta: cartasPosteriores.length > 0,
-      fechaCarta: cartasPosteriores[0]?.fecha ?? null,
+      fechaUltima: ultima?.fecha ?? c.fechaGestion ?? new Date(0),
+      tipoUltima: ultima?.tipo ?? '',
+      tieneCarta: cartas.length > 0,
+      fechaCarta: cartas[0]?.fecha ?? null,
     };
   }
 
