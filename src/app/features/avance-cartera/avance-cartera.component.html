@@ -273,7 +273,7 @@
           <tr>
             <th class="left">Sede</th>
             <th>N° Asignados</th><th>N° Gestionados</th><th>Sin Gestionar</th>
-            <th *ngIf="showInt">Intensidad</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
+            <th *ngIf="showInt">Intensidad</th><th>Seguim. Carta</th><th>N° Ventas</th><th>Monto</th><th>Ticket</th>
             <th>Concreción</th><th>Meta</th><th>Proyección</th><th>% Avance Meta</th>
           </tr>
         </thead>
@@ -291,6 +291,15 @@
             <td class="c-alerta">{{ r.pendientes }}</td>
             <td *ngIf="showInt">{{ r.intensidad | number:'1.2-2' }}</td>
             <td>
+              <span *ngIf="r.segBase; else sinSeguimiento" class="seg-chip clic"
+                [ngClass]="r.segPct >= 80 ? 'ok' : r.segPct >= 40 ? 'media' : 'baja'"
+                (click)="verDetalleSeguimiento(r, titulo === 'Asignados Totales' ? null : titulo)"
+                title="Ver detalle: clientes con última llamada NO CONTACTO, con/sin carta posterior">
+                {{ r.segOk }}/{{ r.segBase }} · {{ r.segPct }}%
+              </span>
+              <ng-template #sinSeguimiento>—</ng-template>
+            </td>
+            <td>
               {{ r.nVentas }}
               <span *ngIf="r.ventasEntran" class="cruce cruce-in clic" (click)="verDetalleVentas(r, 'in', filas)" title="Ver ventas cerradas aquí de clientes de otra base">↙{{ r.ventasEntran }}</span>
               <span *ngIf="r.ventasSalen" class="cruce cruce-out clic" (click)="verDetalleVentas(r, 'out', filas)" title="Ver ventas de clientes de esta base cerradas en otra sede">↗{{ r.ventasSalen }}</span>
@@ -305,7 +314,7 @@
             <td class="mono">{{ soles(r.proyeccion) }}</td>
             <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
           </tr>
-          <tr *ngIf="!filas.length" class="vacio"><td [attr.colspan]="showInt ? 12 : 11">Sin datos para el periodo</td></tr>
+          <tr *ngIf="!filas.length" class="vacio"><td [attr.colspan]="showInt ? 13 : 12">Sin datos para el periodo</td></tr>
         </tbody>
         <tfoot *ngIf="filas.length">
           <tr>
@@ -314,6 +323,7 @@
             <td>{{ tot(filas).gestionados }}</td>
             <td>{{ tot(filas).pendientes }}</td>
             <td *ngIf="showInt">{{ tot(filas).intensidad | number:'1.2-2' }}</td>
+            <td>{{ tot(filas).segBase ? (tot(filas).segOk + '/' + tot(filas).segBase + ' · ' + tot(filas).segPct + '%') : '—' }}</td>
             <td>
               {{ tot(filas).nVentas }}
               <span *ngIf="tot(filas).ventasEntran" class="cruce cruce-in" title="Total de ventas cerradas de la base de otra sede">↙{{ tot(filas).ventasEntran }}</span>
@@ -440,6 +450,63 @@
         </div>
       </div>
       <ng-template #sinClientesIntensidad><p class="vacio-txt">Sin clientes para este filtro.</p></ng-template>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL: Seguimiento No Contacto → Carta ══════════════ -->
+<div class="modal-overlay" *ngIf="detSeguimiento" (click)="cerrarSeguimiento()">
+  <div class="modal-panel" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-head-ico"><mat-icon>mail</mat-icon></div>
+      <div class="modal-head-txt">
+        <h2>Seguimiento No Contacto → Carta — {{ detSeguimiento.sede }}</h2>
+        <small>{{ detSeguimiento.grupo || 'Todos los grupos' }} · {{ filasSeguimientoActual.length }} cliente(s) con última llamada NO CONTACTO</small>
+      </div>
+      <button class="modal-close" (click)="cerrarSeguimiento()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-toolbar">
+        <div class="buscador">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Buscar DNI / asesor…" [(ngModel)]="filtroSeguimiento" (ngModelChange)="onFiltroSeguimientoChange()" />
+        </div>
+        <button class="btn-regresar" (click)="exportarSeguimiento()"><mat-icon>download</mat-icon> Exportar</button>
+      </div>
+
+      <div class="grupos-asesor" *ngIf="gruposSeguimientoActual.length; else sinClientesSeguimiento">
+        <div class="grupo-asesor" *ngFor="let g of gruposSeguimientoActual; trackBy: trackByAsesor">
+          <div class="grupo-asesor-head" (click)="toggleAsesorSeguimiento(g.asesor)">
+            <mat-icon class="chev">{{ colapsadasSeguimiento.has(g.asesor) ? 'chevron_right' : 'expand_more' }}</mat-icon>
+            <span class="ga-nombre">{{ g.asesor }}</span>
+            <span class="ga-stats"><b [class.c-alerta]="g.pendientes">{{ g.pendientes }}</b> pendiente(s) · {{ g.total }} total</span>
+          </div>
+          <div class="tabla-scroll" *ngIf="!colapsadasSeguimiento.has(g.asesor)">
+            <table class="tabla-intensidad">
+              <thead>
+                <tr>
+                  <th class="left">DNI</th>
+                  <th class="left" *ngIf="!detSeguimiento.grupo">Grupo</th>
+                  <th class="left">Última Llamada (No Contacto)</th>
+                  <th>Estado</th>
+                  <th class="left">Fecha Carta</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let f of g.filas; trackBy: trackByDniSeguimiento">
+                  <td class="left">{{ f.dni }}</td>
+                  <td class="left" *ngIf="!detSeguimiento.grupo">{{ f.grupo }}</td>
+                  <td class="left mono">{{ f.fechaNoContacto | date:'dd/MM/yyyy HH:mm' }}</td>
+                  <td><span class="estado-chip" [ngClass]="f.tieneCarta ? 'ok' : 'no'">{{ f.tieneCarta ? 'Con carta' : 'Pendiente' }}</span></td>
+                  <td class="left mono">{{ f.fechaCarta ? (f.fechaCarta | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <ng-template #sinClientesSeguimiento><p class="vacio-txt">Sin clientes para este filtro.</p></ng-template>
     </div>
   </div>
 </div>

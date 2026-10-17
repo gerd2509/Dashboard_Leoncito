@@ -199,6 +199,18 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .gest-chip.clic  { cursor: pointer; }
 .gest-chip.clic:hover { filter: brightness(.94); box-shadow: 0 0 0 2px rgba(26,95,173,.18) inset; }
 
+/* Chip de "Seguimiento No Contacto → Carta": % con carta posterior entre los que la
+ * necesitan (ok ≥80%, media ≥40%, baja <40% — igual criterio de semáforo que gest-chip). */
+.seg-chip {
+  display: inline-flex; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.seg-chip.baja  { background: #FBEAE4; color: var(--no); }
+.seg-chip.media { background: #FFF2DC; color: var(--alerta); }
+.seg-chip.ok    { background: #E3F6EB; color: var(--ok); }
+.seg-chip.clic  { cursor: pointer; }
+.seg-chip.clic:hover { filter: brightness(.94); box-shadow: 0 0 0 2px rgba(26,95,173,.18) inset; }
+
 /* ══════ Modal: Detalle de Intensidad + sub-modal de gestiones ══════ */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(15, 30, 50, .55); z-index: 1000;

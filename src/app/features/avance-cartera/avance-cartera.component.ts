@@ -97,6 +97,10 @@ interface ResumenSede {
   metaKey: string;          // clave de persistencia de la meta (cartera:[grupo:]<sede>)
   detEntran: DetalleVenta[];  // ventas cerradas aquí de clientes de otra base (↙)
   detSalen: DetalleVenta[];   // ventas de clientes de esta base cerradas en otra sede (↗)
+  // Seguimiento No Contacto → Carta: de los clientes cuya ÚLTIMA llamada fue NO
+  // CONTACTO, cuántos ya tienen una carta posterior (protocolo cumplido) vs. cuántos
+  // siguen sin ella. segBase = clientes en esa situación; segOk = con carta después.
+  segBase: number; segOk: number; segPct: number;
 }
 
 interface DetalleVenta { dni: string; cv: string; asesorBase: string; sedeBase: string; sedeVenta: string; monto: number; fecha: string; }
@@ -125,6 +129,13 @@ interface DetalleIntensidad {
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
 interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
+
+/** Fila del detalle de Seguimiento No Contacto → Carta: UN cliente cuya última
+ *  llamada fue NO CONTACTO, con su fecha, y si ya se le entregó carta después. */
+interface DetalleSeguimiento {
+  sedeKey: string; sede: string; grupo: string; asesor: string; dni: string;
+  fechaNoContacto: Date; tieneCarta: boolean; fechaCarta: Date | null;
+}
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA, ASESORES_CALL_EN_CARTERA_PISO } from '../../shared/asesores';
@@ -173,6 +184,72 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   // Sub-ventana: el detalle de gestiones (fecha/resultado) de UN cliente (o de UN
   // teléfono puntual suyo, si viene de un desglose), al hacer clic en "N° Gestiones".
   detGestionCliente: { dni: string; asesor: string; telefono?: string; registros: RegistroGestionDetalle[] } | null = null;
+
+  // Detalle de Seguimiento No Contacto → Carta: 1 fila por cliente cuya ÚLTIMA llamada
+  // fue NO CONTACTO, con si ya tiene carta posterior o sigue pendiente.
+  detalleSeguimiento: DetalleSeguimiento[] = [];
+  detSeguimiento: { sedeKey: string; sede: string; grupo: string | null } | null = null;
+  filtroSeguimiento = '';
+  colapsadasSeguimiento = new Set<string>();
+  filasSeguimientoActual: DetalleSeguimiento[] = [];
+  gruposSeguimientoActual: { asesor: string; filas: DetalleSeguimiento[]; pendientes: number; total: number }[] = [];
+
+  verDetalleSeguimiento(r: ResumenSede, grupo: string | null): void {
+    this.detSeguimiento = { sedeKey: r.sedeKey, sede: r.sede, grupo };
+    this.filtroSeguimiento = '';
+    this.recalcularSeguimientoActual();
+    this.colapsadasSeguimiento = new Set(this.filasSeguimientoActual.map(f => f.asesor));
+  }
+  cerrarSeguimiento(): void { this.detSeguimiento = null; }
+  toggleAsesorSeguimiento(asesor: string): void {
+    this.colapsadasSeguimiento.has(asesor) ? this.colapsadasSeguimiento.delete(asesor) : this.colapsadasSeguimiento.add(asesor);
+  }
+  onFiltroSeguimientoChange(): void { this.recalcularSeguimientoActual(); }
+  trackByDniSeguimiento(_i: number, f: DetalleSeguimiento): string { return f.dni; }
+
+  /** Recalcula filasSeguimientoActual (sede/grupo/búsqueda) y el agrupado por asesor,
+   *  con los pendientes primero (lo que un supervisor necesita resolver hoy). */
+  private recalcularSeguimientoActual(): void {
+    const d = this.detSeguimiento;
+    if (!d) { this.filasSeguimientoActual = []; this.gruposSeguimientoActual = []; return; }
+    let filas = this.detalleSeguimiento.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
+    const q = this.filtroSeguimiento.trim().toLowerCase();
+    if (q) filas = filas.filter(f => f.dni.includes(q) || f.asesor.toLowerCase().includes(q));
+    this.filasSeguimientoActual = filas;
+
+    const map = new Map<string, DetalleSeguimiento[]>();
+    for (const f of filas) { const arr = map.get(f.asesor) ?? []; arr.push(f); map.set(f.asesor, arr); }
+    this.gruposSeguimientoActual = [...map.entries()]
+      .map(([asesor, fs]) => ({ asesor, filas: fs, pendientes: fs.filter(f => !f.tieneCarta).length, total: fs.length }))
+      .sort((a, b) => b.pendientes - a.pendientes || b.total - a.total);
+  }
+
+  /** Excel del detalle de Seguimiento que se está viendo (la sede/grupo abiertos). */
+  async exportarSeguimiento(): Promise<void> {
+    const lista = this.filasSeguimientoActual;
+    if (!lista.length || !this.detSeguimiento) return;
+    const wb = new Workbook();
+    const ws = wb.addWorksheet('Seguimiento');
+    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Última Llamada (No Contacto)', 'Estado', 'Fecha Carta'];
+    const hr = ws.addRow(headers);
+    hr.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
+    });
+    for (const f of lista) {
+      ws.addRow([
+        f.sede, f.grupo, f.asesor, f.dni, f.fechaNoContacto.toLocaleString('es-PE'),
+        f.tieneCarta ? 'Con carta' : 'Pendiente', f.fechaCarta ? f.fechaCarta.toLocaleString('es-PE') : '',
+      ]);
+    }
+    ws.columns.forEach((col, i) => { col.width = (i === 4 || i === 6) ? 22 : 16; });
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const nombre = this.nombreArchivo.replace(/\.[^/.]+$/, '') || 'cartera';
+    const sufGrupo = this.detSeguimiento.grupo ? `_${this.detSeguimiento.grupo}` : '';
+    FileSaver.saveAs(blob, `${nombre}_SEGUIMIENTO_${this.detSeguimiento.sede}${sufGrupo}.xlsx`.replace(/\s+/g, '_'));
+  }
 
   // Resultado cacheado (NO getters): un getter devolvería arrays/objetos nuevos en cada
   // ciclo de detección de cambios → *ngFor sin trackBy destruye y reconstruye TODO en
@@ -368,6 +445,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.clientes = []; this.resumenAsesores = []; this.resumenSedes = []; this.clientesCallCenter = [];
     this.gestionesCallCenterPorDni = new Map();
     this.detalleIntensidad = []; this.detIntensidad = null; this.detGestionCliente = null;
+    this.detalleSeguimiento = []; this.detSeguimiento = null;
     this.porDia = []; this.distribucion = [];
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
@@ -771,6 +849,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       sedeKey, sede: nombre || 'SIN SEDE', asignados: 0, gestionados: 0, contacto: 0, noContacto: 0,
       pendientes: 0, avance: 0, gestionesTotal: 0, intensidad: 0, nVentas: 0, monto: 0, ticket: 0, concrecion: 0, detEntran: [], detSalen: [],
       ventasEntran: 0, ventasSalen: 0, meta: 0, proyeccion: 0, avanceMeta: 0, metaKey: '',
+      segBase: 0, segOk: 0, segPct: 0,
     });
     // ── Base (cartera): asignados/gestionados por sede + DNIs únicos con su sede de base ──
     const baseSedeDeDni = new Map<string, string>();   // dni → sedeKey de su base (1ª aparición → dedupe)
@@ -817,6 +896,15 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       if (!r) continue;
       r.gestionesTotal += this.gestionesPorSedeDni.get(baseKey)?.get(dni)?.length || 0;
     }
+    // ── Seguimiento No Contacto → Carta: de los clientes cuya ÚLTIMA llamada fue NO
+    // CONTACTO (mismos registros de gestión de arriba), cuántos ya tienen una carta
+    // posterior. Solo aplica a quien de verdad tuvo ese caso — el resto no entra. ──
+    for (const [dni, baseKey] of baseSedeDeDni) {
+      const r = map.get(baseKey);
+      if (!r) continue;
+      const seg = this.calcularSeguimientoCliente(this.gestionesPorSedeDni.get(baseKey)?.get(dni) || []);
+      if (seg) { r.segBase++; if (seg.tieneCarta) r.segOk++; }
+    }
     const hoy = new Date();
     const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
     const diasMes = new Date(this.fecha.getFullYear(), this.fecha.getMonth() + 1, 0).getDate();
@@ -833,12 +921,14 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       r.meta = this.metasCartera[r.metaKey] || (legacyPrefix ? this.metasCartera[legacyPrefix + sk] : 0) || 0;   // respaldo: clave anterior
       r.proyeccion = Math.round(r.monto / diasTrans * diasMes);
       r.avanceMeta = r.meta > 0 ? Math.round((r.monto / r.meta) * 100) : 0;
+      r.segPct = r.segBase > 0 ? Math.round((r.segOk / r.segBase) * 100) : 0;
     });
     return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
   }
 
   private construirResumenSedes(clientes: ClienteCartera[]): void {
     this.detIntensidad = null; this.detGestionCliente = null;   // cierra lo abierto: ya no es válido
+    this.detSeguimiento = null;
     // Prefijo por MES seleccionado → las metas se guardan por mes (cada mes independiente).
     const ym = `${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
     // Respaldo de las metas ya cargadas (clave sin mes): solo se usa en el mes en curso,
@@ -862,6 +952,9 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     // Incluye también a Call Center (su gestión vive aparte, en gestionesCallCenterPorDni,
     // sin sede) para que su fila pueda abrir el mismo detalle de Intensidad que las demás.
     this.construirDetalleIntensidad(this.clientes);
+    // Seguimiento No Contacto → Carta: SOLO sedes (Call Center no gestiona con cartas,
+    // no aplica el protocolo de llamada+carta de piso).
+    this.construirDetalleSeguimiento(this.clientes);
 
     // Fila "Call Center" (Patricia/Maria/Juana) al final de cada tabla por sede — aparte
     // del avance de piso (no se cuenta arriba), pero visible como 1 fila más ahí mismo.
@@ -918,6 +1011,51 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     };
   }
 
+  /** Detalle de Seguimiento No Contacto → Carta: 1 fila por cliente (DNI) cuya ÚLTIMA
+   *  llamada fue NO CONTACTO, con si ya tiene carta posterior o sigue pendiente. Solo
+   *  sedes (Call Center no gestiona con cartas). */
+  private construirDetalleSeguimiento(clientes: ClienteCartera[]): void {
+    const filas: DetalleSeguimiento[] = [];
+    for (const c of clientes) {
+      const registros = this.gestionesPorSedeDni.get(c.sedeKey)?.get(c.dni) || [];
+      const seg = this.calcularSeguimientoCliente(registros);
+      if (!seg) continue;
+      filas.push({
+        sedeKey: c.sedeKey || 'sin-sede', sede: c.sedeNombre || 'SIN SEDE',
+        grupo: this.grupoTipo(c.tipoCliente), asesor: c.asesor, dni: c.dni,
+        fechaNoContacto: seg.fechaNoContacto, tieneCarta: seg.tieneCarta, fechaCarta: seg.fechaCarta,
+      });
+    }
+    // Pendientes primero (lo accionable hoy); dentro de cada grupo, la no-contacto más reciente primero.
+    filas.sort((a, b) => (a.tieneCarta !== b.tieneCarta)
+      ? (a.tieneCarta ? 1 : -1)
+      : b.fechaNoContacto.getTime() - a.fechaNoContacto.getTime());
+    this.detalleSeguimiento = filas;
+  }
+
+  private esLlamadaTipo(tipo: string): boolean { return (tipo || '').toUpperCase().includes('LLAMADA'); }
+  private esCartaTipo(tipo: string): boolean { return (tipo || '').toUpperCase().includes('CARTA'); }
+
+  /** Si la ÚLTIMA llamada (TIPO DE GESTION) de este cliente fue NO CONTACTO, devuelve
+   *  esa fecha y si hay una carta (cualquier resultado) posterior a ella — sin importar
+   *  cuántos días después, basta con que exista. null si su última llamada no fue "no
+   *  contacto" (no aplica el protocolo) o si nunca tuvo una llamada. */
+  private calcularSeguimientoCliente(registros: RegistroGestionDetalle[]): { fechaNoContacto: Date; tieneCarta: boolean; fechaCarta: Date | null } | null {
+    const llamadas = registros.filter(r => this.esLlamadaTipo(r.tipo));
+    if (!llamadas.length) return null;
+    const ultimaLlamada = llamadas.reduce((a, b) => (b.fecha > a.fecha ? b : a));
+    if (ultimaLlamada.estado.toUpperCase().trim() !== 'NO CONTACTO') return null;
+    const fechaNoContacto = ultimaLlamada.fecha;
+    const cartasPosteriores = registros
+      .filter(r => this.esCartaTipo(r.tipo) && r.fecha.getTime() > fechaNoContacto.getTime())
+      .sort((a, b) => a.fecha.getTime() - b.fecha.getTime());
+    return {
+      fechaNoContacto,
+      tieneCarta: cartasPosteriores.length > 0,
+      fechaCarta: cartasPosteriores[0]?.fecha ?? null,
+    };
+  }
+
   /** Agrupa las gestiones REALES de un cliente por el número que de verdad se marcó en
    *  cada una (celular_gestionado) — no por los teléfonos de la cartera. Las gestiones
    *  sin número capturado (anteriores al campo nuevo) van en un bucket aparte, visible,
@@ -966,6 +1104,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       concrecion: contacto > 0 ? Math.round((nVentas / contacto) * 100) : 0,
       detEntran: [], detSalen: [],
       ventasEntran: 0, ventasSalen: 0, meta: this.metasCartera[metaKey] || 0, proyeccion: 0, avanceMeta: 0, metaKey,
+      // Call Center no gestiona con cartas: no aplica el Seguimiento No Contacto → Carta.
+      segBase: 0, segOk: 0, segPct: 0,
     };
   }
 
@@ -1008,12 +1148,15 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     const contacto = s.reduce((a, r) => a + r.contacto, 0);
     const ventasEntran = s.reduce((a, r) => a + r.ventasEntran, 0);
     const ventasSalen = s.reduce((a, r) => a + r.ventasSalen, 0);
+    const segBase = s.reduce((a, r) => a + r.segBase, 0);
+    const segOk = s.reduce((a, r) => a + r.segOk, 0);
     return {
       asignados, gestionados, gestionesTotal, nVentas, monto, meta, proyeccion, pendientes,
       ventasEntran, ventasSalen, concrecion: contacto > 0 ? Math.round((nVentas / contacto) * 100) : 0,
       intensidad: gestionados > 0 ? Math.round((gestionesTotal / gestionados) * 100) / 100 : 0,
       ticket: nVentas > 0 ? Math.round(monto / nVentas) : 0,
       avanceMeta: meta > 0 ? Math.round((monto / meta) * 100) : 0,
+      segBase, segOk, segPct: segBase > 0 ? Math.round((segOk / segBase) * 100) : 0,
     };
   }
 
