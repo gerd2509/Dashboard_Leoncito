@@ -475,40 +475,31 @@
         <button class="btn-regresar" (click)="exportarSeguimiento()"><mat-icon>download</mat-icon> Exportar</button>
       </div>
 
-      <div class="grupos-asesor" *ngIf="gruposSeguimientoActual.length; else sinClientesSeguimiento">
-        <div class="grupo-asesor" *ngFor="let g of gruposSeguimientoActual; trackBy: trackByAsesor">
-          <div class="grupo-asesor-head" (click)="toggleAsesorSeguimiento(g.asesor)">
-            <mat-icon class="chev">{{ colapsadasSeguimiento.has(g.asesor) ? 'chevron_right' : 'expand_more' }}</mat-icon>
-            <span class="ga-nombre">{{ g.asesor }}</span>
-            <span class="ga-stats"><b [class.c-alerta]="g.pendientes">{{ g.pendientes }}</b> pendiente(s) · {{ g.total }} total</span>
-          </div>
-          <div class="tabla-scroll" *ngIf="!colapsadasSeguimiento.has(g.asesor)">
-            <table class="tabla-intensidad">
-              <thead>
-                <tr>
-                  <th class="left">DNI</th>
-                  <th class="left" *ngIf="!detSeguimiento.grupo">Grupo</th>
-                  <th class="left">Última Gestión</th>
-                  <th>Seguimiento</th>
-                  <th class="left">Fecha Carta</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let f of g.filas; trackBy: trackByDniSeguimiento">
-                  <td class="left">{{ f.dni }}</td>
-                  <td class="left" *ngIf="!detSeguimiento.grupo">{{ f.grupo }}</td>
-                  <td class="left mono">
-                    {{ f.fechaUltima | date:'dd/MM/yyyy HH:mm' }}
-                    <span *ngIf="f.tipoUltima" class="tipo-gestion-chip">{{ f.tipoUltima }}</span>
-                  </td>
-                  <td><span class="estado-chip" [ngClass]="f.tieneCarta ? 'ok' : 'no'">{{ f.tieneCarta ? 'Con carta' : 'Sin carta' }}</span></td>
-                  <td class="left mono">{{ f.fechaCarta ? (f.fechaCarta | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+      <dx-data-grid *ngIf="filasSeguimientoActual.length; else sinClientesSeguimiento"
+          [dataSource]="filasSeguimientoActual" keyExpr="dni" class="focqus-elevation seg-grid" [height]="420"
+          [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+          [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true"
+          [allowColumnReordering]="true" (onCellPrepared)="onCellPreparedSeguimiento($event)">
+        <dxo-header-filter [visible]="true"></dxo-header-filter>
+        <dxo-grouping [autoExpandAll]="false"></dxo-grouping>
+        <dxo-group-panel [visible]="false"></dxo-group-panel>
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
+        <dxi-column dataField="asesor" caption="Asesor" [groupIndex]="0" />
+        <dxi-column dataField="dni" caption="DNI" alignment="left" [allowHeaderFiltering]="false" />
+        <dxi-column dataField="grupo" caption="Grupo" alignment="left" [visible]="!detSeguimiento.grupo" />
+        <dxi-column dataField="fechaUltima" caption="Fecha Última Gestión" dataType="datetime" [format]="'dd/MM/yyyy HH:mm'" [allowHeaderFiltering]="false" />
+        <dxi-column dataField="tipoUltima" caption="Tipo Gestión" alignment="center" cellTemplate="tipoTpl" />
+        <dxi-column dataField="estadoSeguimiento" caption="Seguimiento" alignment="center" cellTemplate="segTpl" />
+        <dxi-column dataField="fechaCarta" caption="Fecha Carta" dataType="datetime" [format]="'dd/MM/yyyy HH:mm'" [allowHeaderFiltering]="false" />
+        <div *dxTemplate="let cell of 'tipoTpl'"><span class="tipo-gestion-chip">{{ cell.value }}</span></div>
+        <div *dxTemplate="let cell of 'segTpl'"><span class="estado-chip" [ngClass]="cell.value === 'Con carta' ? 'ok' : 'no'">{{ cell.value }}</span></div>
+        <dxo-summary>
+          <dxi-group-item column="tieneCartaNum" summaryType="sum" displayFormat="{0} con carta" [showInGroupFooter]="false" [alignByColumn]="true" />
+          <dxi-group-item column="pendienteNum" summaryType="sum" displayFormat="{0} pendiente(s)" [showInGroupFooter]="false" [alignByColumn]="true" />
+          <dxi-group-item column="dni" summaryType="count" displayFormat="{0} total" [showInGroupFooter]="false" [alignByColumn]="true" />
+        </dxo-summary>
+      </dx-data-grid>
       <ng-template #sinClientesSeguimiento><p class="vacio-txt">Sin clientes para este filtro.</p></ng-template>
     </div>
   </div>
