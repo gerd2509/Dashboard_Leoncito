@@ -122,20 +122,22 @@
   .rs-metrics { grid-template-columns: repeat(5, 1fr); }
 }
 
-/* ── Política FEM (tabla + gráfico, cada uno a todo el ancho) ── */
+/* ── Política FEM (gráfico + tabla lado a lado) ── */
 .sec-titulo.fem mat-icon { color: #AD1457; }
 .fem-sec { margin-bottom: 22px; background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 14px 16px; }
 .fem-sec .sec-titulo { margin-bottom: 14px; }
-.fem-tabla { margin-bottom: 16px; }
+.fem-body { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; align-items: start; }
 .fem-tabla .rs-dot { margin-right: 7px; }
 .fem-fila { cursor: pointer; }
+.fem-fila:hover td { background: #fdeef4; }
 /* El alto va en el propio <dx-chart>, no solo en el contenedor: DevExtreme no toma el
    alto del padre si el elemento no es block con su propio alto — por eso antes el
    gráfico se renderizaba más alto de lo pensado y se montaba sobre lo que venía
    después (el botón "Ver detalle"). Mismo patrón que .grafico-card dx-chart en
    Ventas Sedes. */
+.fem-chart-card { min-width: 0; }
 .fem-chart-card dx-chart { display: block; width: 100%; height: 260px; }
-.fem-fila:hover td { background: #fdeef4; }
+@media (max-width: 900px) { .fem-body { grid-template-columns: 1fr; } }
 
 .fem-detalle { margin-bottom: 18px; background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 14px 16px; }
 .fem-detalle-tabla td.ta-l { font-weight: 500; }
