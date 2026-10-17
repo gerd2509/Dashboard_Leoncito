@@ -138,9 +138,6 @@ interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, R
 interface DetalleSeguimiento {
   sedeKey: string; sede: string; grupo: string; asesor: string; dni: string;
   fechaUltima: Date; tipoUltima: string; tieneCarta: boolean; fechaCarta: Date | null;
-  // Derivados para el grid (dx-data-grid): texto filtrable/mostrable y 1|0 para sumar
-  // en el resumen por grupo (DevExtreme suma campos numéricos, no booleanos).
-  estadoSeguimiento: string; tieneCartaNum: number; pendienteNum: number;
 }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
@@ -192,38 +189,47 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   detGestionCliente: { dni: string; asesor: string; telefono?: string; registros: RegistroGestionDetalle[] } | null = null;
 
   // Detalle de Seguimiento No Contacto → Carta: 1 fila por cliente cuya ÚLTIMA llamada
-  // fue NO CONTACTO, con si ya tiene carta posterior o sigue pendiente. Se muestra en
-  // un dx-data-grid (agrupado por asesor nativo, con header-filter por columna) en vez
-  // de la tabla a mano que usa Intensidad — a pedido, para poder filtrar por cabecera.
+  // fue NO CONTACTO, con si ya tiene carta posterior o sigue pendiente. Misma tabla a
+  // mano con agrupado por asesor (colapsable) que usa Intensidad — más liviana que el
+  // dx-data-grid (sin virtual scroll, sin demora al bajar).
   detalleSeguimiento: DetalleSeguimiento[] = [];
   detSeguimiento: { sedeKey: string; sede: string; grupo: string | null } | null = null;
   filtroSeguimiento = '';
+  colapsadasSeguimiento = new Set<string>();
   filasSeguimientoActual: DetalleSeguimiento[] = [];
+  gruposSeguimientoActual: { asesor: string; filas: DetalleSeguimiento[]; conCarta: number; pendientes: number; total: number }[] = [];
 
   verDetalleSeguimiento(r: ResumenSede, grupo: string | null): void {
     this.detSeguimiento = { sedeKey: r.sedeKey, sede: r.sede, grupo };
     this.filtroSeguimiento = '';
     this.recalcularSeguimientoActual();
+    this.colapsadasSeguimiento = new Set(this.filasSeguimientoActual.map(f => f.asesor));
   }
   cerrarSeguimiento(): void { this.detSeguimiento = null; }
-  onFiltroSeguimientoChange(): void { this.recalcularSeguimientoActual(); }
-  onCellPreparedSeguimiento(e: any): void {
-    if (e.rowType === 'header') {
-      e.cellElement.style.backgroundColor = '#293964';
-      e.cellElement.style.color = 'white';
-      e.cellElement.style.fontWeight = 'bold';
-    }
+  toggleAsesorSeguimiento(asesor: string): void {
+    this.colapsadasSeguimiento.has(asesor) ? this.colapsadasSeguimiento.delete(asesor) : this.colapsadasSeguimiento.add(asesor);
   }
+  onFiltroSeguimientoChange(): void { this.recalcularSeguimientoActual(); }
+  trackByDniSeguimiento(_i: number, f: DetalleSeguimiento): string { return f.dni; }
 
   /** Recalcula filasSeguimientoActual (sede/grupo/búsqueda) y el agrupado por asesor,
    *  con los pendientes primero (lo que un supervisor necesita resolver hoy). */
   private recalcularSeguimientoActual(): void {
     const d = this.detSeguimiento;
-    if (!d) { this.filasSeguimientoActual = []; return; }
+    if (!d) { this.filasSeguimientoActual = []; this.gruposSeguimientoActual = []; return; }
     let filas = this.detalleSeguimiento.filter(x => x.sedeKey === d.sedeKey && (!d.grupo || x.grupo === d.grupo));
     const q = this.filtroSeguimiento.trim().toLowerCase();
     if (q) filas = filas.filter(f => f.dni.includes(q) || f.asesor.toLowerCase().includes(q));
     this.filasSeguimientoActual = filas;
+
+    const map = new Map<string, DetalleSeguimiento[]>();
+    for (const f of filas) { const arr = map.get(f.asesor) ?? []; arr.push(f); map.set(f.asesor, arr); }
+    this.gruposSeguimientoActual = [...map.entries()]
+      .map(([asesor, fs]) => {
+        const pendientes = fs.filter(f => !f.tieneCarta).length;
+        return { asesor, filas: fs, conCarta: fs.length - pendientes, pendientes, total: fs.length };
+      })
+      .sort((a, b) => b.pendientes - a.pendientes || b.total - a.total);
   }
 
   /** Excel del detalle de Seguimiento que se está viendo (la sede/grupo abiertos). */
@@ -1033,8 +1039,6 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         grupo: this.grupoTipo(c.tipoCliente), asesor: c.asesor, dni: c.dni,
         fechaUltima: seg.fechaUltima, tipoUltima: seg.tipoUltima,
         tieneCarta: seg.tieneCarta, fechaCarta: seg.fechaCarta,
-        estadoSeguimiento: seg.tieneCarta ? 'Con carta' : 'Sin carta',
-        tieneCartaNum: seg.tieneCarta ? 1 : 0, pendienteNum: seg.tieneCarta ? 0 : 1,
       });
     }
     // Pendientes primero (lo accionable hoy); dentro de cada grupo, la gestión más reciente primero.
