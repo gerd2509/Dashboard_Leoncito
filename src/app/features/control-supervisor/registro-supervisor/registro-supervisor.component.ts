@@ -20,7 +20,7 @@ interface GestionRapida {
   estadoAsesor: string;  // estado que registró el asesor (referencia)
   hora: string;          // HH:mm de la gestión
   cliente: string;       // KOMMO: 'NOMBRE CLIENTE' del lead (Realzza: vacío)
-  fuente: 'REALZZA' | 'KOMMO';
+  fuente: 'REALZZA' | 'KOMMO' | 'MARKET PLACE';
   controlada: boolean;   // ya tiene un control del supervisor ese día
 }
 
@@ -71,8 +71,8 @@ export class RegistroSupervisorComponent implements OnInit {
   readonly estadosLead = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE', 'OTRO'];
 
   // Subtipo dentro de la pestaña Market Place.
-  mpSubtipo: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA' = 'MARKET PLACE PLATAFORMA';
-  setMpSubtipo(v: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA'): void {
+  mpSubtipo: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA' | 'MARKET PLACE GESTION' = 'MARKET PLACE PLATAFORMA';
+  setMpSubtipo(v: 'MARKET PLACE PLATAFORMA' | 'KOMMO PLATAFORMA' | 'MARKET PLACE GESTION'): void {
     this.mpSubtipo = v; this.intento = false; this.seleccion = null;
     if (this.usandoRapido) this.cargarListaRapida();
   }
@@ -109,9 +109,12 @@ export class RegistroSupervisorComponent implements OnInit {
   gestionesRapidas: GestionRapida[] = [];
   seleccion: GestionRapida | null = null;
 
-  /** El modo rápido solo aplica a Gestión Realzza y a KOMMO plataforma. */
+  /** El modo rápido aplica a Gestión Realzza, KOMMO Plataforma y Market Place Gestión
+   *  (las 3 parten de una gestión ya registrada por el asesor; Market Place Plataforma
+   *  es manual — revisar publicaciones, no hay "gestión" que seleccionar). */
   get aplicaRapido(): boolean {
-    return this.tipo === 'GESTION' || (this.tipo === 'MARKET_PLACE' && this.mpSubtipo === 'KOMMO PLATAFORMA');
+    return this.tipo === 'GESTION'
+      || (this.tipo === 'MARKET_PLACE' && (this.mpSubtipo === 'KOMMO PLATAFORMA' || this.mpSubtipo === 'MARKET PLACE GESTION'));
   }
   /** ¿Se está mostrando la UI de selección rápida? (modo activo + aplica al tab). */
   get usandoRapido(): boolean { return this.modoRapido && this.aplicaRapido; }
@@ -143,17 +146,20 @@ export class RegistroSupervisorComponent implements OnInit {
   }
 
   cargarListaRapida(): void {
-    const esKommo = this.tipo !== 'GESTION';   // en modo rápido, MARKET_PLACE ⇒ KOMMO plataforma
+    // En modo rápido, MARKET_PLACE (tanto KOMMO Plataforma como Market Place Gestión)
+    // lee de la MISMA hoja KOMMO — la diferencia es solo el filtro de "MARKET PLACE R"
+    // que se aplica después, en normalizarGestion().
+    const esKommoFuente = this.tipo !== 'GESTION';
     const dia = this.gestFecha || new Date();
     const rango = { desde: dia, hasta: dia };
     this.listaCargando = true;
     this.seleccion = null;
     forkJoin({
-      ges: esKommo ? this.sheets.getSheetKOMMORango(rango) : this.sheets.getSheetDataCampoRango(rango),
+      ges: esKommoFuente ? this.sheets.getSheetKOMMORango(rango) : this.sheets.getSheetDataCampoRango(rango),
       ctrl: this.srv.listar(rango),
     }).subscribe({
       next: ({ ges, ctrl }) => {
-        this.tiendas.cargar().then(() => this.armarLista(ges, ctrl, esKommo));
+        this.tiendas.cargar().then(() => this.armarLista(ges, ctrl, esKommoFuente));
       },
       error: () => {
         this.gestionesRapidas = [];
@@ -165,25 +171,30 @@ export class RegistroSupervisorComponent implements OnInit {
     });
   }
 
-  private normalizarGestion(g: any, esKommo: boolean): GestionRapida | null {
+  private normalizarGestion(g: any, esKommoFuente: boolean): GestionRapida | null {
     const asesor = (g['ASESOR REALZZA'] || '').toString().trim();
     if (!asesor) return null;
-    const dni = this.soloDig(esKommo ? g['DNI CLIENTE REALZZA'] : g['DNI CLIENTE']);
+    const dni = this.soloDig(esKommoFuente ? g['DNI CLIENTE REALZZA'] : g['DNI CLIENTE']);
     if (!dni) return null;
-    if (esKommo) {
-      const mp = (g['MARKET PLACE R'] || '').toString().trim().toUpperCase();
-      if (mp === 'SI' || mp === 'SÍ') return null;   // solo KOMMO (Market Place se excluye)
+    let fuente: GestionRapida['fuente'] = 'REALZZA';
+    if (esKommoFuente) {
+      const esMarketPlace = ['SI', 'SÍ'].includes((g['MARKET PLACE R'] || '').toString().trim().toUpperCase());
+      // Mismo origen (hoja KOMMO), dos listas que se reparten los leads SIN solaparse:
+      // KOMMO Plataforma = los que NO son Market Place · Market Place Gestión = los que SÍ lo son.
+      if (this.mpSubtipo === 'KOMMO PLATAFORMA' && esMarketPlace) return null;
+      if (this.mpSubtipo === 'MARKET PLACE GESTION' && !esMarketPlace) return null;
+      fuente = this.mpSubtipo === 'MARKET PLACE GESTION' ? 'MARKET PLACE' : 'KOMMO';
     }
     return {
       key: `${dni}|${this.norm(asesor)}`,
       asesor,
       dni,
-      celular: this.soloDig(esKommo ? g['CELULAR GESTIONADO REALZZA'] : g['CELULAR GESTIONADO']),
-      tipoBase: esKommo ? 'KOMMO' : ((g['TIPO DE BASE'] || '').toString().trim()),
-      estadoAsesor: ((esKommo ? g['ESTADO DE GESTIÓN REALZZA'] : g['ESTADO DE GESTIÓN']) || '').toString().trim(),
+      celular: this.soloDig(esKommoFuente ? g['CELULAR GESTIONADO REALZZA'] : g['CELULAR GESTIONADO']),
+      tipoBase: esKommoFuente ? fuente : ((g['TIPO DE BASE'] || '').toString().trim()),
+      estadoAsesor: ((esKommoFuente ? g['ESTADO DE GESTIÓN REALZZA'] : g['ESTADO DE GESTIÓN']) || '').toString().trim(),
       hora: this.horaDe(g['Marca temporal']),
-      cliente: esKommo ? (g['NOMBRE CLIENTE'] || '').toString().trim() : '',
-      fuente: esKommo ? 'KOMMO' : 'REALZZA',
+      cliente: esKommoFuente ? (g['NOMBRE CLIENTE'] || '').toString().trim() : '',
+      fuente,
       controlada: false,
     };
   }
@@ -364,7 +375,7 @@ export class RegistroSupervisorComponent implements OnInit {
       if (!/^\d{8}$/.test(this.g.dni_cliente || '')) e.push('El DNI debe tener 8 dígitos.');
       if (this.g.celular && !/^\d{9}$/.test(this.g.celular)) e.push('El celular debe tener 9 dígitos.');
       if (!this.g.estado_gestion) e.push('Selecciona el estado de gestión.');
-    } else if (this.mpSubtipo === 'KOMMO PLATAFORMA') {
+    } else if (this.mpSubtipo === 'KOMMO PLATAFORMA' || this.mpSubtipo === 'MARKET PLACE GESTION') {
       if (!this.mp.asesor) e.push('Selecciona el asesor.');
       if (!this.mp.estadoLead) e.push('Selecciona el estado del lead.');
     } else {
@@ -401,11 +412,12 @@ export class RegistroSupervisorComponent implements OnInit {
       // Selección rápida (Gestión Realzza) ⇒ control de GESTIÓN con los datos de la fila elegida.
       payload = { tipo_control: 'GESTION', registrado_por: this.supervisor, ...this.g };
     } else if (this.usandoRapido) {
-      // Selección rápida (KOMMO Plataforma) ⇒ mismo control que el manual, pero
-      // guardando también dni_cliente/celular de la fila para el cruce de "ya controlada".
+      // Selección rápida (KOMMO Plataforma / Market Place Gestión) ⇒ mismo control que
+      // el manual, pero guardando también dni_cliente/celular de la fila para el cruce
+      // de "ya controlada".
       payload = {
         tipo_control: 'MARKET_PLACE',
-        mp_subtipo: 'KOMMO PLATAFORMA',
+        mp_subtipo: this.mpSubtipo,
         registrado_por: this.supervisor,
         asesor: this.mp.asesor,
         dni_cliente: this.seleccion?.dni || '',
@@ -417,10 +429,10 @@ export class RegistroSupervisorComponent implements OnInit {
       };
     } else if (this.tipo === 'GESTION') {
       payload = { tipo_control: 'GESTION', registrado_por: this.supervisor, ...this.g };
-    } else if (this.mpSubtipo === 'KOMMO PLATAFORMA') {
+    } else if (this.mpSubtipo === 'KOMMO PLATAFORMA' || this.mpSubtipo === 'MARKET PLACE GESTION') {
       payload = {
         tipo_control: 'MARKET_PLACE',
-        mp_subtipo: 'KOMMO PLATAFORMA',
+        mp_subtipo: this.mpSubtipo,
         registrado_por: this.supervisor,
         asesor: this.mp.asesor,
         cliente: this.mp.cliente,

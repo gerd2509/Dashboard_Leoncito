@@ -29,6 +29,7 @@
     <div class="rs-subtabs rs-subtabs-top" *ngIf="tipo === 'MARKET_PLACE'">
       <button [class.active]="mpSubtipo === 'MARKET PLACE PLATAFORMA'" (click)="setMpSubtipo('MARKET PLACE PLATAFORMA')">Market Place Plataforma</button>
       <button [class.active]="mpSubtipo === 'KOMMO PLATAFORMA'" (click)="setMpSubtipo('KOMMO PLATAFORMA')">Kommo Plataforma</button>
+      <button [class.active]="mpSubtipo === 'MARKET PLACE GESTION'" (click)="setMpSubtipo('MARKET PLACE GESTION')">Market Place Gestión</button>
     </div>
 
     <!-- Toggle de modo: seleccionar gestión (rápido) vs manual -->
@@ -110,7 +111,7 @@
         <!-- KOMMO Plataforma: estado del lead + comentario + fotos (igual que el manual) -->
         <ng-container *ngIf="tipo === 'MARKET_PLACE'">
           <div class="rs-field">
-            <label>Nombre del cliente (Kommo Plataforma)</label>
+            <label>Nombre del cliente ({{ mpSubtipo === 'MARKET PLACE GESTION' ? 'Market Place' : 'Kommo Plataforma' }})</label>
             <dx-text-box [(value)]="mp.cliente" placeholder="Nombre del cliente/lead" stylingMode="outlined"></dx-text-box>
           </div>
           <div class="rs-field rs-full">
@@ -235,12 +236,15 @@
         </div>
       </ng-container>
 
-      <!-- ── KOMMO PLATAFORMA ── -->
-      <ng-container *ngIf="mpSubtipo === 'KOMMO PLATAFORMA'">
+      <!-- ── KOMMO PLATAFORMA / MARKET PLACE GESTIÓN (mismos campos; cambia el origen del lead) ── -->
+      <ng-container *ngIf="mpSubtipo === 'KOMMO PLATAFORMA' || mpSubtipo === 'MARKET PLACE GESTION'">
         <div class="rs-field rs-full">
           <div class="rs-hint">
             <mat-icon>info</mat-icon>
-            Revisa el lead del vendedor en Kommo Plataforma y registra su estado.
+            <ng-container *ngIf="mpSubtipo === 'KOMMO PLATAFORMA'; else hintMpGestion">
+              Revisa el lead del vendedor en Kommo Plataforma y registra su estado.
+            </ng-container>
+            <ng-template #hintMpGestion>Revisa el lead del vendedor gestionado por Market Place y registra su estado.</ng-template>
           </div>
         </div>
 
@@ -251,7 +255,7 @@
         </div>
 
         <div class="rs-field">
-          <label>Nombre del cliente (Kommo Plataforma)</label>
+          <label>Nombre del cliente ({{ mpSubtipo === 'MARKET PLACE GESTION' ? 'Market Place' : 'Kommo Plataforma' }})</label>
           <dx-text-box [(value)]="mp.cliente" placeholder="Nombre del cliente/lead" stylingMode="outlined"></dx-text-box>
         </div>
 

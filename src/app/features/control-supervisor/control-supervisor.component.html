@@ -97,8 +97,8 @@
     <div *dxTemplate="let model of 'appt'">
       <div class="cs-appt">
         <ng-container *ngIf="model.appointmentData.tipo === 'MARKET_PLACE'; else gest">
-          <span class="cs-appt-dni">{{ esKommoPlataforma(model.appointmentData) ? '🌐' : '🛒' }} {{ model.appointmentData.asesor }}</span>
-          <span class="cs-appt-est">{{ esKommoPlataforma(model.appointmentData) ? 'KP' : mpCorto(model.appointmentData.estadoMp) }}</span>
+          <span class="cs-appt-dni">{{ esFormatoLead(model.appointmentData) ? (esMarketPlaceGestion(model.appointmentData) ? '🛍️' : '🌐') : '🛒' }} {{ model.appointmentData.asesor }}</span>
+          <span class="cs-appt-est">{{ esKommoPlataforma(model.appointmentData) ? 'KP' : esMarketPlaceGestion(model.appointmentData) ? 'MG' : mpCorto(model.appointmentData.estadoMp) }}</span>
         </ng-container>
         <ng-template #gest>
           <span class="cs-appt-dni">{{ model.appointmentData.dni }}</span>
@@ -153,17 +153,17 @@
       <div class="cs-det-body" *ngIf="detalle.tipo === 'MARKET_PLACE'">
         <div class="cs-det-asesor"><mat-icon>storefront</mat-icon>{{ detalle.asesor || '—' }}</div>
 
-        <!-- Market Place -->
-        <div class="cs-det-grid" *ngIf="detalle.mpSubtipo !== 'KOMMO PLATAFORMA'">
+        <!-- Market Place Plataforma -->
+        <div class="cs-det-grid" *ngIf="!esFormatoLead(detalle)">
           <div><small>Revisado el</small><b>{{ detalle.startDate | date:'dd/MM/yyyy HH:mm' }}</b></div>
           <div><small>Última publicación</small><b>{{ detalle.fechaPublicacion || 'sin publicaciones' }}</b></div>
           <div><small>Días sin publicar</small><b>{{ detalle.diasSinPublicar === null ? '—' : detalle.diasSinPublicar }}</b></div>
           <div><small>Estado</small><b>{{ detalle.estadoMp }}</b></div>
         </div>
 
-        <!-- Kommo Plataforma -->
-        <div class="cs-det-grid" *ngIf="detalle.mpSubtipo === 'KOMMO PLATAFORMA'">
-          <div><small>Tipo</small><b>Kommo Plataforma</b></div>
+        <!-- Kommo Plataforma / Market Place Gestión -->
+        <div class="cs-det-grid" *ngIf="esFormatoLead(detalle)">
+          <div><small>Tipo</small><b>{{ esKommoPlataforma(detalle) ? 'Kommo Plataforma' : 'Market Place Gestión' }}</b></div>
           <div><small>Revisado el</small><b>{{ detalle.startDate | date:'dd/MM/yyyy HH:mm' }}</b></div>
           <div><small>Cliente</small><b>{{ detalle.cliente || '—' }}</b></div>
           <div><small>Estado del lead</small><b>{{ detalle.estadoLead }}</b></div>
@@ -258,17 +258,18 @@
                 <div class="cs-dia-info">
                   <div class="cs-dia-top">
                     <b *ngIf="c.tipo === 'GESTION'">DNI {{ c.dni }}</b>
-                    <b *ngIf="c.tipo === 'MARKET_PLACE' && !esKommoPlataforma(c)"><mat-icon class="inl">storefront</mat-icon> Market Place Plataforma</b>
+                    <b *ngIf="c.tipo === 'MARKET_PLACE' && !esFormatoLead(c)"><mat-icon class="inl">storefront</mat-icon> Market Place Plataforma</b>
                     <b *ngIf="esKommoPlataforma(c)"><mat-icon class="inl">public</mat-icon> {{ c.cliente || 'Kommo Plataforma' }}</b>
+                    <b *ngIf="esMarketPlaceGestion(c)"><mat-icon class="inl">storefront</mat-icon> {{ c.cliente || 'Market Place Gestión' }}</b>
                     <span class="cs-dia-hora">{{ horaDe(c.startDate) }}</span>
                   </div>
                   <div class="cs-dia-sub" *ngIf="c.tipo === 'GESTION'">{{ c.estadoSup }}</div>
-                  <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE' && !esKommoPlataforma(c)">
+                  <div class="cs-dia-sub" *ngIf="c.tipo === 'MARKET_PLACE' && !esFormatoLead(c)">
                     última pub. {{ c.fechaPublicacion || '—' }}
                     <span class="cs-dia-foto-tag" *ngIf="tieneFotos(c)"><mat-icon>photo_camera</mat-icon>{{ c.fotos!.length }}</span>
                   </div>
-                  <div class="cs-dia-sub" *ngIf="esKommoPlataforma(c)">
-                    Kommo Plataforma
+                  <div class="cs-dia-sub" *ngIf="esFormatoLead(c)">
+                    {{ esKommoPlataforma(c) ? 'Kommo Plataforma' : 'Market Place Gestión' }}
                     <span class="cs-dia-foto-tag" *ngIf="tieneFotos(c)"><mat-icon>photo_camera</mat-icon>{{ c.fotos!.length }}</span>
                   </div>
                   <div class="cs-dia-obs" *ngIf="tieneAviso(c)">
@@ -328,8 +329,8 @@
           </div>
         </ng-container>
 
-        <!-- Market Place -->
-        <ng-container *ngIf="editando.tipo === 'MARKET_PLACE' && editando.mpSubtipo !== 'KOMMO PLATAFORMA'">
+        <!-- Market Place Plataforma -->
+        <ng-container *ngIf="editando.tipo === 'MARKET_PLACE' && editando.mpSubtipo !== 'KOMMO PLATAFORMA' && editando.mpSubtipo !== 'MARKET PLACE GESTION'">
           <div class="cs-ed-row">
             <div class="cs-ed-field">
               <label>Última publicación (d/m/aaaa)</label>
@@ -342,8 +343,8 @@
           </div>
         </ng-container>
 
-        <!-- Kommo Plataforma -->
-        <ng-container *ngIf="editando.mpSubtipo === 'KOMMO PLATAFORMA'">
+        <!-- Kommo Plataforma / Market Place Gestión -->
+        <ng-container *ngIf="editando.mpSubtipo === 'KOMMO PLATAFORMA' || editando.mpSubtipo === 'MARKET PLACE GESTION'">
           <div class="cs-ed-field">
             <label>Cliente</label>
             <dx-text-box [(value)]="editando.cliente" stylingMode="outlined"></dx-text-box>
@@ -461,7 +462,7 @@
 
         <!-- Kommo Plataforma por asesor -->
         <ng-container *ngIf="r.porAsesorKp.length">
-          <h3 class="cs-rep-h"><mat-icon>public</mat-icon> Kommo Plataforma por asesor
+          <h3 class="cs-rep-h"><mat-icon>public</mat-icon> Leads (Kommo + Market Place) por asesor
             <span class="cs-rep-sub">respuesta a leads</span></h3>
           <div class="cs-rep-tabla-wrap">
             <table class="cs-rep-tabla kp">

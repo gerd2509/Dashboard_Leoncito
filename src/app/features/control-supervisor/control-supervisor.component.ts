@@ -355,15 +355,16 @@ export class ControlSupervisorComponent implements OnInit {
     const sub = (c.mp_subtipo || 'MARKET PLACE').toString().trim().toUpperCase();
     const fotos = Array.isArray(c.fotos) ? c.fotos : [];
 
-    if (sub === 'KOMMO PLATAFORMA') {
+    if (sub === 'KOMMO PLATAFORMA' || sub === 'MARKET PLACE GESTION') {
+      const esMpGestion = sub === 'MARKET PLACE GESTION';
       const estadoLead = (c.estado_lead || '').toString().trim().toUpperCase();
       return {
-        id: c.id, tipo: 'MARKET_PLACE', mpSubtipo: 'KOMMO PLATAFORMA',
+        id: c.id, tipo: 'MARKET_PLACE', mpSubtipo: sub,
         color: estadoLead || 'OTRO',
-        text: `KP · ${estadoLead}`,
+        text: `${esMpGestion ? 'MG' : 'KP'} · ${estadoLead}`,
         startDate: start, endDate: end,
         asesor: (c.asesor || '').toString().trim(),
-        tipoBase: 'KOMMO PLATAFORMA',
+        tipoBase: sub,
         comentario: c.comentario || '',
         cliente: c.cliente || '',
         estadoLead,
@@ -544,7 +545,7 @@ export class ControlSupervisorComponent implements OnInit {
     if (e.tipo === 'GESTION') {
       body.tipo_base = e.tipo_base; body.dni_cliente = e.dni_cliente;
       body.celular = e.celular; body.estado_gestion = e.estado_gestion;
-    } else if (e.mpSubtipo === 'KOMMO PLATAFORMA') {
+    } else if (e.mpSubtipo === 'KOMMO PLATAFORMA' || e.mpSubtipo === 'MARKET PLACE GESTION') {
       body.cliente = e.cliente; body.estado_lead = e.estado_lead;
     } else {
       body.fecha_publicacion = e.fecha_publicacion; body.estado_mp = e.estado_mp;
@@ -679,9 +680,14 @@ export class ControlSupervisorComponent implements OnInit {
   // Texto del badge de resultado/estado según el tipo de cita.
   badgeDe(c: CitaControl): string {
     if (c.tipo !== 'MARKET_PLACE') return c.resultado || '';
-    return c.mpSubtipo === 'KOMMO PLATAFORMA' ? (c.estadoLead || '') : (c.estadoMp || '');
+    return this.esFormatoLead(c) ? (c.estadoLead || '') : (c.estadoMp || '');
   }
   esKommoPlataforma(c: CitaControl): boolean { return c.mpSubtipo === 'KOMMO PLATAFORMA'; }
+  esMarketPlaceGestion(c: CitaControl): boolean { return c.mpSubtipo === 'MARKET PLACE GESTION'; }
+  /** ¿Esta cita usa el formato "lead" (estadoLead/cliente) en vez del de "publicación"
+   *  (estadoMp/fechaPublicacion)? Cubre Kommo Plataforma y Market Place Gestión —
+   *  mismo origen (hoja KOMMO), mismos campos, solo cambia el filtro MARKET PLACE R. */
+  esFormatoLead(c: CitaControl): boolean { return this.esKommoPlataforma(c) || this.esMarketPlaceGestion(c); }
 
   // ══════════════════════════════════════════════════════════════════════════
   //  REPORTE DEL SUPERVISOR
@@ -784,7 +790,7 @@ export class ControlSupervisorComponent implements OnInit {
       }));
 
     // Market Place Plataforma por asesor: cada cuánto actualiza sus publicaciones.
-    const mpPlat = mp.filter(c => c.mpSubtipo !== 'KOMMO PLATAFORMA');
+    const mpPlat = mp.filter(c => !this.esFormatoLead(c));
     const mpMap = new Map<string, CitaControl[]>();
     for (const c of mpPlat) { const a = c.asesor || '—'; if (!mpMap.has(a)) mpMap.set(a, []); mpMap.get(a)!.push(c); }
     const porAsesorMp: FilaMpRep[] = Array.from(mpMap.entries()).map(([asesor, cs]) => {
@@ -799,8 +805,9 @@ export class ControlSupervisorComponent implements OnInit {
       };
     }).sort((a, b) => b.desactualizado - a.desactualizado || (b.promDias ?? -1) - (a.promDias ?? -1) || b.total - a.total);
 
-    // Kommo Plataforma por asesor: si están respondiendo o no los leads.
-    const kpPlat = mp.filter(c => c.mpSubtipo === 'KOMMO PLATAFORMA');
+    // Leads (Kommo Plataforma + Market Place Gestión, mismo formato) por asesor: si
+    // están respondiendo o no.
+    const kpPlat = mp.filter(c => this.esFormatoLead(c));
     const kpMap = new Map<string, CitaControl[]>();
     for (const c of kpPlat) { const a = c.asesor || '—'; if (!kpMap.has(a)) kpMap.set(a, []); kpMap.get(a)!.push(c); }
     const conocidosKp = ['LEAD RESPONDIDO', 'CLIENTE SOLO DIO DNI', 'CLIENTE AÚN NO RESPONDE'];
@@ -824,15 +831,17 @@ export class ControlSupervisorComponent implements OnInit {
             resultado: c.resultado || '', obs: this.avisoTexto(c), comentario: c.comentario || '',
           };
         }
-        const esKp = c.mpSubtipo === 'KOMMO PLATAFORMA';
+        const esLead = this.esFormatoLead(c);
+        const tipoTexto = this.esKommoPlataforma(c) ? 'Kommo Plataforma'
+          : this.esMarketPlaceGestion(c) ? 'Market Place Gestión' : 'Market Place';
         return {
           fecha: this.fmtFechaHora(c.startDate), asesor: c.asesor || '—',
-          tipo: esKp ? 'Kommo Plataforma' : 'Market Place',
+          tipo: tipoTexto,
           tipoBase: c.tipoBase || '—',
-          ref: esKp ? (c.cliente || '—') : `últ. pub. ${c.fechaPublicacion || '—'}`,
+          ref: esLead ? (c.cliente || '—') : `últ. pub. ${c.fechaPublicacion || '—'}`,
           estadoSup: '—',
-          estadoAsesor: esKp ? (c.estadoLead || '—') : (c.estadoMp || '—'),
-          resultado: esKp ? (c.estadoLead || '') : (c.estadoMp || ''),
+          estadoAsesor: esLead ? (c.estadoLead || '—') : (c.estadoMp || '—'),
+          resultado: esLead ? (c.estadoLead || '') : (c.estadoMp || ''),
           obs: '', comentario: c.comentario || '',
         };
       });
@@ -936,9 +945,9 @@ export class ControlSupervisorComponent implements OnInit {
       autoAncho(wsMp);
     }
 
-    // 2c) Kommo Plataforma por asesor
+    // 2c) Leads (Kommo Plataforma + Market Place Gestión) por asesor
     if (r.porAsesorKp.length) {
-      const wsKp = wb.addWorksheet('Kommo Plataforma');
+      const wsKp = wb.addWorksheet('Leads Kommo-MP');
       encabezar(wsKp, ['Asesor', 'Leads revisados', 'Respondidos', 'Solo dio DNI', 'Aún no responde', 'Otro'], 'FF00695C');
       r.porAsesorKp.forEach(k => {
         wsKp.addRow([k.asesor, k.total, k.respondido, k.soloDni, k.noResponde, k.otro]);
@@ -1000,7 +1009,7 @@ export class ControlSupervisorComponent implements OnInit {
   <tbody>${filasMp}</tbody></table>` : '';
 
     const secKp = r.porAsesorKp.length ? `
-  <h2>Kommo Plataforma por asesor — respuesta a leads</h2>
+  <h2>Leads (Kommo Plataforma + Market Place Gestión) por asesor — respuesta a leads</h2>
   <table><thead><tr><th>Asesor</th><th>Leads</th><th>Respondidos</th><th>Solo dio DNI</th><th>Aún no responde</th><th>Otro</th></tr></thead>
   <tbody>${filasKp}</tbody></table>` : '';
 
