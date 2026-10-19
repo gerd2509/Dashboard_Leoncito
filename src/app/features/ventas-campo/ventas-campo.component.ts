@@ -444,15 +444,12 @@ export class VentasCampoComponent implements OnInit {
       const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
       const vendedorNombre = (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
       const etiquetaTienda = tiendaDeSedeRealzza(sede);
-      // Una venta atribuida a CALL (tipo_base='CALL': el vendedor es un asesor de Call,
-      // no un vendedor de piso de NINGUNA tienda Realzza) no tiene "tienda dueña" por
-      // CAP — tiendaDeVendedor() caía al default 'REALZZA' (Chiclayo) para cualquier
-      // nombre que no esté en el CAP de Piura/Lima, así que una venta de Call hecha en
-      // Piura terminaba sumando en Chiclayo. Para CALL, la tienda dueña es la física
-      // (donde se vendió), no un default — así solo suma ahí, como CALL, y no se
-      // duplica ni se cuenta en la tienda equivocada.
-      const esTipoBaseCall = (r.tipo_base || '').toString().trim().toUpperCase() === 'CALL';
-      const tiendaReal = esTipoBaseCall ? etiquetaTienda : this.tiendas.tiendaDeVendedor(vendedorNombre);
+      // Si el vendedor no está en el CAP de Piura ni de Lima (un asesor de Call sin
+      // tienda propia, O un vendedor real que el CAP aún no tiene cargado), se usa la
+      // tienda FÍSICA de la venta como "tienda dueña" en vez de asumir Chiclayo a
+      // ciegas — eso atribuía mal tanto ventas de Call hechas en Piura/Lima como
+      // ventas reales de vendedores nuevos aún no sincronizados.
+      const tiendaReal = this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
       const vistaTodas = this.tiendaVentas === 'TODAS';
 
       if (!vistaTodas && tiendaReal !== this.tiendaVentas) {
@@ -606,11 +603,10 @@ export class VentasCampoComponent implements OnInit {
         const idventa = (row['IDVENTA'] || '').toString().trim();
         const vendedorNombre = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
         const etiquetaTienda = tiendaDeSedeRealzza(sede);
-        // Mismo criterio que procesarBD(): una venta de CALL no tiene tienda dueña por
-        // CAP, así que se le asigna la tienda FÍSICA (donde se vendió) en vez del
+        // Mismo criterio que procesarBD(): si el vendedor no está en el CAP de Piura ni
+        // de Lima, se usa la tienda FÍSICA de la venta como tienda dueña en vez del
         // default 'REALZZA' (Chiclayo) de tiendaDeVendedor().
-        const esTipoBaseCall = (row['TipoBase'] || '').toString().trim().toUpperCase() === 'CALL';
-        const tiendaReal = esTipoBaseCall ? etiquetaTienda : this.tiendas.tiendaDeVendedor(vendedorNombre);
+        const tiendaReal = this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
         const vistaTodas = this.tiendaVentas === 'TODAS';
 
         if (!vistaTodas && tiendaReal !== this.tiendaVentas) {

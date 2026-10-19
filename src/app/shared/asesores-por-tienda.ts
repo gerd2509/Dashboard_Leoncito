@@ -40,11 +40,15 @@ export class AsesoresPorTienda {
   }
 
   /** Tienda "dueña" del asesor según el CAP (quién es, no dónde se etiquetó la venta).
-   *  Chiclayo es el valor por defecto: cualquier nombre que no esté en el CAP de Piura
-   *  ni de Lima (incluye vendedores aún no migrados o nombres no encontrados). */
-  tiendaDeVendedor(asesor: string): string {
+   *  Si el vendedor no está en el CAP de Piura ni de Lima — un asesor de Call (sin
+   *  tienda propia) o un vendedor real aún no sincronizado al CAP — NO hay forma
+   *  confiable de saber su tienda "dueña"; se usa `fallback` (la tienda FÍSICA donde
+   *  se etiquetó la venta) en vez de asumir Chiclayo a ciegas, que atribuía mal tanto
+   *  ventas de Call hechas en Piura/Lima como ventas reales de vendedores nuevos que
+   *  el CAP todavía no tiene cargados. */
+  tiendaDeVendedor(asesor: string, fallback: string = 'REALZZA'): string {
     const a = (asesor || '').toString().toUpperCase().trim();
     for (const t of TIENDAS_NUEVAS_REALZZA) if (this.mapa[t]?.includes(a)) return t;
-    return 'REALZZA';
+    return fallback;
   }
 }
