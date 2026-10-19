@@ -858,7 +858,7 @@
 <div class="evolutivo-card" *ngIf="dataEvolutivo.length > 0">
     <div class="evolutivo-header">
         <mat-icon>trending_up</mat-icon>
-        <span>Evolutivo de Ventas Realzza &mdash; Crecimiento Mes a Mes</span>
+        <span>{{ tituloEvolutivo }}</span>
         <button mat-icon-button (click)="popupVisibleEvolutivo = true" title="Ampliar"
             style="margin-left:auto; color:#fff;">
             <mat-icon>open_in_full</mat-icon>
@@ -899,7 +899,7 @@
 
 <!-- POPUP: EVOLUTIVO -->
 <dx-popup [(visible)]="popupVisibleEvolutivo" [showTitle]="true"
-    title="Evolutivo de Ventas Realzza — Crecimiento Mes a Mes"
+    [title]="tituloEvolutivo"
     [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
     <dx-chart [dataSource]="dataEvolutivo" palette="Office" style="height:calc(90vh - 130px);" [margin]="{ left: 20, top: 18 }">
         <dxi-series *ngFor="let s of seriesEvolutivoMain"

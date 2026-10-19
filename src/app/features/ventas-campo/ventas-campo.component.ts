@@ -243,6 +243,14 @@ export class VentasCampoComponent implements OnInit {
   asesores: { value: string; viewValue: string }[] = this.asesoresChiclayo;
 
   private get esTiendaNueva(): boolean { return this.tiendaVentas === 'REALZZA PIURA' || this.tiendaVentas === 'REALZZA LIMA'; }
+
+  /** Título del gráfico evolutivo: nombra la tienda cuando se ve una puntual (Piura/Lima/
+   *  Chiclayo), genérico en "Todas las tiendas" (mezcla a todas, nombrarla una sería engañoso). */
+  get tituloEvolutivo(): string {
+    const t = this.tiendasOpciones.find(o => o.value === this.tiendaVentas);
+    const nombre = (t && this.tiendaVentas !== 'TODAS') ? t.viewValue : 'Realzza';
+    return `Evolutivo de Ventas ${nombre} — Crecimiento Mes a Mes`;
+  }
   private refrescarAsesores(): void {
     const deTienda = (t: string) => (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
     if (this.esTiendaNueva) {
