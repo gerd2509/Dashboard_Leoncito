@@ -45,6 +45,10 @@
 .vtp-grp-marca .vtp-grp-ico { color: #5a7ba3; font-size: 16px; width: 16px; height: 16px; line-height: 16px; }
 .vtp-grp-marca .vtp-grp-label { color: #33455e; font-size: 12.5px; }
 
+/* Vendedor usa cellTemplate (para evitar el bug de la celda vacía), así que DevExtreme
+   no puede auto-medir su contenido: se fija un ancho razonable + ellipsis con tooltip. */
+.vtp-vendedor-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Filas de grupo nativas de DevExtreme: look más limpio para el despliegue Sede → Marca. */
 ::ng-deep .vtp-grid-container .dx-datagrid-group-opened,
 ::ng-deep .vtp-grid-container .dx-datagrid-group-closed {

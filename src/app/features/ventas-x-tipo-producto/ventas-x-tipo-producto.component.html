@@ -66,11 +66,11 @@
       <dxi-column dataField="tipoProducto" caption="Tipo de Producto" alignment="left" [visible]="!tipoProductoSel"></dxi-column>
       <dxi-column dataField="sede" caption="Sede" alignment="left" [groupIndex]="0" [allowGrouping]="false" groupCellTemplate="sedeGroupTpl"></dxi-column>
       <dxi-column dataField="marca" caption="Marca" [visible]="!marcaSel" [groupIndex]="marcaSel ? null : 1" [allowGrouping]="false" groupCellTemplate="marcaGroupTpl"></dxi-column>
-      <dxi-column dataField="vendedor" caption="Vendedor" alignment="left" cellTemplate="vendedorCellTpl"></dxi-column>
+      <dxi-column dataField="vendedor" caption="Vendedor" alignment="left" [width]="230" cellTemplate="vendedorCellTpl"></dxi-column>
       <dxi-column dataField="cantidad" caption="Cantidad" dataType="number" alignment="center"></dxi-column>
       <dxi-column dataField="monto" caption="Monto" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
       <dxi-column dataField="margenTotal" caption="Margen" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
-      <dxi-column dataField="ops" caption="N° Ops" dataType="number" alignment="center" [width]="90"></dxi-column>
+      <dxi-column dataField="ops" caption="N° Ops" dataType="number" alignment="center"></dxi-column>
 
       <dxo-summary>
         <dxi-group-item column="cantidad" summaryType="sum" displayFormat="{0}" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
@@ -91,7 +91,7 @@
         <mat-icon class="vtp-grp-ico">sell</mat-icon>
         <span class="vtp-grp-label">{{ g.value }}</span>
       </div>
-      <div *dxTemplate="let c of 'vendedorCellTpl'">{{ c.value || '—' }}</div>
+      <div *dxTemplate="let c of 'vendedorCellTpl'" class="vtp-vendedor-cell" [title]="c.value">{{ c.value || '—' }}</div>
     </dx-data-grid>
   </div>
 </div>
