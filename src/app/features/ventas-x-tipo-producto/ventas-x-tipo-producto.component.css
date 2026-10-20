@@ -32,3 +32,31 @@
   position: absolute; inset: 0; background: rgba(238,242,248,0.88);
   display: flex; justify-content: center; align-items: center; z-index: 10; border-radius: 10px;
 }
+
+/* Contenido de las filas de grupo (despliegue por Sede → Marca). */
+.vtp-grp { display: flex; align-items: center; gap: 8px; }
+.vtp-grp-ico { font-size: 18px; width: 18px; height: 18px; line-height: 18px; }
+.vtp-grp-label { font-weight: 700; letter-spacing: .2px; }
+
+.vtp-grp-sede .vtp-grp-ico { color: #1A5FAD; }
+.vtp-grp-sede .vtp-grp-label { color: #1E3A5F; font-size: 13.5px; text-transform: uppercase; }
+
+.vtp-grp-marca .vtp-grp-ico { color: #5a7ba3; font-size: 16px; width: 16px; height: 16px; line-height: 16px; }
+.vtp-grp-marca .vtp-grp-label { color: #33455e; font-size: 12.5px; }
+
+/* Filas de grupo nativas de DevExtreme: look más limpio para el despliegue Sede → Marca. */
+::ng-deep .vtp-grid-container .dx-datagrid-group-opened,
+::ng-deep .vtp-grid-container .dx-datagrid-group-closed {
+  color: #1A5FAD;
+}
+::ng-deep .vtp-grid-container tr.dx-group-row {
+  background: #EDF3FB !important;
+}
+::ng-deep .vtp-grid-container tr.dx-group-row td {
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
+  border-bottom: 1px solid #d7e4f3 !important;
+}
+::ng-deep .vtp-grid-container tr.dx-group-row:hover td {
+  background: #E1EBF8 !important;
+}

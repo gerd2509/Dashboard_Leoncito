@@ -15,11 +15,14 @@
         labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()"></dx-select-box>
       <dx-select-box width="220" [dataSource]="tiposProductoDisponibles" [(value)]="tipoProductoSel"
         label="Tipo de Producto" labelMode="floating" stylingMode="outlined" placeholder="Todos"
+        [searchEnabled]="true" [showClearButton]="true" (onValueChanged)="onTipoProductoChanged()"></dx-select-box>
+      <dx-select-box width="200" [dataSource]="marcasDisponibles" [(value)]="marcaSel"
+        label="Marca" labelMode="floating" stylingMode="outlined" placeholder="Todas"
         [searchEnabled]="true" [showClearButton]="true" (onValueChanged)="aplicarFiltros()"></dx-select-box>
       <dx-select-box width="200" [dataSource]="sedesDisponibles" [(value)]="sedeSel"
         label="Sede" labelMode="floating" stylingMode="outlined" placeholder="Todas"
         [searchEnabled]="true" [showClearButton]="true" (onValueChanged)="aplicarFiltros()"></dx-select-box>
-      <button mat-stroked-button type="button" (click)="limpiarFiltros()" *ngIf="tipoProductoSel || sedeSel">
+      <button mat-stroked-button type="button" (click)="limpiarFiltros()" *ngIf="tipoProductoSel || marcaSel || sedeSel">
         <mat-icon>filter_alt_off</mat-icon> Quitar filtros
       </button>
     </form>
@@ -37,7 +40,7 @@
   </div>
   <div *ngIf="!isLoading && !error && filas.length && !filasFiltradas.length" class="vtp-vacio">
     <mat-icon>filter_alt_off</mat-icon>
-    <p>Sin resultados para ese Tipo de Producto / Sede.</p>
+    <p>Sin resultados para ese Tipo de Producto / Marca / Sede.</p>
   </div>
 
   <div class="vtp-grid-container">
@@ -57,8 +60,8 @@
       <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar tipo, marca o sede…"></dxo-search-panel>
 
       <dxi-column dataField="tipoProducto" caption="Tipo de Producto" alignment="left" [visible]="!tipoProductoSel"></dxi-column>
-      <dxi-column dataField="marca" caption="Marca" [groupIndex]="0"></dxi-column>
-      <dxi-column dataField="sede" caption="Sede" alignment="left" [visible]="!sedeSel"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" alignment="left" [groupIndex]="0" groupCellTemplate="sedeGroupTpl"></dxi-column>
+      <dxi-column dataField="marca" caption="Marca" [groupIndex]="1" groupCellTemplate="marcaGroupTpl"></dxi-column>
       <dxi-column dataField="cantidad" caption="Cantidad" dataType="number" alignment="center"></dxi-column>
       <dxi-column dataField="monto" caption="Monto" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
       <dxi-column dataField="margenTotal" caption="Margen" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
@@ -72,6 +75,15 @@
         <dxi-total-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
         <dxi-total-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
       </dxo-summary>
+
+      <div *dxTemplate="let g of 'sedeGroupTpl'" class="vtp-grp vtp-grp-sede">
+        <mat-icon class="vtp-grp-ico">storefront</mat-icon>
+        <span class="vtp-grp-label">{{ g.value }}</span>
+      </div>
+      <div *dxTemplate="let g of 'marcaGroupTpl'" class="vtp-grp vtp-grp-marca">
+        <mat-icon class="vtp-grp-ico">sell</mat-icon>
+        <span class="vtp-grp-label">{{ g.value }}</span>
+      </div>
     </dx-data-grid>
   </div>
 </div>

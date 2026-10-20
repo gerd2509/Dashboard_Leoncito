@@ -45,10 +45,13 @@ export class VentasXTipoProductoComponent implements OnInit {
   filas: FilaProducto[] = [];
   tiposProductoDisponibles: string[] = [];
   sedesDisponibles: string[] = [];
+  // Opciones de Marca: dependen del Tipo de Producto elegido (si hay uno).
+  marcasDisponibles: string[] = [];
 
   // Filtros de combo (null/'' = "Todos"). Van APARTE del form de Año/Mes porque no
   // necesitan recargar del servidor, solo refiltrar lo ya traído.
   tipoProductoSel: string | null = null;
+  marcaSel: string | null = null;
   sedeSel: string | null = null;
 
   // Lo que de verdad ve la grilla — resultado cacheado (NO getter) para que el grid
@@ -80,28 +83,47 @@ export class VentasXTipoProductoComponent implements OnInit {
       // Si el tipo/sede elegido ya no existe en el mes nuevo, se limpia el filtro.
       if (this.tipoProductoSel && !this.tiposProductoDisponibles.includes(this.tipoProductoSel)) this.tipoProductoSel = null;
       if (this.sedeSel && !this.sedesDisponibles.includes(this.sedeSel)) this.sedeSel = null;
+      this.actualizarMarcasDisponibles();
       this.aplicarFiltros();
     } catch (e) {
       console.error('Error al cargar Ventas × Tipo de Producto:', e);
       this.error = 'No se pudo cargar la información (revisa la conexión al servidor).';
       this.filas = []; this.tiposProductoDisponibles = []; this.sedesDisponibles = [];
+      this.actualizarMarcasDisponibles();
       this.aplicarFiltros();
     } finally {
       this.isLoading = false;
     }
   }
 
-  /** Se llama al cambiar el combo de Tipo de Producto o de Sede (no recarga del servidor). */
+  /** Marca depende del Tipo de Producto elegido: solo muestra las marcas que existen en él. */
+  actualizarMarcasDisponibles(): void {
+    const base = this.tipoProductoSel
+      ? this.filas.filter(f => f.tipoProducto === this.tipoProductoSel)
+      : this.filas;
+    this.marcasDisponibles = [...new Set(base.map(f => f.marca))].sort();
+    if (this.marcaSel && !this.marcasDisponibles.includes(this.marcaSel)) this.marcaSel = null;
+  }
+
+  /** Se llama al cambiar el combo de Tipo de Producto (además refiltra las marcas disponibles). */
+  onTipoProductoChanged(): void {
+    this.actualizarMarcasDisponibles();
+    this.aplicarFiltros();
+  }
+
+  /** Se llama al cambiar el combo de Marca o de Sede (no recarga del servidor). */
   aplicarFiltros(): void {
     this.filasFiltradas = this.filas.filter(f =>
       (!this.tipoProductoSel || f.tipoProducto === this.tipoProductoSel) &&
+      (!this.marcaSel || f.marca === this.marcaSel) &&
       (!this.sedeSel || f.sede === this.sedeSel));
     this.totalCantidad = this.filasFiltradas.reduce((s, f) => s + f.cantidad, 0);
     this.totalMonto = this.filasFiltradas.reduce((s, f) => s + f.monto, 0);
   }
 
   limpiarFiltros(): void {
-    this.tipoProductoSel = null; this.sedeSel = null;
+    this.tipoProductoSel = null; this.marcaSel = null; this.sedeSel = null;
+    this.actualizarMarcasDisponibles();
     this.aplicarFiltros();
   }
 
