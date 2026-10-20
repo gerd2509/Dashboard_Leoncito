@@ -1,6 +1,7 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ViewChild } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
+import { DxDataGridComponent } from 'devextreme-angular';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
@@ -27,6 +28,8 @@ interface FilaProducto {
 })
 export class VentasXTipoProductoComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
+
+  @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
 
   form: UntypedFormGroup;
   isLoading = false;
@@ -119,12 +122,22 @@ export class VentasXTipoProductoComponent implements OnInit {
       (!this.sedeSel || f.sede === this.sedeSel));
     this.totalCantidad = this.filasFiltradas.reduce((s, f) => s + f.cantidad, 0);
     this.totalMonto = this.filasFiltradas.reduce((s, f) => s + f.monto, 0);
+    this.todoExpandido = false;
   }
 
   limpiarFiltros(): void {
     this.tipoProductoSel = null; this.marcaSel = null; this.sedeSel = null;
     this.actualizarMarcasDisponibles();
     this.aplicarFiltros();
+  }
+
+  // Expandir / colapsar todos los niveles (Sede → Marca) de una sola vez.
+  todoExpandido = false;
+  toggleExpandir(): void {
+    if (!this.grid) return;
+    this.todoExpandido = !this.todoExpandido;
+    if (this.todoExpandido) this.grid.instance.expandAll();
+    else this.grid.instance.collapseAll();
   }
 
   onCellPrepared(e: any): void {

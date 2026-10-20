@@ -25,6 +25,10 @@
       <button mat-stroked-button type="button" (click)="limpiarFiltros()" *ngIf="tipoProductoSel || marcaSel || sedeSel">
         <mat-icon>filter_alt_off</mat-icon> Quitar filtros
       </button>
+      <button mat-stroked-button type="button" (click)="toggleExpandir()" *ngIf="filasFiltradas.length">
+        <mat-icon>{{ todoExpandido ? 'unfold_less' : 'unfold_more' }}</mat-icon>
+        {{ todoExpandido ? 'Colapsar todo' : 'Expandir todo' }}
+      </button>
     </form>
 
     <div class="vtp-kpis" *ngIf="!error && filas.length">
@@ -49,7 +53,7 @@
         mensaje="Cargando ventas por tipo de producto…" submensaje="Cruzando margen por producto, marca y sede…"></app-loading-overlay>
     </div>
 
-    <dx-data-grid *ngIf="filasFiltradas.length" [dataSource]="filasFiltradas" class="focqus-elevation"
+    <dx-data-grid #grid *ngIf="filasFiltradas.length" [dataSource]="filasFiltradas" class="focqus-elevation"
       [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
       [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" [allowColumnReordering]="true"
       (onCellPrepared)="onCellPrepared($event)">
