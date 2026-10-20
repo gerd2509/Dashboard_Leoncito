@@ -58,14 +58,14 @@
       [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" [allowColumnReordering]="true"
       (onCellPrepared)="onCellPrepared($event)">
       <dxo-grouping [autoExpandAll]="false" [allowCollapsing]="true"></dxo-grouping>
-      <dxo-group-panel [visible]="true" emptyPanelText="Arrastra aquí Marca, Tipo de Producto, Sede o Vendedor para agrupar"></dxo-group-panel>
+      <dxo-group-panel [visible]="false"></dxo-group-panel>
       <dxo-paging [enabled]="false"></dxo-paging>
       <dxo-filter-row [visible]="true"></dxo-filter-row>
       <dxo-search-panel [visible]="true" [width]="260" placeholder="Buscar tipo, marca, sede o vendedor…"></dxo-search-panel>
 
       <dxi-column dataField="tipoProducto" caption="Tipo de Producto" alignment="left" [visible]="!tipoProductoSel"></dxi-column>
-      <dxi-column dataField="sede" caption="Sede" alignment="left" [groupIndex]="0" groupCellTemplate="sedeGroupTpl"></dxi-column>
-      <dxi-column dataField="marca" caption="Marca" [groupIndex]="1" groupCellTemplate="marcaGroupTpl"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" alignment="left" [groupIndex]="0" [allowGrouping]="false" groupCellTemplate="sedeGroupTpl"></dxi-column>
+      <dxi-column dataField="marca" caption="Marca" [groupIndex]="1" [allowGrouping]="false" groupCellTemplate="marcaGroupTpl"></dxi-column>
       <dxi-column dataField="vendedor" caption="Vendedor" alignment="left" cellTemplate="vendedorCellTpl"></dxi-column>
       <dxi-column dataField="cantidad" caption="Cantidad" dataType="number" alignment="center"></dxi-column>
       <dxi-column dataField="monto" caption="Monto" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
