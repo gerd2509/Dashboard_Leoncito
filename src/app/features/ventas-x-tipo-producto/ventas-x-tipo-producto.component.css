@@ -33,28 +33,17 @@
   display: flex; justify-content: center; align-items: center; z-index: 10; border-radius: 10px;
 }
 
-/* Contenido de las filas de grupo (despliegue por Sede → Marca): el resumen (cantidad,
-   monto, margen, N° ops) va como "chips" DENTRO del propio label, así siempre se ve
-   desde el inicio (sin necesidad de desplegar ni de filtrar). */
-.vtp-grp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 2px 0; }
+/* Contenido de las filas de grupo (despliegue por Sede → Marca): solo ícono + nombre —
+   Cantidad/Monto/Margen/N° Ops se muestran alineados en su propia columna (alignByColumn). */
+.vtp-grp { display: flex; align-items: center; gap: 8px; }
 .vtp-grp-ico { font-size: 18px; width: 18px; height: 18px; line-height: 18px; }
-.vtp-grp-label { font-weight: 700; letter-spacing: .2px; margin-right: 4px; }
+.vtp-grp-label { font-weight: 700; letter-spacing: .2px; }
 
 .vtp-grp-sede .vtp-grp-ico { color: #1A5FAD; }
 .vtp-grp-sede .vtp-grp-label { color: #1E3A5F; font-size: 13.5px; text-transform: uppercase; }
 
 .vtp-grp-marca .vtp-grp-ico { color: #5a7ba3; font-size: 16px; width: 16px; height: 16px; line-height: 16px; }
 .vtp-grp-marca .vtp-grp-label { color: #33455e; font-size: 12.5px; }
-
-.vtp-grp-chip {
-  display: inline-flex; align-items: center; gap: 3px;
-  background: #ffffff; border: 1px solid #c9dcf1; border-radius: 20px;
-  padding: 2px 10px; font-size: 11.5px; color: #44536b; font-weight: 500;
-}
-.vtp-grp-chip b { color: #1E3A5F; font-weight: 700; }
-.vtp-grp-chip-money { background: #EAF1FB; border-color: #b9d2ef; }
-.vtp-grp-chip-money b { color: #1A5FAD; }
-.vtp-grp-marca .vtp-grp-chip { font-size: 11px; padding: 1px 8px; }
 
 /* Filas de grupo nativas de DevExtreme: look más limpio para el despliegue Sede → Marca. */
 ::ng-deep .vtp-grid-container .dx-datagrid-group-opened,

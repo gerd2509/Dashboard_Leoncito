@@ -69,10 +69,10 @@
       <dxi-column dataField="ops" caption="N° Ops" dataType="number" alignment="center" [width]="90"></dxi-column>
 
       <dxo-summary>
-        <dxi-group-item column="cantidad" summaryType="sum"></dxi-group-item>
-        <dxi-group-item column="monto" summaryType="sum"></dxi-group-item>
-        <dxi-group-item column="margenTotal" summaryType="sum"></dxi-group-item>
-        <dxi-group-item column="ops" summaryType="sum"></dxi-group-item>
+        <dxi-group-item column="cantidad" summaryType="sum" displayFormat="{0}" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
+        <dxi-group-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
+        <dxi-group-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
+        <dxi-group-item column="ops" summaryType="sum" displayFormat="{0}" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
         <dxi-total-item column="cantidad" summaryType="sum" displayFormat="{0}"></dxi-total-item>
         <dxi-total-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
         <dxi-total-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
@@ -82,18 +82,10 @@
       <div *dxTemplate="let g of 'sedeGroupTpl'" class="vtp-grp vtp-grp-sede">
         <mat-icon class="vtp-grp-ico">storefront</mat-icon>
         <span class="vtp-grp-label">{{ g.value }}</span>
-        <span class="vtp-grp-chip"><b>{{ g.summaryItems[0].value | number }}</b> und.</span>
-        <span class="vtp-grp-chip vtp-grp-chip-money"><b>{{ soles(g.summaryItems[1].value) }}</b></span>
-        <span class="vtp-grp-chip vtp-grp-chip-money"><b>{{ soles(g.summaryItems[2].value) }}</b> margen</span>
-        <span class="vtp-grp-chip"><b>{{ g.summaryItems[3].value }}</b> ops</span>
       </div>
       <div *dxTemplate="let g of 'marcaGroupTpl'" class="vtp-grp vtp-grp-marca">
         <mat-icon class="vtp-grp-ico">sell</mat-icon>
         <span class="vtp-grp-label">{{ g.value }}</span>
-        <span class="vtp-grp-chip"><b>{{ g.summaryItems[0].value | number }}</b> und.</span>
-        <span class="vtp-grp-chip vtp-grp-chip-money"><b>{{ soles(g.summaryItems[1].value) }}</b></span>
-        <span class="vtp-grp-chip vtp-grp-chip-money"><b>{{ soles(g.summaryItems[2].value) }}</b> margen</span>
-        <span class="vtp-grp-chip"><b>{{ g.summaryItems[3].value }}</b> ops</span>
       </div>
     </dx-data-grid>
   </div>
