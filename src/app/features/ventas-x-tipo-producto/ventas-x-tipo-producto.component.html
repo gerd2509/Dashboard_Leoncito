@@ -65,7 +65,7 @@
 
       <dxi-column dataField="tipoProducto" caption="Tipo de Producto" alignment="left" [visible]="!tipoProductoSel"></dxi-column>
       <dxi-column dataField="sede" caption="Sede" alignment="left" [groupIndex]="0" [allowGrouping]="false" groupCellTemplate="sedeGroupTpl"></dxi-column>
-      <dxi-column dataField="marca" caption="Marca" [groupIndex]="1" [allowGrouping]="false" groupCellTemplate="marcaGroupTpl"></dxi-column>
+      <dxi-column dataField="marca" caption="Marca" [visible]="!marcaSel" [groupIndex]="marcaSel ? null : 1" [allowGrouping]="false" groupCellTemplate="marcaGroupTpl"></dxi-column>
       <dxi-column dataField="vendedor" caption="Vendedor" alignment="left" cellTemplate="vendedorCellTpl"></dxi-column>
       <dxi-column dataField="cantidad" caption="Cantidad" dataType="number" alignment="center"></dxi-column>
       <dxi-column dataField="monto" caption="Monto" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
