@@ -152,7 +152,8 @@ export class CargaVentasService {
   }
   /** Ventas por (tipo_producto, marca, sede) del mes — módulo "Ventas × Tipo de Producto". */
   obtenerMargenProducto(anio: number, mes?: number): Observable<{
-    tipo_producto: string; marca: string; sede: string; cantidad: number; monto: number; margen_total: number; ops: number;
+    tipo_producto: string; marca: string; sede: string; vendedor: string;
+    cantidad: number; monto: number; margen_total: number; ops: number;
   }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);

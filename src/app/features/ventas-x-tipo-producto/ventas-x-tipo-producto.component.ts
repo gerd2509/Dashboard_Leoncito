@@ -8,7 +8,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 
 /** Una fila ya agregada por (Tipo de Producto, Marca, Sede) del mes elegido. */
 interface FilaProducto {
-  tipoProducto: string; marca: string; sede: string;
+  tipoProducto: string; marca: string; sede: string; vendedor: string;
   cantidad: number; monto: number; margenTotal: number; ops: number;
 }
 
@@ -74,7 +74,7 @@ export class VentasXTipoProductoComponent implements OnInit {
       const { anio, mes } = this.form.value;
       const rows = await lastValueFrom(this.ventasSrv.obtenerMargenProducto(anio, mes));
       this.filas = (rows || []).map(r => ({
-        tipoProducto: r.tipo_producto, marca: r.marca, sede: r.sede,
+        tipoProducto: r.tipo_producto, marca: r.marca, sede: r.sede, vendedor: r.vendedor,
         cantidad: Number(r.cantidad) || 0, monto: Number(r.monto) || 0,
         margenTotal: Number(r.margen_total) || 0, ops: Number(r.ops) || 0,
       }));
