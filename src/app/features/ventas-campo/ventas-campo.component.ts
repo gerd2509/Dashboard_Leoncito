@@ -184,8 +184,18 @@ export class VentasCampoComponent implements OnInit {
     { monto:  30000, bono:  250 }, { monto:  25000, bono:  200 }, { monto:  20000, bono:  150 },
     { monto:  15000, bono:  100 }, { monto:  10000, bono:   50 }
   ];
-  // Realzza Piura (escala propia). Lima: aún no definida → usa la de Chiclayo de momento.
+  // Realzza Piura (escala propia).
   readonly tablaBonosPiura = [
+    { monto: 126000, bono: 1500 }, { monto: 120000, bono: 1400 }, { monto: 114000, bono: 1300 },
+    { monto: 108000, bono: 1200 }, { monto: 102000, bono: 1100 }, { monto:  96000, bono: 1000 },
+    { monto:  90000, bono:  900 }, { monto:  84000, bono:  700 }, { monto:  78000, bono:  600 },
+    { monto:  72000, bono:  550 }, { monto:  66000, bono:  500 }, { monto:  60000, bono:  450 },
+    { monto:  54000, bono:  400 }, { monto:  48000, bono:  350 }, { monto:  42000, bono:  300 },
+    { monto:  36000, bono:  250 }, { monto:  30000, bono:  200 }, { monto:  24000, bono:  150 },
+    { monto:  18000, bono:  100 }, { monto:  12000, bono:   50 },
+  ];
+  // Realzza Lima (misma escala que Piura, ya definida por el negocio).
+  readonly tablaBonosLima = [
     { monto: 126000, bono: 1500 }, { monto: 120000, bono: 1400 }, { monto: 114000, bono: 1300 },
     { monto: 108000, bono: 1200 }, { monto: 102000, bono: 1100 }, { monto:  96000, bono: 1000 },
     { monto:  90000, bono:  900 }, { monto:  84000, bono:  700 }, { monto:  78000, bono:  600 },
@@ -1836,10 +1846,12 @@ export class VentasCampoComponent implements OnInit {
   // ─── BONOS ───────────────────────────────────────────────────────────────────
 
   calcularBonoVentasCampo(proyeccion: number): number {
-    // Piura tiene su propia escala (umbral mínimo 12.000); Chiclayo/Lima usan la de Chiclayo
-    // (Lima: aún no definida por el negocio → de momento usa esta misma).
-    const tabla = this.tiendaVentas === 'REALZZA PIURA' ? this.tablaBonosPiura : this.tablaBonos;
-    const minimo = this.tiendaVentas === 'REALZZA PIURA' ? 12000 : 10000;
+    // Piura y Lima tienen su propia escala (umbral mínimo 12.000, misma entre ellas);
+    // Chiclayo usa la suya (umbral 10.000).
+    const esTiendaNueva = this.tiendaVentas === 'REALZZA PIURA' || this.tiendaVentas === 'REALZZA LIMA';
+    const tabla = this.tiendaVentas === 'REALZZA PIURA' ? this.tablaBonosPiura
+      : this.tiendaVentas === 'REALZZA LIMA' ? this.tablaBonosLima : this.tablaBonos;
+    const minimo = esTiendaNueva ? 12000 : 10000;
     if (!proyeccion || proyeccion < minimo) return 0;
     for (const item of tabla) {
       if (proyeccion >= item.monto) return item.bono;

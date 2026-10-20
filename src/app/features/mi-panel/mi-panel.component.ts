@@ -109,13 +109,13 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   porFuente: AgrupadoTabla[] = [];       // Sede: por fuente generadora (atrib_fuente_sede)
 
   // ── Mi sueldo estimado (Call / Realzza): base + comisión por monto vendido + motos ──
-  readonly sueldoBase = 1130;            // fijo para todos
+  readonly sueldoBase = 1230;            // fijo para todos (RMV actualizada)
   mesesSueldo: { value: string; label: string }[] = [];  // meses con ventas (YYYY-MM)
   sueldoMesSel = '';                     // mes elegido para el cálculo (YYYY-MM)
   montoVendidoMes = 0;                   // monto real vendido en el mes elegido
   comisionVentas = 0;                    // bono por monto vendido (tabla del canal)
   motosGlobal = 0;                       // motos GLOBAL GO vendidas en el mes
-  tarifaMoto = 0;                        // S/ por moto (Realzza: 125 si ≥5, si no 100; Call: 125)
+  tarifaMoto = 0;                        // S/ por moto (Realzza: 125 si ≥5 —Lima: 150—, si no 100; Call: 125)
   pagoMotos = 0;                         // motosGlobal * tarifaMoto
   totalGanar = 0;                        // sueldoBase + comisionVentas + pagoMotos
   get aplicaSueldo(): boolean { return this.esCall || this.esRealzza; }
@@ -158,9 +158,18 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     { monto:  30000, bono:  250 }, { monto:  25000, bono:  200 }, { monto:  20000, bono:  150 },
     { monto:  15000, bono:  100 }, { monto:  10000, bono:   50 },
   ];
-  // Realzza Piura (escala propia, distinta a Chiclayo). Lima: aún no definida por el
-  // negocio → usa esta misma de momento hasta que se indique su propia escala.
+  // Realzza Piura (escala propia, distinta a Chiclayo).
   private readonly bonosRealzzaPiura = [
+    { monto: 126000, bono: 1500 }, { monto: 120000, bono: 1400 }, { monto: 114000, bono: 1300 },
+    { monto: 108000, bono: 1200 }, { monto: 102000, bono: 1100 }, { monto:  96000, bono: 1000 },
+    { monto:  90000, bono:  900 }, { monto:  84000, bono:  700 }, { monto:  78000, bono:  600 },
+    { monto:  72000, bono:  550 }, { monto:  66000, bono:  500 }, { monto:  60000, bono:  450 },
+    { monto:  54000, bono:  400 }, { monto:  48000, bono:  350 }, { monto:  42000, bono:  300 },
+    { monto:  36000, bono:  250 }, { monto:  30000, bono:  200 }, { monto:  24000, bono:  150 },
+    { monto:  18000, bono:  100 }, { monto:  12000, bono:   50 },
+  ];
+  // Realzza Lima (misma escala que Piura, ya definida por el negocio).
+  private readonly bonosRealzzaLima = [
     { monto: 126000, bono: 1500 }, { monto: 120000, bono: 1400 }, { monto: 114000, bono: 1300 },
     { monto: 108000, bono: 1200 }, { monto: 102000, bono: 1100 }, { monto:  96000, bono: 1000 },
     { monto:  90000, bono:  900 }, { monto:  84000, bono:  700 }, { monto:  78000, bono:  600 },
@@ -969,10 +978,10 @@ export class MiPanelComponent implements OnInit, OnDestroy {
 
   /**
    * Sueldo estimado del mes elegido (solo Call / Realzza):
-   *  · Sueldo base fijo (1130).
+   *  · Sueldo base fijo (1230).
    *  · Comisión = bono según el MONTO REAL VENDIDO del mes (tabla del canal).
    *  · Motos = motos vendidas por GLOBAL GO en el mes × tarifa. Realzza: 125 si son
-   *    5 o más, 100 si son menos. Call: siempre 125.
+   *    5 o más (Lima: 150 desde la 5ta), 100 si son menos. Call: siempre 125.
    * El monto real del mes = + venta (mes de CV) − afectación NC/incaut. (mes de AF).
    */
   calcularSueldo(): void {
@@ -1026,20 +1035,26 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     return this.esCall;
   }
   /** Bono (comisión) según el monto vendido, con la tabla del canal/tienda (por fecha si
-   *  aplica el corte Call→Realzza). Realzza: Piura tiene su propia escala; Lima usa la de
-   *  Chiclayo hasta que el negocio defina la suya. */
+   *  aplica el corte Call→Realzza). Realzza: Piura y Lima tienen su propia escala
+   *  (misma entre ellas); Chiclayo usa la suya. */
   private bonoPorMonto(monto: number): number {
     if (this.esCallSueldo) {
       return monto >= 15000 ? (this.bonosCall.find(t => monto >= t.monto)?.bono || 0) : 0;
     }
     const tienda = sedeRealzzaDeUsuario(this.auth.getUsuario());
-    const tabla = tienda === 'REALZZA PIURA' ? this.bonosRealzzaPiura : this.bonosRealzza;
-    const min = tienda === 'REALZZA PIURA' ? 12000 : 10000;
+    const esTiendaNueva = tienda === 'REALZZA PIURA' || tienda === 'REALZZA LIMA';
+    const tabla = tienda === 'REALZZA PIURA' ? this.bonosRealzzaPiura
+      : tienda === 'REALZZA LIMA' ? this.bonosRealzzaLima : this.bonosRealzza;
+    const min = esTiendaNueva ? 12000 : 10000;
     return monto >= min ? (tabla.find(t => monto >= t.monto)?.bono || 0) : 0;
   }
-  /** Tarifa por moto: Call siempre 125; Realzza 125 si son ≥5, si no 100. */
+  /** Tarifa por moto: Call siempre 125; Realzza 125 si son ≥5 (Lima: 150 desde la 5ta),
+   *  si no 100. */
   private tarifaPorMotos(motos: number): number {
-    return this.esCallSueldo ? 125 : (motos >= 5 ? 125 : 100);
+    if (this.esCallSueldo) return 125;
+    if (motos < 5) return 100;
+    const tienda = sedeRealzzaDeUsuario(this.auth.getUsuario());
+    return tienda === 'REALZZA LIMA' ? 150 : 125;
   }
 
   /** Simulación editable: recalcula comisión + motos + total con los valores que ingresa el asesor. */
