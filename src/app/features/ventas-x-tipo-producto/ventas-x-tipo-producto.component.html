@@ -1,12 +1,9 @@
-<app-loading-overlay [inline]="true" [visible]="isLoading" icon="category"
-  mensaje="Cargando ventas por tipo de producto…" submensaje="Cruzando margen por producto, marca y sede…"></app-loading-overlay>
-
 <div class="vtp-wrap">
   <div class="vtp-head">
     <div class="vtp-ico"><mat-icon>category</mat-icon></div>
     <div>
       <h2>Ventas × Tipo de Producto</h2>
-      <p>Cantidad y monto vendido del mes, por Tipo de Producto / Marca / Sede (desde Margen).</p>
+      <p>Cantidad y monto vendido del mes, filtrado por Tipo de Producto y Sede (desde Margen).</p>
     </div>
   </div>
 
@@ -16,15 +13,20 @@
         stylingMode="outlined" (onValueChanged)="cargar()"></dx-select-box>
       <dx-select-box width="160" [dataSource]="meses" displayExpr="t" valueExpr="v" formControlName="mes" label="Mes"
         labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()"></dx-select-box>
-      <button mat-flat-button type="button" (click)="cargar()" [disabled]="isLoading">
-        <mat-icon>{{ isLoading ? 'hourglass_empty' : 'refresh' }}</mat-icon>
-        {{ isLoading ? 'Cargando...' : 'Actualizar' }}
+      <dx-select-box width="220" [dataSource]="tiposProductoDisponibles" [(value)]="tipoProductoSel"
+        label="Tipo de Producto" labelMode="floating" stylingMode="outlined" placeholder="Todos"
+        [searchEnabled]="true" [showClearButton]="true" (onValueChanged)="aplicarFiltros()"></dx-select-box>
+      <dx-select-box width="200" [dataSource]="sedesDisponibles" [(value)]="sedeSel"
+        label="Sede" labelMode="floating" stylingMode="outlined" placeholder="Todas"
+        [searchEnabled]="true" [showClearButton]="true" (onValueChanged)="aplicarFiltros()"></dx-select-box>
+      <button mat-stroked-button type="button" (click)="limpiarFiltros()" *ngIf="tipoProductoSel || sedeSel">
+        <mat-icon>filter_alt_off</mat-icon> Quitar filtros
       </button>
     </form>
 
-    <div class="vtp-kpis" *ngIf="!isLoading && filas.length">
-      <div class="vtp-kpi"><span>Cantidad total</span><b>{{ totalCantidad | number }}</b></div>
-      <div class="vtp-kpi"><span>Monto total</span><b>{{ soles(totalMonto) }}</b></div>
+    <div class="vtp-kpis" *ngIf="!error && filas.length">
+      <div class="vtp-kpi"><span>Cantidad</span><b>{{ totalCantidad | number }}</b></div>
+      <div class="vtp-kpi"><span>Monto</span><b>{{ soles(totalMonto) }}</b></div>
     </div>
   </div>
 
@@ -33,32 +35,43 @@
     <mat-icon>inbox</mat-icon>
     <p>Sin datos para el periodo elegido.</p>
   </div>
+  <div *ngIf="!isLoading && !error && filas.length && !filasFiltradas.length" class="vtp-vacio">
+    <mat-icon>filter_alt_off</mat-icon>
+    <p>Sin resultados para ese Tipo de Producto / Sede.</p>
+  </div>
 
-  <dx-data-grid *ngIf="filas.length" [dataSource]="filas" class="focqus-elevation"
-    [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-    [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" [allowColumnReordering]="true"
-    (onCellPrepared)="onCellPrepared($event)">
-    <dxo-grouping [autoExpandAll]="false" [allowCollapsing]="true"></dxo-grouping>
-    <dxo-group-panel [visible]="true" emptyPanelText="Arrastra aquí Tipo de Producto, Marca o Sede para cruzarlos"></dxo-group-panel>
-    <dxo-paging [enabled]="false"></dxo-paging>
-    <dxo-filter-row [visible]="true"></dxo-filter-row>
-    <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar tipo, marca o sede…"></dxo-search-panel>
+  <div class="vtp-grid-container">
+    <div class="vtp-grid-overlay" *ngIf="isLoading">
+      <app-loading-overlay [inline]="true" [visible]="isLoading" icon="category"
+        mensaje="Cargando ventas por tipo de producto…" submensaje="Cruzando margen por producto, marca y sede…"></app-loading-overlay>
+    </div>
 
-    <dxi-column dataField="tipoProducto" caption="Tipo de Producto" [groupIndex]="0"></dxi-column>
-    <dxi-column dataField="marca" caption="Marca" [groupIndex]="1"></dxi-column>
-    <dxi-column dataField="sede" caption="Sede" alignment="left"></dxi-column>
-    <dxi-column dataField="cantidad" caption="Cantidad" dataType="number" alignment="center"></dxi-column>
-    <dxi-column dataField="monto" caption="Monto" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
-    <dxi-column dataField="margenTotal" caption="Margen" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
-    <dxi-column dataField="ops" caption="N° Ops" dataType="number" alignment="center" [width]="90"></dxi-column>
+    <dx-data-grid *ngIf="filasFiltradas.length" [dataSource]="filasFiltradas" class="focqus-elevation"
+      [showBorders]="true" [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
+      [hoverStateEnabled]="true" [wordWrapEnabled]="true" [columnAutoWidth]="true" [allowColumnReordering]="true"
+      (onCellPrepared)="onCellPrepared($event)">
+      <dxo-grouping [autoExpandAll]="false" [allowCollapsing]="true"></dxo-grouping>
+      <dxo-group-panel [visible]="true" emptyPanelText="Arrastra aquí Marca, Tipo de Producto o Sede para agrupar"></dxo-group-panel>
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-search-panel [visible]="true" [width]="240" placeholder="Buscar tipo, marca o sede…"></dxo-search-panel>
 
-    <dxo-summary>
-      <dxi-group-item column="cantidad" summaryType="sum" displayFormat="{0}" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
-      <dxi-group-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
-      <dxi-group-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
-      <dxi-total-item column="cantidad" summaryType="sum" displayFormat="{0}"></dxi-total-item>
-      <dxi-total-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
-      <dxi-total-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
-    </dxo-summary>
-  </dx-data-grid>
+      <dxi-column dataField="tipoProducto" caption="Tipo de Producto" alignment="left" [visible]="!tipoProductoSel"></dxi-column>
+      <dxi-column dataField="marca" caption="Marca" [groupIndex]="0"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" alignment="left" [visible]="!sedeSel"></dxi-column>
+      <dxi-column dataField="cantidad" caption="Cantidad" dataType="number" alignment="center"></dxi-column>
+      <dxi-column dataField="monto" caption="Monto" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
+      <dxi-column dataField="margenTotal" caption="Margen" dataType="number" alignment="center" [format]="'S/ #,##0'"></dxi-column>
+      <dxi-column dataField="ops" caption="N° Ops" dataType="number" alignment="center" [width]="90"></dxi-column>
+
+      <dxo-summary>
+        <dxi-group-item column="cantidad" summaryType="sum" displayFormat="{0}" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
+        <dxi-group-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
+        <dxi-group-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'" [showInGroupFooter]="false" [alignByColumn]="true"></dxi-group-item>
+        <dxi-total-item column="cantidad" summaryType="sum" displayFormat="{0}"></dxi-total-item>
+        <dxi-total-item column="monto" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+        <dxi-total-item column="margenTotal" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+      </dxo-summary>
+    </dx-data-grid>
+  </div>
 </div>

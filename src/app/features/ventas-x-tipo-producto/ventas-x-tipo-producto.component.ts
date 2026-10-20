@@ -13,11 +13,10 @@ interface FilaProducto {
 }
 
 /**
- * "Ventas × Tipo de Producto": cantidad y monto vendido del mes, cruzado libremente
- * por Tipo de Producto / Marca / Sede (todas desde margen_ventas, que ya viene
- * desglosada por línea de producto — no hay que partir el monto consolidado a mano).
- * Arrastra las columnas del grid para agrupar por cualquier combinación, ej.
- * "Tipo de Producto" para ver TELEVISORES y expandir por Marca para ver AIWA.
+ * "Ventas × Tipo de Producto": cantidad y monto vendido del mes. Tipo de Producto y
+ * Sede son FILTROS (combos) — se elige uno (o "Todos") y la grilla, agrupada por
+ * Marca, muestra justo esa combinación. Ej.: Setiembre + Televisor + Lambayeque →
+ * cuántos televisores (y de qué marca) se vendieron ahí ese mes.
  */
 @Component({
   selector: 'app-ventas-x-tipo-producto',
@@ -41,7 +40,20 @@ export class VentasXTipoProductoComponent implements OnInit {
     { v: 11, t: 'Noviembre' }, { v: 12, t: 'Diciembre' },
   ];
 
+  // Todo lo del mes (sin filtrar) — de acá salen las opciones de los combos y los
+  // mensajes de "sin datos" del template.
   filas: FilaProducto[] = [];
+  tiposProductoDisponibles: string[] = [];
+  sedesDisponibles: string[] = [];
+
+  // Filtros de combo (null/'' = "Todos"). Van APARTE del form de Año/Mes porque no
+  // necesitan recargar del servidor, solo refiltrar lo ya traído.
+  tipoProductoSel: string | null = null;
+  sedeSel: string | null = null;
+
+  // Lo que de verdad ve la grilla — resultado cacheado (NO getter) para que el grid
+  // no se reconstruya en cada ciclo de detección de cambios.
+  filasFiltradas: FilaProducto[] = [];
   totalCantidad = 0;
   totalMonto = 0;
 
@@ -63,15 +75,34 @@ export class VentasXTipoProductoComponent implements OnInit {
         cantidad: Number(r.cantidad) || 0, monto: Number(r.monto) || 0,
         margenTotal: Number(r.margen_total) || 0, ops: Number(r.ops) || 0,
       }));
-      this.totalCantidad = this.filas.reduce((s, f) => s + f.cantidad, 0);
-      this.totalMonto = this.filas.reduce((s, f) => s + f.monto, 0);
+      this.tiposProductoDisponibles = [...new Set(this.filas.map(f => f.tipoProducto))].sort();
+      this.sedesDisponibles = [...new Set(this.filas.map(f => f.sede))].sort();
+      // Si el tipo/sede elegido ya no existe en el mes nuevo, se limpia el filtro.
+      if (this.tipoProductoSel && !this.tiposProductoDisponibles.includes(this.tipoProductoSel)) this.tipoProductoSel = null;
+      if (this.sedeSel && !this.sedesDisponibles.includes(this.sedeSel)) this.sedeSel = null;
+      this.aplicarFiltros();
     } catch (e) {
       console.error('Error al cargar Ventas × Tipo de Producto:', e);
       this.error = 'No se pudo cargar la información (revisa la conexión al servidor).';
-      this.filas = []; this.totalCantidad = 0; this.totalMonto = 0;
+      this.filas = []; this.tiposProductoDisponibles = []; this.sedesDisponibles = [];
+      this.aplicarFiltros();
     } finally {
       this.isLoading = false;
     }
+  }
+
+  /** Se llama al cambiar el combo de Tipo de Producto o de Sede (no recarga del servidor). */
+  aplicarFiltros(): void {
+    this.filasFiltradas = this.filas.filter(f =>
+      (!this.tipoProductoSel || f.tipoProducto === this.tipoProductoSel) &&
+      (!this.sedeSel || f.sede === this.sedeSel));
+    this.totalCantidad = this.filasFiltradas.reduce((s, f) => s + f.cantidad, 0);
+    this.totalMonto = this.filasFiltradas.reduce((s, f) => s + f.monto, 0);
+  }
+
+  limpiarFiltros(): void {
+    this.tipoProductoSel = null; this.sedeSel = null;
+    this.aplicarFiltros();
   }
 
   onCellPrepared(e: any): void {

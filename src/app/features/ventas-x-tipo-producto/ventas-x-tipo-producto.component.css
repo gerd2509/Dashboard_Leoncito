@@ -25,3 +25,10 @@
 }
 .vtp-error { color: #C62828; background: #FFEBEE; border: 1px solid #FFCDD2; }
 .vtp-vacio { color: #6b7a90; background: #F4F7FC; border: 1px solid #E3E9F2; }
+
+/* Spinner SOBRE la grilla al cargar/cambiar de mes (mismo patrón que el resto de la app). */
+.vtp-grid-container { position: relative; min-height: 80px; }
+.vtp-grid-overlay {
+  position: absolute; inset: 0; background: rgba(238,242,248,0.88);
+  display: flex; justify-content: center; align-items: center; z-index: 10; border-radius: 10px;
+}
