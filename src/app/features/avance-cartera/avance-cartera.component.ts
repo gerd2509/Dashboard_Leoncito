@@ -232,22 +232,30 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       .sort((a, b) => b.pendientes - a.pendientes || b.total - a.total);
   }
 
-  /** Excel del detalle de Seguimiento que se está viendo (la sede/grupo abiertos). */
+  /** Excel del detalle de Seguimiento que se está viendo (la sede/grupo abiertos).
+   *  Además del detalle del seguimiento en sí, agrega — por DNI — los datos propios
+   *  del cliente tal como están en la cartera importada (nombre, dirección, etc.),
+   *  para no tener que cruzar el DNI a mano contra el Excel original. */
   async exportarSeguimiento(): Promise<void> {
     const lista = this.filasSeguimientoActual;
     if (!lista.length || !this.detSeguimiento) return;
     const wb = new Workbook();
     const ws = wb.addWorksheet('Seguimiento');
-    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Última Gestión', 'Tipo', 'Seguimiento', 'Fecha Carta'];
+    const rawPorDni = new Map<string, Record<string, any>>();
+    for (const c of this.clientes) if (c.dni && !rawPorDni.has(c.dni)) rawPorDni.set(c.dni, c.raw);
+    const headers = ['Sede', 'Grupo', 'Asesor', 'DNI', 'Última Gestión', 'Tipo', 'Seguimiento', 'Fecha Carta', ...this.headersOriginales];
     const hr = ws.addRow(headers);
     hr.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
     });
     for (const f of lista) {
+      const raw = rawPorDni.get(f.dni) || {};
+      const datosCartera = this.headersOriginales.map(h => raw[h] ?? '');
       ws.addRow([
         f.sede, f.grupo, f.asesor, f.dni, f.fechaUltima.toLocaleString('es-PE'), f.tipoUltima,
         f.tieneCarta ? 'Con carta' : 'Sin carta', f.fechaCarta ? f.fechaCarta.toLocaleString('es-PE') : '',
+        ...datosCartera,
       ]);
     }
     ws.columns.forEach((col, i) => { col.width = (i === 4 || i === 7) ? 22 : 16; });
