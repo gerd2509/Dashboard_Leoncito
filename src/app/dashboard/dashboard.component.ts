@@ -23,6 +23,7 @@ import { CierreGestionSedesComponent } from "../features/cierre-gestion-sedes/ci
 import { AvanceMetasComponent } from "../features/avance-metas/avance-metas.component";
 import { ReporteGlobalComponent } from "../features/reporte-global/reporte-global.component";
 import { VentasLineaComponent } from "../features/ventas-linea/ventas-linea.component";
+import { VentasXTipoProductoComponent } from "../features/ventas-x-tipo-producto/ventas-x-tipo-producto.component";
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
 import { GestionDerivacionesSedeComponent } from "../features/Gestion/gestion-derivaciones-sede/gestion-derivaciones-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
@@ -98,6 +99,7 @@ interface MenuItem {
     AvanceMetasComponent,
     ReporteGlobalComponent,
     VentasLineaComponent,
+    VentasXTipoProductoComponent,
     GestionSedeComponent,
     GestionDerivacionesSedeComponent,
     GestionCallSedesComponent,
@@ -192,6 +194,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'AVANCE DE METAS', icon: 'flag',    modulo: 'avance-metas' },
         { label: 'REPORTE GLOBAL', icon: 'public',  modulo: 'reporte-global' },
         { label: 'VENTAS POR LÍNEA', icon: 'category', modulo: 'ventas-linea' },
+        { label: 'VENTAS × TIPO PRODUCTO', icon: 'category', modulo: 'ventas-x-tipo-producto' },
         { label: 'PLAZO AV',     icon: 'storefront', modulo: 'ventas-plazo-av' }
       ]
     },

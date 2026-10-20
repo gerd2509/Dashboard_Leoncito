@@ -150,6 +150,14 @@ export class CargaVentasService {
     if (dia) params = params.set('dia', dia);
     return this.http.get<any[]>(`${this.root}/margen-linea-sede`, { params });
   }
+  /** Ventas por (tipo_producto, marca, sede) del mes — módulo "Ventas × Tipo de Producto". */
+  obtenerMargenProducto(anio: number, mes?: number): Observable<{
+    tipo_producto: string; marca: string; sede: string; cantidad: number; monto: number; margen_total: number; ops: number;
+  }[]> {
+    let params = new HttpParams().set('anio', anio);
+    if (mes) params = params.set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/margen-producto`, { params });
+  }
   /** Ventas netas por asesor × mes × categoría (Motos/Melamina/Resto) — módulo Ventas por Línea. */
   obtenerVentasLineaAsesor(rango: { canal: 'CALL' | 'REALZZA'; anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number }): Observable<{
     rows: { asesor: string; anio: number; mes: number; categoria: 'MOTOS' | 'MELAMINA' | 'RESTO'; monto: number; ops: number }[];

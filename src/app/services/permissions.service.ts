@@ -76,6 +76,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'avance-metas',                 label: 'Avance de Metas',              grupo: 'Ventas' },
   { key: 'reporte-global',               label: 'Reporte Global',               grupo: 'Ventas' },
   { key: 'ventas-linea',                 label: 'Ventas por Línea (Motos/Melamina)', grupo: 'Ventas' },
+  { key: 'ventas-x-tipo-producto',       label: 'Ventas × Tipo de Producto',    grupo: 'Ventas' },
   { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV',              grupo: 'Ventas' },
   { key: 'control-gestion-sede',         label: 'Control Gestión Sede',         grupo: 'Control & Sedes', sedeScoped: true },
