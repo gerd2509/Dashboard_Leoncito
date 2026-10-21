@@ -247,21 +247,25 @@ export class CargaVentasService {
    * según su fecha de creación. Para la "Maduración de Leads". Devuelve
    * [{ anio, mes, total }]. Opcional: filtrar por año.
    */
-  obtenerLeadsPorMes(canal: 'call' | 'realzza', anio?: number): Observable<{ anio: number; mes: number; total: number }[]> {
+  obtenerLeadsPorMes(canal: 'call' | 'realzza', anio?: number, tienda?: string): Observable<{ anio: number; mes: number; total: number }[]> {
     const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
     let params = new HttpParams();
     if (anio) params = params.set('anio', anio);
+    if (tienda) params = params.set('tienda', tienda);
     return this.http.get<{ anio: number; mes: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
 
   /**
    * Conteo de LEADS KOMMO ingresados por DÍA (para el gráfico de leads/día en la
    * Maduración de Leads). Devuelve [{ anio, mes, dia, total }]. Opcional: por año.
+   * `tienda` (solo Realzza): 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA' — clasifica
+   * por el nombre del Embudo de ventas de Kommo (…PIURA / …LIMA / el resto = Chiclayo).
    */
-  obtenerLeadsPorDia(canal: 'call' | 'realzza', anio?: number): Observable<{ anio: number; mes: number; dia: number; total: number }[]> {
+  obtenerLeadsPorDia(canal: 'call' | 'realzza', anio?: number, tienda?: string): Observable<{ anio: number; mes: number; dia: number; total: number }[]> {
     const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
     let params = new HttpParams().set('por', 'dia');
     if (anio) params = params.set('anio', anio);
+    if (tienda) params = params.set('tienda', tienda);
     return this.http.get<{ anio: number; mes: number; dia: number; total: number }[]>(`${this.root}/${path}`, { params });
   }
 

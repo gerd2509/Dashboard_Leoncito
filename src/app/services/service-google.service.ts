@@ -56,9 +56,9 @@ export class SheetsService {
   }
 
   /** Cruce por DNI en SQL (Maduración): { <dni>: ym } con el lead más antiguo por DNI. */
-  leadMatchKommo(canal: 'LEONCITO' | 'REALZZA', soloMP: boolean, dnis: string[]): Observable<Record<string, number>> {
+  leadMatchKommo(canal: 'LEONCITO' | 'REALZZA', soloMP: boolean, dnis: string[], tienda?: string): Observable<Record<string, number>> {
     return this.http.post<Record<string, number>>(
-      `${environment.gestionBase || environment.apiBase}/gestion-kommo/lead-match`, { canal, soloMP, dnis });
+      `${environment.gestionBase || environment.apiBase}/gestion-kommo/lead-match`, { canal, soloMP, dnis, tienda });
   }
 
   // 🆕 Gestión Realzza desde PostgreSQL (reemplaza el Google Form de campo).

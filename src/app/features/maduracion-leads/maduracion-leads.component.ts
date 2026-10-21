@@ -7,9 +7,11 @@ import { catchError } from 'rxjs/operators';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SheetsService } from '../../services/service-google.service';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { tiendaDeSedeRealzza } from '../../shared/canal-usuario';
 
 type Canal = 'call' | 'realzza';
 type Fuente = 'KOMMO' | 'MARKETPLACE';
+type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
 
 interface FilaMes {
   ym: number;                 // anio*12 + (mes-1), para ordenar
@@ -62,6 +64,8 @@ export class MaduracionLeadsComponent implements OnInit {
   form!: UntypedFormGroup;
   canal: Canal = 'call';
   fuente: Fuente = 'KOMMO';
+  // Solo aplica con canal 'realzza': Chiclayo (default) / Piura / Lima.
+  tienda: TiendaRealzza = 'REALZZA';
   cargando = false;
   error = '';
 
@@ -96,8 +100,9 @@ export class MaduracionLeadsComponent implements OnInit {
     this.cargar();
   }
 
-  setCanal(c: Canal): void { if (this.canal !== c) { this.canal = c; this.cargar(); } }
+  setCanal(c: Canal): void { if (this.canal !== c) { this.canal = c; this.tienda = 'REALZZA'; this.cargar(); } }
   setFuente(f: Fuente): void { if (this.fuente !== f) { this.fuente = f; this.recomputar(); } }
+  setTienda(t: TiendaRealzza): void { if (this.tienda !== t) { this.tienda = t; this.cargar(); } }
 
   cargar(): void {
     this.cargando = true; this.error = '';
@@ -108,11 +113,12 @@ export class MaduracionLeadsComponent implements OnInit {
 
     // Ventas de cada año del rango (merge) + leads por mes/día. El cruce con los
     // leads KOMMO YA NO descarga toda la hoja: se hace por DNI en SQL (lead-match).
+    const tiendaReq = this.canal === 'realzza' ? this.tienda : undefined;
     const ventas$ = anios.map(a => this.ventasSvc.obtenerVentasCanal(this.canal, { anio: a }).pipe(catchError(() => of([]))));
     forkJoin({
       ventas: forkJoin(ventas$.length ? ventas$ : [of([])]),
-      leads: this.ventasSvc.obtenerLeadsPorMes(this.canal).pipe(catchError(() => of([]))),
-      leadsDia: this.ventasSvc.obtenerLeadsPorDia(this.canal).pipe(catchError(() => of([]))),
+      leads: this.ventasSvc.obtenerLeadsPorMes(this.canal, undefined, tiendaReq).pipe(catchError(() => of([]))),
+      leadsDia: this.ventasSvc.obtenerLeadsPorDia(this.canal, undefined, tiendaReq).pipe(catchError(() => of([]))),
     }).subscribe({
       next: ({ ventas, leads, leadsDia }) => {
         this.ventas = ([] as any[]).concat(...ventas);
@@ -149,24 +155,32 @@ export class MaduracionLeadsComponent implements OnInit {
       return clave === 'KOMMO' || clave === 'BD KOMMO LEONCITO' || clave === 'BBDD KOMMO';
     };
 
+    // Realzza con tienda (Piura/Lima/Chiclayo): la tabla `ventas_realzza` trae TODAS
+    // las tiendas juntas, así que se filtra acá por la sede real de cada venta — igual
+    // que Ventas Realzza (ventas-campo.component.ts).
+    const ventasDeLaTienda = this.canal === 'realzza'
+      ? this.ventas.filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda)
+      : this.ventas;
+
     // Índice DNI → mes de ingreso del lead (FECHA DE LEAD ASIGNADO más antigua),
     // calculado por DNI EN SQL (no se descarga toda la hoja KOMMO al navegador).
     const canalDb: 'LEONCITO' | 'REALZZA' = this.canal === 'call' ? 'LEONCITO' : 'REALZZA';
+    const tiendaReq = this.canal === 'realzza' ? this.tienda : undefined;
     const dnisSet = new Set<string>();
-    for (const v of this.ventas) {
+    for (const v of ventasDeLaTienda) {
       if (!filtroVenta(v)) continue;
       const dni = this.dig(v.doc_identidad) || this.dig(v.dni_txt);
       if (dni) dnisSet.add(dni);
     }
     let idxLead: Record<string, number> = {};
     try {
-      idxLead = await lastValueFrom(this.sheets.leadMatchKommo(canalDb, soloMP, [...dnisSet]));
+      idxLead = await lastValueFrom(this.sheets.leadMatchKommo(canalDb, soloMP, [...dnisSet], tiendaReq));
     } catch { idxLead = {}; }
 
     const mapa = new Map<number, FilaMes>();
     const detalle: VentaDetalle[] = [];
     let sumaMeses = 0, conLead = 0;
-    for (const v of this.ventas) {
+    for (const v of ventasDeLaTienda) {
       if (!filtroVenta(v)) continue;
       const anio = +v.anio_cv, mes = +v.mes_cv;
       if (!anio || !mes) continue;

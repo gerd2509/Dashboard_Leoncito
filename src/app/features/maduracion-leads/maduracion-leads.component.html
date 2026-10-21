@@ -11,6 +11,12 @@
       <button [class.on]="canal === 'realzza'" (click)="setCanal('realzza')"><mat-icon>storefront</mat-icon> Realzza</button>
     </div>
 
+    <div class="ml-seg" *ngIf="canal === 'realzza'">
+      <button [class.on]="tienda === 'REALZZA'" (click)="setTienda('REALZZA')">Chiclayo</button>
+      <button [class.on]="tienda === 'REALZZA PIURA'" (click)="setTienda('REALZZA PIURA')">Piura</button>
+      <button [class.on]="tienda === 'REALZZA LIMA'" (click)="setTienda('REALZZA LIMA')">Lima</button>
+    </div>
+
     <div class="ml-seg ml-seg-alt">
       <button [class.on]="fuente === 'KOMMO'" (click)="setFuente('KOMMO')"><mat-icon>hub</mat-icon> KOMMO</button>
       <button [class.on]="fuente === 'MARKETPLACE'" (click)="setFuente('MARKETPLACE')"><mat-icon>shopping_cart</mat-icon> Market Place</button>
@@ -58,7 +64,7 @@
   <div class="ml-card">
     <div class="ml-card-h">
       <span><mat-icon>calendar_month</mat-icon> CONTEO DE VENTAS POR TIEMPO DE MADURACIÓN
-        <span class="ml-sub">{{ fuente === 'KOMMO' ? 'Origen KOMMO' : 'Market Place' }} · {{ canal | uppercase }}</span>
+        <span class="ml-sub">{{ fuente === 'KOMMO' ? 'Origen KOMMO' : 'Market Place' }} · {{ canal === 'realzza' ? (tienda | uppercase) : (canal | uppercase) }}</span>
       </span>
       <button class="ml-detalle-btn" *ngIf="filas.length" (click)="verDetalleTodo()" title="Ver el detalle de todas las ventas">
         <mat-icon>receipt_long</mat-icon> Ver detalle
