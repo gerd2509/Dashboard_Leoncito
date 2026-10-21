@@ -55,6 +55,11 @@ export class EvolutivoAsesorComponent implements OnInit {
   /** Resumen de TODOS los asesores del roster (total + curva mensual en miniatura),
    *  ordenado de mayor a menor monto. Se muestra arriba, antes de elegir un asesor. */
   resumenGlobal: ResumenAsesor[] = [];
+  /** Meses del rango elegido, en el MISMO orden que `ResumenAsesor.serie` — una
+   *  columna por mes en la tabla del resumen global. `calc` se arma UNA vez acá
+   *  (no en el template) para que la referencia no cambie en cada detección de
+   *  cambios — si no, dx-data-grid recrearía la columna constantemente. */
+  mesesColumnas: { ym: number; label: string; calc: (rowData: ResumenAsesor) => number }[] = [];
 
   kTotalMonto = 0;
   kTotalOps = 0;
@@ -157,6 +162,15 @@ export class EvolutivoAsesorComponent implements OnInit {
     const hasta = this.form.value.hasta as Date;
     const ymDesde = desde.getFullYear() * 12 + desde.getMonth();
     const ymHasta = hasta.getFullYear() * 12 + hasta.getMonth();
+
+    this.mesesColumnas = [];
+    for (let ym = ymDesde; ym <= ymHasta; ym++) {
+      const i = this.mesesColumnas.length;
+      this.mesesColumnas.push({
+        ym, label: `${this.MESES[ym % 12]} ${Math.floor(ym / 12)}`,
+        calc: (rowData: ResumenAsesor) => rowData.serie[i] ?? 0,
+      });
+    }
 
     const serieSel = this.asesorSel ? this.serieDe(this.asesorSel, ymDesde, ymHasta) : [];
     this.filas = serieSel.map(v => ({ ...v, label: `${this.MESES[v.ym % 12]} ${Math.floor(v.ym / 12)}` }));

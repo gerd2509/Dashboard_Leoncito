@@ -51,7 +51,9 @@
       [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true" [hoverStateEnabled]="true"
       [columnAutoWidth]="true" (onRowClick)="verDetalleDe($event.data)">
       <dxo-paging [enabled]="false"></dxo-paging>
-      <dxi-column dataField="nombre" caption="Asesor" alignment="left" cellTemplate="nombreTpl"></dxi-column>
+      <dxi-column dataField="nombre" caption="Asesor" alignment="left" cellTemplate="nombreTpl" [width]="220"></dxi-column>
+      <dxi-column *ngFor="let m of mesesColumnas" [caption]="m.label" dataType="number"
+        alignment="center" [calculateCellValue]="m.calc" [format]="'S/ #,##0'" [width]="110"></dxi-column>
       <dxi-column dataField="ops" caption="N° Operaciones" dataType="number" alignment="center" [width]="140"></dxi-column>
       <dxi-column dataField="monto" caption="Total Vendido" dataType="number" alignment="center" [format]="'S/ #,##0'" [width]="150"></dxi-column>
       <dxi-column caption="Evolutivo" alignment="center" [width]="180" cellTemplate="sparkTpl" [allowSorting]="false"></dxi-column>
