@@ -8,7 +8,8 @@
 .ea-head h2 { margin: 0; font-size: 18px; color: #1E3A5F; }
 .ea-head p { margin: 2px 0 0; font-size: 12.5px; color: #6b7a90; }
 
-.ea-tabs { display: inline-flex; border: 1px solid #cddcec; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+.ea-tabs-row { display: flex; align-items: center; gap: 18px; margin-bottom: 10px; flex-wrap: wrap; }
+.ea-tabs { display: inline-flex; border: 1px solid #cddcec; border-radius: 10px; overflow: hidden; }
 .ea-tabs button {
   border: 0; background: #fff; padding: 8px 16px; font-size: 13px; font-weight: 700;
   color: #4a6a88; cursor: pointer; display: flex; align-items: center; gap: 6px;
@@ -16,6 +17,7 @@
 .ea-tabs button + button { border-left: 1px solid #e3ecf5; }
 .ea-tabs button.active { background: #1A5FAD; color: #fff; }
 .ea-tabs-alt button { padding: 6px 14px; font-size: 12px; }
+.ea-tabs-sep { width: 1px; align-self: stretch; background: #cddcec; }
 
 .ea-form-row { margin-bottom: 14px; }
 .ea-form { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 6px 2px 10px; }

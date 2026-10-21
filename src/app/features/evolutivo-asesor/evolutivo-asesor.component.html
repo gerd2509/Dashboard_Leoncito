@@ -7,15 +7,19 @@
     </div>
   </div>
 
-  <div class="ea-tabs">
-    <button [class.active]="canal === 'CALL'" (click)="setCanal('CALL')"><mat-icon>call</mat-icon> Call Center</button>
-    <button [class.active]="canal === 'REALZZA'" (click)="setCanal('REALZZA')"><mat-icon>storefront</mat-icon> Realzza</button>
-  </div>
+  <div class="ea-tabs-row">
+    <div class="ea-tabs">
+      <button [class.active]="canal === 'CALL'" (click)="setCanal('CALL')"><mat-icon>call</mat-icon> Call Center</button>
+      <button [class.active]="canal === 'REALZZA'" (click)="setCanal('REALZZA')"><mat-icon>storefront</mat-icon> Realzza</button>
+    </div>
 
-  <div class="ea-tabs ea-tabs-alt" *ngIf="canal === 'REALZZA'">
-    <button [class.active]="tienda === 'REALZZA'" (click)="setTienda('REALZZA')">Chiclayo</button>
-    <button [class.active]="tienda === 'REALZZA PIURA'" (click)="setTienda('REALZZA PIURA')">Piura</button>
-    <button [class.active]="tienda === 'REALZZA LIMA'" (click)="setTienda('REALZZA LIMA')">Lima</button>
+    <div class="ea-tabs-sep" *ngIf="canal === 'REALZZA'"></div>
+
+    <div class="ea-tabs ea-tabs-alt" *ngIf="canal === 'REALZZA'">
+      <button [class.active]="tienda === 'REALZZA'" (click)="setTienda('REALZZA')">Chiclayo</button>
+      <button [class.active]="tienda === 'REALZZA PIURA'" (click)="setTienda('REALZZA PIURA')">Piura</button>
+      <button [class.active]="tienda === 'REALZZA LIMA'" (click)="setTienda('REALZZA LIMA')">Lima</button>
+    </div>
   </div>
 
   <div class="ea-form-row">
