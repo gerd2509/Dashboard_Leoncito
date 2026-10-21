@@ -57,6 +57,13 @@ export const ASESORES_CALL_CENTER_CARTERA = new Set([
   'SANDOVAL OTINIANO JUANA DEL PILAR',
 ]);
 
+/** Variantes/typos del mismo asesor en los datos de venta que no calzan con el
+ *  nombre exacto del roster (ej. "NICOLL" vs "NICOL" de Brenda) — sin esto, esas
+ *  ventas quedan sin cruzar con nadie (o como una fila aparte, duplicada). */
+export const ALIAS_REALZZA: Record<string, string> = {
+  'BERNAL BAZAN BRENDA NICOLL': 'BERNAL BAZAN BRENDA NICOL',
+};
+
 /** Nombres (solo) de un canal Call/Realzza. */
 export const nombresCall = () => ASESORES_CALL.map(a => a.nombre);
 export const nombresRealzza = () => ASESORES_REALZZA.map(a => a.nombre);

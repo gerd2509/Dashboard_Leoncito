@@ -6,7 +6,7 @@ import { CapSedesService } from '../../services/cap-sedes.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
-import { ASESORES_CALL, ASESORES_REALZZA } from '../../shared/asesores';
+import { ASESORES_CALL, ASESORES_REALZZA, ALIAS_REALZZA } from '../../shared/asesores';
 
 type Canal = 'CALL' | 'REALZZA';
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
@@ -138,7 +138,10 @@ export class EvolutivoAsesorComponent implements OnInit {
 
     if (this.asesorSel) {
       for (const r of this.rawRows) {
-        if ((r.asesor || '').toString().trim().toUpperCase() !== this.asesorSel) continue;
+        const key = (r.asesor || '').toString().trim().toUpperCase();
+        // Variantes/typos del mismo asesor en los datos (ej. "NICOLL" vs "NICOL" de
+        // Brenda) que si no se normalizan no calzan con nadie del roster.
+        if ((ALIAS_REALZZA[key] || key) !== this.asesorSel) continue;
         const ym = r.anio * 12 + (r.mes - 1);
         const cur = porMes.get(ym);
         if (!cur) continue;

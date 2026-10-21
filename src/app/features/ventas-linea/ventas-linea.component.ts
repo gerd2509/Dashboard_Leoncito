@@ -5,7 +5,7 @@ import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
-import { ASESORES_CALL, ASESORES_REALZZA, nombreCorto } from '../../shared/asesores';
+import { ASESORES_CALL, ASESORES_REALZZA, ALIAS_REALZZA, nombreCorto } from '../../shared/asesores';
 
 // Mapa código→nombre combinando AMBOS rosters actuales (Call + Realzza): un asesor
 // puede haber pasado de canal (ej. Kelly/Anita/Brenda: Call→Realzza desde set-2026)
@@ -18,12 +18,6 @@ const CODIGO_A_NOMBRE: Record<string, string> = Object.fromEntries(
 // realidad son de un asesor de CALL (derivación/cruce cobrado como venta Realzza) —
 // esas deben agruparse TODAS en una sola fila "CALL", no una fila por cada asesora.
 const NOMBRES_CALL = new Set(ASESORES_CALL.map(a => a.nombre.toUpperCase().trim()));
-// Variantes/typos del mismo asesor que no calzan con el nombre exacto del roster
-// (ej. "NICOLL" vs "NICOL") y terminaban como una segunda fila aparte, duplicada.
-const ALIAS_REALZZA: Record<string, string> = {
-  'BERNAL BAZAN BRENDA NICOLL': 'BERNAL BAZAN BRENDA NICOL',
-};
-
 interface MesCol { anio: number; mes: number; label: string; proyeccion: boolean; }
 interface FilaLinea { asesor: string; nombre: string; valores: number[]; total: number; }
 type Categoria = 'MOTOS' | 'MELAMINA' | 'RESTO';
