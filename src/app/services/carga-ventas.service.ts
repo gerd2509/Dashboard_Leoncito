@@ -281,6 +281,26 @@ export class CargaVentasService {
   }
 
   /**
+   * Leads a cargo de cada asesor (columna Embudo de ventas de Kommo) en el rango de
+   * fechas, con cuántos siguen SIN RESPONDER (columna "Modificado por" vacía — ojo:
+   * no distingue entre "nunca se respondió" y "se respondió pero el lead volvió a
+   * escribir y no se le respondió de nuevo", solo si el último registro de Kommo
+   * quedó sin un "modificado por"). Para la Maduración de Leads.
+   */
+  obtenerLeadsPorAsesor(
+    canal: 'call' | 'realzza',
+    rango: { anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number },
+    tienda?: string,
+  ): Observable<{ asesor: string; total: number; sin_responder: number }[]> {
+    const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
+    let params = new HttpParams()
+      .set('anioDesde', rango.anioDesde).set('mesDesde', rango.mesDesde)
+      .set('anioHasta', rango.anioHasta).set('mesHasta', rango.mesHasta);
+    if (tienda) params = params.set('tienda', tienda);
+    return this.http.get<any[]>(`${this.root}/${path}/por-asesor`, { params });
+  }
+
+  /**
    * Data del módulo Ventas Realzza reconstruyendo los 2 movimientos (CV y NC) de cada
    * venta por AÑO: la venta cuenta en su mes CV, la NC resta en su mes de AF. Respeta el
    * TipoBase de ventas_realzza (Realzza tal cual; CALL solo si se puso a mano).

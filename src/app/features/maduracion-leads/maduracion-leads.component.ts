@@ -27,6 +27,14 @@ interface FilaMes {
 }
 
 /** Una venta considerada en la maduración (para el popup de detalle mes a mes). */
+/** Leads a cargo de un asesor (Embudo de ventas) + cuántos siguen sin responder. */
+interface LeadsAsesor {
+  asesor: string;
+  total: number;
+  sinResponder: number;
+  pctSinResponder: number;
+}
+
 interface VentaDetalle {
   ym: number;             // mes de la venta (para filtrar por mes)
   fecha: string;          // dd/MM/yyyy de la venta
@@ -79,6 +87,9 @@ export class MaduracionLeadsComponent implements OnInit {
   leadsDiaData: any[] = [];
   private ventasDetalle: VentaDetalle[] = [];
 
+  // Leads a cargo de cada asesor (Embudo de ventas) + sin responder, en el rango elegido.
+  leadsPorAsesor: LeadsAsesor[] = [];
+
   // Resultado
   filas: FilaMes[] = [];
   // KPIs
@@ -114,16 +125,25 @@ export class MaduracionLeadsComponent implements OnInit {
     // Ventas de cada año del rango (merge) + leads por mes/día. El cruce con los
     // leads KOMMO YA NO descarga toda la hoja: se hace por DNI en SQL (lead-match).
     const tiendaReq = this.canal === 'realzza' ? this.tienda : undefined;
+    const rangoAsesor = {
+      anioDesde: desde.getFullYear(), mesDesde: desde.getMonth() + 1,
+      anioHasta: hasta.getFullYear(), mesHasta: hasta.getMonth() + 1,
+    };
     const ventas$ = anios.map(a => this.ventasSvc.obtenerVentasCanal(this.canal, { anio: a }).pipe(catchError(() => of([]))));
     forkJoin({
       ventas: forkJoin(ventas$.length ? ventas$ : [of([])]),
       leads: this.ventasSvc.obtenerLeadsPorMes(this.canal, undefined, tiendaReq).pipe(catchError(() => of([]))),
       leadsDia: this.ventasSvc.obtenerLeadsPorDia(this.canal, undefined, tiendaReq).pipe(catchError(() => of([]))),
+      leadsAsesor: this.ventasSvc.obtenerLeadsPorAsesor(this.canal, rangoAsesor, tiendaReq).pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ ventas, leads, leadsDia }) => {
+      next: ({ ventas, leads, leadsDia, leadsAsesor }) => {
         this.ventas = ([] as any[]).concat(...ventas);
         this.leadsPorMes = leads || [];
         this.leadsPorDia = leadsDia || [];
+        this.leadsPorAsesor = (leadsAsesor || []).map(a => ({
+          asesor: a.asesor, total: a.total, sinResponder: a.sin_responder,
+          pctSinResponder: a.total ? (a.sin_responder / a.total) * 100 : 0,
+        }));
         this.recomputar();   // async: hace el lead-match y apaga el spinner al terminar
       },
       error: () => { this.error = 'No se pudo cargar la información.'; this.cargando = false; },
@@ -334,6 +354,11 @@ export class MaduracionLeadsComponent implements OnInit {
 
   /** % de una parte respecto del total (para la distribución por mes). */
   pct(parte: number, total: number): number { return total > 0 ? (parte / total) * 100 : 0; }
+
+  // ── Totales de la tabla "Leads por asesor" ──
+  get totLeadsAsesor(): number { return this.leadsPorAsesor.reduce((s, a) => s + a.total, 0); }
+  get totSinResponder(): number { return this.leadsPorAsesor.reduce((s, a) => s + a.sinResponder, 0); }
+  get pctSinResponderGlobal(): number { return this.pct(this.totSinResponder, this.totLeadsAsesor); }
 
   // KPIs de distribución (del total de ventas, por tiempo de maduración).
   get distM0(): number { return this.pct(this.tot.m0, this.tot.totalVentas); }

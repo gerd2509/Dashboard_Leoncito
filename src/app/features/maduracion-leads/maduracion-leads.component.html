@@ -140,6 +140,42 @@
     </div>
   </div>
 
+  <!-- Tabla: LEADS A CARGO POR ASESOR (Embudo de ventas) + sin responder -->
+  <div class="ml-card" *ngIf="hayLeads">
+    <div class="ml-card-h ml-card-h-col">
+      <span><mat-icon>support_agent</mat-icon> LEADS POR ASESOR</span>
+      <span class="ml-sub ml-sub-block">
+        "Sin responder" = el último registro de Kommo quedó sin "Modificado por". No distingue si
+        nunca se respondió o si se respondió y el lead volvió a escribir sin nueva respuesta.
+      </span>
+    </div>
+    <div class="ml-table-wrap">
+      <table class="ml-table">
+        <thead><tr>
+          <th class="l">Asesor (Embudo)</th>
+          <th>Leads a cargo</th><th>Sin responder</th><th>% sin responder</th>
+        </tr></thead>
+        <tbody>
+          <tr *ngFor="let a of leadsPorAsesor">
+            <td class="l">{{ a.asesor }}</td>
+            <td>{{ a.total | number }}</td>
+            <td [class.neg]="a.sinResponder > 0">{{ a.sinResponder | number }}</td>
+            <td [class.neg]="a.pctSinResponder >= 20">{{ a.pctSinResponder | number:'1.1-1' }}%</td>
+          </tr>
+          <tr *ngIf="!leadsPorAsesor.length && !cargando"><td class="l vacio" colspan="4">Sin datos para el rango seleccionado.</td></tr>
+        </tbody>
+        <tfoot *ngIf="leadsPorAsesor.length">
+          <tr>
+            <td class="l">TOTAL</td>
+            <td class="tot">{{ totLeadsAsesor | number }}</td>
+            <td class="tot">{{ totSinResponder | number }}</td>
+            <td class="tot">{{ pctSinResponderGlobal | number:'1.1-1' }}%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
   <!-- Tabla: DISTRIBUCIÓN PORCENTUAL por mes (sobre el conteo de ventas del mes) -->
   <div class="ml-card" *ngIf="filas.length">
     <div class="ml-card-h"><span><mat-icon>percent</mat-icon> DISTRIBUCIÓN PORCENTUAL POR MES DE VENTA</span></div>
