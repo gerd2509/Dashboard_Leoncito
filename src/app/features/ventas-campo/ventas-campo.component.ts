@@ -440,7 +440,12 @@ export class VentasCampoComponent implements OnInit {
       arr.push({ linea, valorVenta: vv });
       if (mr.cliente && !margenCliente.has(codigo)) margenCliente.set(codigo, mr.cliente);
       const t = margenTot.get(codigo) || { vv: 0, mt: 0 }; t.vv += vv; t.mt += mt; margenTot.set(codigo, t);
-      if ((mr.sede || '').toString().trim().toUpperCase() === 'REALZZA') {
+      // La sede del margen ya no es siempre 'REALZZA' a secas (ahora puede venir como
+      // 'REALZZA CIX', 'REALZZA PIURA' o 'REALZZA LIMA' según la tienda física) — se
+      // clasifica con el mismo helper que el resto del módulo y se filtra por la
+      // tienda que se está viendo (o todas, si tiendaVentas === 'TODAS').
+      if (esSedeRealzza(mr.sede) &&
+          (this.tiendaVentas === 'TODAS' || tiendaDeSedeRealzza(mr.sede) === this.tiendaVentas)) {
         this.dataMargen.push({ Codigo: codigo, LineaReal: linea, ValorVenta: vv, MargenTotal: mt, FECHAVENTA: this.fechaLocal(mr.fecha) });
       }
     }
@@ -593,7 +598,10 @@ export class VentasCampoComponent implements OnInit {
               existing.push({ linea, valorVenta });
               margenMap.set(codigo, existing);
             }
-            if (sede === 'REALZZA') {
+            // Mismo criterio que procesarBD(): clasificar por tienda real (CIX/Piura/
+            // Lima), no por igualdad exacta a 'REALZZA'.
+            if (esSedeRealzza(sede) &&
+                (this.tiendaVentas === 'TODAS' || tiendaDeSedeRealzza(sede) === this.tiendaVentas)) {
               this.dataMargen.push({
                 Codigo: codigo,
                 LineaReal: linea,
