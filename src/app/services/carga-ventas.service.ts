@@ -159,15 +159,20 @@ export class CargaVentasService {
     if (mes) params = params.set('mes', mes);
     return this.http.get<any[]>(`${this.root}/margen-producto`, { params });
   }
-  /** Ventas netas por asesor × mes × categoría (Motos/Melamina/Resto) — módulo Ventas por Línea. */
-  obtenerVentasLineaAsesor(rango: { canal: 'CALL' | 'REALZZA'; anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number }): Observable<{
+  /**
+   * Ventas netas por asesor × mes × categoría (Motos/Melamina/Resto) — módulo Ventas
+   * por Línea y Evolutivo por Asesor. `tienda` (solo canal REALZZA): 'REALZZA' |
+   * 'REALZZA PIURA' | 'REALZZA LIMA' — si no se manda, trae las 3 tiendas juntas.
+   */
+  obtenerVentasLineaAsesor(rango: { canal: 'CALL' | 'REALZZA'; anioDesde: number; mesDesde: number; anioHasta: number; mesHasta: number; tienda?: string }): Observable<{
     rows: { asesor: string; anio: number; mes: number; categoria: 'MOTOS' | 'MELAMINA' | 'RESTO'; monto: number; ops: number }[];
     mesesProyeccion: string[];
   }> {
-    const params = new HttpParams()
+    let params = new HttpParams()
       .set('canal', rango.canal)
       .set('anioDesde', rango.anioDesde).set('mesDesde', rango.mesDesde)
       .set('anioHasta', rango.anioHasta).set('mesHasta', rango.mesHasta);
+    if (rango.tienda) params = params.set('tienda', rango.tienda);
     return this.http.get<any>(`${this.root}/ventas-linea-asesor`, { params });
   }
   /** Guarda (upsert) una meta editada directamente en el módulo. */

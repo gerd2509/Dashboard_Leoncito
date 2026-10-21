@@ -76,6 +76,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'avance-metas',                 label: 'Avance de Metas',              grupo: 'Ventas' },
   { key: 'reporte-global',               label: 'Reporte Global',               grupo: 'Ventas' },
   { key: 'ventas-linea',                 label: 'Ventas por Línea (Motos/Melamina)', grupo: 'Ventas' },
+  { key: 'evolutivo-asesor',             label: 'Evolutivo por Asesor',         grupo: 'Ventas' },
   { key: 'ventas-x-tipo-producto',       label: 'Ventas × Tipo de Producto',    grupo: 'Ventas' },
   { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV',              grupo: 'Ventas' },
@@ -115,12 +116,12 @@ export const CALL_MODULES = [
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
   'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
-  'avance-metas', 'reporte-global', 'seguimiento-135', 'ventas-linea',
+  'avance-metas', 'reporte-global', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor',
 ];
 export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
-  'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea',
+  'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).

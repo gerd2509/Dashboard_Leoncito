@@ -24,6 +24,7 @@ import { AvanceMetasComponent } from "../features/avance-metas/avance-metas.comp
 import { ReporteGlobalComponent } from "../features/reporte-global/reporte-global.component";
 import { VentasLineaComponent } from "../features/ventas-linea/ventas-linea.component";
 import { VentasXTipoProductoComponent } from "../features/ventas-x-tipo-producto/ventas-x-tipo-producto.component";
+import { EvolutivoAsesorComponent } from "../features/evolutivo-asesor/evolutivo-asesor.component";
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
 import { GestionDerivacionesSedeComponent } from "../features/Gestion/gestion-derivaciones-sede/gestion-derivaciones-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
@@ -100,6 +101,7 @@ interface MenuItem {
     ReporteGlobalComponent,
     VentasLineaComponent,
     VentasXTipoProductoComponent,
+    EvolutivoAsesorComponent,
     GestionSedeComponent,
     GestionDerivacionesSedeComponent,
     GestionCallSedesComponent,
@@ -195,6 +197,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'REPORTE GLOBAL', icon: 'public',  modulo: 'reporte-global' },
         { label: 'VENTAS POR LÍNEA', icon: 'category', modulo: 'ventas-linea' },
         { label: 'VENTAS × TIPO PRODUCTO', icon: 'category', modulo: 'ventas-x-tipo-producto' },
+        { label: 'EVOLUTIVO POR ASESOR', icon: 'trending_up', modulo: 'evolutivo-asesor' },
         { label: 'PLAZO AV',     icon: 'storefront', modulo: 'ventas-plazo-av' }
       ]
     },
