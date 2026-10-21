@@ -45,6 +45,11 @@
   margin-bottom: 10px; letter-spacing: .3px;
 }
 .ea-card-h mat-icon { color: #1A5FAD; }
+.ea-sub { font-size: 12px; font-weight: 600; color: #7d93a8; margin-left: 8px; }
+
+.ea-spark-cell { display: flex; align-items: center; justify-content: center; }
+.ea-fila-sel { font-weight: 800; color: #1A5FAD; }
+::ng-deep .ea-card .dx-data-grid .dx-row { cursor: pointer; }
 
 .ea-table-wrap { overflow-x: auto; }
 .ea-table { width: 100%; border-collapse: collapse; font-size: 13px; }

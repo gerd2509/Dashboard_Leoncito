@@ -15,6 +15,9 @@ type Categoria = 'MOTOS' | 'MELAMINA' | 'RESTO';
 interface AsesorOpcion { value: string; nombre: string; }
 interface FilaMesAsesor { ym: number; label: string; monto: number; ops: number; }
 interface RawRow { asesor: string; anio: number; mes: number; categoria: Categoria; monto: number; ops: number; }
+/** Fila del resumen global: un asesor, su total del rango y su curva mensual (para
+ *  el mini-gráfico) — montos nada más, en el mismo orden que `filas`. */
+interface ResumenAsesor { value: string; nombre: string; monto: number; ops: number; serie: number[]; }
 
 /**
  * "Evolutivo por Asesor": elige Call o Realzza (y, dentro de Realzza, Chiclayo/Piura/
@@ -48,6 +51,10 @@ export class EvolutivoAsesorComponent implements OnInit {
   private rawRows: RawRow[] = [];
   filas: FilaMesAsesor[] = [];
   chartData: any[] = [];
+
+  /** Resumen de TODOS los asesores del roster (total + curva mensual en miniatura),
+   *  ordenado de mayor a menor monto. Se muestra arriba, antes de elegir un asesor. */
+  resumenGlobal: ResumenAsesor[] = [];
 
   kTotalMonto = 0;
   kTotalOps = 0;
@@ -125,39 +132,56 @@ export class EvolutivoAsesorComponent implements OnInit {
     }
   }
 
-  /** Suma el monto/ops del asesor elegido por mes, rellenando con 0 los meses sin
-   *  venta (para que el evolutivo no tenga huecos en el rango elegido). */
+  /** Monto/ops por mes de UN asesor, rellenando con 0 los meses sin venta (para que
+   *  el evolutivo no tenga huecos en el rango elegido). Normaliza variantes/typos
+   *  conocidas (ej. "NICOLL" vs "NICOL" de Brenda) antes de comparar. */
+  private serieDe(asesorValue: string, ymDesde: number, ymHasta: number): { ym: number; monto: number; ops: number }[] {
+    const porMes = new Map<number, { monto: number; ops: number }>();
+    for (let ym = ymDesde; ym <= ymHasta; ym++) porMes.set(ym, { monto: 0, ops: 0 });
+    for (const r of this.rawRows) {
+      const key = (r.asesor || '').toString().trim().toUpperCase();
+      if ((ALIAS_REALZZA[key] || key) !== asesorValue) continue;
+      const ym = r.anio * 12 + (r.mes - 1);
+      const cur = porMes.get(ym);
+      if (!cur) continue;
+      cur.monto += Number(r.monto) || 0;
+      cur.ops += Number(r.ops) || 0;
+    }
+    return Array.from(porMes.entries()).sort((a, b) => a[0] - b[0]).map(([ym, v]) => ({ ym, monto: Math.round(v.monto), ops: v.ops }));
+  }
+
+  /** Recalcula el detalle del asesor elegido Y el resumen global (todo el roster),
+   *  ambos en el mismo rango de fechas elegido. */
   private recomputarSerie(): void {
     const desde = this.form.value.desde as Date;
     const hasta = this.form.value.hasta as Date;
     const ymDesde = desde.getFullYear() * 12 + desde.getMonth();
     const ymHasta = hasta.getFullYear() * 12 + hasta.getMonth();
 
-    const porMes = new Map<number, { monto: number; ops: number }>();
-    for (let ym = ymDesde; ym <= ymHasta; ym++) porMes.set(ym, { monto: 0, ops: 0 });
-
-    if (this.asesorSel) {
-      for (const r of this.rawRows) {
-        const key = (r.asesor || '').toString().trim().toUpperCase();
-        // Variantes/typos del mismo asesor en los datos (ej. "NICOLL" vs "NICOL" de
-        // Brenda) que si no se normalizan no calzan con nadie del roster.
-        if ((ALIAS_REALZZA[key] || key) !== this.asesorSel) continue;
-        const ym = r.anio * 12 + (r.mes - 1);
-        const cur = porMes.get(ym);
-        if (!cur) continue;
-        cur.monto += Number(r.monto) || 0;
-        cur.ops += Number(r.ops) || 0;
-      }
-    }
-
-    this.filas = Array.from(porMes.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([ym, v]) => ({ ym, label: `${this.MESES[ym % 12]} ${Math.floor(ym / 12)}`, monto: Math.round(v.monto), ops: v.ops }));
-
+    const serieSel = this.asesorSel ? this.serieDe(this.asesorSel, ymDesde, ymHasta) : [];
+    this.filas = serieSel.map(v => ({ ...v, label: `${this.MESES[v.ym % 12]} ${Math.floor(v.ym / 12)}` }));
     this.chartData = this.filas.map(f => ({ mes: f.label, Monto: f.monto }));
     this.kTotalMonto = this.filas.reduce((s, f) => s + f.monto, 0);
     this.kTotalOps = this.filas.reduce((s, f) => s + f.ops, 0);
     this.kPromedioMes = this.filas.length ? this.kTotalMonto / this.filas.length : 0;
+
+    this.resumenGlobal = this.roster
+      .map(r => {
+        const serie = this.serieDe(r.value, ymDesde, ymHasta);
+        return {
+          value: r.value, nombre: r.nombre,
+          monto: serie.reduce((s, v) => s + v.monto, 0),
+          ops: serie.reduce((s, v) => s + v.ops, 0),
+          serie: serie.map(v => v.monto),
+        };
+      })
+      .sort((a, b) => b.monto - a.monto);
+  }
+
+  /** Al hacer click en una fila del resumen global, selecciona ese asesor en el detalle. */
+  verDetalleDe(a: ResumenAsesor): void {
+    this.asesorSel = a.value;
+    this.recomputarSerie();
   }
 
   get nombreAsesorSel(): string {

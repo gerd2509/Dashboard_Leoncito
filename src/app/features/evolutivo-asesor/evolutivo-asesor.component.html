@@ -42,9 +42,32 @@
 
   <div class="ea-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
 
+  <div class="ea-card" *ngIf="!error && resumenGlobal.length">
+    <div class="ea-card-h">
+      <mat-icon>groups</mat-icon> RESUMEN GLOBAL — TODOS LOS ASESORES
+      <span class="ea-sub">Click en una fila para ver su detalle abajo</span>
+    </div>
+    <dx-data-grid [dataSource]="resumenGlobal" class="focqus-elevation" [showBorders]="true"
+      [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true" [hoverStateEnabled]="true"
+      [columnAutoWidth]="true" (onRowClick)="verDetalleDe($event.data)">
+      <dxo-paging [enabled]="false"></dxo-paging>
+      <dxi-column dataField="nombre" caption="Asesor" alignment="left" cellTemplate="nombreTpl"></dxi-column>
+      <dxi-column dataField="ops" caption="N° Operaciones" dataType="number" alignment="center" [width]="140"></dxi-column>
+      <dxi-column dataField="monto" caption="Total Vendido" dataType="number" alignment="center" [format]="'S/ #,##0'" [width]="150"></dxi-column>
+      <dxi-column caption="Evolutivo" alignment="center" [width]="180" cellTemplate="sparkTpl" [allowSorting]="false"></dxi-column>
+
+      <div *dxTemplate="let c of 'nombreTpl'" [class.ea-fila-sel]="c.data.value === asesorSel">{{ c.value }}</div>
+      <div *dxTemplate="let c of 'sparkTpl'" class="ea-spark-cell">
+        <dx-sparkline [dataSource]="c.data.serie" type="area" lineColor="#1A5FAD" firstLastColor="#1A5FAD"
+          minColor="#C62828" maxColor="#2E7D32" [showMinMax]="true" [showFirstLast]="false"
+          [tooltip]="{ enabled: false }" [size]="{ height: 32, width: 150 }"></dx-sparkline>
+      </div>
+    </dx-data-grid>
+  </div>
+
   <div class="ea-vacio" *ngIf="!error && !asesorSel">
     <mat-icon>person_search</mat-icon>
-    <p>Selecciona un asesor para ver su evolutivo de ventas.</p>
+    <p>Elige un asesor (arriba en el combo, o haciendo click en una fila del resumen) para ver su detalle.</p>
   </div>
 
   <ng-container *ngIf="asesorSel">
