@@ -60,7 +60,7 @@
 
     <dx-data-grid #grid *ngIf="filas.length" [dataSource]="filas" class="focqus-elevation" [showBorders]="true"
       [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true" [hoverStateEnabled]="true"
-      [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
+      [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)" (onContentReady)="recomputarResumen()">
       <dxo-paging [pageSize]="10"></dxo-paging>
       <dxo-pager [visible]="true" [showPageSizeSelector]="true" [allowedPageSizes]="[10, 25, 50, 100]" [showInfo]="true"></dxo-pager>
       <dxo-filter-row [visible]="true"></dxo-filter-row>
@@ -85,5 +85,39 @@
       <mat-icon>inbox</mat-icon>
       <p>Sin leads para ese mes. Prueba "Sincronizar con Kommo" para traerlos.</p>
     </div>
+  </div>
+
+  <div class="lk-resumen" *ngIf="resumenEmbudo.length">
+    <h3><mat-icon>bar_chart</mat-icon> Detalle por asesor / embudo</h3>
+    <p class="lk-resumen-hint">Refleja el filtro o búsqueda activo en la grilla de arriba.</p>
+    <table class="lk-tabla-resumen">
+      <thead>
+        <tr>
+          <th>Embudo</th>
+          <th>Total</th>
+          <th>Respondidos</th>
+          <th>Sin responder</th>
+          <th>% Respondidos</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of resumenEmbudo">
+          <td class="lk-tr-embudo">{{ r.embudo }}</td>
+          <td class="lk-tr-num">{{ r.total | number }}</td>
+          <td class="lk-tr-num lk-tr-si">{{ r.respondidos | number }}</td>
+          <td class="lk-tr-num" [class.lk-tr-no]="r.noRespondidos > 0">{{ r.noRespondidos | number }}</td>
+          <td class="lk-tr-num">{{ r.pctRespondidos | number:'1.0-0' }}%</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Total</td>
+          <td class="lk-tr-num">{{ resumenTotal.total | number }}</td>
+          <td class="lk-tr-num lk-tr-si">{{ resumenTotal.respondidos | number }}</td>
+          <td class="lk-tr-num lk-tr-no">{{ resumenTotal.noRespondidos | number }}</td>
+          <td class="lk-tr-num">{{ resumenTotal.total ? (resumenTotal.respondidos / resumenTotal.total * 100 | number:'1.0-0') : 0 }}%</td>
+        </tr>
+      </tfoot>
+    </table>
   </div>
 </div>

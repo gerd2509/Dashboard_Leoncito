@@ -52,3 +52,29 @@
 .lk-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .lk-badge-si { background: #E8F5E9; color: #2E7D32; }
 .lk-badge-no { background: #FFEBEE; color: #C62828; }
+
+.lk-resumen { margin-top: 20px; }
+.lk-resumen h3 {
+  display: flex; align-items: center; gap: 6px; margin: 0; font-size: 15px; color: #1E3A5F;
+}
+.lk-resumen h3 mat-icon { font-size: 19px; width: 19px; height: 19px; color: #1A5FAD; }
+.lk-resumen-hint { margin: 2px 0 10px; font-size: 12px; color: #6b7a90; }
+
+.lk-tabla-resumen {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  border: 1px solid #e3e9f2; border-radius: 10px; overflow: hidden;
+}
+.lk-tabla-resumen th, .lk-tabla-resumen td { padding: 8px 14px; text-align: left; border-bottom: 1px solid #eef2f8; }
+.lk-tabla-resumen th {
+  background: #293964; color: #fff; font-weight: 700; font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.lk-tabla-resumen tbody tr:nth-child(even) { background: #F8FAFD; }
+.lk-tabla-resumen tbody tr:hover { background: #EEF4FB; }
+.lk-tabla-resumen tfoot td {
+  font-weight: 700; background: #F4F7FC; border-top: 2px solid #cddcec; border-bottom: none;
+}
+.lk-tr-embudo { font-weight: 600; color: #1E3A5F; }
+.lk-tr-num { text-align: right; }
+.lk-tr-si { color: #2E7D32; }
+.lk-tr-no { color: #C62828; }

@@ -17,6 +17,10 @@ interface FilaLead {
   fecha_creacion: string; ultima_modificacion: string; modificado_por: string; respondido: boolean;
 }
 
+interface ResumenEmbudo {
+  embudo: string; total: number; respondidos: number; noRespondidos: number; pctRespondidos: number;
+}
+
 /**
  * "Listado Kommo Realzza": trae los leads del mes directo de la API de Kommo (botón
  * Sincronizar) y los lista con su embudo/estado/fechas/quién los modificó — para ver
@@ -119,9 +123,9 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     await this.excelSrv.exportarDesdeGrid(this.nombreBase('Listado Kommo Realzza'), this.grid);
   }
 
-  /** Exporta a Excel SEPARADO POR EMBUDO (asesor): un libro con una hoja por cada
-   *  embudo, así se puede mandar el detalle de cada uno por separado. Respeta el
-   *  mismo filtro/búsqueda activo en la grilla que el export general. */
+  /** Exporta a Excel SEPARADO POR EMBUDO (asesor): un archivo .xlsx distinto por cada
+   *  embudo, nombrado con el embudo, así se puede mandar el detalle de cada uno por
+   *  separado. Respeta el mismo filtro/búsqueda activo en la grilla que el export general. */
   async exportarPorEmbudo(): Promise<void> {
     if (!this.grid || !this.filas.length) return;
     const store = this.grid.instance.getDataSource().store();
@@ -148,29 +152,30 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       { header: 'Respondido', key: 'respondido' },
     ];
 
-    const wb = new Workbook();
     const nombresUsados = new Set<string>();
     for (const [embudo, lista] of [...porEmbudo.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-      const ws = wb.addWorksheet(this.nombreHojaValido(embudo, nombresUsados));
+      const wb = new Workbook();
+      const ws = wb.addWorksheet('Leads');
       const hr = ws.addRow(columnas.map(c => c.header));
       hr.font = { bold: true };
       for (const f of lista) {
         ws.addRow(columnas.map(c => (c.key === 'respondido' ? (f.respondido ? 'Sí' : 'No') : (f as any)[c.key])));
       }
       ws.columns.forEach(col => { col.width = 20; });
-    }
 
-    const buffer = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    FileSaver.saveAs(blob, `${this.nombreBase('Leads por Asesor')}.xlsx`);
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      FileSaver.saveAs(blob, `${this.nombreArchivoValido(embudo, nombresUsados)}.xlsx`);
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
   }
 
-  /** Nombre de hoja Excel válido: máx. 31 caracteres, sin \ / * ? : [ ], sin repetir
-   *  uno ya usado en el mismo libro. */
-  private nombreHojaValido(nombre: string, usados: Set<string>): string {
-    const limpio = (nombre || 'SIN EMBUDO').toString().replace(/[\\/*?:[\]]/g, ' ').trim().substring(0, 28) || 'SIN EMBUDO';
-    let final = limpio, i = 2;
-    while (usados.has(final)) final = `${limpio} (${i++})`.substring(0, 31);
+  /** Nombre de archivo válido para un embudo: sin caracteres inválidos, sin repetir
+   *  uno ya usado en la misma exportación. */
+  private nombreArchivoValido(embudo: string, usados: Set<string>): string {
+    const base = `${this.nombreBase('Leads')} - ${embudo || 'SIN EMBUDO'}`.replace(/[\\/:*?"<>|]/g, '').trim();
+    let final = base, i = 2;
+    while (usados.has(final)) final = `${base} (${i++})`;
     usados.add(final);
     return final;
   }
@@ -178,6 +183,36 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   get totalLeads(): number { return this.filas.length; }
   get totalSinResponder(): number { return this.filas.filter(f => !f.respondido).length; }
   get pctSinResponder(): number { return this.totalLeads ? (this.totalSinResponder / this.totalLeads) * 100 : 0; }
+
+  resumenEmbudo: ResumenEmbudo[] = [];
+
+  /** Recalcula el detalle por asesor/embudo a partir de lo que la grilla tiene
+   *  CARGADO AHORA (ya filtrado/buscado) — se dispara cada vez que la grilla
+   *  re-renderiza por un filtro, búsqueda o carga de datos nueva. */
+  recomputarResumen(): void {
+    const datos: FilaLead[] = this.grid ? (this.grid.instance.getDataSource()?.items() as FilaLead[] || []) : this.filas;
+    const porEmbudo = new Map<string, { total: number; respondidos: number }>();
+    for (const f of datos) {
+      const clave = f.embudo || 'SIN EMBUDO';
+      const acc = porEmbudo.get(clave) || { total: 0, respondidos: 0 };
+      acc.total++;
+      if (f.respondido) acc.respondidos++;
+      porEmbudo.set(clave, acc);
+    }
+    this.resumenEmbudo = [...porEmbudo.entries()]
+      .map(([embudo, { total, respondidos }]) => ({
+        embudo, total, respondidos, noRespondidos: total - respondidos,
+        pctRespondidos: total ? (respondidos / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }
+
+  get resumenTotal(): { total: number; respondidos: number; noRespondidos: number } {
+    return this.resumenEmbudo.reduce(
+      (acc, r) => ({ total: acc.total + r.total, respondidos: acc.respondidos + r.respondidos, noRespondidos: acc.noRespondidos + r.noRespondidos }),
+      { total: 0, respondidos: 0, noRespondidos: 0 },
+    );
+  }
 
   onCellPrepared(e: any): void {
     if (e.rowType === 'header') {
