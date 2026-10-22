@@ -308,14 +308,18 @@ export class EmbudosGestionComponent {
    * Arma el embudo KOMMO (LEADS):
    *  ASIGNADOS = leads del mes (tabla leads_kommo_<canal>, en BD);
    *  CONTACTADOS = de esos, con "Modificado por" no vacío;
-   *  GESTIONADOS = registros de gestión Kommo con FECHA DE LEAD ASIGNADO en el mes;
+   *  GESTIONADOS = registros de gestión Kommo con FECHA DE LEAD ASIGNADO en el mes
+   *  Y Market Place = NO (los marcados SI son del embudo Market Place aparte — no
+   *  se cuentan en los dos lados, cada gestión es de uno o del otro);
    *  INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO;
    *  TOTAL VENTAS = ventas KOMMO del mes (ventas reales; Market Place es su propio
    *  embudo aparte, no se mezcla acá).
    */
   private armarEmbudoKommo(mes: number, anio: number, dataVentas: any[], dataKommo: any[], leadsDetalle: any[], color: string): Embudo {
     const ventasKommo = this.contarVentasPorTipo(dataVentas, mes, 'kommo');
-    const kommoMes = (dataKommo || []).filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio));
+    const kommoMes = (dataKommo || [])
+      .filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio))
+      .filter(r => this.norm(r[this.campoMarketPlace]) !== 'si');
     const asignados = leadsDetalle.length;
     const contactados = leadsDetalle.filter(r => (r.modificado_por ?? '').toString().trim() !== '').length;
     const gestionados = kommoMes.length;
