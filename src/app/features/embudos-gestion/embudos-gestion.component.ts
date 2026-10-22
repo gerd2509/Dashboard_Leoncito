@@ -515,8 +515,8 @@ export class EmbudosGestionComponent {
   private dig(v: any): string { return (v ?? '').toString().replace(/\D/g, ''); }
 
   anchoBarra(e: Etapa): number {
-    // Ancho relativo al asignados (la 1ª etapa = 100%). Mínimo visible, tope 100%.
-    // El ancho mínimo real lo garantiza el CSS (min-width) para que el número quepa dentro.
-    return Math.min(100, Math.max(e.ratio, e.op > 0 ? 4 : 0));
+    // Ancho relativo al asignados (la 1ª etapa = 100%). Mínimo visible SIEMPRE (incluso
+    // en 0, para que se note que es un 0 real y no que falta el dato), tope 100%.
+    return Math.min(100, Math.max(e.ratio, 4));
   }
 }

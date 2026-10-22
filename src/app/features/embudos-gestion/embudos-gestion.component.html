@@ -122,7 +122,7 @@
                 <span class="fr-label">{{ e.nombre }}</span>
                 <div class="fr-track">
                   <div class="fr-bar" [style.width.%]="anchoBarra(e)" [style.background]="emb.color">
-                    <span class="fr-val" *ngIf="e.op > 0">{{ e.op }}</span>
+                    <span class="fr-val">{{ e.op }}</span>
                   </div>
                 </div>
               </div>
@@ -161,7 +161,7 @@
               <span class="fr-label">{{ e.nombre }}</span>
               <div class="fr-track">
                 <div class="fr-bar" [style.width.%]="anchoBarra(e)" [style.background]="emb.color">
-                  <span class="fr-val" *ngIf="e.op > 0">{{ e.op }} · {{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</span>
+                  <span class="fr-val">{{ e.op }} · {{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</span>
                 </div>
               </div>
             </div>
