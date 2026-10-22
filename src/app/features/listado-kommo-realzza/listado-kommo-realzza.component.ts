@@ -9,7 +9,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
 
 interface FilaLead {
-  id: number; nombre_cliente: string; embudo: string; estado: string; responsable: string;
+  id: number; nombre_cliente: string; embudo: string; estado: string; responsable: string; etiquetas: string;
   fecha_creacion: string; ultima_modificacion: string; modificado_por: string; respondido: boolean;
 }
 

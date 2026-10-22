@@ -302,7 +302,7 @@ export class CargaVentasService {
    * respondido. `tienda`: 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA'.
    */
   obtenerListadoLeadsKommo(anio: number, mes: number, tienda?: string): Observable<{
-    id: number; nombre_cliente: string; embudo: string; estado: string; responsable: string;
+    id: number; nombre_cliente: string; embudo: string; estado: string; responsable: string; etiquetas: string;
     fecha_creacion: string; ultima_modificacion: string; modificado_por: string; respondido: boolean;
   }[]> {
     let params = new HttpParams().set('anio', anio).set('mes', mes);
