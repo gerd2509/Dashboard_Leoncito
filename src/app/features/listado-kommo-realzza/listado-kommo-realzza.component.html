@@ -53,8 +53,10 @@
   <div class="lk-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
 
   <div class="lk-contenido">
-    <div class="lk-grid-overlay" *ngIf="isLoading">
-      <app-loading-overlay [inline]="true" [visible]="isLoading" icon="hub"
+    <div class="lk-grid-overlay" *ngIf="isLoading || sincronizando">
+      <app-loading-overlay *ngIf="sincronizando" [inline]="true" [visible]="sincronizando" icon="cloud_sync"
+        mensaje="Conectando con Kommo…" submensaje="Sincronizando leads en tiempo real, puede tardar unos segundos…"></app-loading-overlay>
+      <app-loading-overlay *ngIf="!sincronizando" [inline]="true" [visible]="isLoading" icon="hub"
         mensaje="Cargando listado…" submensaje="Trayendo leads de Kommo…"></app-loading-overlay>
     </div>
 
