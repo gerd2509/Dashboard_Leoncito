@@ -26,6 +26,14 @@
 .lk-kpi-alerta { border-color: #f5c2c2; background: #FDECEC; }
 .lk-kpi-alerta b { color: #C62828; }
 
+.lk-btn-todo.active { background: #1A5FAD; color: #fff; }
+
+.lk-hint {
+  display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #6b7a90;
+  margin: 0 0 10px;
+}
+.lk-hint mat-icon { font-size: 17px; width: 17px; height: 17px; }
+
 .lk-mensaje, .lk-error, .lk-vacio {
   display: flex; align-items: center; gap: 8px; font-size: 13px;
   padding: 10px 14px; border-radius: 8px; margin: 10px 0;

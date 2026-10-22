@@ -16,25 +16,35 @@
   <div class="lk-form-row">
     <form class="lk-form" [formGroup]="form">
       <dx-select-box width="110" [dataSource]="anios" formControlName="anio" label="Año" labelMode="floating"
-        stylingMode="outlined" (onValueChanged)="cargar()"></dx-select-box>
+        stylingMode="outlined" [disabled]="verTodo" (onValueChanged)="cargar()"></dx-select-box>
       <dx-select-box width="160" [dataSource]="meses" displayExpr="t" valueExpr="v" formControlName="mes" label="Mes"
-        labelMode="floating" stylingMode="outlined" (onValueChanged)="cargar()"></dx-select-box>
-      <button mat-stroked-button type="button" (click)="cargar()" [disabled]="isLoading">
+        labelMode="floating" stylingMode="outlined" [disabled]="verTodo" (onValueChanged)="cargar()"></dx-select-box>
+      <button mat-stroked-button type="button" (click)="cargar()" [disabled]="isLoading || verTodo">
         <mat-icon>search</mat-icon> Ver
+      </button>
+      <button mat-stroked-button type="button" class="lk-btn-todo" [class.active]="verTodo"
+        (click)="setVerTodo(!verTodo)" [disabled]="isLoading">
+        <mat-icon>{{ verTodo ? 'event' : 'all_inclusive' }}</mat-icon>
+        {{ verTodo ? 'Ver por mes' : 'Ver todo' }}
       </button>
       <button mat-flat-button color="primary" type="button" (click)="sincronizar()" [disabled]="sincronizando">
         <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
         {{ sincronizando ? 'Sincronizando…' : 'Sincronizar con Kommo' }}
       </button>
+      <button mat-stroked-button type="button" (click)="exportar()" *ngIf="filas.length">
+        <mat-icon>file_download</mat-icon> Exportar
+      </button>
     </form>
 
     <div class="lk-kpis" *ngIf="!error && totalLeads">
-      <div class="lk-kpi"><span>Leads del mes</span><b>{{ totalLeads | number }}</b></div>
+      <div class="lk-kpi"><span>{{ verTodo ? 'Leads (todo)' : 'Leads del mes' }}</span><b>{{ totalLeads | number }}</b></div>
       <div class="lk-kpi" [class.lk-kpi-alerta]="totalSinResponder > 0">
         <span>Sin responder</span><b>{{ totalSinResponder | number }} ({{ pctSinResponder | number:'1.1-1' }}%)</b>
       </div>
     </div>
   </div>
+
+  <p class="lk-hint" *ngIf="verTodo"><mat-icon>info</mat-icon> Mostrando todos los meses. Para sincronizar un mes puntual, vuelve a "Ver por mes".</p>
 
   <div class="lk-mensaje" *ngIf="mensajeSync"><mat-icon>check_circle</mat-icon> {{ mensajeSync }}</div>
   <div class="lk-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
@@ -45,7 +55,7 @@
         mensaje="Cargando listado…" submensaje="Trayendo leads de Kommo…"></app-loading-overlay>
     </div>
 
-    <dx-data-grid *ngIf="filas.length" [dataSource]="filas" class="focqus-elevation" [showBorders]="true"
+    <dx-data-grid #grid *ngIf="filas.length" [dataSource]="filas" class="focqus-elevation" [showBorders]="true"
       [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true" [hoverStateEnabled]="true"
       [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
       <dxo-paging [pageSize]="10"></dxo-paging>

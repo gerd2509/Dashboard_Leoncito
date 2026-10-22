@@ -1,7 +1,9 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
+import { DxDataGridComponent } from 'devextreme-angular';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { ExcelExportService } from '../../services/excel/excel.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
@@ -28,9 +30,13 @@ interface FilaLead {
 })
 export class ListadoKommoRealzzaComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
+  private excelSrv = inject(ExcelExportService);
+
+  @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
 
   form: UntypedFormGroup;
   tienda: TiendaRealzza = 'REALZZA';
+  verTodo = false;
   isLoading = false;
   sincronizando = false;
   error = '';
@@ -59,11 +65,19 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     this.cargar();
   }
 
+  setVerTodo(v: boolean): void {
+    if (this.verTodo === v) return;
+    this.verTodo = v;
+    this.cargar();
+  }
+
   async cargar(): Promise<void> {
     this.isLoading = true; this.error = '';
     try {
       const { anio, mes } = this.form.value;
-      this.filas = await lastValueFrom(this.ventasSrv.obtenerListadoLeadsKommo(anio, mes, this.tienda));
+      this.filas = await lastValueFrom(this.verTodo
+        ? this.ventasSrv.obtenerListadoLeadsKommo(undefined, undefined, this.tienda)
+        : this.ventasSrv.obtenerListadoLeadsKommo(anio, mes, this.tienda));
     } catch (e) {
       console.error('Error al cargar el listado de Kommo:', e);
       this.error = 'No se pudo cargar el listado.';
@@ -86,6 +100,16 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     } finally {
       this.sincronizando = false;
     }
+  }
+
+  /** Exporta a Excel lo que se ve AHORA en la grilla — respeta la tienda (Chiclayo/
+   *  Piura/Lima), el mes/año y cualquier filtro/búsqueda que tenga escrito en la grilla. */
+  async exportar(): Promise<void> {
+    if (!this.grid || !this.filas.length) return;
+    const { anio, mes } = this.form.value;
+    const mesTxt = this.meses.find(m => m.v === mes)?.t || mes;
+    const tiendaTxt = this.tienda === 'REALZZA PIURA' ? 'Piura' : this.tienda === 'REALZZA LIMA' ? 'Lima' : 'Chiclayo';
+    await this.excelSrv.exportarDesdeGrid(`Listado Kommo Realzza ${tiendaTxt} - ${mesTxt} ${anio}`, this.grid);
   }
 
   get totalLeads(): number { return this.filas.length; }

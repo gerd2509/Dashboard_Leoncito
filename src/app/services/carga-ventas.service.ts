@@ -301,11 +301,15 @@ export class CargaVentasService {
    * fechas y quién modificó por última vez — para ver de un vistazo si está
    * respondido. `tienda`: 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA'.
    */
-  obtenerListadoLeadsKommo(anio: number, mes: number, tienda?: string): Observable<{
+  /** `anio`/`mes` opcionales: sin ellos trae TODOS los leads (cualquier mes) — para
+   *  el "Ver todo" del listado. */
+  obtenerListadoLeadsKommo(anio?: number, mes?: number, tienda?: string): Observable<{
     id: number; nombre_cliente: string; embudo: string; estado: string; responsable: string; etiquetas: string;
     fecha_creacion: string; ultima_modificacion: string; modificado_por: string; respondido: boolean;
   }[]> {
-    let params = new HttpParams().set('anio', anio).set('mes', mes);
+    let params = new HttpParams();
+    if (anio) params = params.set('anio', anio);
+    if (mes) params = params.set('mes', mes);
     if (tienda) params = params.set('tienda', tienda);
     return this.http.get<any[]>(`${this.root}/leads-kommo-realzza/listado`, { params });
   }
