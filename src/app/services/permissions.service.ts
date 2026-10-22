@@ -77,6 +77,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'reporte-global',               label: 'Reporte Global',               grupo: 'Ventas' },
   { key: 'ventas-linea',                 label: 'Ventas por Línea (Motos/Melamina)', grupo: 'Ventas' },
   { key: 'evolutivo-asesor',             label: 'Evolutivo por Asesor',         grupo: 'Ventas' },
+  { key: 'listado-kommo-realzza',        label: 'Listado Kommo — Realzza',      grupo: 'Análisis' },
   { key: 'ventas-x-tipo-producto',       label: 'Ventas × Tipo de Producto',    grupo: 'Ventas' },
   { key: 'ventas-sedes',                 label: 'Ventas — Sedes',               grupo: 'Ventas', sedeScoped: true },
   { key: 'ventas-plazo-av',              label: 'Ventas Plazo AV',              grupo: 'Ventas' },
@@ -121,7 +122,7 @@ export const CALL_MODULES = [
 export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
-  'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor',
+  'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor', 'listado-kommo-realzza',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).

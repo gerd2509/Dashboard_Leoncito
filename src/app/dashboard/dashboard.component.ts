@@ -25,6 +25,7 @@ import { ReporteGlobalComponent } from "../features/reporte-global/reporte-globa
 import { VentasLineaComponent } from "../features/ventas-linea/ventas-linea.component";
 import { VentasXTipoProductoComponent } from "../features/ventas-x-tipo-producto/ventas-x-tipo-producto.component";
 import { EvolutivoAsesorComponent } from "../features/evolutivo-asesor/evolutivo-asesor.component";
+import { ListadoKommoRealzzaComponent } from "../features/listado-kommo-realzza/listado-kommo-realzza.component";
 import { GestionSedeComponent } from "../features/Gestion/gestion-sede/gestion-sede.component";
 import { GestionDerivacionesSedeComponent } from "../features/Gestion/gestion-derivaciones-sede/gestion-derivaciones-sede.component";
 import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sedes/gestion-call-sedes.component";
@@ -102,6 +103,7 @@ interface MenuItem {
     VentasLineaComponent,
     VentasXTipoProductoComponent,
     EvolutivoAsesorComponent,
+    ListadoKommoRealzzaComponent,
     GestionSedeComponent,
     GestionDerivacionesSedeComponent,
     GestionCallSedesComponent,
@@ -229,7 +231,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Seguimiento 1-3-5-7',   icon: 'repeat',         modulo: 'seguimiento-135' },
         { label: 'Comparativo Cartera Ventas Piso', icon: 'compare_arrows', modulo: 'comparativo-cartera-ventas' },
         { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' },
-        { label: 'Maduración de Leads',   icon: 'hub',            modulo: 'maduracion-leads' }
+        { label: 'Maduración de Leads',   icon: 'hub',            modulo: 'maduracion-leads' },
+        { label: 'Listado Kommo — Realzza', icon: 'fact_check',   modulo: 'listado-kommo-realzza' }
       ]
     },
     {

@@ -287,6 +287,30 @@ export class CargaVentasService {
   }
 
   /**
+   * Trae los leads de ese mes DIRECTO de la API de Kommo (solo Realzza — esa es la
+   * cuenta de Kommo conectada) y los guarda en leads_kommo_realzza, reemplazando la
+   * subida manual del Excel.
+   */
+  sincronizarLeadsKommo(anio: number, mes: number): Observable<{ success: boolean; filas: number; insertados: number; actualizados: number }> {
+    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    return this.http.post<any>(`${this.root}/leads-kommo-realzza/sync-kommo`, {}, { params });
+  }
+
+  /**
+   * Listado de leads Kommo Realzza del mes: ID, nombre del cliente, embudo, estado,
+   * fechas y quién modificó por última vez — para ver de un vistazo si está
+   * respondido. `tienda`: 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA'.
+   */
+  obtenerListadoLeadsKommo(anio: number, mes: number, tienda?: string): Observable<{
+    id: number; nombre_cliente: string; embudo: string; estado: string; responsable: string;
+    fecha_creacion: string; ultima_modificacion: string; modificado_por: string; respondido: boolean;
+  }[]> {
+    let params = new HttpParams().set('anio', anio).set('mes', mes);
+    if (tienda) params = params.set('tienda', tienda);
+    return this.http.get<any[]>(`${this.root}/leads-kommo-realzza/listado`, { params });
+  }
+
+  /**
    * Leads a cargo de cada asesor (columna Embudo de ventas de Kommo) en el rango de
    * fechas, con cuántos siguen SIN RESPONDER (columna "Modificado por" vacía — ojo:
    * no distingue entre "nunca se respondió" y "se respondió pero el lead volvió a

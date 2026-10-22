@@ -1,0 +1,46 @@
+.lk-wrap { padding: 16px; }
+
+.lk-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.lk-ico {
+  width: 42px; height: 42px; border-radius: 10px;
+  background: #1A5FAD; color: #fff; display: flex; align-items: center; justify-content: center;
+}
+.lk-head h2 { margin: 0; font-size: 18px; color: #1E3A5F; }
+.lk-head p { margin: 2px 0 0; font-size: 12.5px; color: #6b7a90; }
+
+.lk-tabs { display: inline-flex; border: 1px solid #cddcec; border-radius: 10px; overflow: hidden; margin-bottom: 14px; }
+.lk-tabs button { border: 0; background: #fff; padding: 8px 18px; font-size: 13px; font-weight: 700; color: #4a6a88; cursor: pointer; }
+.lk-tabs button + button { border-left: 1px solid #e3ecf5; }
+.lk-tabs button.active { background: #1A5FAD; color: #fff; }
+
+.lk-form-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 10px; }
+.lk-form { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 6px 2px 10px; }
+
+.lk-kpis { display: flex; gap: 12px; }
+.lk-kpi {
+  display: flex; flex-direction: column; gap: 2px;
+  border: 1px solid #d5e3f2; background: #F4F7FC; border-radius: 10px; padding: 8px 16px; min-width: 150px;
+}
+.lk-kpi span { font-size: 11px; font-weight: 700; color: #6b7a90; text-transform: uppercase; letter-spacing: .3px; }
+.lk-kpi b { font-size: 16px; color: #1A5FAD; }
+.lk-kpi-alerta { border-color: #f5c2c2; background: #FDECEC; }
+.lk-kpi-alerta b { color: #C62828; }
+
+.lk-mensaje, .lk-error, .lk-vacio {
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
+  padding: 10px 14px; border-radius: 8px; margin: 10px 0;
+}
+.lk-mensaje { color: #2E7D32; background: #EAF6EC; border: 1px solid #C8E6C9; }
+.lk-error { color: #C62828; background: #FFEBEE; border: 1px solid #FFCDD2; }
+.lk-vacio { color: #6b7a90; background: #F4F7FC; border: 1px solid #E3E9F2; padding: 28px; flex-direction: column; text-align: center; }
+.lk-vacio mat-icon { font-size: 34px; width: 34px; height: 34px; opacity: .6; margin-bottom: 6px; }
+
+.lk-grid-container { position: relative; min-height: 80px; }
+.lk-grid-overlay {
+  position: absolute; inset: 0; background: rgba(238,242,248,0.88);
+  display: flex; justify-content: center; align-items: center; z-index: 10; border-radius: 10px;
+}
+
+.lk-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.lk-badge-si { background: #E8F5E9; color: #2E7D32; }
+.lk-badge-no { background: #FFEBEE; color: #C62828; }
