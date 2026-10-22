@@ -43,7 +43,8 @@
 .lk-vacio { color: #6b7a90; background: #F4F7FC; border: 1px solid #E3E9F2; padding: 28px; flex-direction: column; text-align: center; }
 .lk-vacio mat-icon { font-size: 34px; width: 34px; height: 34px; opacity: .6; margin-bottom: 6px; }
 
-.lk-grid-container { position: relative; min-height: 80px; }
+.lk-contenido { position: relative; min-height: 80px; }
+.lk-grid-container { min-height: 80px; }
 .lk-grid-overlay {
   position: absolute; inset: 0; background: rgba(238,242,248,0.88);
   display: flex; justify-content: center; align-items: center; z-index: 10; border-radius: 10px;
