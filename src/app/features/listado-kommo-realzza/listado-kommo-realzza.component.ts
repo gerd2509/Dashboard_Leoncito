@@ -2,6 +2,8 @@ import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { DxDataGridComponent } from 'devextreme-angular';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
@@ -102,14 +104,75 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     }
   }
 
+  /** Nombre base del archivo: tienda + (mes/año o "Todo"). */
+  private nombreBase(prefijo: string): string {
+    const { anio, mes } = this.form.value;
+    const tiendaTxt = this.tienda === 'REALZZA PIURA' ? 'Piura' : this.tienda === 'REALZZA LIMA' ? 'Lima' : 'Chiclayo';
+    const periodo = this.verTodo ? 'Todo' : `${this.meses.find(m => m.v === mes)?.t || mes} ${anio}`;
+    return `${prefijo} ${tiendaTxt} - ${periodo}`.replace(/[\\/:*?"<>|]/g, '');
+  }
+
   /** Exporta a Excel lo que se ve AHORA en la grilla — respeta la tienda (Chiclayo/
    *  Piura/Lima), el mes/año y cualquier filtro/búsqueda que tenga escrito en la grilla. */
   async exportar(): Promise<void> {
     if (!this.grid || !this.filas.length) return;
-    const { anio, mes } = this.form.value;
-    const mesTxt = this.meses.find(m => m.v === mes)?.t || mes;
-    const tiendaTxt = this.tienda === 'REALZZA PIURA' ? 'Piura' : this.tienda === 'REALZZA LIMA' ? 'Lima' : 'Chiclayo';
-    await this.excelSrv.exportarDesdeGrid(`Listado Kommo Realzza ${tiendaTxt} - ${mesTxt} ${anio}`, this.grid);
+    await this.excelSrv.exportarDesdeGrid(this.nombreBase('Listado Kommo Realzza'), this.grid);
+  }
+
+  /** Exporta a Excel SEPARADO POR EMBUDO (asesor): un libro con una hoja por cada
+   *  embudo, así se puede mandar el detalle de cada uno por separado. Respeta el
+   *  mismo filtro/búsqueda activo en la grilla que el export general. */
+  async exportarPorEmbudo(): Promise<void> {
+    if (!this.grid || !this.filas.length) return;
+    const store = this.grid.instance.getDataSource().store();
+    const resultado: any = await store.load({ filter: this.grid.instance.getCombinedFilter() });
+    const datos: FilaLead[] = Array.isArray(resultado) ? resultado : (resultado?.data || []);
+    if (!datos.length) return;
+
+    const porEmbudo = new Map<string, FilaLead[]>();
+    for (const f of datos) {
+      const clave = f.embudo || 'SIN EMBUDO';
+      let lista = porEmbudo.get(clave);
+      if (!lista) { lista = []; porEmbudo.set(clave, lista); }
+      lista.push(f);
+    }
+
+    const columnas: { header: string; key: keyof FilaLead }[] = [
+      { header: 'ID', key: 'id' },
+      { header: 'Nombre del Cliente', key: 'nombre_cliente' },
+      { header: 'Estado del Lead', key: 'estado' },
+      { header: 'Etiquetas', key: 'etiquetas' },
+      { header: 'Fecha Creación', key: 'fecha_creacion' },
+      { header: 'Fecha Modificación', key: 'ultima_modificacion' },
+      { header: 'Usuario que Modificó', key: 'modificado_por' },
+      { header: 'Respondido', key: 'respondido' },
+    ];
+
+    const wb = new Workbook();
+    const nombresUsados = new Set<string>();
+    for (const [embudo, lista] of [...porEmbudo.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      const ws = wb.addWorksheet(this.nombreHojaValido(embudo, nombresUsados));
+      const hr = ws.addRow(columnas.map(c => c.header));
+      hr.font = { bold: true };
+      for (const f of lista) {
+        ws.addRow(columnas.map(c => (c.key === 'respondido' ? (f.respondido ? 'Sí' : 'No') : (f as any)[c.key])));
+      }
+      ws.columns.forEach(col => { col.width = 20; });
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    FileSaver.saveAs(blob, `${this.nombreBase('Leads por Asesor')}.xlsx`);
+  }
+
+  /** Nombre de hoja Excel válido: máx. 31 caracteres, sin \ / * ? : [ ], sin repetir
+   *  uno ya usado en el mismo libro. */
+  private nombreHojaValido(nombre: string, usados: Set<string>): string {
+    const limpio = (nombre || 'SIN EMBUDO').toString().replace(/[\\/*?:[\]]/g, ' ').trim().substring(0, 28) || 'SIN EMBUDO';
+    let final = limpio, i = 2;
+    while (usados.has(final)) final = `${limpio} (${i++})`.substring(0, 31);
+    usados.add(final);
+    return final;
   }
 
   get totalLeads(): number { return this.filas.length; }

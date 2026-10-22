@@ -34,6 +34,9 @@
       <button mat-stroked-button type="button" (click)="exportar()" *ngIf="filas.length">
         <mat-icon>file_download</mat-icon> Exportar
       </button>
+      <button mat-stroked-button type="button" (click)="exportarPorEmbudo()" *ngIf="filas.length" title="Un archivo con una hoja por asesor/embudo">
+        <mat-icon>group_work</mat-icon> Exportar por Asesor
+      </button>
     </form>
 
     <div class="lk-kpis" *ngIf="!error && totalLeads">
