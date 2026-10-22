@@ -3,6 +3,8 @@ import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { lastValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
 import { SheetsService } from '../../services/service-google.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { tiendaDeSedeRealzza } from '../../shared/canal-usuario';
@@ -103,9 +105,13 @@ export class EmbudosGestionComponent {
   private readonly paleta = ['#2E5DAA', '#3E8E41', '#E0701A', '#6A1B9A', '#00838F', '#AD1457', '#37474F'];
 
   get nombreModo(): string { return this.modo === 'realzza' ? 'Realzza' : 'Call'; }
-  /** Piura/Lima: por ahora solo se arma el embudo KOMMO (LEADS) + Market Place, sin
+  /** Piura/Lima: por ahora SOLO se arma el embudo KOMMO (LEADS) + Market Place, sin
    *  subir Excel de carteras (esas tiendas aún no tienen ese flujo armado). */
   get soloKommo(): boolean { return this.modo === 'realzza' && this.tienda !== 'REALZZA'; }
+  /** El botón "Ver KOMMO/Market Place" (sin subir Excel) está disponible en TODO
+   *  Realzza, incluido Chiclayo — ahí además se puede subir el Excel de carteras
+   *  aparte (las dos vías conviven; en Piura/Lima la cartera no existe todavía). */
+  get mostrarVerRapido(): boolean { return this.modo === 'realzza'; }
 
   seleccionarModo(m: Modo): void { this.modo = m; this.tienda = 'REALZZA'; this.reiniciar(); }
   seleccionarTienda(t: TiendaRealzza): void { if (this.tienda === t) return; this.tienda = t; this.reiniciar(); }
@@ -127,6 +133,48 @@ export class EmbudosGestionComponent {
     this.listo = false; this.error = ''; this.nombreArchivo = ''; this.embudos = [];
   }
 
+  /** Exporta a Excel el resumen de los embudos que se ven en pantalla: una fila por
+   *  etapa de cada embudo, y una hoja aparte por cada cartera que trae detalle por
+   *  asesor (si se subió Excel y esa hoja traía columna de asesor). */
+  async exportarResumen(): Promise<void> {
+    if (!this.embudos.length) return;
+    const wb = new Workbook();
+    const ws = wb.addWorksheet('Embudos');
+    ws.addRow(['Embudo', 'Etapa', 'Código', 'OP', 'Ratio %']);
+    ws.getRow(1).font = { bold: true };
+    for (const emb of this.embudos) {
+      for (const e of emb.etapas) {
+        ws.addRow([emb.titulo, e.nombre, e.codigo, e.op, e.nombre === 'ASIGNADOS' ? 100 : e.ratio]);
+      }
+    }
+    ws.columns.forEach(col => { col.width = 22; });
+
+    for (const emb of this.embudos) {
+      if (!emb.detalle?.length) continue;
+      const wsD = wb.addWorksheet(this.nombreHojaValido(emb.titulo, wb));
+      wsD.addRow(['Asesor', 'Asignados', 'Gestionados', 'Falta', '% Avance', 'Contactados', 'Interesados', 'Ventas']);
+      wsD.getRow(1).font = { bold: true };
+      for (const d of emb.detalle) {
+        wsD.addRow([d.asesor, d.asignados, d.gestionados, d.pendientes, d.pctAvance, d.contactados, d.interesados, d.ventas]);
+      }
+      wsD.columns.forEach(col => { col.width = 18; });
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const base = (this.nombreArchivo ? `Embudos - ${this.nombreArchivo}` : 'Embudos de Gestión').replace(/[\\/:*?"<>|]/g, '');
+    FileSaver.saveAs(blob, `${base}.xlsx`);
+  }
+
+  /** Nombre de hoja Excel válido: máx. 31 caracteres, sin \ / * ? : [ ], y sin repetir
+   *  uno ya usado en el workbook (Excel no permite hojas duplicadas). */
+  private nombreHojaValido(titulo: string, wb: Workbook): string {
+    const limpio = (titulo || 'Detalle').replace(/[\\/*?:[\]]/g, ' ').trim().substring(0, 28) || 'Detalle';
+    let nombre = limpio, i = 2;
+    while (wb.getWorksheet(nombre)) { nombre = `${limpio} (${i++})`.substring(0, 31); }
+    return nombre;
+  }
+
   /** Piura/Lima (sin Excel de carteras): arma SOLO el embudo KOMMO (LEADS) + Market
    *  Place del mes elegido, directo contra la BD. */
   async cargarKommoMarketPlace(): Promise<void> {
@@ -144,7 +192,8 @@ export class EmbudosGestionComponent {
         this.armarEmbudoKommo(mes, anio, ventasTienda, dataKommo || [], leadsDetalle || [], this.paleta[0]),
         this.armarEmbudoMarketPlace(mes, anio, ventasTienda, dataKommo || [], this.paleta[1]),
       ];
-      this.nombreArchivo = `${this.tienda === 'REALZZA PIURA' ? 'Realzza Piura' : 'Realzza Lima'} — ${this.fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}`;
+      const nombreTienda = this.tienda === 'REALZZA PIURA' ? 'Realzza Piura' : this.tienda === 'REALZZA LIMA' ? 'Realzza Lima' : 'Realzza Chiclayo';
+      this.nombreArchivo = `${nombreTienda} — ${this.fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}`;
       this.listo = true;
     } catch (err: any) {
       this.error = err?.message ?? 'No se pudo cargar KOMMO/Market Place (revisa la conexión al servidor).';

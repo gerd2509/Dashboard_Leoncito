@@ -60,6 +60,7 @@
 /* Piura/Lima: dropzone simplificado (sin arrastrar archivo) */
 .dropzone-simple { padding: 38px 24px; }
 .dropzone-simple .btn-cargar { margin-top: 14px; }
+.o-separador { text-align: center; color: var(--gris); font-size: 12.5px; font-weight: 600; margin: 14px 0; }
 
 .alerta-error { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 14px 18px; background: #FDECEC;
   border: 1px solid #F5C2C2; border-radius: 12px; color: #B3261E; font-size: 14px; }
@@ -69,6 +70,7 @@
 .res-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
 .res-archivo { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14.5px; }
 .res-archivo mat-icon { color: var(--azul); }
+.res-acciones { display: flex; align-items: center; gap: 10px; }
 .btn-secundario { display: inline-flex; align-items: center; gap: 6px; background: #EBF3FF; color: var(--azul);
   border: 1px solid var(--borde); border-radius: 9px; padding: 8px 14px; font-weight: 600; font-size: 13px; cursor: pointer; }
 .btn-secundario:hover { background: #dceaff; }

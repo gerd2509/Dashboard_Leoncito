@@ -47,8 +47,8 @@
       <span class="barra-nota" *ngIf="soloKommo"><mat-icon>info</mat-icon> Por ahora {{ tienda === 'REALZZA PIURA' ? 'Piura' : 'Lima' }} solo mide KOMMO (LEADS) y Market Place — sin carteras Excel todavía.</span>
     </div>
 
-    <!-- Piura/Lima: sin Excel, solo KOMMO + Market Place -->
-    <div *ngIf="!listo && soloKommo" class="dropzone dropzone-simple">
+    <!-- Ver rápido KOMMO + Market Place sin subir Excel (toda Realzza, incluido Chiclayo) -->
+    <div *ngIf="!listo && mostrarVerRapido" class="dropzone dropzone-simple">
       <ng-container *ngIf="!procesando; else cargando">
         <mat-icon class="dz-icon">hub</mat-icon>
         <p class="dz-titulo">Ver KOMMO (LEADS) y Market Place del mes</p>
@@ -59,6 +59,8 @@
           mensaje="Procesando KOMMO / Market Place…" submensaje="Cruzando leads y gestión Kommo del mes…"></app-loading-overlay>
       </ng-template>
     </div>
+
+    <p class="o-separador" *ngIf="!listo && mostrarVerRapido && !soloKommo">— o si quieres los embudos por cartera, sube el Excel —</p>
 
     <div *ngIf="!listo && !soloKommo" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
          (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
@@ -85,7 +87,10 @@
     <div class="resultado" *ngIf="listo">
       <div class="res-header">
         <div class="res-archivo"><mat-icon>description</mat-icon><span>{{ nombreArchivo }}</span></div>
-        <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otro</button>
+        <div class="res-acciones">
+          <button class="btn-secundario" (click)="exportarResumen()"><mat-icon>file_download</mat-icon> Exportar</button>
+          <button class="btn-secundario" (click)="reiniciar()"><mat-icon>restart_alt</mat-icon> Procesar otro</button>
+        </div>
       </div>
 
       <div class="embudos-grid">
