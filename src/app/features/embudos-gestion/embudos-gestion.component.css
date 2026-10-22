@@ -47,9 +47,19 @@
 .dz-sub { margin: 8px 0; color: var(--gris); font-size: 13px; }
 .dz-formatos { margin: 16px 0 0; font-size: 12px; color: var(--gris); }
 .btn-cargar { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: var(--azul); color: #fff;
-  font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; box-shadow: 0 4px 14px rgba(26,95,173,.3); }
+  font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; box-shadow: 0 4px 14px rgba(26,95,173,.3); border: 0; }
 .btn-cargar:hover { background: #14508f; }
 .btn-cargar mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+/* Tienda (Chiclayo/Piura/Lima) dentro de Realzza */
+.tienda-tabs { display: inline-flex; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+.tienda-tabs button { border: 0; background: #fff; padding: 8px 18px; font-size: 13px; font-weight: 700; color: var(--gris); cursor: pointer; }
+.tienda-tabs button + button { border-left: 1px solid var(--borde); }
+.tienda-tabs button.active { background: var(--azul); color: #fff; }
+
+/* Piura/Lima: dropzone simplificado (sin arrastrar archivo) */
+.dropzone-simple { padding: 38px 24px; }
+.dropzone-simple .btn-cargar { margin-top: 14px; }
 
 .alerta-error { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 14px 18px; background: #FDECEC;
   border: 1px solid #F5C2C2; border-radius: 12px; color: #B3261E; font-size: 14px; }

@@ -279,9 +279,10 @@ export class CargaVentasService {
    * (embudo KOMMO/LEADS): ASIGNADOS = # leads creados ese mes; CONTACTADOS = los
    * que ya tienen "Modificado por".
    */
-  obtenerLeadsDetalle(canal: 'call' | 'realzza', anio: number, mes: number): Observable<{ id: number; nombre_lead: string; responsable: string; modificado_por: string }[]> {
+  obtenerLeadsDetalle(canal: 'call' | 'realzza', anio: number, mes: number, tienda?: string): Observable<{ id: number; nombre_lead: string; responsable: string; modificado_por: string }[]> {
     const path = canal === 'call' ? 'leads-kommo-call' : 'leads-kommo-realzza';
-    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    let params = new HttpParams().set('anio', anio).set('mes', mes);
+    if (tienda) params = params.set('tienda', tienda);
     return this.http.get<any[]>(`${this.root}/${path}/detalle`, { params });
   }
 

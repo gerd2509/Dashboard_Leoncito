@@ -5,8 +5,10 @@ import { lastValueFrom } from 'rxjs';
 import * as XLSX from 'xlsx';
 import { SheetsService } from '../../services/service-google.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { tiendaDeSedeRealzza } from '../../shared/canal-usuario';
 
 type Modo = 'call' | 'realzza';
+type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
 
 // Candidatos de cabecera DNI en las hojas de cartera / ventas (la columna puede
 // venir como DNI, Dni, dni, DocIdentidad, Documento, etc.). La normalización iguala
@@ -78,6 +80,8 @@ export class EmbudosGestionComponent {
   private ventasSrv = inject(CargaVentasService);
 
   modo: Modo | null = null;
+  // Tienda dentro de Realzza (Chiclayo/Piura/Lima). Solo importa cuando modo==='realzza'.
+  tienda: TiendaRealzza = 'REALZZA';
   arrastrando = false;
   procesando = false;
   error = '';
@@ -100,9 +104,13 @@ export class EmbudosGestionComponent {
   private readonly paleta = ['#2E5DAA', '#3E8E41', '#E0701A', '#6A1B9A', '#00838F', '#AD1457', '#37474F'];
 
   get nombreModo(): string { return this.modo === 'realzza' ? 'Realzza' : 'Call'; }
+  /** Piura/Lima: por ahora solo se arma el embudo KOMMO (LEADS) + Market Place, sin
+   *  subir Excel de carteras (esas tiendas aún no tienen ese flujo armado). */
+  get soloKommo(): boolean { return this.modo === 'realzza' && this.tienda !== 'REALZZA'; }
 
-  seleccionarModo(m: Modo): void { this.modo = m; this.reiniciar(); }
-  volverModos(): void { this.modo = null; this.reiniciar(); }
+  seleccionarModo(m: Modo): void { this.modo = m; this.tienda = 'REALZZA'; this.reiniciar(); }
+  seleccionarTienda(t: TiendaRealzza): void { if (this.tienda === t) return; this.tienda = t; this.reiniciar(); }
+  volverModos(): void { this.modo = null; this.tienda = 'REALZZA'; this.reiniciar(); }
 
   onDragOver(e: DragEvent): void { e.preventDefault(); this.arrastrando = true; }
   onDragLeave(e: DragEvent): void { e.preventDefault(); this.arrastrando = false; }
@@ -118,6 +126,29 @@ export class EmbudosGestionComponent {
 
   reiniciar(): void {
     this.listo = false; this.error = ''; this.nombreArchivo = ''; this.embudos = [];
+  }
+
+  /** Piura/Lima (sin Excel de carteras): arma SOLO el embudo KOMMO (LEADS) + Market
+   *  Place del mes elegido, directo contra la BD. */
+  async cargarKommoMarketPlace(): Promise<void> {
+    this.reiniciar();
+    this.procesando = true;
+    try {
+      const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
+      const [dataVentas, dataKommo, leadsDetalle] = await Promise.all([
+        lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio)),
+        lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes + 1, leadAnio: anio, canal: 'REALZZA', sede: this.tienda })),
+        lastValueFrom(this.ventasSrv.obtenerLeadsDetalle('realzza', anio, mes + 1, this.tienda)),
+      ]);
+      const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda);
+      this.embudos = [this.armarEmbudoKommo(mes, anio, ventasTienda, dataKommo || [], leadsDetalle || [], this.paleta[0])];
+      this.nombreArchivo = `${this.tienda === 'REALZZA PIURA' ? 'Realzza Piura' : 'Realzza Lima'} — ${this.fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}`;
+      this.listo = true;
+    } catch (err: any) {
+      this.error = err?.message ?? 'No se pudo cargar KOMMO/Market Place (revisa la conexión al servidor).';
+    } finally {
+      this.procesando = false;
+    }
   }
 
   private procesarArchivo(file: File): void {
@@ -161,22 +192,33 @@ export class EmbudosGestionComponent {
         lastValueFrom(this.modo === 'realzza'
           ? this.sheets.getSheetDataCampoRango({ desde, hasta })   // Google Form campo/realzza
           : this.sheets.getSheetDataCallRango({ desde, hasta })),  // Google Form call
-        lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes + 1, leadAnio: anio })),   // solo leads del mes (BD)
+        // canal+sede: antes mezclaba Call/Realzza y las 3 tiendas Realzza juntas.
+        lastValueFrom(this.sheets.getGestionKommo({
+          leadMes: mes + 1, leadAnio: anio,
+          canal: this.modo === 'realzza' ? 'REALZZA' : 'LEONCITO',
+          sede: this.modo === 'realzza' ? this.tienda : undefined,
+        })),
         lastValueFrom(this.modo === 'realzza'
-          ? this.ventasSrv.obtenerVentasRealzzaModulo(anio)                        // se filtra por mes_cv abajo
+          ? this.ventasSrv.obtenerVentasRealzzaModulo(anio)                        // se filtra por tienda/mes abajo
           : this.ventasSrv.obtenerVentasCanal('call', { anio, mes: mes + 1 })),
-        lastValueFrom(this.ventasSrv.obtenerLeadsDetalle(this.modo!, anio, mes + 1)),
+        lastValueFrom(this.ventasSrv.obtenerLeadsDetalle(this.modo!, anio, mes + 1, this.modo === 'realzza' ? this.tienda : undefined)),
       ]);
     } catch {
       throw new Error('No se pudo cargar la gestión/ventas (revisa la conexión al servidor).');
     }
 
-    // 2) Ventas EFECTIVAS del mes (excluye notas de crédito/incautaciones, monto>0),
-    //    clasificadas por su propia columna: Call = "contacto"; Realzza = "tipo_base"
-    //    (mismos valores KOMMO / MARKET PLACE / BBDD KOMMO que antes traía la hoja VENTAS).
+    // Realzza: `ventas`/`ventas_realzza` trae las 3 tiendas juntas — se acota a la
+    // elegida (Chiclayo/Piura/Lima) ANTES de cruzar carteras y armar el embudo KOMMO.
+    const dataVentasTienda = this.modo === 'realzza'
+      ? (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda)
+      : (dataVentas || []);
+
+    // 2) Ventas EFECTIVAS del mes (excluye notas de crédito/incautaciones, monto>0).
+    //    ventasSet = DNIs con venta (para cruzar contra las carteras); ventasBbddKommo
+    //    = solo lo que usa la "cartera kommo" de Realzza (ventas con TipoBase=BBDD KOMMO).
     const ventasSet = new Set<string>();
-    let ventasKommo = 0, ventasMarket = 0, ventasBbddKommo = 0;
-    (dataVentas || [])
+    let ventasBbddKommo = 0;
+    dataVentasTienda
       .filter(v => {
         if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
         const est = (v.estado_venta || '').toString().toUpperCase();
@@ -186,14 +228,8 @@ export class EmbudosGestionComponent {
       .forEach(v => {
         const dni = this.dig(v.doc_identidad);
         if (dni) ventasSet.add(dni);
-        const c = this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto);
-        if (c === 'kommo') ventasKommo++;
-        else if (c === 'marketplace') ventasMarket++;
-        else if (c === 'bbddkommo') ventasBbddKommo++;
+        if (this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto) === 'bbddkommo') ventasBbddKommo++;
       });
-
-    // Kommo del mes según FECHA DE LEAD ASIGNADO (d/m/yyyy).
-    const kommoMes = dataKommo.filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio));
 
     // TODAS las carteras (incluida "cartera kommo") cruzan contra la gestión del modo
     // (Call Center en modo Call / Realzza en modo Realzza). La gestión Kommo solo se
@@ -241,24 +277,50 @@ export class EmbudosGestionComponent {
       embudos.push(emb);
     }
 
-    // 5) Embudo KOMMO (LEADS) — SIEMPRE se arma (ya no depende de subir una hoja "kommo"):
-    //    ASIGNADOS = leads del mes (tabla leads_kommo_<canal>, en BD);
-    //    CONTACTADOS = de esos, con "Modificado por" no vacío;
-    //    GESTIONADOS = registros de gestión Kommo con FECHA DE LEAD ASIGNADO en el mes;
-    //    INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO;
-    //    TOTAL VENTAS = ventas KOMMO + ventas MARKET PLACE del mes.
-    {
-      const asignados = leadsDetalle.length;
-      const contactados = leadsDetalle.filter(r => (r.modificado_por ?? '').toString().trim() !== '').length;
-      const gestionados = kommoMes.length;
-      const interesados = kommoMes.filter(r => (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO').length;
-      const ventasTotalK = ventasKommo + ventasMarket;
-      const emb = this.armarEmbudo('KOMMO (LEADS)', asignados, gestionados, contactados, interesados, ventasTotalK, this.paleta[ci++ % this.paleta.length], true);
-      emb.marketPlace = ventasMarket;
-      embudos.push(emb);
-    }
+    // 5) Embudo KOMMO (LEADS) — SIEMPRE se arma (ya no depende de subir una hoja "kommo").
+    embudos.push(this.armarEmbudoKommo(mes, anio, dataVentasTienda, dataKommo, leadsDetalle, this.paleta[ci++ % this.paleta.length]));
 
     this.embudos = embudos;
+  }
+
+  /**
+   * Arma el embudo KOMMO (LEADS):
+   *  ASIGNADOS = leads del mes (tabla leads_kommo_<canal>, en BD);
+   *  CONTACTADOS = de esos, con "Modificado por" no vacío;
+   *  GESTIONADOS = registros de gestión Kommo con FECHA DE LEAD ASIGNADO en el mes;
+   *  INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO;
+   *  TOTAL VENTAS = ventas KOMMO + ventas MARKET PLACE del mes (ventas reales).
+   *  MARKET PLACE (el indicador aparte, "emb.marketPlace") NO es venta ni asignado:
+   *  es cuántos de esos registros de gestión Kommo del mes están marcados Market
+   *  Place — osea GESTIONADOS de Market Place, un criterio distinto a ASIGNADOS.
+   */
+  private armarEmbudoKommo(mes: number, anio: number, dataVentas: any[], dataKommo: any[], leadsDetalle: any[], color: string): Embudo {
+    let ventasKommo = 0, ventasMarket = 0;
+    (dataVentas || [])
+      .filter(v => {
+        if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
+        const est = (v.estado_venta || '').toString().toUpperCase();
+        if (est.includes('NOTA DE') || est.includes('INCAUTAC')) return false;
+        return (Number(v.monto_consolidado) || 0) > 0;
+      })
+      .forEach(v => {
+        const c = this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto);
+        if (c === 'kommo') ventasKommo++;
+        else if (c === 'marketplace') ventasMarket++;
+      });
+
+    const kommoMes = (dataKommo || []).filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio));
+    const campoMP = this.modo === 'realzza' ? 'MARKET PLACE R' : 'MARKET PLACE L';
+    const marketPlaceGestionados = kommoMes.filter(r => this.norm(r[campoMP]) === 'si').length;
+
+    const asignados = leadsDetalle.length;
+    const contactados = leadsDetalle.filter(r => (r.modificado_por ?? '').toString().trim() !== '').length;
+    const gestionados = kommoMes.length;
+    const interesados = kommoMes.filter(r => (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO').length;
+    const ventasTotalK = ventasKommo + ventasMarket;
+    const emb = this.armarEmbudo('KOMMO (LEADS)', asignados, gestionados, contactados, interesados, ventasTotalK, color, true);
+    emb.marketPlace = marketPlaceGestionados;
+    return emb;
   }
 
   /** ¿La fecha (d/m/yyyy | d.m.yyyy | yyyy-m-d) cae en el mes/año dados? */
