@@ -186,11 +186,19 @@ export class ListadoKommoRealzzaComponent implements OnInit {
 
   resumenEmbudo: ResumenEmbudo[] = [];
 
-  /** Recalcula el detalle por asesor/embudo a partir de lo que la grilla tiene
-   *  CARGADO AHORA (ya filtrado/buscado) — se dispara cada vez que la grilla
-   *  re-renderiza por un filtro, búsqueda o carga de datos nueva. */
-  recomputarResumen(): void {
-    const datos: FilaLead[] = this.grid ? (this.grid.instance.getDataSource()?.items() as FilaLead[] || []) : this.filas;
+  /** Recalcula el detalle por asesor/embudo a partir de TODO lo que cumple el
+   *  filtro/búsqueda activo en la grilla (no solo la página visible) — se dispara
+   *  cada vez que la grilla re-renderiza por un filtro, búsqueda o carga nueva.
+   *  Usa el mismo truco que los exports: lee del store con el filtro combinado,
+   *  sin paginar, para no quedarse solo con las 10 filas de la página actual. */
+  async recomputarResumen(): Promise<void> {
+    let datos: FilaLead[] = this.filas;
+    if (this.grid) {
+      const store = this.grid.instance.getDataSource().store();
+      const resultado: any = await store.load({ filter: this.grid.instance.getCombinedFilter() });
+      datos = Array.isArray(resultado) ? resultado : (resultado?.data || []);
+    }
+
     const porEmbudo = new Map<string, { total: number; respondidos: number }>();
     for (const f of datos) {
       const clave = f.embudo || 'SIN EMBUDO';
