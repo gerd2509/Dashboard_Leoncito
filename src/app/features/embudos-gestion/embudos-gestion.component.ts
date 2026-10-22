@@ -56,7 +56,6 @@ interface Embudo {
   kommoLeads: boolean;
   asignados: number;
   etapas: Etapa[];
-  marketPlace?: number;
   hoja?: string;
   detalle?: DetalleAsesor[];   // detalle por asesor (si la cartera trae columna de asesor)
 }
@@ -141,7 +140,10 @@ export class EmbudosGestionComponent {
         lastValueFrom(this.ventasSrv.obtenerLeadsDetalle('realzza', anio, mes + 1, this.tienda)),
       ]);
       const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda);
-      this.embudos = [this.armarEmbudoKommo(mes, anio, ventasTienda, dataKommo || [], leadsDetalle || [], this.paleta[0])];
+      this.embudos = [
+        this.armarEmbudoKommo(mes, anio, ventasTienda, dataKommo || [], leadsDetalle || [], this.paleta[0]),
+        this.armarEmbudoMarketPlace(mes, anio, ventasTienda, dataKommo || [], this.paleta[1]),
+      ];
       this.nombreArchivo = `${this.tienda === 'REALZZA PIURA' ? 'Realzza Piura' : 'Realzza Lima'} — ${this.fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}`;
       this.listo = true;
     } catch (err: any) {
@@ -277,11 +279,30 @@ export class EmbudosGestionComponent {
       embudos.push(emb);
     }
 
-    // 5) Embudo KOMMO (LEADS) — SIEMPRE se arma (ya no depende de subir una hoja "kommo").
+    // 5) Embudo KOMMO (LEADS) + embudo MARKET PLACE aparte — SIEMPRE se arman (ya no
+    //    depende de subir una hoja "kommo"/"market place").
     embudos.push(this.armarEmbudoKommo(mes, anio, dataVentasTienda, dataKommo, leadsDetalle, this.paleta[ci++ % this.paleta.length]));
+    embudos.push(this.armarEmbudoMarketPlace(mes, anio, dataVentasTienda, dataKommo, this.paleta[ci++ % this.paleta.length]));
 
     this.embudos = embudos;
   }
+
+  /** ¿Ventas efectivas del mes (sin NC/incautaciones, monto>0) de un tipo (kommo /
+   *  marketplace), según su propia columna: Call = "contacto"; Realzza = "tipo_base". */
+  private contarVentasPorTipo(dataVentas: any[], mes: number, tipo: 'kommo' | 'marketplace'): number {
+    return (dataVentas || []).filter(v => {
+      if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
+      const est = (v.estado_venta || '').toString().toUpperCase();
+      if (est.includes('NOTA DE') || est.includes('INCAUTAC')) return false;
+      if ((Number(v.monto_consolidado) || 0) <= 0) return false;
+      return this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto) === tipo;
+    }).length;
+  }
+  private esInteresado(r: any): boolean {
+    return (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO';
+  }
+  /** Columna de gestión Kommo que marca Market Place: "L" (Leoncito/Call) o "R" (Realzza). */
+  private get campoMarketPlace(): string { return this.modo === 'realzza' ? 'MARKET PLACE R' : 'MARKET PLACE L'; }
 
   /**
    * Arma el embudo KOMMO (LEADS):
@@ -289,38 +310,40 @@ export class EmbudosGestionComponent {
    *  CONTACTADOS = de esos, con "Modificado por" no vacío;
    *  GESTIONADOS = registros de gestión Kommo con FECHA DE LEAD ASIGNADO en el mes;
    *  INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO;
-   *  TOTAL VENTAS = ventas KOMMO + ventas MARKET PLACE del mes (ventas reales).
-   *  MARKET PLACE (el indicador aparte, "emb.marketPlace") NO es venta ni asignado:
-   *  es cuántos de esos registros de gestión Kommo del mes están marcados Market
-   *  Place — osea GESTIONADOS de Market Place, un criterio distinto a ASIGNADOS.
+   *  TOTAL VENTAS = ventas KOMMO del mes (ventas reales; Market Place es su propio
+   *  embudo aparte, no se mezcla acá).
    */
   private armarEmbudoKommo(mes: number, anio: number, dataVentas: any[], dataKommo: any[], leadsDetalle: any[], color: string): Embudo {
-    let ventasKommo = 0, ventasMarket = 0;
-    (dataVentas || [])
-      .filter(v => {
-        if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
-        const est = (v.estado_venta || '').toString().toUpperCase();
-        if (est.includes('NOTA DE') || est.includes('INCAUTAC')) return false;
-        return (Number(v.monto_consolidado) || 0) > 0;
-      })
-      .forEach(v => {
-        const c = this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto);
-        if (c === 'kommo') ventasKommo++;
-        else if (c === 'marketplace') ventasMarket++;
-      });
-
+    const ventasKommo = this.contarVentasPorTipo(dataVentas, mes, 'kommo');
     const kommoMes = (dataKommo || []).filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio));
-    const campoMP = this.modo === 'realzza' ? 'MARKET PLACE R' : 'MARKET PLACE L';
-    const marketPlaceGestionados = kommoMes.filter(r => this.norm(r[campoMP]) === 'si').length;
-
     const asignados = leadsDetalle.length;
     const contactados = leadsDetalle.filter(r => (r.modificado_por ?? '').toString().trim() !== '').length;
     const gestionados = kommoMes.length;
-    const interesados = kommoMes.filter(r => (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO').length;
-    const ventasTotalK = ventasKommo + ventasMarket;
-    const emb = this.armarEmbudo('KOMMO (LEADS)', asignados, gestionados, contactados, interesados, ventasTotalK, color, true);
-    emb.marketPlace = marketPlaceGestionados;
-    return emb;
+    const interesados = kommoMes.filter(r => this.esInteresado(r)).length;
+    return this.armarEmbudo('KOMMO (LEADS)', asignados, gestionados, contactados, interesados, ventasKommo, color, true);
+  }
+
+  /**
+   * Arma el embudo MARKET PLACE, APARTE del de KOMMO:
+   *  GESTIONADOS = registros de gestión Kommo del mes marcados Market Place (no hay
+   *  "asignados" acá — a diferencia de KOMMO, Market Place no parte de un lead
+   *  asignado, parte de lo gestionado);
+   *  INTERESADOS = de esos, RESULTADO DE GESTIÓN = INTERESADO;
+   *  TOTAL VENTAS = ventas reales con esa etiqueta.
+   */
+  private armarEmbudoMarketPlace(mes: number, anio: number, dataVentas: any[], dataKommo: any[], color: string): Embudo {
+    const ventasMarket = this.contarVentasPorTipo(dataVentas, mes, 'marketplace');
+    const mpMes = (dataKommo || []).filter(r =>
+      this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio) && this.norm(r[this.campoMarketPlace]) === 'si');
+    const gestionados = mpMes.length;
+    const interesados = mpMes.filter(r => this.esInteresado(r)).length;
+    const r = (n: number) => (gestionados > 0 ? Math.round((n / gestionados) * 1000) / 10 : 0);
+    const etapas: Etapa[] = [
+      { nombre: 'GESTIONADOS', op: gestionados, ratio: 100, codigo: 'RG' },
+      { nombre: 'INTERESADOS', op: interesados, ratio: r(interesados), codigo: 'RI/G' },
+      { nombre: 'TOTAL VENTAS', op: ventasMarket, ratio: r(ventasMarket), codigo: 'RV/G' },
+    ];
+    return { titulo: 'MARKET PLACE', color, kommoLeads: false, asignados: gestionados, etapas };
   }
 
   /** ¿La fecha (d/m/yyyy | d.m.yyyy | yyyy-m-d) cae en el mes/año dados? */

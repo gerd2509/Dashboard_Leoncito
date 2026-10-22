@@ -80,7 +80,6 @@
 .embudo { background: #fff; border: 1px solid var(--borde); border-radius: 14px; overflow: hidden; box-shadow: 0 3px 12px rgba(20,49,79,.06); }
 .emb-title { position: relative; color: #fff; font-weight: 800; font-size: 16px; letter-spacing: .5px; padding: 12px 46px; text-align: center;
   display: flex; align-items: center; justify-content: center; gap: 14px; text-transform: uppercase; }
-.emb-mp { font-size: 12px; font-weight: 700; background: rgba(255,255,255,.25); padding: 3px 10px; border-radius: 999px; }
 .emb-expand { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,.2);
   border: none; color: #fff; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: grid; place-items: center; }
 .emb-expand:hover { background: rgba(255,255,255,.38); }
@@ -88,7 +87,6 @@
 
 /* Popup embudo ampliado */
 .pop-emb { padding: 6px 4px; }
-.pop-bar { color: #fff; font-weight: 700; text-align: center; padding: 8px 14px; border-radius: 10px; margin-bottom: 14px; }
 .pop-body { display: grid; grid-template-columns: 440px 1fr; gap: 26px; align-items: center; }
 @media (max-width: 720px) { .pop-body { grid-template-columns: 1fr; } }
 .pop-tabla { font-size: 15px; }

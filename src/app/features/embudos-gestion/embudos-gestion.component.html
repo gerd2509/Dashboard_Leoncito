@@ -92,9 +92,6 @@
         <div class="embudo" *ngFor="let emb of embudos">
           <div class="emb-title" [style.background]="emb.color">
             <span class="emb-tit-txt">{{ emb.titulo }}</span>
-            <span class="emb-mp" *ngIf="emb.kommoLeads && emb.marketPlace !== undefined">
-              MARKET PLACE: {{ emb.marketPlace }}
-            </span>
             <button class="emb-expand" *ngIf="emb.detalle?.length" (click)="abrirDetalle(emb)" title="Detalle por asesor">
               <mat-icon>groups</mat-icon>
             </button>
@@ -144,9 +141,6 @@
   <div *dxTemplate="let d of 'content'">
     <ng-container *ngIf="embudoSel as emb">
       <div class="pop-emb">
-        <div class="pop-bar" [style.background]="emb.color" *ngIf="emb.kommoLeads && emb.marketPlace !== undefined">
-          MARKET PLACE (independiente): <b>{{ emb.marketPlace }}</b>
-        </div>
         <div class="pop-body">
           <table class="emb-tabla pop-tabla">
             <thead>
