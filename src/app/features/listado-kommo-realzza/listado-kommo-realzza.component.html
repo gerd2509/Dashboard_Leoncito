@@ -55,7 +55,7 @@
   <div class="lk-contenido">
     <div class="lk-grid-overlay" *ngIf="isLoading || sincronizando">
       <app-loading-overlay *ngIf="sincronizando" [inline]="true" [visible]="sincronizando" icon="cloud_sync"
-        mensaje="Conectando con Kommo…" submensaje="Sincronizando leads en tiempo real, puede tardar unos segundos…"></app-loading-overlay>
+        mensaje="Conectando con Kommo…" submensaje="Trayendo y actualizando TODOS los leads de la cuenta, puede tardar uno o dos minutos…"></app-loading-overlay>
       <app-loading-overlay *ngIf="!sincronizando" [inline]="true" [visible]="isLoading" icon="hub"
         mensaje="Cargando listado…" submensaje="Trayendo leads de Kommo…"></app-loading-overlay>
     </div>
