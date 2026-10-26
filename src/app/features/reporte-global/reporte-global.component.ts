@@ -112,6 +112,7 @@ export class ReporteGlobalComponent implements OnInit {
   detalleAbierto = false;
   detalleCargando = false;
   detalleTitulo = '';
+  detalleColor = '#1A5FAD';
   detalleFilas: { vendedor: string; cliente: string; producto: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number }[] = [];
 
   get detalleTotal(): number { return this.detalleFilas.reduce((s, f) => s + (f.monto || 0), 0); }
@@ -120,6 +121,7 @@ export class ReporteGlobalComponent implements OnInit {
     const sedesRaw = [...(this.rawSedesPorKey.get(fila.sedeKey) || [])];
     if (!sedesRaw.length) return;
     this.detalleTitulo = `${fila.sede} — ${col.label}`;
+    this.detalleColor = fila.color;
     this.detalleAbierto = true;
     this.detalleCargando = true;
     this.detalleFilas = [];
