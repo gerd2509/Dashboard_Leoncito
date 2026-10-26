@@ -256,25 +256,28 @@
             </div>
         </div> -->
 
-        <!-- ════════════ VISTA REALZZA: Contactabilidad + KOMMO lado a lado ════════════ -->
-        <div *ngIf="soloRealzza">
+        <!-- ════════════ GESTIÓN POR TIENDA ════════════
+             Una tarjeta por tienda (Call Center / Realzza Chiclayo / Piura / Lima), cada una
+             con sus 3 grillas (KOMMO, Market Place, Contactabilidad). El combo decide si se
+             ve solo una tienda o todas apiladas, una debajo de otra. -->
+        <ng-container *ngFor="let b of bloquesVisibles">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h3 class="titulosGrillas">📞 GESTIÓN DE LLAMADAS — REALZZA</h3>
+                <h3 class="titulosGrillas">{{ b.icono }} GESTIÓN — {{ b.nombre }}</h3>
             </div>
 
             <div class="firstContainer mb-4">
-                <!-- IZQUIERDA: KOMMO (registros NO market place) -->
-                <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
-                    <div class="team-label-bar realzza-bar">🏢 REALZZA - KOMMO</div>
-                    <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
+                <!-- KOMMO (registros NO market place) -->
+                <div class="focqus-elevation">
+                    <div class="team-label-bar" [ngClass]="b.claseBarra">{{ b.icono }} {{ b.nombre }} - KOMMO</div>
+                    <dx-data-grid [dataSource]="b.kommo" [showBorders]="true"
                         [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
                         [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
-                        <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
+                        <dxi-column [dataField]="b.campoAsesor" caption="ASESOR" />
                         <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                         <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
                         <dxo-summary>
-                            <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="right" [column]="b.campoAsesor" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
@@ -282,18 +285,18 @@
                     </dx-data-grid>
                 </div>
 
-                <!-- CENTRO: MARKET PLACE (MARKET PLACE R = SI) -->
-                <div class="focqus-elevation" style="border-top: 5px solid #d97706;">
-                    <div class="team-label-bar realzza-bar">🛒 REALZZA - MARKET PLACE</div>
-                    <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzzaMarket" [showBorders]="true"
+                <!-- MARKET PLACE (MARKET PLACE = SI) -->
+                <div class="focqus-elevation">
+                    <div class="team-label-bar" [ngClass]="b.claseBarra">🛒 {{ b.nombre }} - MARKET PLACE</div>
+                    <dx-data-grid [dataSource]="b.market" [showBorders]="true"
                         [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
                         [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
-                        <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
+                        <dxi-column [dataField]="b.campoAsesor" caption="ASESOR" />
                         <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                         <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
                         <dxo-summary>
-                            <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="right" [column]="b.campoAsesor" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
@@ -301,170 +304,33 @@
                     </dx-data-grid>
                 </div>
 
-                <!-- DERECHA: CONTACTABILIDAD -->
-                <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
-                    <div class="team-label-bar realzza-bar">🏢 REALZZA - CONTACTABILIDAD</div>
-                    <dx-data-grid [dataSource]="dataContactabilidadRealzza" [showBorders]="true" [columnAutoWidth]="true"
+                <!-- CONTACTABILIDAD DETALLADA -->
+                <div class="focqus-elevation">
+                    <div class="team-label-bar" [ngClass]="b.claseBarra">{{ b.icono }} {{ b.nombre }} - CONTACTABILIDAD</div>
+                    <dx-data-grid [dataSource]="b.contactabilidad" [showBorders]="true" [columnAutoWidth]="true"
                         [showRowLines]="true" (onCellPrepared)="onCellPrepared($event)">
-                        <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
+                        <dxi-column [dataField]="b.campoAsesor" caption="ASESOR" />
                         <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                         <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
                         <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
                         <dxi-column dataField="PORCENTAJE" caption="%" [format]="{ type: 'percent', precision: 0 }" />
                         <dxo-summary>
-                            <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
+                            <dxi-total-item alignment="right" [column]="b.campoAsesor" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum" [displayFormat]="'{0}'" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" [displayFormat]="'{0}'" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                            <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="pctTotalRealzza" />
+                            <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="b.customizeTextoPct" />
                         </dxo-summary>
                     </dx-data-grid>
                 </div>
             </div>
-        </div>
-        <!-- ════════════ FIN VISTA REALZZA ════════════ -->
+        </ng-container>
+        <!-- ════════════ FIN GESTIÓN POR TIENDA ════════════ -->
 
-        <h3 class="titulosGrillas mb-2" *ngIf="!soloRealzza">🌐 DETALLE AFILIACIONES VIRTUALES</h3>
-
-        <div class="kommoGrid mb-4" *ngIf="!soloRealzza">
-
-            <!-- 1) CALL CENTER - KOMMO (registros NO market place) -->
-            <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
-                <div class="team-label-bar call-bar">📞 CALL CENTER - KOMMO</div>
-                <dx-data-grid [dataSource]="dataContactabilidadKOMMOCall" [showBorders]="true"
-                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
-
-                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
-                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
-                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="TOTAL" caption="TOTAL" />
-
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-
-            <!-- 2) CALL CENTER - MARKET PLACE (MARKET PLACE L = SI) -->
-            <div class="focqus-elevation" style="border-top: 5px solid #2563eb;">
-                <div class="team-label-bar call-bar">🛒 CALL CENTER - MARKET PLACE</div>
-                <dx-data-grid [dataSource]="dataContactabilidadKOMMOCallMarket" [showBorders]="true"
-                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
-
-                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
-                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
-                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="TOTAL" caption="TOTAL" />
-
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-
-            <!-- 3) REALZZA - KOMMO (registros NO market place) -->
-            <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
-                <div class="team-label-bar realzza-bar">🏢 REALZZA - KOMMO</div>
-                <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzza" [showBorders]="true"
-                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
-
-                    <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
-                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
-                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="TOTAL" caption="TOTAL" />
-
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-
-            <!-- 4) REALZZA - MARKET PLACE (MARKET PLACE R = SI) -->
-            <div class="focqus-elevation" style="border-top: 5px solid #d97706;">
-                <div class="team-label-bar realzza-bar">🛒 REALZZA - MARKET PLACE</div>
-                <dx-data-grid [dataSource]="dataContactabilidadKOMMORealzzaMarket" [showBorders]="true"
-                    [showColumnLines]="true" [showRowLines]="true" [rowAlternationEnabled]="true"
-                    [columnAutoWidth]="true" (onCellPrepared)="onCellPrepared($event)">
-
-                    <dxi-column dataField="ASESOR REALZZA" caption="ASESOR" />
-                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
-                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="TOTAL" caption="TOTAL" />
-
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="ASESOR REALZZA" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-        </div>
-
-        <h3 class="titulosGrillas mb-2" *ngIf="!soloRealzza">📞 CONTACTABILIDAD DETALLADA</h3>
-
-        <div class="firstContainer mb-4" *ngIf="!soloRealzza">
-            <div class="focqus-elevation" style="border-top: 5px solid #1e3a8a;">
-                <div class="team-label-bar call-bar">📞 CALL CENTER</div>
-                <dx-data-grid [dataSource]="dataContactabilidadCall" [showBorders]="true" [columnAutoWidth]="true"
-                    [showRowLines]="true" (onCellPrepared)="onCellPrepared($event)">
-                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
-                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
-                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
-                    <dxi-column dataField="TOTAL" caption="TOTAL" />
-                    <dxi-column dataField="PORCENTAJE" caption="%" [format]="{ type: 'percent', precision: 0 }" />
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="pctTotalCall" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-
-            <div class="focqus-elevation" style="border-top: 5px solid #f59e0b;">
-                <div class="team-label-bar realzza-bar">🏢 REALZZA</div>
-                <dx-data-grid [dataSource]="dataContactabilidadRealzza" [showBorders]="true" [columnAutoWidth]="true"
-                    [showRowLines]="true" (onCellPrepared)="onCellPrepared($event)">
-                    <dxi-column dataField="ASESOR CONTACT" caption="ASESOR" />
-                    <dxi-column dataField="CONTACTO" caption="CONTACTO" />
-                    <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
-                    <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
-                    <dxi-column dataField="TOTAL" caption="TOTAL" />
-                    <dxi-column dataField="PORCENTAJE" caption="%" [format]="{ type: 'percent', precision: 0 }" />
-                    <dxo-summary>
-                        <dxi-total-item alignment="right" column="ASESOR CONTACT" [displayFormat]="'TOTAL'" />
-                        <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
-                        <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum"
-                            [displayFormat]="'{0}'" />
-                        <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                        <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="pctTotalRealzza" />
-                    </dxo-summary>
-                </dx-data-grid>
-            </div>
-        </div>
-
+        <!-- Postventa: ya no se usa — se deja comentado por si se necesita reactivar. -->
+        <!--
         <div class="thirdContainer" *ngIf="!soloRealzza">
             <dx-box direction="row" width="100%" height="auto" alignItems="center" justifyContent="center"
                 class="dashboard-box mt-3">
@@ -564,5 +430,6 @@
                 </dxi-item>
             </dx-box>
         </div>
+        -->
     </div>
 </div>

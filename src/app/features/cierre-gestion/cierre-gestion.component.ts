@@ -13,6 +13,17 @@ import { DxSchedulerComponent } from 'devextreme-angular';
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
+// Gestión de UNA tienda (Call Center o una de las 3 Realzza) lista para pintar sus 3
+// grillas. `customizeTextoPct` va pre-armado (closure con el % ya calculado) porque
+// DevExtreme necesita una función estable por columna de resumen.
+interface BloqueTienda {
+  key: string; nombre: string; icono: string; claseBarra: string;
+  campoAsesor: string;
+  kommo: any[]; market: any[]; contactabilidad: any[];
+  pctTotal: string;
+  customizeTextoPct: (arg: any) => string;
+}
+
 @Component({
   selector: 'app-cierre-gestion',
   imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
@@ -25,12 +36,18 @@ export class CierreGestionComponent implements OnInit {
   private cap = inject(CapSedesService);
   private tiendas = new AsesoresPorTienda(this.cap);
 
-  // Tienda: Chiclayo (por defecto, sin cambios) · Piura / Lima (asesores del CAP) · Todas (admin).
-  readonly tiendasOpciones = [...TIENDAS_REALZZA, { value: 'TODAS', viewValue: 'TODAS LAS TIENDAS' }];
+  // Tienda: Call Center · Realzza Chiclayo/Piura/Lima (asesores del CAP) · Todas (stackea
+  // la gestión de cada una, una debajo de otra). Un gestor Realzza de Piura/Lima no ve el
+  // combo (fijo a su tienda); un jefe general de Realzza (soloRealzza) no ve Call Center.
   readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
-  tiendaCierre = this.tiendaGestor || 'REALZZA';
-  private rawRealzza: any[] = [];
-  private rawKommo: any[] = [];
+  tiendaCierre = this.tiendaGestor || 'TODAS';
+
+  get tiendasOpciones() {
+    const base = this.soloRealzza
+      ? [...TIENDAS_REALZZA]
+      : [{ value: 'CALL', viewValue: 'CALL CENTER' }, ...TIENDAS_REALZZA];
+    return [...base, { value: 'TODAS', viewValue: 'TODAS LAS TIENDAS' }];
+  }
 
   // true cuando el usuario es gerente/supervisor de Realzza
   get soloRealzza(): boolean {
@@ -61,9 +78,16 @@ export class CierreGestionComponent implements OnInit {
 
   // DATASOURCES PRINCIPALES
   dataOriginal: any[] = []; // Data Call Center
-  dataRealzza: any[] = [];  // Data Campo/Realzza
+  dataRealzza: any[] = [];  // Data Campo/Realzza (todas las tiendas, sin filtrar)
+  // Postventa: ya no se usa — se deja el dataset (sin cargar) y la lógica comentada
+  // más abajo por si se necesita reactivar.
   dataPostVenta: any[] = [];
   dataKOMMO: any[] = [];
+
+  // Gestión por tienda (CALL CENTER / REALZZA CHICLAYO / PIURA / LIMA), una tarjeta por
+  // tienda con sus 3 grillas (KOMMO, Market Place, Contactabilidad). El combo decide
+  // cuáles se muestran: una sola tienda, o todas apiladas una debajo de otra.
+  bloques: BloqueTienda[] = [];
 
   // VARIABLES PARA LA VISTA SPLIT (CALL CENTER)
   dataContactabilidadCall: any[] = [];
@@ -198,13 +222,15 @@ export class CierreGestionComponent implements OnInit {
   get asesoresCall() {
     return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, ...this.TRANSICION];
   }
+  // Lista REALZZA completa (Chiclayo + Piura + Lima) — ya NO depende del combo; se usa
+  // para los KPI/voz globales (siempre el equipo entero, independiente de qué tienda se
+  // esté viendo en el detalle de abajo).
   get asesoresRealzza() {
-    const base = this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, ...this.TRANSICION] : this.asesoresRealzzaBase;
-    if (this.esTiendaNueva) return this.asesoresDeTienda(this.tiendaCierre);
-    if (this.tiendaCierre === 'TODAS') return [...base, ...this.asesoresDeTienda('REALZZA PIURA'), ...this.asesoresDeTienda('REALZZA LIMA')];
-    return base;
+    return [...this.asesoresRealzzaChiclayo, ...this.asesoresDeTienda('REALZZA PIURA'), ...this.asesoresDeTienda('REALZZA LIMA')];
   }
-  private get esTiendaNueva(): boolean { return this.tiendaCierre === 'REALZZA PIURA' || this.tiendaCierre === 'REALZZA LIMA'; }
+  private get asesoresRealzzaChiclayo() {
+    return this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, ...this.TRANSICION] : this.asesoresRealzzaBase;
+  }
   private asesoresDeTienda(t: string): { value: string; viewValue: string }[] {
     return (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
   }
@@ -219,8 +245,8 @@ export class CierreGestionComponent implements OnInit {
   // Ana Rut (RZ8) y Nataly (RZ2) no participan en Contactabilidad, KOMMO ni Market Place
   // de Realzza Chiclayo — el resto de la tienda (incl. Jesus) sí, en los 3 cuadros.
   private readonly SIN_CONTACTABILIDAD_REALZZA = ['RZ2', 'RZ8'];
-  get asesoresRealzzaContactables() {
-    return this.asesoresRealzza.filter(a => !this.SIN_CONTACTABILIDAD_REALZZA.includes(a.value));
+  private get asesoresRealzzaChiclayoContactables() {
+    return this.asesoresRealzzaChiclayo.filter(a => !this.SIN_CONTACTABILIDAD_REALZZA.includes(a.value));
   }
 
   get asesoresKommoCall() {
@@ -228,18 +254,10 @@ export class CierreGestionComponent implements OnInit {
       .map(id => this.asesoresCall.find(a => a.value === id))
       .filter((a): a is { value: string; viewValue: string } => !!a);
   }
-  // % total de la tabla Realzza: contactos / gestiones de la tabla (no el conteo de filas).
-  readonly pctTotalRealzza = () => this.textoPctTotal(this.dataContactabilidadRealzza);
-  readonly pctTotalCall = () => this.textoPctTotal(this.dataContactabilidadCall);
   private textoPctTotal(d: any[]): string {
     const c = d.reduce((a, r) => a + (r['CONTACTO'] || 0), 0);
     const t = d.reduce((a, r) => a + (r['TOTAL'] || 0), 0);
     return `${t > 0 ? Math.round((c / t) * 100) : 0}%`;
-  }
-
-  get asesoresKommoRealzza() {
-    if (this.esTiendaNueva) return this.asesoresRealzza;
-    return this.asesoresRealzzaContactables;
   }
 
   asesorMap: { [codigo: string]: string } = {
@@ -295,18 +313,18 @@ export class CierreGestionComponent implements OnInit {
     try {
       await this.tiendas.cargar();
       const r = this.rangoMes();
-      const [dataCall, dataRealzza, dataPost, dataKOMMO] = await Promise.all([
+      const [dataCall, dataRealzza, dataKOMMO] = await Promise.all([
         lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
         lastValueFrom(this.service.getSheetDataCampoRango(r)),  // BD gestion_realzza (mes)
-        lastValueFrom(this.service.getSheetDataPostVenta()),
+        // Postventa: ya no se usa — se deja comentada la carga.
+        // lastValueFrom(this.service.getSheetDataPostVenta()),
         lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
 
       this.dataOriginal = dataCall;
-      this.rawRealzza = dataRealzza;
-      this.dataPostVenta = dataPost;
-      this.rawKommo = dataKOMMO;
-      this.aplicarTienda();
+      this.dataRealzza = dataRealzza;
+      // this.dataPostVenta = dataPost;
+      this.dataKOMMO = dataKOMMO;
 
       this.calcularIndicadoresCompletos();
 
@@ -325,28 +343,23 @@ export class CierreGestionComponent implements OnInit {
     this.limpiarTimers();
   }
 
-  /** Acota Realzza y KOMMO a los asesores de la tienda elegida (Chiclayo = sin Piura/Lima). */
-  private aplicarTienda(): void {
-    const t = this.tiendaCierre;
-    const keep = (r: any) => t === 'TODAS' || this.tiendas.pertenece(r['ASESOR REALZZA'], t);
-    this.dataRealzza = this.rawRealzza.filter(keep);
-    this.dataKOMMO = this.rawKommo.filter(keep);
-  }
-
+  /** El combo solo decide qué tiendas se muestran — ya no recalcula nada. */
   setTiendaCierre(t: string): void {
     if (this.tiendaGestor) return;
-    this.tiendaCierre = t || 'REALZZA';
-    this.aplicarTienda();
-    this.calcularIndicadoresCompletos();
+    this.tiendaCierre = t || 'TODAS';
+  }
+
+  /** Bloques (tiendas) a pintar según el combo: uno solo, o todos apilados en "Todas". */
+  get bloquesVisibles(): BloqueTienda[] {
+    if (this.tiendaCierre === 'TODAS') {
+      return this.soloRealzza ? this.bloques.filter(b => b.key !== 'CALL') : this.bloques;
+    }
+    return this.bloques.filter(b => b.key === this.tiendaCierre);
   }
 
   calcularIndicadoresCompletos() {
-    this.calcularContactabilidadCall();
-    this.calcularContactabilidadRealzza();
-    this.calcularContactabilidadKOMMOCall();
-    this.calcularContactabilidadKOMMOCallMarket();
-    this.calcularContactabilidadKOMMORealzza();
-    this.calcularContactabilidadKOMMORealzzaMarket();
+    this.construirBloques();
+    this.sincronizarCamposLegado();
     this.calcularAgendamientosCall();
     this.calcularAgendamientosRealzza();
     this.calcularDerivacionesCall();
@@ -354,11 +367,12 @@ export class CierreGestionComponent implements OnInit {
     this.totalGestionesPorSedeYTipoCliente();
     this.totalDerivacionesPorSede();
     this.graficoData();
-    this.generarGraficoAreasFiltrado();
-    this.generarGraficoEstadoGestionFiltrado();
-    this.generarGraficoSatisfaccionFiltrado();
-    this.generarGraficoConformidadFiltrado();
-    this.procesarDatosPostVentaFiltrada();
+    // Postventa: ya no se usa — queda comentado para no perder la lógica.
+    // this.generarGraficoAreasFiltrado();
+    // this.generarGraficoEstadoGestionFiltrado();
+    // this.generarGraficoSatisfaccionFiltrado();
+    // this.generarGraficoConformidadFiltrado();
+    // this.procesarDatosPostVentaFiltrada();
     this.totalGestionesPorAsesorYTipo();
   }
 
@@ -367,17 +381,17 @@ export class CierreGestionComponent implements OnInit {
     try {
       await this.tiendas.cargar();
       const r = this.rangoMes();
-      const [dataCall, dataRealzza, dataPost, dataKOMMO] = await Promise.all([
+      const [dataCall, dataRealzza, dataKOMMO] = await Promise.all([
         lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
         lastValueFrom(this.service.getSheetDataCampoRango(r)),  // BD gestion_realzza (mes)
-        lastValueFrom(this.service.getSheetDataPostVenta()),
+        // Postventa: ya no se usa — se deja comentada la carga.
+        // lastValueFrom(this.service.getSheetDataPostVenta()),
         lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
       this.dataOriginal = dataCall;
-      this.rawRealzza = dataRealzza;
-      this.dataPostVenta = dataPost;
-      this.rawKommo = dataKOMMO;
-      this.aplicarTienda();
+      this.dataRealzza = dataRealzza;
+      // this.dataPostVenta = dataPost;
+      this.dataKOMMO = dataKOMMO;
       this.calcularIndicadoresCompletos();
     } catch (error) {
       console.error('Error al actualizar datos:', error);
@@ -386,45 +400,82 @@ export class CierreGestionComponent implements OnInit {
     }
   }
 
-  // LOGICA CONTACTABILIDAD
-  calcularContactabilidadCall() {
-    // Contactabilidad Leoncito (llamadas): TODOS los asesores, tengan o no gestión.
-    // dedupePorDni=true → un DNI cuenta como 1 gestión aunque tenga varios teléfonos.
-    this.dataContactabilidadCall = this
-      .procesarContactabilidad(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT', true);
+  /** Construye la gestión de cada tienda (Call Center + las 3 Realzza) en bloques
+   *  independientes del combo — este solo decide cuáles se muestran (ver `bloquesVisibles`). */
+  private construirBloques(): void {
+    type Def = {
+      key: string; nombre: string; icono: string; claseBarra: string;
+      campoAsesor: string; campoEstado: string; campoMarket: string;
+      dataContactab: any[]; dataKommo: any[];
+      asesoresContactab: { value: string; viewValue: string }[];
+      asesoresKommo: { value: string; viewValue: string }[];
+      // Call Center usa un subconjunto chico de asesores para KOMMO (no market) pero
+      // TODOS para Market Place; en Realzza ambos usan la misma lista.
+      asesoresMarket?: { value: string; viewValue: string }[];
+    };
+    const defs: Def[] = [
+      {
+        key: 'CALL', nombre: 'CALL CENTER', icono: '📞', claseBarra: 'call-bar',
+        campoAsesor: 'ASESOR CONTACT', campoEstado: 'ESTADO DE GESTIÓN', campoMarket: 'MARKET PLACE L',
+        dataContactab: this.dataOriginal, dataKommo: this.dataKOMMO,
+        asesoresContactab: this.asesoresCall, asesoresKommo: this.asesoresKommoCall, asesoresMarket: this.asesoresCall,
+      },
+      {
+        key: 'REALZZA', nombre: 'REALZZA CHICLAYO', icono: '🏢', claseBarra: 'realzza-bar',
+        campoAsesor: 'ASESOR REALZZA', campoEstado: 'ESTADO DE GESTIÓN REALZZA', campoMarket: 'MARKET PLACE R',
+        dataContactab: this.dataRealzza, dataKommo: this.dataKOMMO,
+        asesoresContactab: this.asesoresRealzzaChiclayoContactables, asesoresKommo: this.asesoresRealzzaChiclayoContactables,
+      },
+      {
+        key: 'REALZZA PIURA', nombre: 'REALZZA PIURA', icono: '🏢', claseBarra: 'realzza-bar',
+        campoAsesor: 'ASESOR REALZZA', campoEstado: 'ESTADO DE GESTIÓN REALZZA', campoMarket: 'MARKET PLACE R',
+        dataContactab: this.dataRealzza, dataKommo: this.dataKOMMO,
+        asesoresContactab: this.asesoresDeTienda('REALZZA PIURA'), asesoresKommo: this.asesoresDeTienda('REALZZA PIURA'),
+      },
+      {
+        key: 'REALZZA LIMA', nombre: 'REALZZA LIMA', icono: '🏢', claseBarra: 'realzza-bar',
+        campoAsesor: 'ASESOR REALZZA', campoEstado: 'ESTADO DE GESTIÓN REALZZA', campoMarket: 'MARKET PLACE R',
+        dataContactab: this.dataRealzza, dataKommo: this.dataKOMMO,
+        asesoresContactab: this.asesoresDeTienda('REALZZA LIMA'), asesoresKommo: this.asesoresDeTienda('REALZZA LIMA'),
+      },
+    ];
+
+    this.bloques = defs.map(d => {
+      const contactabilidad = this.procesarContactabilidad(d.dataContactab, d.asesoresContactab, d.campoAsesor, true);
+      const kommo  = this.procesarContactabilidadKOMMO(d.dataKommo, d.asesoresKommo, d.campoAsesor, d.campoEstado, d.campoMarket, false);
+      const market = this.procesarContactabilidadKOMMO(d.dataKommo, d.asesoresMarket ?? d.asesoresKommo, d.campoAsesor, d.campoEstado, d.campoMarket, true);
+      const pctTotal = this.textoPctTotal(contactabilidad);
+      return {
+        key: d.key, nombre: d.nombre, icono: d.icono, claseBarra: d.claseBarra, campoAsesor: d.campoAsesor,
+        contactabilidad, kommo, market, pctTotal,
+        customizeTextoPct: (_arg: any) => pctTotal,
+      };
+    });
   }
 
-  calcularContactabilidadRealzza() {
-    // Contactabilidad Realzza: TODOS los asesores (salvo Ana Rut/Nataly), tengan o no gestión.
-    // dedupePorDni=true → un DNI cuenta como 1 gestión aunque lo hayan llamado varias
-    // veces (igual que Call, arriba, y que Mi Panel — antes faltaba acá y las "Llamadas"
-    // de Realzza salían infladas frente al resto de la app).
-    this.dataContactabilidadRealzza = this
-      .procesarContactabilidad(this.dataRealzza, this.asesoresRealzzaContactables, 'ASESOR REALZZA', true);
-  }
+  /** Mapea los bloques a los campos "globales" que usan las tarjetas KPI, el reporte de
+   *  voz y los gráficos — para no tocar esa lógica, que no depende del combo de tienda. */
+  private sincronizarCamposLegado(): void {
+    const call = this.bloques.find(b => b.key === 'CALL');
+    const realzza = this.bloques.filter(b => b.key !== 'CALL');
 
-  calcularContactabilidadKOMMOCall() {
-    // KOMMO Leoncito (NO market place): SOLO Karen, Esmeralda, Kelly; tengan o no registros.
-    this.dataContactabilidadKOMMOCall = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresKommoCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', false);
-  }
+    this.dataContactabilidadCall = call?.contactabilidad ?? [];
+    this.dataContactabilidadRealzza = realzza.flatMap(b => b.contactabilidad);
+    this.dataContactabilidadKOMMOCall = call?.kommo ?? [];
+    this.dataContactabilidadKOMMOCallMarket = call?.market ?? [];
+    this.dataContactabilidadKOMMORealzza = realzza.flatMap(b => b.kommo);
+    this.dataContactabilidadKOMMORealzzaMarket = realzza.flatMap(b => b.market);
 
-  calcularContactabilidadKOMMOCallMarket() {
-    // KOMMO Leoncito MARKET PLACE: TODOS los asesores, tengan o no registros.
-    this.dataContactabilidadKOMMOCallMarket = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresCall, 'ASESOR CONTACT', 'ESTADO DE GESTIÓN', 'MARKET PLACE L', true);
-  }
+    this.dataContactabilidad = [...this.dataContactabilidadCall, ...this.dataContactabilidadRealzza];
 
-  calcularContactabilidadKOMMORealzza() {
-    // KOMMO Realzza (NO market place): TODOS los asesores (salvo Ana Rut/Nataly).
-    this.dataContactabilidadKOMMORealzza = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresKommoRealzza, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', false);
-  }
-
-  calcularContactabilidadKOMMORealzzaMarket() {
-    // KOMMO Realzza MARKET PLACE: TODOS los asesores (salvo Ana Rut/Nataly), tengan o no registros.
-    this.dataContactabilidadKOMMORealzzaMarket = this
-      .procesarContactabilidadKOMMO(this.dataKOMMO, this.asesoresRealzzaContactables, 'ASESOR REALZZA', 'ESTADO DE GESTIÓN REALZZA', 'MARKET PLACE R', true);
+    // % global final = sobre el total de las 4 tablas KOMMO (igual que antes).
+    const totalKommo = [
+      ...this.dataContactabilidadKOMMOCall, ...this.dataContactabilidadKOMMOCallMarket,
+      ...this.dataContactabilidadKOMMORealzza, ...this.dataContactabilidadKOMMORealzzaMarket,
+    ];
+    const c = totalKommo.reduce((a, r) => a + (r['CONTACTO'] || 0), 0);
+    const t = totalKommo.reduce((a, r) => a + (r['TOTAL'] || 0), 0);
+    this.porcentajeTotalContactabilidad = t > 0 ? Math.round((c / t) * 100) : 0;
   }
 
   private procesarContactabilidad(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string, dedupePorDni = false): any[] {
@@ -479,13 +530,6 @@ export class CierreGestionComponent implements OnInit {
         'PORCENTAJE': total > 0 ? (contacto / total) : 0
       });
     });
-
-    this.dataContactabilidad = [...this.dataContactabilidadCall, ...this.dataContactabilidadRealzza];
-
-    const sumaTotalContactos = this.dataContactabilidad.reduce((acc, curr) => acc + (curr['CONTACTO'] || 0), 0);
-    const sumaTotalGestion = this.dataContactabilidad.reduce((acc, curr) => acc + (curr['TOTAL'] || 0), 0);
-    this.porcentajeTotalContactabilidad = sumaTotalGestion > 0
-      ? Math.round((sumaTotalContactos / sumaTotalGestion) * 100) : 0;
 
     return resultado;
   }
@@ -562,24 +606,7 @@ export class CierreGestionComponent implements OnInit {
       });
     });
 
-    this.actualizarTotalesGlobalesKOMMO();
     return resultado;
-  }
-
-  // Método auxiliar para no ensuciar el procesador
-  private actualizarTotalesGlobalesKOMMO() {
-    const totalData = [
-      ...(this.dataContactabilidadKOMMOCall || []),
-      ...(this.dataContactabilidadKOMMOCallMarket || []),
-      ...(this.dataContactabilidadKOMMORealzza || []),
-      ...(this.dataContactabilidadKOMMORealzzaMarket || [])
-    ];
-
-    const sumaTotalContactos = totalData.reduce((acc, curr) => acc + (curr['CONTACTO'] || 0), 0);
-    const sumaTotalGestion = totalData.reduce((acc, curr) => acc + (curr['TOTAL'] || 0), 0);
-
-    this.porcentajeTotalContactabilidad = sumaTotalGestion > 0
-      ? Math.round((sumaTotalContactos / sumaTotalGestion) * 100) : 0;
   }
 
   // LOGICA AGENDAMIENTOS
