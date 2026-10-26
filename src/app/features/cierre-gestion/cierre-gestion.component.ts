@@ -522,7 +522,7 @@ export class CierreGestionComponent implements OnInit {
 
       resultado.push({
         'ASESOR ID': asesor.value,
-        'ASESOR CONTACT': this.nombreCorto(asesor),
+        [nombreColumnaAsesor]: this.nombreCorto(asesor),
         'CONTACTO': contacto,
         'CORTA LLAMADA': cortaLlamada,
         'NO CONTACTO': noContacto,
@@ -782,7 +782,7 @@ export class CierreGestionComponent implements OnInit {
     if (!('speechSynthesis' in window)) return;
     let mensaje = 'Reporte actualizado. ';
     this.dataContactabilidad.forEach(item => {
-      const nombre = this.getNombreParaVoz(item['ASESOR CONTACT']);
+      const nombre = this.getNombreParaVoz(item['ASESOR CONTACT'] ?? item['ASESOR REALZZA']);
       mensaje += `${nombre} tiene ${item['CONTACTO']} contactos de ${item['TOTAL']} gestiones. `;
     });
     mensaje += `En total van ${this.totalDerivaciones} derivaciones. `;
