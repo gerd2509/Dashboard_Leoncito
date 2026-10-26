@@ -105,6 +105,36 @@ export class ReporteGlobalComponent implements OnInit {
   // Orden preferido de las entidades aliadas.
   private readonly ORDEN_ALIADO = ['GLOBAL GO', 'BRILLA', 'EFECTIVA'];
 
+  // ── Popup "Detalle" (asesor/cliente/producto/monto/fecha) al hacer clic en una celda
+  // del cuadro Aliados por Entidad × Sede. sedeKey → textos de sede TAL CUAL en la BD
+  // (puede haber más de uno por sede, p.ej. con/sin prefijo "SEDE RELENOR").
+  private rawSedesPorKey = new Map<string, Set<string>>();
+  detalleAbierto = false;
+  detalleCargando = false;
+  detalleTitulo = '';
+  detalleFilas: { vendedor: string; cliente: string; producto: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number }[] = [];
+
+  get detalleTotal(): number { return this.detalleFilas.reduce((s, f) => s + (f.monto || 0), 0); }
+
+  async abrirDetalleAliado(fila: FilaPivot, col: ColPivot): Promise<void> {
+    const sedesRaw = [...(this.rawSedesPorKey.get(fila.sedeKey) || [])];
+    if (!sedesRaw.length) return;
+    this.detalleTitulo = `${fila.sede} — ${col.label}`;
+    this.detalleAbierto = true;
+    this.detalleCargando = true;
+    this.detalleFilas = [];
+    try {
+      const { anio, mes } = this.form.value;
+      const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(anio, mes || undefined, undefined, sedesRaw, col.key));
+      this.detalleFilas = filas || [];
+    } catch (e) {
+      console.error('Error detalle Reporte Global:', e);
+    }
+    this.detalleCargando = false;
+  }
+
+  cerrarDetalle(): void { this.detalleAbierto = false; }
+
   constructor(private fb: UntypedFormBuilder) {
     this.form = this.fb.group({ anio: [2026], mes: [0] });
   }
@@ -330,6 +360,15 @@ export class ReporteGlobalComponent implements OnInit {
     // incautados, La Victoria, variantes RETAIL) de todas las tablas y KPIs.
     const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
     const norm = (e: string | null) => (e || '').toString().trim().toUpperCase();
+    // Textos de sede TAL CUAL en la BD, por sedeKey normalizado — para pedir el detalle
+    // de una celda sin tener que reimplementar la normalización de sede en el backend.
+    this.rawSedesPorKey.clear();
+    for (const r of rows) {
+      const info = this.sedeInfo(r.sede);
+      let s = this.rawSedesPorKey.get(info.key);
+      if (!s) { s = new Set(); this.rawSedesPorKey.set(info.key, s); }
+      s.add(r.sede);
+    }
     // KPIs base
     this.kNetoGlobal = rows.reduce((s, r) => s + (r.neto || 0), 0);
     this.kAliadosNeto = rows.filter(r => norm(r.entidad) && norm(r.entidad) !== 'LEONCITO').reduce((s, r) => s + (r.neto || 0), 0);
@@ -511,6 +550,9 @@ export class ReporteGlobalComponent implements OnInit {
   }
 
   soles(n: number): string { return 'S/ ' + (Math.round(n || 0)).toLocaleString('es-PE'); }
+  fechaCorta(f: { dia_cv: number; mes_cv: number; anio_cv: number }): string {
+    return f.dia_cv && f.mes_cv && f.anio_cv ? `${f.dia_cv}/${f.mes_cv}/${f.anio_cv}` : '—';
+  }
   claseMargen(pct: number): string { return pct >= 20 ? 'ok' : pct >= 10 ? 'warn' : 'low'; }
 
   // ── Export Excel ──
