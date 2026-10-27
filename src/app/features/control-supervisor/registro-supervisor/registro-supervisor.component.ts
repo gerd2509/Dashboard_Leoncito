@@ -24,23 +24,6 @@ interface GestionRapida {
   controlada: boolean;   // ya tiene un control del supervisor ese día
 }
 
-// Asesores Realzza (mismo listado que Ventas Campo). Se guarda el NOMBRE completo.
-const ASESORES_REALZZA = [
-  'ACOSTA JIMENEZ MARIELA NATALY',
-  'PEREZ TINEO MARICIELO TATIANA',
-  'RIVAS PURISACA KAREN YUDITH',
-  'BERNAL BAZAN BRENDA NICOLL',
-  'MIÑOPE GONZALES ANYELA ESTHEFANY',
-  'MONTALVO LUYO ERNESTO ADOLFO',
-  'SANTAMARIA GUZMAN MERLY BRIGHITE',
-  'UCHOFEN VIGO FELICITA',
-  'BUSTAMANTE CHALAN ANA RUT',
-  'GUILLEN MACKUADO AURORA FERNANDA',
-  'LLONTOP DAVILA DENNIS CHRISTIAN',
-  'PEREZ TINEO WILLIAM HUMBERTO',
-  'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO',
-];
-
 const TIPO_BASE = ['BBDD', 'KOMMO', 'TIENDA', 'REFERIDOS', 'BRILLA', 'BBDD KOMMO', 'RECURRENTES NO ASIGNADOS', 'MARKET PLACE', 'EFECTIVA', 'REDES SSENDA'];
 
 // Margen máximo (en días) para que una publicación de Market Place esté "al día".
@@ -64,7 +47,8 @@ export class RegistroSupervisorComponent implements OnInit {
   readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
   tiendaFiltro = this.tiendaGestor || 'REALZZA';
 
-  get asesores(): string[] { return this.tiendas.listaDe(this.tiendaFiltro) ?? ASESORES_REALZZA; }
+  // Chiclayo/Piura/Lima: las 3 salen del Maestro CAP (ver AsesoresPorTienda).
+  get asesores(): string[] { return this.tiendas.listaDe(this.tiendaFiltro) ?? []; }
   // En Gestión solo aplican estos tipos de base.
   readonly tiposBase = ['BBDD', 'KOMMO', 'BBDD KOMMO', "MARKET PLACE"];
   readonly estados = ['CONTACTO', 'NO CONTACTO'];

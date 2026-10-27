@@ -103,14 +103,6 @@ export class ControlSupervisorComponent implements OnInit {
   readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
   tiendaFiltro = this.tiendaGestor || 'REALZZA';
 
-  // Listas para el formulario de edición rápida.
-  readonly asesoresLista = [
-    'ACOSTA JIMENEZ MARIELA NATALY', 'PEREZ TINEO MARICIELO TATIANA', 'RIVAS PURISACA KAREN YUDITH',
-    'BERNAL BAZAN BRENDA NICOLL', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'MONTALVO LUYO ERNESTO ADOLFO',
-    'SANTAMARIA GUZMAN MERLY BRIGHITE', 'UCHOFEN VIGO FELICITA', 'RIQUERO ULCO CESAR JEFFERSON',
-    'BUSTAMANTE CHALAN ANA RUT', 'BUSTAMANTE BANCES LUCIA NICOLL', 'LLONTOP DAVILA DENNIS CHRISTIAN',
-    'PEREZ TINEO WILLIAM HUMBERTO', 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO'
-  ];
   readonly estadosGestion = ['CONTACTO', 'NO CONTACTO'];
   readonly tiposBaseLista = ['BBDD', 'KOMMO', 'BBDD KOMMO', 'MARKET PLACE'];
   readonly estadosMpLista = ['AL DÍA', 'DESACTUALIZADO', 'ACTUALIZADO'];
@@ -413,7 +405,8 @@ export class ControlSupervisorComponent implements OnInit {
       this.citas.map(c => c.asesor).filter(a => !!a && this.tiendas.pertenece(a, this.tiendaFiltro)))).sort();
   }
 
-  get asesoresEdicion(): string[] { return this.tiendas.listaDe(this.tiendaFiltro) ?? this.asesoresLista; }
+  // Chiclayo/Piura/Lima: las 3 salen del Maestro CAP (ver AsesoresPorTienda).
+  get asesoresEdicion(): string[] { return this.tiendas.listaDe(this.tiendaFiltro) ?? []; }
 
   private recalcularKpis(): void {
     const g = this.citasFiltradas.filter(c => c.tipo === 'GESTION');

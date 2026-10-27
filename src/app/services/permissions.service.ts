@@ -142,7 +142,9 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-zona':       [...ZONA_MODULES],
   'supervisor-zona':    [...ZONA_MODULES],
   'vendedor-call':      [...VENDEDOR_MODULES],
-  'vendedor-realzza':   [...VENDEDOR_MODULES],
+  // Vendedor Realzza también registra KOMMO (no solo gestión/market place) — se
+  // suma al set base.
+  'vendedor-realzza':   [...VENDEDOR_MODULES, 'registro-kommo'],
   'vendedor-zona':      [...VENDEDOR_MODULES],
   // Logística (mismos módulos en cualquier perfil de sede).
   'jefe_almacen-call':  [...JEFE_ALMACEN_MODULES],
@@ -206,10 +208,13 @@ export class PermissionsService {
   }
 
   // Mapea la sede del usuario (del login) a un PERFIL de acceso.
-  // Realzza → 'realzza'. Todo lo demás (sedes Call y 'todas') → 'call'.
+  // Realzza → 'realzza' (Chiclayo/Piura/Lima: 'realzza'/'realzzapiura'/'realzzalima',
+  // por eso el startsWith y no un igual exacto — con exacto, Piura/Lima/Chiclayo caían
+  // mal a 'call' cuando el usuario no tenía módulos personalizados). Todo lo demás
+  // (sedes Call y 'todas') → 'call'.
   perfilDe(sede: string): string {
     const s = this.sedeCfg.normalizar(sede);
-    if (s === 'realzza') return 'realzza';
+    if (s.startsWith('realzza')) return 'realzza';
     if (s === 'centro' || s === 'norte' || s === 'sur' || s === 'expansion') return 'zona';  // gerencia por zona
     return 'call';
   }

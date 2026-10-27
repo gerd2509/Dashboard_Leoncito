@@ -6,6 +6,7 @@ import { lastValueFrom } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
 import { AuthService } from '../../services/auth.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
+import { nombreCorto as nombreCortoCompartido } from '../../shared/asesores';
 import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import * as XLSX from 'xlsx';
@@ -203,33 +204,21 @@ export class CierreGestionComponent implements OnInit {
     { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' }
   ];
 
-  // LISTA ASESORES REALZZA (base, sin Aurora RZ10; Kelly/Anita se agregan por fecha)
-  private asesoresRealzzaBase = [
-    { value: 'RZ1', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'RZ2', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'RZ3', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'RZ4', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'RZ5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'RZ6', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'RZ7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'RZ8', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'RZ9', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
-    { value: 'RZ11', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
-    { value: 'RZ12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' }
-  ];
-
-  // Listas efectivas según el mes seleccionado (Kelly/Anita/Brenda por fecha).
+  // Listas efectivas según el mes seleccionado (Kelly/Anita/Brenda por fecha — esto
+  // sigue aplicando SOLO del lado de Call; en el CAP, Realzza ya las tiene como
+  // ACTIVAS, así que del lado de Realzza no hace falta ningún corte por fecha).
   get asesoresCall() {
     return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, ...this.TRANSICION];
   }
   // Lista REALZZA completa (Chiclayo + Piura + Lima) — ya NO depende del combo; se usa
   // para los KPI/voz globales (siempre el equipo entero, independiente de qué tienda se
-  // esté viendo en el detalle de abajo).
+  // esté viendo en el detalle de abajo). Las 3 tiendas salen del Maestro CAP — ya no
+  // hay lista hardcodeada en el código para ninguna (ver AsesoresPorTienda).
   get asesoresRealzza() {
     return [...this.asesoresRealzzaChiclayo, ...this.asesoresDeTienda('REALZZA PIURA'), ...this.asesoresDeTienda('REALZZA LIMA')];
   }
   private get asesoresRealzzaChiclayo() {
-    return this.kellyAnitaRealzza ? [...this.asesoresRealzzaBase, ...this.TRANSICION] : this.asesoresRealzzaBase;
+    return this.asesoresDeTienda('REALZZA');
   }
   private asesoresDeTienda(t: string): { value: string; viewValue: string }[] {
     return (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
@@ -242,9 +231,13 @@ export class CierreGestionComponent implements OnInit {
       ? ['CC2', 'CC5', 'CC15']
       : ['CC2', 'CC5', 'CC15', 'CC8', 'CC12'];
   }
-  // Ana Rut (RZ8) y Nataly (RZ2) no participan en Contactabilidad, KOMMO ni Market Place
-  // de Realzza Chiclayo — el resto de la tienda (incl. Jesus) sí, en los 3 cuadros.
-  private readonly SIN_CONTACTABILIDAD_REALZZA = ['RZ2', 'RZ8'];
+  // Ana Rut y Nataly no participan en Contactabilidad, KOMMO ni Market Place de Realzza
+  // Chiclayo — el resto de la tienda sí, en los 3 cuadros. Por nombre completo (ya no
+  // código RZ2/RZ8): el roster de Chiclayo ahora sale del CAP, donde `value` es el
+  // nombre, no un código — de todos modos hoy ambas están RENUNCIA en el CAP, así que
+  // ya ni aparecen en el roster activo; esto queda como red de seguridad si algún día
+  // se las reactiva solo para otra función sin contactabilidad.
+  private readonly SIN_CONTACTABILIDAD_REALZZA = ['ACOSTA JIMENEZ MARIELA NATALY', 'BUSTAMANTE CHALAN ANA RUT'];
   private get asesoresRealzzaChiclayoContactables() {
     return this.asesoresRealzzaChiclayo.filter(a => !this.SIN_CONTACTABILIDAD_REALZZA.includes(a.value));
   }
@@ -265,22 +258,21 @@ export class CierreGestionComponent implements OnInit {
     'CC8': 'Kelly', 'CC3': 'Felicita', 'CC5': 'Karen', 'CC11': 'Ariadne'
   };
 
-  // Nombres cortos para mostrar en las tablas (mismo criterio que ventas / ventas-campo)
+  // Nombres cortos para Call Center (sigue siendo por código CC, lista propia del canal).
+  // Realzza (Chiclayo/Piura/Lima) ya no usa código — su nombre corto sale del mapa
+  // compartido `nombreCortoCompartido` (shared/asesores.ts), que tiene a todo el equipo.
   nombresCortos: Record<string, string> = {
-    // Call Center
     'CC1':  'PATRICIA', 'CC2':  'DEXY',     'CC3':  'FELICITA', 'CC5':  'KAREN',   'CC6':  'MARIA',
     'CC8':  'KELLY',    'CC11': 'ARIADNE',  'CC12': 'BRENDA',  'CC13': 'FRANCIS',
     'CC15': 'ESMERALDA','CC16': 'ROSMERY',  'CC21': 'ANITA',   'CC22': 'FABRICIO',
     'CC26': 'NOEMI',    'CC19': 'JUANA',
-    // Realzza
-    'RZ1':  'ERNESTO',  'RZ2':  'NATALY',   'RZ3':  'TATIANA', 'RZ4':  'YUDITH',
-    'RZ5':  'ANYELA',   'RZ6':  'FELICITA', 'RZ7': 'MERLY', 'RZ8': 'ANA RUT', 'RZ9': 'DENNIS', 'RZ10': 'AURORA',
-    'RZ11': 'WILLIAM',  'RZ12': 'JESUS'
   };
 
-  // Devuelve el nombre corto del asesor; si no existe en el mapa, usa el nombre completo
+  // Devuelve el nombre corto del asesor: por código (Call), por el mapa de Piura, o por
+  // el mapa compartido (Chiclayo/Lima y cualquier otro no mapeado, con heurística).
   private nombreCorto(asesor: { value: string; viewValue: string }): string {
-    return this.nombresCortos[asesor.value] || NOMBRE_CORTO_PIURA[asesor.viewValue.toUpperCase().trim()] || asesor.viewValue;
+    const nombre = asesor.viewValue.toUpperCase().trim();
+    return this.nombresCortos[asesor.value] || NOMBRE_CORTO_PIURA[nombre] || nombreCortoCompartido(nombre);
   }
 
   dataResumen: any[] = [];

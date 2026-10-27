@@ -4,7 +4,7 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
-import { nombresRealzza, nombreCorto as nombreCortoBase } from '../../shared/asesores';
+import { nombreCorto as nombreCortoBase } from '../../shared/asesores';
 import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { CapSedesService } from '../../services/cap-sedes.service';
@@ -169,8 +169,10 @@ export class ActividadRealzzaComponent implements OnInit {
     this.cargar();
   }
 
+  // Chiclayo/Piura/Lima: ahora las 3 salen del Maestro CAP (ver AsesoresPorTienda) — ya
+  // no hay lista hardcodeada en el código para ninguna.
   private baseAsesoras(): string[] {
-    return (this.tiendas.listaDe(this.tiendaFiltro) ?? nombresRealzza()).map(n => n.toUpperCase().trim());
+    return (this.tiendas.listaDe(this.tiendaFiltro) ?? []).map(n => n.toUpperCase().trim());
   }
 
   /** Arma la lista de registros etiquetados por tipo, del rango. */

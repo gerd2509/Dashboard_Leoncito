@@ -12,6 +12,7 @@ import { UsuariosService, UsuarioDB } from '../../services/usuarios.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { nombresCall, nombresRealzza } from '../../shared/asesores';
+import { TIENDAS_REALZZA } from '../../shared/canal-usuario';
 
 interface PermisoFila {
   modulo: ModuleConfig;
@@ -186,7 +187,13 @@ export class SeguridadComponent implements OnInit {
     this.sedeOptions = [
       { value: 'todas', label: 'Todas' },
       { value: 'call', label: 'Call Center (todas las sedes)' },
-      { value: 'realzza', label: 'Realzza' },
+      { value: 'realzza', label: 'Realzza (general)' },
+      // Las 3 tiendas Realzza — mismo valor que guarda el alta masiva por CAP
+      // (p.ej. "realzzachiclayo"), para que una cuenta de vendedor/gerente de una
+      // tienda puntual aparezca marcada acá y no como texto suelto sin calzar.
+      { value: 'realzzachiclayo', label: 'Realzza Chiclayo' },
+      { value: 'realzzapiura', label: 'Realzza Piura' },
+      { value: 'realzzalima', label: 'Realzza Lima' },
       // Gerencia por zona (ve solo Control Gestión Sede de esa zona).
       { value: 'centro', label: 'Zona Centro' },
       { value: 'norte', label: 'Zona Norte' },
@@ -218,8 +225,13 @@ export class SeguridadComponent implements OnInit {
 
   // ── Alta MASIVA por sede (desde el CAP) ──
   abrirBulk(): void {
-    // Solo sedes físicas (los vendedores de piso). Realzza/zonas/todas no aplican.
-    this.bulkSedeOptions = this.sedeCfg.getSedesParaCombo().map(s => ({ value: s.key, label: s.nombre }));
+    // Sedes físicas (piso) + las 3 tiendas Realzza (Chiclayo/Piura/Lima), todas con
+    // roster vigente en el Maestro CAP. El backend normaliza el nombre, así que basta
+    // con pasar el texto tal cual aparece en el CAP (p.ej. "REALZZA CHICLAYO").
+    this.bulkSedeOptions = [
+      ...this.sedeCfg.getSedesParaCombo().map(s => ({ value: s.key, label: s.nombre })),
+      ...TIENDAS_REALZZA.map(t => ({ value: t.viewValue, label: t.viewValue })),
+    ];
     this.bulkSede = '';
     this.bulkPreview = [];
     this.bulkNuevos = this.bulkExistentes = 0;
