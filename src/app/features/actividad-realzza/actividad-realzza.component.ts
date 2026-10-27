@@ -22,6 +22,17 @@ interface FilaAsesor {
   enBreak: number; fueraHorario: number; horasActivas: number;
 }
 
+// Control de Cumplimiento: por asesora/día, ¿ingresó KOMMO/Market Place antes del
+// corte de mañana y Llamadas desde el corte de tarde? 'pendiente' = el corte de ese
+// día (hoy) todavía no vence, no cuenta como falta.
+type EstadoCumpl = 'ok' | 'falta' | 'pendiente';
+interface FilaCumplimiento {
+  asesor: string; corto: string; ymd: string; diaLabel: string;
+  mananaEstado: EstadoCumpl; mananaHora: string;
+  tardeEstado: EstadoCumpl; tardeHora: string;
+  totalDia: number; sinActividad: boolean;
+}
+
 /**
  * Mapa de actividad horaria de las asesoras Realzza: cruza Gestión Realzza (/campo)
  * y KOMMO (Realzza) por ASESOR REALZZA + Marca temporal. Cada registro se etiqueta
@@ -72,11 +83,21 @@ export class ActividadRealzzaComponent implements OnInit {
   readonly BREAK = new Set([13, 14]);
   hoyMax = new Date();
 
+  // Control de Cumplimiento: corte de mañana (antes de la 1pm, foco KOMMO/Market
+  // Place) y corte de tarde (desde las 3pm, foco Llamadas).
+  readonly CORTE_MANANA = 13;
+  readonly CORTE_TARDE = 15;
+
   form!: UntypedFormGroup;
   cargando = false;
   yaCargo = false;
 
+  vista: 'mapa' | 'cumplimiento' = 'mapa';
+  setVista(v: 'mapa' | 'cumplimiento'): void { this.vista = v; }
+
   private registrosAll: Registro[] = [];
+  private rangoDesde = new Date();
+  private rangoHasta = new Date();
   asesorOptions: { value: string; text: string }[] = [];
   selectedAsesor = '';   // '' = todas
 
@@ -86,6 +107,11 @@ export class ActividadRealzzaComponent implements OnInit {
 
   // KPIs
   totalReg = 0; asesorasActivas = 0; horaPico = '—'; primeraGlobal = '—'; pctHorario = 0;
+
+  // Control de Cumplimiento
+  filasCumplimiento: FilaCumplimiento[] = [];
+  cumplKpis = { total: 0, mananaOk: 0, tardeOk: 0, sinActividad: 0 };
+  pctCumpl(n: number): number { return this.cumplKpis.total ? Math.round((n / this.cumplKpis.total) * 100) : 0; }
 
   // Análisis individual (cuando hay un asesor seleccionado)
   analisis: {
@@ -109,6 +135,7 @@ export class ActividadRealzzaComponent implements OnInit {
     const hasta = this.form.value.hasta as Date;
     if (!desde || !hasta) return;
     this.cargando = true;
+    this.rangoDesde = desde; this.rangoHasta = hasta;
     const rango = { desde, hasta };
     this.tiendas.cargar().then(() => forkJoin({
       gestion: this.sheets.getSheetDataCampoRango(rango),
@@ -217,6 +244,79 @@ export class ActividadRealzzaComponent implements OnInit {
     this.porHora = this.HORAS.map(h => ({ hora: `${h}:00`, count: porHoraTot[h] || 0, break: this.BREAK.has(h) }));
 
     this.analisis = sel ? this.calcularAnalisis(regs) : null;
+
+    this.construirCumplimiento();
+  }
+
+  /** Control de Cumplimiento: por cada asesora y cada día del rango, ¿ingresó
+   *  KOMMO/Market Place antes del corte de mañana y Llamadas desde el corte de
+   *  tarde? Si el día es hoy y el corte todavía no llega, queda "pendiente" (no
+   *  cuenta como falta); si no hay NINGÚN registro ese día, se marca aparte
+   *  (podría ser un descanso) en vez de contarlo como incumplimiento. */
+  private construirCumplimiento(): void {
+    const sel = this.selectedAsesor;
+    const asesoras = sel ? [sel] : [...new Set([...this.baseAsesoras(), ...this.registrosAll.map(r => r.asesor)])];
+    const dias = this.rangoDeDias(this.rangoDesde, this.rangoHasta);
+
+    const ahora = new Date();
+    const hoyYmd = this.ymd(ahora);
+    const horaActual = ahora.getHours() + ahora.getMinutes() / 60;
+
+    const porAsesorDia = new Map<string, Registro[]>();
+    for (const r of this.registrosAll) {
+      const k = `${r.asesor}|${r.ymd}`;
+      if (!porAsesorDia.has(k)) porAsesorDia.set(k, []);
+      porAsesorDia.get(k)!.push(r);
+    }
+
+    const filas: FilaCumplimiento[] = [];
+    for (const dia of dias) {
+      if (dia > hoyYmd) continue;   // día futuro (no debería pasar, el date-box tope es hoy)
+      const esHoy = dia === hoyYmd;
+      const corteMananaVencido = !esHoy || horaActual >= this.CORTE_MANANA;
+      const corteTardeVencido = !esHoy || horaActual >= this.CORTE_TARDE;
+
+      for (const asesor of asesoras) {
+        const regs = porAsesorDia.get(`${asesor}|${dia}`) || [];
+
+        const mananaRegs = regs.filter(r => r.hora < this.CORTE_MANANA && (r.tipo === 'KOMMO' || r.tipo === 'MARKET PLACE'))
+          .sort((a, b) => a.tod - b.tod);
+        const mananaEstado: EstadoCumpl = mananaRegs.length ? 'ok' : (corteMananaVencido ? 'falta' : 'pendiente');
+
+        const tardeRegs = regs.filter(r => r.hora >= this.CORTE_TARDE && r.tipo === 'BD')
+          .sort((a, b) => a.tod - b.tod);
+        const tardeEstado: EstadoCumpl = tardeRegs.length ? 'ok' : (corteTardeVencido ? 'falta' : 'pendiente');
+
+        filas.push({
+          asesor, corto: this.corto(asesor), ymd: dia, diaLabel: this.diaLabelDe(dia),
+          mananaEstado, mananaHora: mananaRegs[0]?.hhmm || '',
+          tardeEstado, tardeHora: tardeRegs[0]?.hhmm || '',
+          totalDia: regs.length, sinActividad: regs.length === 0,
+        });
+      }
+    }
+
+    this.filasCumplimiento = filas.sort((a, b) => b.ymd.localeCompare(a.ymd) || a.corto.localeCompare(b.corto));
+    this.cumplKpis = {
+      total: this.filasCumplimiento.length,
+      mananaOk: this.filasCumplimiento.filter(f => f.mananaEstado === 'ok').length,
+      tardeOk: this.filasCumplimiento.filter(f => f.tardeEstado === 'ok').length,
+      sinActividad: this.filasCumplimiento.filter(f => f.sinActividad).length,
+    };
+  }
+
+  private rangoDeDias(desde: Date, hasta: Date): string[] {
+    const out: string[] = [];
+    const cur = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate());
+    const fin = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate());
+    while (cur <= fin) { out.push(this.ymd(cur)); cur.setDate(cur.getDate() + 1); }
+    return out;
+  }
+
+  /** Fila de la grilla de Cumplimiento → abre el detalle de ese asesor en ese día. */
+  cumplRowClick(f: FilaCumplimiento): void { this.abrirDetalle(f.asesor, undefined, f.ymd); }
+  cumplRowPrepared(e: any): void {
+    if (e.rowType === 'data' && e.data?.sinActividad) e.rowElement.classList.add('cu-row-vacia');
   }
 
   /** Análisis del asesor seleccionado en el periodo. */
@@ -246,12 +346,14 @@ export class ActividadRealzzaComponent implements OnInit {
 
   onAsesorChange(): void { this.aplicarVista(); }
 
-  /** Popup con el detalle (hora + tipo) de un asesor, opcionalmente de una hora. */
-  abrirDetalle(asesor: string, hora?: number): void {
+  /** Popup con el detalle (hora + tipo) de un asesor, opcionalmente de una hora y/o un día puntual. */
+  abrirDetalle(asesor: string, hora?: number, dia?: string): void {
     let regs = this.registrosAll.filter(r => r.asesor === asesor);
+    if (dia !== undefined) regs = regs.filter(r => r.ymd === dia);
     if (hora !== undefined) regs = regs.filter(r => r.hora === hora);
     this.popupRegistros = regs.sort((a, b) => a.ymd.localeCompare(b.ymd) || a.tod - b.tod);
-    this.popupTitulo = this.corto(asesor) + (hora !== undefined ? ` · ${hora}:00` : '') + ` — ${regs.length} registro(s)`;
+    this.popupTitulo = this.corto(asesor) + (dia !== undefined ? ` · ${this.diaLabelDe(dia)}` : '')
+      + (hora !== undefined ? ` · ${hora}:00` : '') + ` — ${regs.length} registro(s)`;
     this.popupVisible = true;
   }
   celClick(f: FilaAsesor, h: number): void { if ((f.porHora[h] || 0) > 0) this.abrirDetalle(f.asesor, h); }

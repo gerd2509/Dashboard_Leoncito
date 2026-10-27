@@ -27,6 +27,16 @@
 
   <ng-container *ngIf="!cargando && yaCargo">
 
+    <!-- Pestañas: Mapa de Actividad / Control de Cumplimiento -->
+    <div class="ar-tabs">
+      <button class="ar-tab" [class.active]="vista === 'mapa'" (click)="setVista('mapa')">
+        <mat-icon>grid_on</mat-icon> Mapa de Actividad
+      </button>
+      <button class="ar-tab" [class.active]="vista === 'cumplimiento'" (click)="setVista('cumplimiento')">
+        <mat-icon>fact_check</mat-icon> Control de Cumplimiento
+      </button>
+    </div>
+
     <!-- Combo de asesor -->
     <div class="ar-combo">
       <dx-select-box *ngIf="!tiendaGestor" [dataSource]="tiendasOpciones" displayExpr="viewValue" valueExpr="value"
@@ -38,8 +48,61 @@
         stylingMode="outlined" [width]="240" [searchEnabled]="true"></dx-select-box>
     </div>
 
+    <!-- ════════════ CONTROL DE CUMPLIMIENTO ════════════ -->
+    <ng-container *ngIf="vista === 'cumplimiento'">
+      <div class="ar-kpis">
+        <div class="ar-kpi k1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ cumplKpis.total }}</span><span class="l">Asesora-días evaluados</span></div></div>
+        <div class="ar-kpi k3"><mat-icon>wb_sunny</mat-icon><div><span class="v">{{ pctCumpl(cumplKpis.mananaOk) }}%</span><span class="l">Cumplió mañana (KOMMO/MP antes de 13:00)</span></div></div>
+        <div class="ar-kpi k4"><mat-icon>nights_stay</mat-icon><div><span class="v">{{ pctCumpl(cumplKpis.tardeOk) }}%</span><span class="l">Cumplió tarde (Llamadas desde 15:00)</span></div></div>
+        <div class="ar-kpi k5"><mat-icon>event_busy</mat-icon><div><span class="v">{{ cumplKpis.sinActividad }}</span><span class="l">Asesora-días sin ninguna gestión</span></div></div>
+      </div>
+
+      <div class="ar-card">
+        <div class="ar-card-h">
+          <span><mat-icon>checklist</mat-icon> Cumplimiento por asesora y día <small>(clic en una fila para ver el detalle)</small></span>
+          <span class="ar-leyenda">
+            <span class="cu-badge ok"><mat-icon>check_circle</mat-icon> cumplió</span>
+            <span class="cu-badge falta"><mat-icon>cancel</mat-icon> no ingresó</span>
+            <span class="cu-badge pendiente"><mat-icon>hourglass_empty</mat-icon> aún no vence</span>
+          </span>
+        </div>
+
+        <dx-data-grid [dataSource]="filasCumplimiento" [showBorders]="true" [rowAlternationEnabled]="true"
+          [hoverStateEnabled]="true" [columnAutoWidth]="true" (onRowClick)="cumplRowClick($event.data)"
+          (onRowPrepared)="cumplRowPrepared($event)">
+          <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
+          <dxo-filter-row [visible]="true"></dxo-filter-row>
+          <dxo-paging [enabled]="false"></dxo-paging>
+          <dxi-column dataField="ymd" caption="Día" [groupIndex]="0" sortOrder="desc" [customizeText]="mostrarDia"></dxi-column>
+          <dxi-column dataField="corto" caption="Asesora" [minWidth]="130" cellTemplate="asesoraTpl"></dxi-column>
+          <dxi-column caption="Mañana (antes 13:00)" alignment="center" [width]="170" cellTemplate="mananaTpl"></dxi-column>
+          <dxi-column caption="Tarde (desde 15:00)" alignment="center" [width]="170" cellTemplate="tardeTpl"></dxi-column>
+          <dxi-column dataField="totalDia" caption="Total del día" dataType="number" alignment="center" [width]="110"></dxi-column>
+
+          <div *dxTemplate="let c of 'asesoraTpl'">
+            {{ c.value }}
+            <span class="cu-chip-vacia" *ngIf="c.data.sinActividad" title="Sin ninguna gestión ese día — podría ser un descanso">sin gestión</span>
+          </div>
+          <div *dxTemplate="let c of 'mananaTpl'">
+            <span class="cu-badge" [ngClass]="c.data.mananaEstado">
+              <mat-icon>{{ c.data.mananaEstado === 'ok' ? 'check_circle' : c.data.mananaEstado === 'falta' ? 'cancel' : 'hourglass_empty' }}</mat-icon>
+              {{ c.data.mananaEstado === 'ok' ? c.data.mananaHora : (c.data.mananaEstado === 'falta' ? 'No ingresó' : 'Aún no vence') }}
+            </span>
+          </div>
+          <div *dxTemplate="let c of 'tardeTpl'">
+            <span class="cu-badge" [ngClass]="c.data.tardeEstado">
+              <mat-icon>{{ c.data.tardeEstado === 'ok' ? 'check_circle' : c.data.tardeEstado === 'falta' ? 'cancel' : 'hourglass_empty' }}</mat-icon>
+              {{ c.data.tardeEstado === 'ok' ? c.data.tardeHora : (c.data.tardeEstado === 'falta' ? 'No ingresó' : 'Aún no vence') }}
+            </span>
+          </div>
+        </dx-data-grid>
+        <div *ngIf="!filasCumplimiento.length" class="ar-empty"><mat-icon>search_off</mat-icon> Sin datos en el rango.</div>
+      </div>
+    </ng-container>
+    <!-- ════════════ FIN CONTROL DE CUMPLIMIENTO ════════════ -->
+
     <!-- KPIs -->
-    <div class="ar-kpis">
+    <div class="ar-kpis" *ngIf="vista === 'mapa'">
       <div class="ar-kpi k1"><mat-icon>fact_check</mat-icon><div><span class="v">{{ totalReg }}</span><span class="l">Registros</span></div></div>
       <div class="ar-kpi k2" *ngIf="!selectedAsesor"><mat-icon>groups</mat-icon><div><span class="v">{{ asesorasActivas }}</span><span class="l">Asesoras activas</span></div></div>
       <div class="ar-kpi k3"><mat-icon>trending_up</mat-icon><div><span class="v">{{ horaPico }}</span><span class="l">Hora pico</span></div></div>
@@ -49,6 +112,9 @@
       </div></div>
       <div class="ar-kpi k5"><mat-icon>verified</mat-icon><div><span class="v">{{ pctHorario }}%</span><span class="l">En horario</span></div></div>
     </div>
+
+    <!-- ════════════ MAPA DE ACTIVIDAD ════════════ -->
+    <ng-container *ngIf="vista === 'mapa'">
 
     <!-- Análisis individual (asesor seleccionado) -->
     <div class="ar-card ar-analisis" *ngIf="selectedAsesor && analisis">
@@ -131,6 +197,8 @@
         <dxo-summary><dxi-total-item column="total" summaryType="sum" displayFormat="{0}"></dxi-total-item></dxo-summary>
       </dx-data-grid>
     </div>
+    </ng-container>
+    <!-- ════════════ FIN MAPA DE ACTIVIDAD ════════════ -->
   </ng-container>
 
   <!-- Popup de detalle -->
