@@ -14,12 +14,38 @@ export interface Usuario {
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
 }
 
+// Cierre de sesión automático por inactividad: en una compu compartida (tienda,
+// recepción), si alguien se olvida de cerrar sesión, la sesión no debe quedar
+// abierta indefinidamente — sessionStorage ya se borra sola al cerrar la pestaña,
+// pero mientras la pestaña siga abierta y sin uso, esto la cierra solo.
+const INACTIVIDAD_LIMITE_MS = 30 * 60 * 1000; // 30 min sin interacción
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly baseUrl = environment.apiBase;
   private readonly SESSION_KEY = 'gd_usuario';
+  private ultimaActividad = Date.now();
+  private monitorIniciado = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // Si la pestaña se refresca (F5) con sesión ya guardada, el monitor debe
+    // arrancar igual — no solo en el momento del login.
+    if (this.isLoggedIn()) this.iniciarMonitorInactividad();
+  }
+
+  /** Arranca el monitor de inactividad (una sola vez). Se llama al loguear. */
+  private iniciarMonitorInactividad(): void {
+    if (this.monitorIniciado || typeof document === 'undefined') return;
+    this.monitorIniciado = true;
+    const marcarActividad = () => { this.ultimaActividad = Date.now(); };
+    ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(ev =>
+      document.addEventListener(ev, marcarActividad, { passive: true }));
+    setInterval(() => {
+      if (this.isLoggedIn() && Date.now() - this.ultimaActividad > INACTIVIDAD_LIMITE_MS) {
+        this.logout();
+      }
+    }, 60 * 1000); // chequea cada minuto, no hace falta más fino
+  }
 
   login(usuario: string, password: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/auth/login`, { usuario, password });
@@ -43,6 +69,8 @@ export class AuthService {
 
   guardarSesion(usuario: Usuario): void {
     sessionStorage.setItem(this.SESSION_KEY, JSON.stringify(usuario));
+    this.ultimaActividad = Date.now();
+    this.iniciarMonitorInactividad();
   }
 
   getUsuario(): Usuario | null {
