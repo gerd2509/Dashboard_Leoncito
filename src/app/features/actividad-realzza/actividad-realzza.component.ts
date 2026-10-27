@@ -22,15 +22,20 @@ interface FilaAsesor {
   enBreak: number; fueraHorario: number; horasActivas: number;
 }
 
-// Control de Cumplimiento: por asesora/día, ¿ingresó KOMMO/Market Place antes del
-// corte de mañana y Llamadas desde el corte de tarde? 'pendiente' = el corte de ese
-// día (hoy) todavía no vence, no cuenta como falta.
+// Control de Cumplimiento: por asesora/día, el detalle real de lo que ingresó
+// (cuántas Llamadas/KOMMO/Market Place y en qué rango de horas) y, a la vez, si
+// cumplió el corte de mañana (KOMMO/Market Place antes de la 1pm) y el de tarde
+// (Llamadas desde las 3pm). 'pendiente' = el corte de ese día (hoy) todavía no
+// vence, no cuenta como falta.
 type EstadoCumpl = 'ok' | 'falta' | 'pendiente';
 interface FilaCumplimiento {
   asesor: string; corto: string; ymd: string; diaLabel: string;
+  bdTotal: number; bdHoras: string;       // Llamadas (gestión Realzza)
+  kommoTotal: number; kommoHoras: string; // KOMMO (sin Market Place)
+  mpTotal: number; mpHoras: string;       // Market Place
+  totalDia: number; sinActividad: boolean;
   mananaEstado: EstadoCumpl; mananaHora: string;
   tardeEstado: EstadoCumpl; tardeHora: string;
-  totalDia: number; sinActividad: boolean;
 }
 
 /**
@@ -248,14 +253,17 @@ export class ActividadRealzzaComponent implements OnInit {
     this.construirCumplimiento();
   }
 
-  /** Control de Cumplimiento: por cada asesora y cada día del rango, ¿ingresó
-   *  KOMMO/Market Place antes del corte de mañana y Llamadas desde el corte de
-   *  tarde? Si el día es hoy y el corte todavía no llega, queda "pendiente" (no
-   *  cuenta como falta); si no hay NINGÚN registro ese día, se marca aparte
-   *  (podría ser un descanso) en vez de contarlo como incumplimiento. */
+  /** Control de Cumplimiento: por cada asesora VIGENTE (roster activo de la tienda,
+   *  no cualquier nombre que haya aparecido alguna vez en la data histórica) y cada
+   *  día del rango, muestra el total y rango de horas de Llamadas/KOMMO/Market
+   *  Place ingresados, y a la vez si cumplió el corte de mañana (KOMMO/Market
+   *  Place antes de la 1pm) y el de tarde (Llamadas desde las 3pm). Si el día es
+   *  hoy y el corte todavía no llega, queda "pendiente" (no cuenta como falta); si
+   *  no hay NINGÚN registro ese día, se marca aparte (podría ser un descanso) en
+   *  vez de contarlo como incumplimiento. */
   private construirCumplimiento(): void {
     const sel = this.selectedAsesor;
-    const asesoras = sel ? [sel] : [...new Set([...this.baseAsesoras(), ...this.registrosAll.map(r => r.asesor)])];
+    const asesoras = sel ? [sel] : this.baseAsesoras();
     const dias = this.rangoDeDias(this.rangoDesde, this.rangoHasta);
 
     const ahora = new Date();
@@ -269,6 +277,14 @@ export class ActividadRealzzaComponent implements OnInit {
       porAsesorDia.get(k)!.push(r);
     }
 
+    // "10 · 09:05–17:40" (o "—" si no hay ninguno de ese tipo).
+    const resumenTipo = (regs: Registro[], tipo: TipoGestion): { total: number; horas: string } => {
+      const rs = regs.filter(r => r.tipo === tipo).sort((a, b) => a.tod - b.tod);
+      if (!rs.length) return { total: 0, horas: '—' };
+      const ini = rs[0].hhmm, fin = rs[rs.length - 1].hhmm;
+      return { total: rs.length, horas: ini === fin ? ini : `${ini}–${fin}` };
+    };
+
     const filas: FilaCumplimiento[] = [];
     for (const dia of dias) {
       if (dia > hoyYmd) continue;   // día futuro (no debería pasar, el date-box tope es hoy)
@@ -278,6 +294,10 @@ export class ActividadRealzzaComponent implements OnInit {
 
       for (const asesor of asesoras) {
         const regs = porAsesorDia.get(`${asesor}|${dia}`) || [];
+
+        const bd = resumenTipo(regs, 'BD');
+        const kommo = resumenTipo(regs, 'KOMMO');
+        const mp = resumenTipo(regs, 'MARKET PLACE');
 
         const mananaRegs = regs.filter(r => r.hora < this.CORTE_MANANA && (r.tipo === 'KOMMO' || r.tipo === 'MARKET PLACE'))
           .sort((a, b) => a.tod - b.tod);
@@ -289,9 +309,12 @@ export class ActividadRealzzaComponent implements OnInit {
 
         filas.push({
           asesor, corto: this.corto(asesor), ymd: dia, diaLabel: this.diaLabelDe(dia),
+          bdTotal: bd.total, bdHoras: bd.horas,
+          kommoTotal: kommo.total, kommoHoras: kommo.horas,
+          mpTotal: mp.total, mpHoras: mp.horas,
+          totalDia: regs.length, sinActividad: regs.length === 0,
           mananaEstado, mananaHora: mananaRegs[0]?.hhmm || '',
           tardeEstado, tardeHora: tardeRegs[0]?.hhmm || '',
-          totalDia: regs.length, sinActividad: regs.length === 0,
         });
       }
     }

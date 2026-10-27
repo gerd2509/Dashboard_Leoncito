@@ -75,13 +75,25 @@
           <dxo-paging [enabled]="false"></dxo-paging>
           <dxi-column dataField="ymd" caption="Día" [groupIndex]="0" sortOrder="desc" [customizeText]="mostrarDia"></dxi-column>
           <dxi-column dataField="corto" caption="Asesora" [minWidth]="130" cellTemplate="asesoraTpl"></dxi-column>
-          <dxi-column caption="Mañana (antes 13:00)" alignment="center" [width]="170" cellTemplate="mananaTpl"></dxi-column>
-          <dxi-column caption="Tarde (desde 15:00)" alignment="center" [width]="170" cellTemplate="tardeTpl"></dxi-column>
-          <dxi-column dataField="totalDia" caption="Total del día" dataType="number" alignment="center" [width]="110"></dxi-column>
+          <dxi-column caption="Llamadas" alignment="center" [width]="150" cellTemplate="bdTpl"></dxi-column>
+          <dxi-column caption="KOMMO" alignment="center" [width]="150" cellTemplate="kommoTpl"></dxi-column>
+          <dxi-column caption="Market Place" alignment="center" [width]="150" cellTemplate="mpTpl"></dxi-column>
+          <dxi-column dataField="totalDia" caption="Total" dataType="number" alignment="center" [width]="80"></dxi-column>
+          <dxi-column caption="Mañana (antes 13:00)" alignment="center" [width]="160" cellTemplate="mananaTpl"></dxi-column>
+          <dxi-column caption="Tarde (desde 15:00)" alignment="center" [width]="160" cellTemplate="tardeTpl"></dxi-column>
 
           <div *dxTemplate="let c of 'asesoraTpl'">
             {{ c.value }}
             <span class="cu-chip-vacia" *ngIf="c.data.sinActividad" title="Sin ninguna gestión ese día — podría ser un descanso">sin gestión</span>
+          </div>
+          <div *dxTemplate="let c of 'bdTpl'">
+            <span class="cu-tipo" [class.vacio]="!c.data.bdTotal"><b>{{ c.data.bdTotal }}</b><small>{{ c.data.bdHoras }}</small></span>
+          </div>
+          <div *dxTemplate="let c of 'kommoTpl'">
+            <span class="cu-tipo" [class.vacio]="!c.data.kommoTotal"><b>{{ c.data.kommoTotal }}</b><small>{{ c.data.kommoHoras }}</small></span>
+          </div>
+          <div *dxTemplate="let c of 'mpTpl'">
+            <span class="cu-tipo" [class.vacio]="!c.data.mpTotal"><b>{{ c.data.mpTotal }}</b><small>{{ c.data.mpHoras }}</small></span>
           </div>
           <div *dxTemplate="let c of 'mananaTpl'">
             <span class="cu-badge" [ngClass]="c.data.mananaEstado">

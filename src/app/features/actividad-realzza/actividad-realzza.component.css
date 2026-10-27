@@ -65,6 +65,10 @@ mat-icon.girando { animation: ar-spin .8s linear infinite; }
 .cu-badge.pendiente { background: #eceff1; color: #607d8b; }
 .cu-chip-vacia { display: inline-block; margin-left: 6px; font-size: 10.5px; font-weight: 700; color: #90a4ae;
   background: #f1f4f7; border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
+.cu-tipo { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.25; }
+.cu-tipo b { font-size: 14px; color: #1E3A5F; }
+.cu-tipo small { font-size: 10.5px; color: #78909c; font-weight: 600; }
+.cu-tipo.vacio b, .cu-tipo.vacio small { color: #c3ccd4; }
 ::ng-deep .cu-row-vacia { background: #fcfcfc !important; opacity: .72; }
 .ar-leyenda .cu-badge { margin-left: 6px; }
 
