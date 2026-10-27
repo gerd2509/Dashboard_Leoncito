@@ -20,12 +20,6 @@ export class ComparativoVentasComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
   cargando = false;   // overlay animado mientras trae de BD
 
-  // Roster de asesores ACTUALES (para que la lista/analisis no traiga a otros vendedores):
-  //  · Call    → ASESORES_CALL (canon), SIN Brenda CC12 (ella vende como Realzza).
-  //  · Realzza → ASESORES_REALZZA (los vendedores Realzza reales, NO el CAP de piso) + Brenda.
-  private readonly BRENDA_REALZZA = 'BERNAL BAZAN BRENDA NICOLL';
-  private rosterRealzza = new Set<string>();      // nombres normalizados (para match)
-  private nombresRealzzaRoster: string[] = [];    // nombres para el dropdown
   // Estados que NO son venta neta → se excluyen (restan las NC del asesor). Igual criterio
   // que el comparativo de cartera / el neto del sistema.
   private readonly ESTADOS_EXCLUIDOS = [
@@ -103,9 +97,6 @@ export class ComparativoVentasComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Roster Realzza = vendedores Realzza reales (ASESORES_REALZZA) + Brenda (excepción).
-    this.nombresRealzzaRoster = [...ASESORES_REALZZA.map(a => a.nombre), this.BRENDA_REALZZA].sort();
-    this.rosterRealzza = new Set(this.nombresRealzzaRoster.map(n => this.normNom(n)));
     this.setRangosPorDefecto();
     this.cargarDatos();
   }

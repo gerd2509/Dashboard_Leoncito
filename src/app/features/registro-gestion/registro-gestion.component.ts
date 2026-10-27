@@ -10,14 +10,6 @@ import { ASESORES_CALL } from '../../shared/asesores';
 import { asesorGestion, esGestorTiendaRealzza, sedeRealzzaDeUsuario, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 
-// Asesores para cuando un admin/supervisor registra a nombre de otro (no vendedor).
-const ASESORES_REALZZA_LISTA = [
-  'ACOSTA JIMENEZ MARIELA NATALY', 'PEREZ TINEO MARICIELO TATIANA', 'RIVAS PURISACA KAREN YUDITH',
-  'BERNAL BAZAN BRENDA NICOLL', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'MONTALVO LUYO ERNESTO ADOLFO',
-  'SANTAMARIA GUZMAN MERLY BRIGHITE', 'UCHOFEN VIGO FELICITA', 'BUSTAMANTE CHALAN ANA RUT',
-  'GUILLEN MACKUADO AURORA FERNANDA', 'LLONTOP DAVILA DENNIS CHRISTIAN',
-];
-
 // ── Catálogos (fáciles de editar) ──────────────────────────────────────────────
 const TIPOS_GESTION = ['ENTREGA DE CARTA', 'LLAMADA TELEFONICA'];
 
@@ -202,10 +194,11 @@ export class RegistroGestionComponent implements OnInit {
   // Admin/supervisor (no vendedor): puede ELEGIR el canal y el asesor a nombre de quien registra.
   elegirCanal = false;
   readonly asesoresCall = ASESORES_CALL.map(a => a.nombre).sort();
-  readonly asesoresRealzza = [...ASESORES_REALZZA_LISTA].sort();
+  // Chiclayo/Piura/Lima: ambos salen del Maestro CAP (ya no hay lista hardcodeada).
+  asesoresChiclayo: string[] = [];
   rzGestor = false;                 // gerente/supervisor de Piura/Lima: asesores de su CAP
   asesoresGestor: string[] = [];
-  get asesoresRealzzaVista(): string[] { return this.rzGestor ? this.asesoresGestor : this.asesoresRealzza; }
+  get asesoresRealzzaVista(): string[] { return this.rzGestor ? this.asesoresGestor : this.asesoresChiclayo; }
   get rzSedeLabel(): string { return sedeRealzzaDeUsuario(this.auth.getUsuario()); }
   get asesorActual(): string { return this.canal === 'call' ? this.call.asesor : this.rz.asesor; }
 
@@ -284,6 +277,7 @@ export class RegistroGestionComponent implements OnInit {
     this.elegirCanal = true;
     this.canal = 'sede';
     this.cap.cargar();
+    this.cap.vendedoresActivos('REALZZA CHICLAYO').then(l => this.asesoresChiclayo = l.slice().sort());
     if (key && key !== 'todas' && this.sedes.some(s => s.key === key)) {
       this.sedeFija = true;
       this.seleccionarSede(this.sedes.find(x => x.key === key)!);

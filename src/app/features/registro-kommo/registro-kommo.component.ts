@@ -31,14 +31,6 @@ function blankForm(canal: Canal): FormKommo {
   };
 }
 
-// Asesores Realzza (mismo listado que Ventas Campo / Registro Supervisor).
-const ASESORES_REALZZA = [
-  'ACOSTA JIMENEZ MARIELA NATALY', 'PEREZ TINEO MARICIELO TATIANA', 'RIVAS PURISACA KAREN YUDITH',
-  'BERNAL BAZAN BRENDA NICOLL', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'MONTALVO LUYO ERNESTO ADOLFO',
-  'SANTAMARIA GUZMAN MERLY BRIGHITE', 'UCHOFEN VIGO FELICITA', 'BUSTAMANTE CHALAN ANA RUT',
-  'GUILLEN MACKUADO AURORA FERNANDA', 'LLONTOP DAVILA DENNIS CHRISTIAN',
-];
-
 /**
  * Registro de Gestión KOMMO (Leoncito + Realzza) → escribe directo a la BD
  * (tabla gestion_kommo), reemplazando el Google Form. El canal disponible se
@@ -82,12 +74,13 @@ export class RegistroKommoComponent implements OnInit {
     'Olmos', 'Jayanca', 'Cayalti', 'Motupe', 'Mochumi', 'Morrope', 'Oyotun'];
 
   private readonly asesoresCall = ASESORES_CALL.map(a => a.nombre).sort();
-  private readonly asesoresRealzza = [...ASESORES_REALZZA].sort();
+  // Chiclayo/Piura/Lima: ambos salen del Maestro CAP (ya no hay lista hardcodeada).
+  private asesoresChiclayo: string[] = [];
   // Gerente/supervisor de Piura/Lima: elige entre los asesores de su CAP (no es fijo).
   private asesoresGestor: string[] = [];
   get asesores(): string[] {
     if (this.canal !== 'REALZZA') return this.asesoresCall;
-    return this.gestorTienda ? this.asesoresGestor : this.asesoresRealzza;
+    return this.gestorTienda ? this.asesoresGestor : this.asesoresChiclayo;
   }
 
   // Gating por rol: qué canal(es) puede registrar este usuario.
@@ -118,6 +111,7 @@ export class RegistroKommoComponent implements OnInit {
     this.canal = this.canalesPermitidos[0];
     this.resetForm();
     if (this.gestorTienda) this.cap.vendedoresActivos(sedeRealzzaDeUsuario(this.auth.getUsuario())).then(l => this.asesoresGestor = l);
+    else if (this.canalesPermitidos.includes('REALZZA')) this.cap.vendedoresActivos('REALZZA CHICLAYO').then(l => this.asesoresChiclayo = l.slice().sort());
   }
 
   get registrador(): string { return this.auth.getUsuario()?.nombre ?? ''; }

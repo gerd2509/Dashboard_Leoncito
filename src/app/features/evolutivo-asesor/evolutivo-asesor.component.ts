@@ -6,7 +6,7 @@ import { CapSedesService } from '../../services/cap-sedes.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
-import { ASESORES_CALL, ASESORES_REALZZA, ALIAS_REALZZA } from '../../shared/asesores';
+import { ASESORES_CALL, ALIAS_REALZZA } from '../../shared/asesores';
 
 type Canal = 'CALL' | 'REALZZA';
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
@@ -97,16 +97,15 @@ export class EvolutivoAsesorComponent implements OnInit {
     this.recomputarSerie();
   }
 
-  /** Roster de asesores de la tienda elegida. Call/Realzza Chiclayo = lista fija
-   *  (shared/asesores.ts); Piura/Lima = en vivo desde el Maestro CAP. */
+  /** Roster de asesores de la tienda elegida. Call = lista fija (shared/asesores.ts);
+   *  las 3 tiendas Realzza (Chiclayo/Piura/Lima) salen en vivo del Maestro CAP. */
   private async cargarRoster(): Promise<void> {
     if (this.canal === 'CALL') {
       this.roster = ASESORES_CALL.map(a => ({ value: a.value, nombre: a.nombre }));
-    } else if (this.tienda === 'REALZZA') {
-      this.roster = ASESORES_REALZZA.map(a => ({ value: a.nombre.toUpperCase().trim(), nombre: a.nombre }));
     } else {
       try {
-        const nombres = await this.cap.vendedoresActivos(this.tienda);
+        const sedeCap = this.tienda === 'REALZZA' ? 'REALZZA CHICLAYO' : this.tienda;
+        const nombres = await this.cap.vendedoresActivos(sedeCap);
         this.roster = (nombres || []).map(n => ({ value: n, nombre: n }));
       } catch { this.roster = []; }
     }

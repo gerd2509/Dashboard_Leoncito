@@ -234,25 +234,9 @@ export class VentasCampoComponent implements OnInit {
 
 
 
-  // Chiclayo (lista fija, sin cambios). Piura / Lima salen del CAP (ver refrescarAsesores).
-  private readonly asesoresChiclayo = [
-    { value: '', viewValue: 'SELECCIONE ASESOR' },
-    { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
-    { value: 'AV5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'AV9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' },
-    { value: 'AV11', viewValue: 'PEREZ TINEO WILLIAM HUMBERTO' },
-    { value: 'AV12', viewValue: 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO' },
-  ];
-  asesores: { value: string; viewValue: string }[] = this.asesoresChiclayo;
-
-  private get esTiendaNueva(): boolean { return this.tiendaVentas === 'REALZZA PIURA' || this.tiendaVentas === 'REALZZA LIMA'; }
+  // Chiclayo/Piura/Lima: las 3 tiendas salen del Maestro CAP (ver AsesoresPorTienda /
+  // refrescarAsesores) — ya no hay lista hardcodeada en el código para ninguna.
+  asesores: { value: string; viewValue: string }[] = [{ value: '', viewValue: 'SELECCIONE ASESOR' }];
 
   /** Título del gráfico evolutivo: nombra la tienda cuando se ve una puntual (Piura/Lima/
    *  Chiclayo), genérico en "Todas las tiendas" (mezcla a todas, nombrarla una sería engañoso). */
@@ -263,13 +247,10 @@ export class VentasCampoComponent implements OnInit {
   }
   private refrescarAsesores(): void {
     const deTienda = (t: string) => (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
-    if (this.esTiendaNueva) {
-      this.asesores = [{ value: '', viewValue: 'SELECCIONE ASESOR' }, ...deTienda(this.tiendaVentas)];
-    } else if (this.tiendaVentas === 'TODAS') {
-      this.asesores = [...this.asesoresChiclayo, ...deTienda('REALZZA PIURA'), ...deTienda('REALZZA LIMA')];
-    } else {
-      this.asesores = this.asesoresChiclayo;
-    }
+    const base = { value: '', viewValue: 'SELECCIONE ASESOR' };
+    this.asesores = this.tiendaVentas === 'TODAS'
+      ? [base, ...deTienda('REALZZA'), ...deTienda('REALZZA PIURA'), ...deTienda('REALZZA LIMA')]
+      : [base, ...deTienda(this.tiendaVentas)];
   }
 
   nombresCortos: Record<string, string> = {

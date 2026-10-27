@@ -6,7 +6,7 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
-import { nombresRealzza } from '../../shared/asesores';
+import { CapSedesService } from '../../services/cap-sedes.service';
 import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { forkJoin } from 'rxjs';
@@ -37,6 +37,7 @@ export class VentasSedesComponent implements OnInit {
   private auth = inject(AuthService);
   private sedeConfig = inject(SedeConfigService);
   private ventasSvc = inject(CargaVentasService);
+  private cap = inject(CapSedesService);
 
   // Carga de datos desde PostgreSQL (reemplaza la importación de Excel).
   cargando = false;
@@ -215,7 +216,7 @@ export class VentasSedesComponent implements OnInit {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     const u = this.auth.getUsuario();
     const sedesU = this.auth.sedesUsuario();
     this.esGlobal = !u || u.rol === 'admin' || this.sedeConfig.incluyeTodas(sedesU);
@@ -225,6 +226,14 @@ export class VentasSedesComponent implements OnInit {
       this.sedeForzada = this.sedesUsuarioKeys.length === 1 ? this.sedesUsuarioKeys[0] : '';
       this.sedeSeleccionada = this.sedesUsuarioKeys[0];
     }
+    // Roster Realzza (las 3 tiendas) ANTES de procesar ventas, para excluirlas bien.
+    const [chiclayo, piura, lima] = await Promise.all([
+      this.cap.vendedoresActivos('REALZZA CHICLAYO').catch(() => [] as string[]),
+      this.cap.vendedoresActivos('REALZZA PIURA').catch(() => [] as string[]),
+      this.cap.vendedoresActivos('REALZZA LIMA').catch(() => [] as string[]),
+    ]);
+    this.realzzaSet = new Set([...chiclayo, ...piura, ...lima].map(n =>
+      (n || '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()));
     // Carga inicial desde la base (año de la fecha fin seleccionada).
     this.cargarVentas();
   }
@@ -491,9 +500,9 @@ export class VentasSedesComponent implements OnInit {
     return this.sedeConfig.existeSede(key) ? key : '';
   }
 
-  // Nombres de asesores Realzza (normalizados) para excluirlos de Ventas Sedes.
-  private realzzaSet = new Set(nombresRealzza().map(n =>
-    (n || '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()));
+  // Nombres de asesores Realzza (normalizados, las 3 tiendas) para excluirlos de Ventas
+  // Sedes — se cargan del Maestro CAP (ver ngOnInit), ya no hay lista hardcodeada.
+  private realzzaSet = new Set<string>();
 
   /** ¿El vendedor es un asesor del canal Realzza (registrado)? → se excluye de Sedes. */
   private esVendedorRealzza(v: any): boolean {

@@ -1,18 +1,17 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { CargaVentasService } from '../../services/carga-ventas.service';
+import { CapSedesService } from '../../services/cap-sedes.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
-import { ASESORES_CALL, ASESORES_REALZZA, ALIAS_REALZZA, nombreCorto } from '../../shared/asesores';
+import { ASESORES_CALL, ALIAS_REALZZA, nombreCorto } from '../../shared/asesores';
 
-// Mapa código→nombre combinando AMBOS rosters actuales (Call + Realzza): un asesor
-// puede haber pasado de canal (ej. Kelly/Anita/Brenda: Call→Realzza desde set-2026)
-// y sus ventas de meses anteriores siguen apareciendo con su código de entonces —
-// el nombre debe resolverse igual, sin importar en qué roster esté HOY.
+// Mapa código→nombre para el roster de Call (resuelve el nombre de un código aunque
+// la data histórica lo traiga suelto, p.ej. alguien que ya no está activo).
 const CODIGO_A_NOMBRE: Record<string, string> = Object.fromEntries(
-  [...ASESORES_CALL, ...ASESORES_REALZZA].map(a => [a.value, a.nombre]));
+  ASESORES_CALL.map(a => [a.value, a.nombre]));
 
 // En la vista REALZZA, el `vendedor` de la tabla `ventas` a veces trae ventas que en
 // realidad son de un asesor de CALL (derivación/cruce cobrado como venta Realzza) —
@@ -36,11 +35,15 @@ type Categoria = 'MOTOS' | 'MELAMINA' | 'RESTO';
   styleUrl: './ventas-linea.component.css',
 })
 export class VentasLineaComponent implements OnInit {
+  private cap = inject(CapSedesService);
+
   form: UntypedFormGroup;
   isLoading = false;
   error = '';
 
   canal: 'CALL' | 'REALZZA' = 'CALL';
+  // Roster Realzza Chiclayo — sale del Maestro CAP (ya no hay lista hardcodeada).
+  private rosterChiclayo: { value: string; nombre: string }[] = [];
   meses: MesCol[] = [];
   filas: FilaLinea[] = [];
   totales: number[] = [];
@@ -57,7 +60,11 @@ export class VentasLineaComponent implements OnInit {
     this.form = this.fb.group({ desde: [desde], hasta: [hoy] });
   }
 
-  async ngOnInit(): Promise<void> { await this.cargar(); }
+  async ngOnInit(): Promise<void> {
+    const nombres = await this.cap.vendedoresActivos('REALZZA CHICLAYO').catch(() => [] as string[]);
+    this.rosterChiclayo = nombres.map(n => ({ value: n, nombre: n }));
+    await this.cargar();
+  }
 
   setCanal(c: 'CALL' | 'REALZZA'): void {
     if (this.canal === c) return;
@@ -119,7 +126,7 @@ export class VentasLineaComponent implements OnInit {
 
     // Roster conocido primero (en su orden, aunque tenga 0 en el rango) + cualquier
     // código/nombre con datos que no esté en el roster actual (para no perder histórico).
-    const roster = this.canal === 'CALL' ? ASESORES_CALL : ASESORES_REALZZA;
+    const roster = this.canal === 'CALL' ? ASESORES_CALL : this.rosterChiclayo;
     const filas: FilaLinea[] = [];
     const vistos = new Set<string>();
     roster.forEach(a => {

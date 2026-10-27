@@ -11,7 +11,7 @@ import { SedeConfigService } from '../../services/sede-config.service';
 import { UsuariosService, UsuarioDB } from '../../services/usuarios.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
-import { nombresCall, nombresRealzza } from '../../shared/asesores';
+import { nombresCall } from '../../shared/asesores';
 import { TIENDAS_REALZZA } from '../../shared/canal-usuario';
 
 interface PermisoFila {
@@ -325,7 +325,15 @@ export class SeguridadComponent implements OnInit {
   async recomputarVendedores(): Promise<void> {
     const canal = this.form.canal;
     if (canal === 'call')          this.vendedorOptions = nombresCall();
-    else if (canal === 'realzza')  this.vendedorOptions = nombresRealzza();
+    else if (canal === 'realzza') {
+      // Las 3 tiendas Realzza, del Maestro CAP (ya no hay lista hardcodeada).
+      const [chiclayo, piura, lima] = await Promise.all([
+        this.cap.vendedoresActivos('REALZZA CHICLAYO').catch(() => [] as string[]),
+        this.cap.vendedoresActivos('REALZZA PIURA').catch(() => [] as string[]),
+        this.cap.vendedoresActivos('REALZZA LIMA').catch(() => [] as string[]),
+      ]);
+      this.vendedorOptions = [...chiclayo, ...piura, ...lima];
+    }
     else if (canal === 'sede') {
       const key = this.sedeCfg.normalizar(this.form.sede);
       this.vendedorOptions = key ? await this.cap.vendedoresActivos(key) : [];

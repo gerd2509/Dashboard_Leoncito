@@ -46,20 +46,9 @@ export class GestionCampoRealzzaComponent implements OnInit {
     { value: 'REALZZA LIMA', viewValue: 'REALZZA LIMA' },
   ];
 
-  // Asesores Realzza — mismos nombres que el módulo Ventas Campo (fuente única).
-  asesores = [
-    { value: '', viewValue: 'SELECCIONE ASESOR' },
-    { value: 'AV1', viewValue: 'ACOSTA JIMENEZ MARIELA NATALY' },
-    { value: 'AV2', viewValue: 'PEREZ TINEO MARICIELO TATIANA' },
-    { value: 'AV3', viewValue: 'RIVAS PURISACA KAREN YUDITH' },
-    { value: 'AV4', viewValue: 'BERNAL BAZAN BRENDA NICOLL' },
-    { value: 'AV5', viewValue: 'MIÑOPE GONZALES ANYELA ESTHEFANY' },
-    { value: 'AV6', viewValue: 'MONTALVO LUYO ERNESTO ADOLFO' },
-    { value: 'AV7', viewValue: 'SANTAMARIA GUZMAN MERLY BRIGHITE' },
-    { value: 'AV8', viewValue: 'UCHOFEN VIGO FELICITA' },
-    { value: 'AV9', viewValue: 'BUSTAMANTE CHALAN ANA RUT' },
-    { value: 'AV10', viewValue: 'LLONTOP DAVILA DENNIS CHRISTIAN' }
-  ];
+  // Asesores Realzza — las 3 tiendas salen del Maestro CAP (ver ngOnInit), ya no hay
+  // lista hardcodeada en el código.
+  asesores: { value: string; viewValue: string }[] = [{ value: '', viewValue: 'SELECCIONE ASESOR' }];
 
   @ViewChild(DxDataGridComponent, { static: false }) dataGrid!: DxDataGridComponent;
 
@@ -157,6 +146,15 @@ export class GestionCampoRealzzaComponent implements OnInit {
     if (this.tiendaGestor) {
       const nombres = await this.cap.vendedoresActivos(this.tiendaGestor);
       this.asesores = [{ value: '', viewValue: 'SELECCIONE ASESOR' }, ...nombres.map(n => ({ value: n, viewValue: n }))];
+    } else {
+      // Admin/supervisor general: todas las tiendas Realzza juntas (filtra por
+      // sede aparte, con el combo "Sede").
+      const [chiclayo, piura, lima] = await Promise.all([
+        this.cap.vendedoresActivos('REALZZA CHICLAYO'),
+        this.cap.vendedoresActivos('REALZZA PIURA'),
+        this.cap.vendedoresActivos('REALZZA LIMA'),
+      ]);
+      this.asesores = [{ value: '', viewValue: 'SELECCIONE ASESOR' }, ...[...chiclayo, ...piura, ...lima].map(n => ({ value: n, viewValue: n }))];
     }
     await this.cargasIniciales();
   }
