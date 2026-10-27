@@ -4,8 +4,8 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { SheetsService } from '../../services/service-google.service';
-import { nombresRealzza } from '../../shared/asesores';
-import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
+import { nombresRealzza, nombreCorto as nombreCortoBase } from '../../shared/asesores';
+import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { AuthService } from '../../services/auth.service';
@@ -73,7 +73,14 @@ export class ActividadRealzzaComponent implements OnInit {
     'BUSTAMANTE CHALAN ANA RUT': 'ANA RUT', 'LLONTOP DAVILA DENNIS CHRISTIAN': 'DENNIS',
     'GUILLEN MACKUADO AURORA FERNANDA': 'AURORA',
   };
-  private corto(nom: string): string { return this.CORTOS[nom] || (nom || '').split(' ')[0]; }
+  // Nombre corto: primero los mapas de override (local, luego los de Piura y el
+  // general compartido) y, si no está en ninguno, la heurística de nombreCorto()
+  // (3er token en "APELLIDO APELLIDO NOMBRE…") — NUNCA el primer token, que es el
+  // apellido y no identifica a nadie para la gente del equipo.
+  private corto(nom: string): string {
+    const n = (nom || '').toUpperCase().trim();
+    return this.CORTOS[n] || NOMBRE_CORTO_PIURA[n] || nombreCortoBase(n);
+  }
 
   /** Normaliza un nombre (mayúsculas, sin tildes ni ñ, espacios colapsados). */
   private normNom(s: string): string {
@@ -337,7 +344,13 @@ export class ActividadRealzzaComponent implements OnInit {
   }
 
   /** Fila de la grilla de Cumplimiento → abre el detalle de ese asesor en ese día. */
-  cumplRowClick(f: FilaCumplimiento): void { this.abrirDetalle(f.asesor, undefined, f.ymd); }
+  /** Solo abre el popup al hacer clic en una fila de datos (asesora) — el clic en
+   *  la fila de grupo "Día" (para expandir/colapsar) no debe disparar nada. */
+  cumplRowClick(e: any): void {
+    if (e.rowType !== 'data') return;
+    const f: FilaCumplimiento = e.data;
+    this.abrirDetalle(f.asesor, undefined, f.ymd);
+  }
   cumplRowPrepared(e: any): void {
     if (e.rowType === 'data' && e.data?.sinActividad) e.rowElement.classList.add('cu-row-vacia');
   }

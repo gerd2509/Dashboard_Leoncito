@@ -68,7 +68,7 @@
         </div>
 
         <dx-data-grid [dataSource]="filasCumplimiento" [showBorders]="true" [rowAlternationEnabled]="true"
-          [hoverStateEnabled]="true" [columnAutoWidth]="true" (onRowClick)="cumplRowClick($event.data)"
+          [hoverStateEnabled]="true" [columnAutoWidth]="true" (onRowClick)="cumplRowClick($event)"
           (onRowPrepared)="cumplRowPrepared($event)">
           <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
           <dxo-filter-row [visible]="true"></dxo-filter-row>
