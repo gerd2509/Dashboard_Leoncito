@@ -12,6 +12,7 @@ export interface Usuario {
   canal?: string;      // rol vendedor: 'sede' | 'call' | 'realzza'
   vehiculo?: string;   // rol chofer: carro asignado (AZUL/VERDE/NARANJA)
   modulos?: string[] | null;   // permisos POR USUARIO; null = usa default por rol-perfil
+  token?: string;      // JWT de sesión — lo exige el backend en cada llamada (ver auth.interceptor.ts)
 }
 
 // Cierre de sesión automático por inactividad: en una compu compartida (tienda,
@@ -76,6 +77,11 @@ export class AuthService {
   getUsuario(): Usuario | null {
     const data = sessionStorage.getItem(this.SESSION_KEY);
     return data ? JSON.parse(data) : null;
+  }
+
+  /** Token de sesión (JWT) a mandar en el header Authorization de cada llamada. */
+  getToken(): string | null {
+    return this.getUsuario()?.token ?? null;
   }
 
   isLoggedIn(): boolean {

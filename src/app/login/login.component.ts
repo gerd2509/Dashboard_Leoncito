@@ -104,7 +104,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.auth.login(this.usuario.trim(), this.password.trim()).subscribe({
       next: (res: any) => {
         this.cargando = false;
-        const datos = { nombre: res.nombre, rol: res.rol, sede: res.sede, sedes: res.sedes, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos };
+        const datos = { nombre: res.nombre, rol: res.rol, sede: res.sede, sedes: res.sedes, vendedor: res.vendedor, canal: res.canal, modulos: res.modulos, token: res.token };
         // Primer ingreso con clave por defecto (DNI) → obliga a cambiarla antes de entrar.
         if (res.debeCambiarPassword) {
           this.datosSesion = datos;
