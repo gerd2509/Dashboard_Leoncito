@@ -81,7 +81,15 @@ export class MaestroCapComponent implements OnInit {
   cargar(): void {
     this.cargando = true;
     this.cap.listarFresco()
-      .then(rows => { this.filas = rows; this.cargando = false; })
+      .then(rows => {
+        this.filas = rows;
+        // La grilla mantiene la MISMA fila seleccionada (mismo id) tras refrescar, así
+        // que DevExtreme no vuelve a disparar onSelectionChanged — sin este resync,
+        // `this.selected` se queda con los valores de ANTES de guardar, y "Editar"
+        // reabre el popup con datos viejos aunque la grilla ya muestre los nuevos.
+        if (this.selected) this.selected = this.filas.find(f => f.id === this.selected!.id) || null;
+        this.cargando = false;
+      })
       .catch(() => { this.filas = []; this.cargando = false; this.toast('❌ No se pudo cargar el CAP.', true); });
   }
 
