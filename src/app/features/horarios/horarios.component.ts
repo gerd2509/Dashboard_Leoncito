@@ -26,10 +26,15 @@ const NOMBRES_CORTOS: Record<string, string> = {
   'PEREZ TINEO WILLIAM HUMBERTO': 'William',
   'CHANAME SOTO ANITA NOEMI': 'Anita',
   'VALDERA PISCOYA DEXY ROSARIO': 'Dexy',
+  'QUISPE FONSECA KAREN AIMEE': 'Karen Quispe',
+  'TORRES ALVARADO JUDY ESMERALDA': 'Judy',
+  'MORALES ÑIQUE MARIA CANDELARIA': 'Maria',
+  'MORETO DELGADO PATRICIA ESTEFANY': 'Patricia',
 };
 
 // Asesoras mencionadas para pasar a esta rotación que aún no existen en el CAP (se avisa en UI).
-const PENDIENTES_DE_CAP = ['QUISPE', 'TORRES ALVARADO', 'MORALES ÑIQUE', 'MORETO'];
+// Las 4 originales (Karen Quispe, Judy, Maria, Patricia) ya se agregaron — lista vacía por ahora.
+const PENDIENTES_DE_CAP: string[] = [];
 
 // Semilla validada (noviembre 2026) — se guarda sola la primera vez que la sede no tiene
 // reglas todavía. Solo incluye a quienes YA existen en el CAP; el resto se agrega editando
@@ -47,14 +52,18 @@ const SEED_ROTACION: { id: string; grupo: number | null; diaFijo: number | null;
   { id: 'BERNAL BAZAN BRENDA NICOLL', grupo: 2, diaFijo: null, inamovible: false },
   { id: 'PEREZ TINEO WILLIAM HUMBERTO', grupo: null, diaFijo: 4, inamovible: true, nota: 'Depende de sus estudios, puede cambiar más adelante — por ahora es fijo e inamovible' },
   { id: 'VALDERA PISCOYA DEXY ROSARIO', grupo: null, diaFijo: 5, inamovible: true, nota: 'Depende de sus estudios, puede cambiar más adelante — por ahora es fijo e inamovible' },
+  { id: 'MORALES ÑIQUE MARIA CANDELARIA', grupo: 0, diaFijo: null, inamovible: false },
+  { id: 'TORRES ALVARADO JUDY ESMERALDA', grupo: 1, diaFijo: null, inamovible: false },
+  { id: 'MORETO DELGADO PATRICIA ESTEFANY', grupo: 1, diaFijo: null, inamovible: false },
+  { id: 'QUISPE FONSECA KAREN AIMEE', grupo: 2, diaFijo: null, inamovible: false },
 ];
 const SEED_SLOTS_NOV_2026: { etiqueta: string; nota: string | null; domingos: number[]; cuentaCuota: boolean; asesores: string[] }[] = [
   { etiqueta: '1-nov', nota: 'viene de octubre, no cuenta para la cuota de noviembre', domingos: [1], cuentaCuota: false,
     asesores: ['MIÑOPE GONZALES ANYELA ESTHEFANY', 'PEREZ TINEO MARICIELO TATIANA', 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO', 'CHANAME SOTO ANITA NOEMI', 'UCHOFEN VIGO FELICITA', 'BERNAL BAZAN BRENDA NICOLL'] },
   { etiqueta: '8-nov → 15-nov', nota: null, domingos: [8, 15], cuentaCuota: true,
-    asesores: ['MONTALVO LUYO ERNESTO ADOLFO', 'SANTAMARIA GUZMAN MERLY BRIGHITE', 'RIVAS PURISACA KAREN YUDITH', 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO', 'CHANAME SOTO ANITA NOEMI', 'BERNAL BAZAN BRENDA NICOLL'] },
+    asesores: ['MONTALVO LUYO ERNESTO ADOLFO', 'SANTAMARIA GUZMAN MERLY BRIGHITE', 'RIVAS PURISACA KAREN YUDITH', 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO', 'CHANAME SOTO ANITA NOEMI', 'BERNAL BAZAN BRENDA NICOLL', 'MORALES ÑIQUE MARIA CANDELARIA', 'MORETO DELGADO PATRICIA ESTEFANY'] },
   { etiqueta: '22-nov → 29-nov', nota: null, domingos: [22, 29], cuentaCuota: true,
-    asesores: ['CHANTA CAMPOS KELLY KARINTIA', 'UCHOFEN VIGO FELICITA', 'PEREZ TINEO MARICIELO TATIANA', 'MIÑOPE GONZALES ANYELA ESTHEFANY'] },
+    asesores: ['CHANTA CAMPOS KELLY KARINTIA', 'UCHOFEN VIGO FELICITA', 'PEREZ TINEO MARICIELO TATIANA', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'QUISPE FONSECA KAREN AIMEE', 'TORRES ALVARADO JUDY ESMERALDA'] },
 ];
 const DIA_NOMBRE: Record<number, string> = { 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes' };
 const NOMBRE_GRUPO: Record<number, string> = { 0: 'Rota A (parte martes)', 1: 'Rota B (parte miércoles)', 2: 'Rota C (parte jueves)' };
