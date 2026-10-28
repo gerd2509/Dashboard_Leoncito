@@ -40,7 +40,7 @@
       <dx-select-box [dataSource]="sedesDisponibles" [(value)]="sedeFiltro" (onValueChanged)="onSedeFiltroChange()"
         label="Sede" labelMode="floating" stylingMode="outlined" width="170"
         placeholder="Todas" [showClearButton]="true"></dx-select-box>
-      <dx-select-box [dataSource]="asesoresDisponibles" [(value)]="asesorFiltro"
+      <dx-select-box [dataSource]="asesoresDisponibles" [(value)]="asesorFiltro" (onValueChanged)="onAsesorFiltroChange()"
         label="Asesor" labelMode="floating" stylingMode="outlined" width="200" [searchEnabled]="true"
         placeholder="Todos" [showClearButton]="true"></dx-select-box>
       <button class="ra-btn sm" type="button" (click)="cargarListado()" [disabled]="cargandoListado">

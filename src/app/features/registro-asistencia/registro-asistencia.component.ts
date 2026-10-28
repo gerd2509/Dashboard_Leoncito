@@ -91,18 +91,24 @@ export class RegistroAsistenciaComponent implements OnInit {
   sedeFiltro = '';     // '' = todas
   asesorFiltro = '';   // '' = todos
 
-  /** Lista de sedes con marcas en el mes cargado, para el combo (más "Todas"). */
-  get sedesDisponibles(): string[] {
-    return Array.from(new Set(this.filas.map(f => f.sede).filter(Boolean))).sort();
+  // Campos (NO getters) recalculados solo cuando cambian los datos/filtros: un
+  // getter devolvería un array nuevo en cada ciclo de detección de cambios y
+  // el dx-select-box/dx-data-grid reinstanciarían su dataSource todo el
+  // tiempo, quedando en blanco (mismo problema que ya se documentó en
+  // maestro-cap.component.ts).
+  sedesDisponibles: string[] = [];
+  asesoresDisponibles: string[] = [];
+  filasFiltradas: MarcaAsistencia[] = [];
+
+  private recomputarSedes(): void {
+    this.sedesDisponibles = Array.from(new Set(this.filas.map(f => f.sede).filter(Boolean))).sort();
   }
-  /** Lista de asesores con marcas en el mes cargado (y, si ya eligió una sede,
-   *  acotada a esa sede), para el combo (más "Todos"). */
-  get asesoresDisponibles(): string[] {
+  private recomputarAsesores(): void {
     const base = this.sedeFiltro ? this.filas.filter(f => f.sede === this.sedeFiltro) : this.filas;
-    return Array.from(new Set(base.map(f => f.nombre).filter(Boolean))).sort();
+    this.asesoresDisponibles = Array.from(new Set(base.map(f => f.nombre).filter(Boolean))).sort();
   }
-  get filasFiltradas(): MarcaAsistencia[] {
-    return this.filas.filter(f =>
+  private recomputarFilasFiltradas(): void {
+    this.filasFiltradas = this.filas.filter(f =>
       (!this.sedeFiltro || f.sede === this.sedeFiltro) &&
       (!this.asesorFiltro || f.nombre === this.asesorFiltro));
   }
@@ -113,7 +119,12 @@ export class RegistroAsistenciaComponent implements OnInit {
   }
   onSedeFiltroChange(): void {
     // Si el asesor elegido no pertenece a la sede nueva, se limpia.
+    this.recomputarAsesores();
     if (this.asesorFiltro && !this.asesoresDisponibles.includes(this.asesorFiltro)) this.asesorFiltro = '';
+    this.recomputarFilasFiltradas();
+  }
+  onAsesorFiltroChange(): void {
+    this.recomputarFilasFiltradas();
   }
 
   cargarListado(): void {
@@ -122,7 +133,10 @@ export class RegistroAsistenciaComponent implements OnInit {
     const desde = this.ymd(new Date(anio, mesNum, 1));
     const hasta = this.ymd(new Date(anio, mesNum + 1, 0));   // último día del mes
     this.srv.listar(desde, hasta).subscribe({
-      next: (rows) => { this.filas = rows; this.cargandoListado = false; },
+      next: (rows) => {
+        this.filas = rows; this.cargandoListado = false;
+        this.recomputarSedes(); this.recomputarAsesores(); this.recomputarFilasFiltradas();
+      },
       error: () => { this.cargandoListado = false; },
     });
   }
