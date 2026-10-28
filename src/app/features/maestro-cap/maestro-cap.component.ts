@@ -181,7 +181,41 @@ export class MaestroCapComponent implements OnInit {
     if (!e.data?.id) return;
     this.cap.eliminarSede(e.data.id).subscribe({ next: () => this.trasMaestro('Sede eliminada.', 'sedes'), error: err => this.errMaestro(err, 'sedes') });
   }
-  private limpiaSede(d: any) { return { nombre: (d.nombre || '').trim(), gerente: (d.gerente || '').trim(), zona: (d.zona || '').trim() }; }
+  private limpiaSede(d: any) {
+    return {
+      nombre: (d.nombre || '').trim(), gerente: (d.gerente || '').trim(), zona: (d.zona || '').trim(),
+      latitud: d.latitud === '' || d.latitud === undefined ? undefined : d.latitud,
+      longitud: d.longitud === '' || d.longitud === undefined ? undefined : d.longitud,
+      radio_metros: d.radio_metros === '' || d.radio_metros === undefined ? undefined : d.radio_metros,
+    };
+  }
+
+  // ── Ubicación actual (ayuda para cargar LAT/LNG de una sede) ──
+  obteniendoUbicacion = false;
+  miUbicacion: { lat: number; lng: number } | null = null;
+  errorUbicacion = '';
+  obtenerMiUbicacion(): void {
+    this.miUbicacion = null; this.errorUbicacion = '';
+    if (!('geolocation' in navigator)) { this.errorUbicacion = 'Tu navegador no soporta geolocalización.'; return; }
+    this.obteniendoUbicacion = true;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.obteniendoUbicacion = false;
+        this.miUbicacion = { lat: Math.round(pos.coords.latitude * 1e6) / 1e6, lng: Math.round(pos.coords.longitude * 1e6) / 1e6 };
+      },
+      (err) => {
+        this.obteniendoUbicacion = false;
+        this.errorUbicacion = err.code === err.PERMISSION_DENIED
+          ? 'Debes permitir el acceso a tu ubicación.' : 'No se pudo obtener tu ubicación.';
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+  copiarUbicacion(): void {
+    if (!this.miUbicacion) return;
+    const texto = `${this.miUbicacion.lat}\t${this.miUbicacion.lng}`;
+    navigator.clipboard?.writeText(texto).then(() => this.toast('✔ Copiado — pégalo en LAT y LNG.'));
+  }
 
   // ── Maestro de SUPERVISORES ────────────────────────────────────────────────
   abrirSup(): void {

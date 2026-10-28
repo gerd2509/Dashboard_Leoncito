@@ -82,10 +82,12 @@ export class CapSedesService {
   }
 
   // ── Maestro de SEDES (gerente/zona por sede) ───────────────────────────────
-  listarSedes(): Observable<{ id: number; nombre: string; gerente: string; zona: string }[]> {
+  // latitud/longitud/radio_metros: ubicación esperada para el Registro de
+  // Asistencia (null = sin configurar, esa sede no valida ubicación).
+  listarSedes(): Observable<{ id: number; nombre: string; gerente: string; zona: string; latitud: number | null; longitud: number | null; radio_metros: number }[]> {
     return this.http.get<any[]>(`${this.capUrl}/sedes`);
   }
-  crearSede(s: { nombre: string; gerente?: string; zona?: string }): Observable<{ success: boolean; id: number }> {
+  crearSede(s: { nombre: string; gerente?: string; zona?: string; latitud?: number | null; longitud?: number | null; radio_metros?: number }): Observable<{ success: boolean; id: number }> {
     return this.http.post<any>(`${this.capUrl}/sedes`, s);
   }
   actualizarSede(id: number, s: any): Observable<{ success: boolean }> {

@@ -119,6 +119,20 @@
           title="Sedes — gerente y zona" [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true">
   <div *dxTemplate="let d of 'content'" class="mc-maestro">
     <p class="mc-maestro-sub">El gerente y la zona de cada sede se aplican automáticamente a sus asesores. El gerente se elige de la lista (gestiónala en «Gerentes»).</p>
+
+    <div class="mc-ubicacion-ayuda">
+      <button type="button" class="mc-btn-ubic" (click)="obtenerMiUbicacion()" [disabled]="obteniendoUbicacion">
+        <mat-icon [class.girando]="obteniendoUbicacion">{{ obteniendoUbicacion ? 'sync' : 'my_location' }}</mat-icon>
+        Ver mi ubicación actual
+      </button>
+      <span class="mc-ubic-resultado" *ngIf="miUbicacion">
+        LAT: <b>{{ miUbicacion.lat }}</b> · LNG: <b>{{ miUbicacion.lng }}</b>
+        <button type="button" class="mc-btn-copiar" (click)="copiarUbicacion()"><mat-icon>content_copy</mat-icon> Copiar</button>
+      </span>
+      <span class="mc-ubic-error" *ngIf="errorUbicacion">{{ errorUbicacion }}</span>
+    </div>
+    <p class="mc-maestro-sub">Párate dentro de la tienda, toca «Ver mi ubicación actual» y copia LAT/LNG en la fila de esa sede (Registro de Asistencia la usa para validar que el vendedor marque desde ahí; RADIO = metros de tolerancia).</p>
+
     <dx-data-grid [dataSource]="sedesMaestro" keyExpr="id" [showBorders]="true" [showColumnLines]="true"
         [rowAlternationEnabled]="true" [columnAutoWidth]="false" [width]="'100%'" [height]="420"
         (onRowInserted)="onSedeIns($event)" (onRowUpdated)="onSedeUpd($event)" (onRowRemoved)="onSedeDel($event)">
@@ -132,6 +146,9 @@
         <dxo-lookup [dataSource]="gerentesNombres"></dxo-lookup>
       </dxi-column>
       <dxi-column dataField="zona" caption="ZONA" [width]="140" editCellTemplate="zonaEdit"></dxi-column>
+      <dxi-column dataField="latitud" caption="LAT" dataType="number" [width]="110" [format]="{type:'fixedPoint', precision: 6}"></dxi-column>
+      <dxi-column dataField="longitud" caption="LNG" dataType="number" [width]="110" [format]="{type:'fixedPoint', precision: 6}"></dxi-column>
+      <dxi-column dataField="radio_metros" caption="RADIO (m)" dataType="number" [width]="95"></dxi-column>
       <dxi-column type="buttons" [width]="90" [fixed]="true" fixedPosition="right"></dxi-column>
 
       <div *dxTemplate="let cell of 'sedeEdit'">

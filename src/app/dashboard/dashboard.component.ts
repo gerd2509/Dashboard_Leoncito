@@ -32,6 +32,7 @@ import { GestionCallSedesComponent } from "../features/Gestion/gestion-call-sede
 import { ControlCallSedesComponent } from "../features/control-call-sedes/control-call-sedes.component";
 import { EvolucionRegistrosComponent } from "../features/evolucion-registros/evolucion-registros.component";
 import { MiPanelComponent } from "../features/mi-panel/mi-panel.component";
+import { RegistroAsistenciaComponent } from "../features/registro-asistencia/registro-asistencia.component";
 import { SeguridadComponent } from "../features/seguridad/seguridad.component";
 import { LimpiezaBbddComponent } from "../features/limpieza-bbdd/limpieza-bbdd.component";
 import { GpsRutaComponent } from "../features/gps-ruta/gps-ruta.component";
@@ -110,6 +111,7 @@ interface MenuItem {
     ControlCallSedesComponent,
     EvolucionRegistrosComponent,
     MiPanelComponent,
+    RegistroAsistenciaComponent,
     SeguridadComponent,
     LimpiezaBbddComponent,
     GpsRutaComponent,
@@ -161,6 +163,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   readonly menuItems: MenuItem[] = [
     { icon: 'dashboard_customize', label: 'Mi Panel', modulo: 'mi-panel' },
+    { icon: 'location_on', label: 'Registro de Asistencia', modulo: 'registro-asistencia' },
     {
       icon: 'event', label: 'Agendamientos',
       submenu: [

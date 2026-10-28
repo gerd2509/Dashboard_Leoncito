@@ -1,0 +1,64 @@
+<div class="ra-wrap">
+
+  <!-- Marcar asistencia -->
+  <div class="ra-card">
+    <div class="ra-head">
+      <mat-icon>location_on</mat-icon>
+      <div>
+        <h2>Registro de Asistencia</h2>
+        <small>Marca tu llegada — se guarda tu ubicación, fecha y hora.</small>
+      </div>
+    </div>
+
+    <button class="ra-btn" (click)="marcarAsistencia()" [disabled]="marcando">
+      <mat-icon [class.girando]="marcando">{{ marcando ? 'sync' : 'my_location' }}</mat-icon>
+      {{ marcando ? 'Obteniendo tu ubicación…' : 'Marcar Asistencia' }}
+    </button>
+
+    <div class="ra-msg error" *ngIf="errorGeo">
+      <mat-icon>error_outline</mat-icon> {{ errorGeo }}
+    </div>
+
+    <div class="ra-msg" [class.ok]="resultado.ok && !resultado.sinUbicacion" [class.warn]="!resultado.ok"
+      [class.neutro]="resultado.sinUbicacion" *ngIf="resultado">
+      <mat-icon>{{ resultado.sinUbicacion ? 'info' : (resultado.ok ? 'check_circle' : 'warning') }}</mat-icon>
+      <div><b>{{ resultado.titulo }}</b><br><small>{{ resultado.detalle }}</small></div>
+    </div>
+  </div>
+
+  <!-- Listado de revisión (admin/gerente/supervisor) -->
+  <div class="ra-card" *ngIf="puedeVerListado">
+    <div class="ra-head">
+      <mat-icon>fact_check</mat-icon>
+      <div><h2>Marcas registradas</h2><small>Revisa quién marcó dentro o fuera de la ubicación esperada.</small></div>
+    </div>
+
+    <form class="ra-filtros" [formGroup]="form">
+      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating" stylingMode="outlined" width="150" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" stylingMode="outlined" width="150" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+      <button class="ra-btn sm" type="button" (click)="cargarListado()" [disabled]="cargandoListado">
+        <mat-icon>search</mat-icon> Consultar
+      </button>
+    </form>
+
+    <dx-data-grid [dataSource]="filas" [showBorders]="true" [rowAlternationEnabled]="true"
+      [hoverStateEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="true">
+      <dxo-loading-indicator [show]="cargandoListado"></dxo-loading-indicator>
+      <dxo-filter-row [visible]="true"></dxo-filter-row>
+      <dxo-paging [pageSize]="20"></dxo-paging>
+      <dxo-sorting mode="multiple"></dxo-sorting>
+      <dxi-column dataField="creado_en" caption="Fecha y hora" dataType="datetime" [width]="150" sortOrder="desc"></dxi-column>
+      <dxi-column dataField="nombre" caption="Asesor" [minWidth]="160"></dxi-column>
+      <dxi-column dataField="sede" caption="Sede" [minWidth]="140"></dxi-column>
+      <dxi-column dataField="distancia_metros" caption="Distancia" dataType="number" [width]="100" cellTemplate="distTpl"></dxi-column>
+      <dxi-column caption="Estado" [width]="170" cellTemplate="estadoTpl" alignment="center"></dxi-column>
+
+      <div *dxTemplate="let c of 'distTpl'">{{ c.value != null ? (c.value | number) + ' m' : '—' }}</div>
+      <div *dxTemplate="let c of 'estadoTpl'">
+        <span class="ra-badge" [ngClass]="estadoClase(c.data)">{{ estadoTexto(c.data) }}</span>
+      </div>
+    </dx-data-grid>
+    <div *ngIf="!filas.length && !cargandoListado" class="ra-empty"><mat-icon>search_off</mat-icon> Sin marcas en el rango.</div>
+  </div>
+
+</div>

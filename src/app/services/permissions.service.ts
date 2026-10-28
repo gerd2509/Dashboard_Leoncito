@@ -53,6 +53,7 @@ export const COMBINACIONES: RolPerfilCombinacion[] = PERFILES.flatMap(p =>
 // ─── Todos los módulos del sistema ───────────────────────────────────────────
 export const ALL_MODULES: ModuleConfig[] = [
   { key: 'mi-panel',                     label: 'Mi Panel (Vendedor)',          grupo: 'Vendedor' },
+  { key: 'registro-asistencia',          label: 'Registro de Asistencia',       grupo: 'Vendedor' },
   { key: 'agendamientos',                label: 'Agendamientos — Call Center',  grupo: 'Agendamientos' },
   { key: 'agendamientos-campo',          label: 'Agendamientos — Realzza',      grupo: 'Agendamientos' },
   { key: 'agendamientos-kommo',          label: 'Agendamientos — Kommo',        grupo: 'Agendamientos' },
@@ -123,6 +124,7 @@ export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
   'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor', 'listado-kommo-realzza',
+  'registro-asistencia',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).
@@ -142,9 +144,9 @@ const DEFAULT_PERMISSIONS: Record<string, string[]> = {
   'gerente-zona':       [...ZONA_MODULES],
   'supervisor-zona':    [...ZONA_MODULES],
   'vendedor-call':      [...VENDEDOR_MODULES],
-  // Vendedor Realzza también registra KOMMO (no solo gestión/market place) — se
-  // suma al set base.
-  'vendedor-realzza':   [...VENDEDOR_MODULES, 'registro-kommo'],
+  // Vendedor Realzza también registra KOMMO (no solo gestión/market place) y
+  // marca su asistencia — se suma al set base.
+  'vendedor-realzza':   [...VENDEDOR_MODULES, 'registro-kommo', 'registro-asistencia'],
   'vendedor-zona':      [...VENDEDOR_MODULES],
   // Logística (mismos módulos en cualquier perfil de sede).
   'jefe_almacen-call':  [...JEFE_ALMACEN_MODULES],
