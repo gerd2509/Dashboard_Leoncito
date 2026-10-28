@@ -91,6 +91,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'control-supervisor',           label: 'Control Supervisor — Realzza',  grupo: 'Supervisión Realzza' },
   { key: 'gestion-supervisor',           label: 'Gestión Supervisor — Realzza',  grupo: 'Supervisión Realzza' },
   { key: 'actividad-realzza',            label: 'Actividad Realzza',            grupo: 'Supervisión Realzza' },
+  { key: 'horarios',                     label: 'Horarios — Realzza Chiclayo',  grupo: 'Supervisión Realzza' },
   { key: 'cierre',                       label: 'Cierre Gestión',               grupo: 'Análisis' },
   { key: 'avance-cartera',               label: 'Avance de Cartera',            grupo: 'Análisis' },
   { key: 'embudos-gestion',              label: 'Embudos de Gestión',           grupo: 'Análisis' },
@@ -124,7 +125,7 @@ export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
   'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor', 'listado-kommo-realzza',
-  'registro-asistencia',
+  'registro-asistencia', 'horarios',
 ];
 
 // Perfil "zona": gerencia que SOLO ve Control Gestión Sede (limitado a su zona).

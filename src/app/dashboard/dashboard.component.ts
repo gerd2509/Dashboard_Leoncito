@@ -47,6 +47,7 @@ import { RegistroSupervisorComponent } from "../features/control-supervisor/regi
 import { ControlSupervisorComponent } from "../features/control-supervisor/control-supervisor.component";
 import { GestionSupervisorComponent } from "../features/control-supervisor/gestion-supervisor/gestion-supervisor.component";
 import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
+import { HorariosComponent } from "../features/horarios/horarios.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
 import { MaestroCapComponent } from "../features/maestro-cap/maestro-cap.component";
 import { MaestroMetasSedeComponent } from "../features/maestro-metas-sede/maestro-metas-sede.component";
@@ -126,6 +127,7 @@ interface MenuItem {
     ControlSupervisorComponent,
     GestionSupervisorComponent,
     ActividadRealzzaComponent,
+    HorariosComponent,
     ComparativoCarteraVentasComponent,
     MaestroCapComponent,
     MaestroMetasSedeComponent,
@@ -222,7 +224,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Registro Supervisor', icon: 'fact_check',       modulo: 'registro-supervisor' },
         { label: 'Control Supervisor',  icon: 'event_available',  modulo: 'control-supervisor' },
         { label: 'Gestión Supervisor',  icon: 'fact_check',       modulo: 'gestion-supervisor' },
-        { label: 'Actividad Realzza',   icon: 'schedule',         modulo: 'actividad-realzza' }
+        { label: 'Actividad Realzza',   icon: 'schedule',         modulo: 'actividad-realzza' },
+        { label: 'Horarios',            icon: 'calendar_month',   modulo: 'horarios' }
       ]
     },
     {

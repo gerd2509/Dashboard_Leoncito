@@ -1,0 +1,206 @@
+<app-loading-overlay *ngIf="cargando"></app-loading-overlay>
+
+<div class="wrap">
+
+  <div class="top">
+    <div class="top-ico"><mat-icon>calendar_month</mat-icon></div>
+    <div class="top-txt">
+      <h1>Horarios — Realzza Chiclayo</h1>
+      <p>Rotación de domingos + descansos entre semana</p>
+    </div>
+    <select class="mes-select" [(ngModel)]="mes" (ngModelChange)="cargarMes()">
+      @for (op of opcionesMes; track op.mes) {
+        <option [value]="op.mes">{{ op.label }}</option>
+      }
+    </select>
+  </div>
+
+  @if (pendientesCap.length) {
+    <div class="nota alerta">
+      <b>Pendientes en el CAP:</b> no figuran todavía en <code>cap_asesores</code> de {{ sede }}: {{ pendientesCap.join(', ') }}.
+      Agrégalas en Maestro CAP para que aparezcan acá y puedas asignarles su regla.
+    </div>
+  }
+
+  <div class="stats">
+    <div class="stat"><div class="v">{{ asesores.length }}</div><div class="l">Asesoras en la rotación</div></div>
+    <div class="stat"><div class="v">{{ domingosDelMes.length }}</div><div class="l">Domingos en el mes</div></div>
+    <div class="stat"><div class="v">{{ rangoDescansoDominical }}</div><div class="l">Descansan por domingo</div></div>
+    <div class="stat" [class.acc]="cambios.length > 0"><div class="v">{{ cambios.length }}</div><div class="l">Cambios directos este mes</div></div>
+  </div>
+
+  <div class="card" [class.open]="reglasAbiertas">
+    <div class="card-head" (click)="toggleCard('reglas')">
+      <div class="ic"><mat-icon>tune</mat-icon></div>
+      <div><h2>Reglas de la rotación</h2><small>Edítalas acá — el calendario de abajo se recalcula solo</small></div>
+      <div class="chev"><mat-icon>expand_more</mat-icon></div>
+    </div>
+    <div class="card-body">
+      <div class="regla-grupo">
+        <div class="regla-grupo-h">
+          Pares de domingos de descanso
+          <button class="btn-mini" (click)="agregarSlot()">+ Nuevo par</button>
+        </div>
+        <div class="slots">
+          @for (slot of slots; track slot) {
+            <div class="slot">
+              <div class="slot-h">
+                <input class="txt-etiqueta" [(ngModel)]="slot.etiqueta" (blur)="guardarReglas()" placeholder="Etiqueta">
+                <input class="txt-domingos" [value]="domingosTexto(slot)" (change)="setDomingosTexto(slot, $any($event.target).value)" placeholder="días domingo, ej: 8, 15">
+                <button class="btn-mini danger" (click)="quitarSlot(slot)" title="Quitar par">✕</button>
+              </div>
+              @if (slot.nota) { <div class="slot-nota">{{ slot.nota }}</div> }
+              <div class="chip-pick">
+                @for (a of asesores; track a.nombre) {
+                  <label [class.on]="slot.asesores.includes(a.nombre)">
+                    <input type="checkbox" [checked]="slot.asesores.includes(a.nombre)"
+                      (change)="toggleSlotAsesor(slot, a.nombre, $any($event.target).checked)">
+                    {{ a.corto }}
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="regla-grupo">
+        <div class="regla-grupo-h">Descanso entre semana (rotación martes/miércoles/jueves, o fijo para casos especiales)</div>
+        <div class="fijo-grid">
+          @for (a of asesores; track a.nombre) {
+            <div class="fijo-row">
+              @if (reglaDe(a.nombre).inamovible) {
+                <span [title]="reglaDe(a.nombre).nota || ''">{{ a.corto }} *</span>
+                <select [ngModel]="reglaDe(a.nombre).diaFijo" (ngModelChange)="cambiarDiaFijo(a.nombre, +$event)">
+                  <option [value]="2">Martes</option>
+                  <option [value]="3">Miércoles</option>
+                  <option [value]="4">Jueves</option>
+                  <option [value]="5">Viernes</option>
+                </select>
+              } @else {
+                <span title="Su día cambia cada semana: rota entre martes, miércoles y jueves">{{ a.corto }} ↻</span>
+                <select [ngModel]="reglaDe(a.nombre).grupo" (ngModelChange)="cambiarGrupo(a.nombre, +$event)">
+                  <option [value]="0">{{ nombreGrupo[0] }}</option>
+                  <option [value]="1">{{ nombreGrupo[1] }}</option>
+                  <option [value]="2">{{ nombreGrupo[2] }}</option>
+                </select>
+              }
+              <label class="chk-inamovible">
+                <input type="checkbox" [checked]="reglaDe(a.nombre).inamovible"
+                  (change)="cambiarInamovible(a.nombre, $any($event.target).checked)">
+                fijo
+              </label>
+            </div>
+          }
+          <div class="fijo-leyenda">↻ = rota de día cada semana según su grupo. * = día fijo e inamovible (no rota, no se suspende aunque esa semana le toque domingo).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" [class.open]="calAbierta">
+    <div class="card-head" (click)="toggleCard('cal')">
+      <div class="ic"><mat-icon>calendar_view_month</mat-icon></div>
+      <div><h2>Calendario — {{ mesLabelActual }}</h2><small>Clic en una celda para marcar un cambio directo / transpaso</small></div>
+      <div class="chev"><mat-icon>expand_more</mat-icon></div>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="cal-scroll">
+        <table class="cal">
+          <thead>
+            <tr>
+              <th class="corner"></th>
+              @for (d of diasMes; track d) {
+                <th class="colhead" [class.dom]="diaSemana(d) === 0">
+                  <div>{{ letrasDia[diaSemana(d)] }}</div><div class="dnum">{{ d }}</div>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of asesores; track a.nombre) {
+              <tr>
+                <td class="rowhead">{{ a.corto }}</td>
+                @for (d of diasMes; track d) {
+                  <td class="cell" (click)="abrirPanel(a, d)" [title]="a.corto + ' · ' + d + ' · ' + etiquetaEstado(estadoDia(a.nombre, d))">
+                    <div class="mk"
+                      [class.trabaja]="estadoDia(a.nombre, d).tipo === 'trabaja' && !estadoDia(a.nombre, d).manual"
+                      [class.desc-dom]="estadoDia(a.nombre, d).tipo === 'desc-dom'"
+                      [class.desc-sem]="estadoDia(a.nombre, d).tipo === 'desc-sem'"
+                      [class.override]="!!estadoDia(a.nombre, d).manual"></div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="leyenda">
+        <span><span class="dot" style="background:var(--work-dot)"></span>Trabaja</span>
+        <span><span class="dot" style="background:var(--orange)"></span>Descanso domingo (rotación)</span>
+        <span><span class="dot" style="background:var(--sky)"></span>Descanso entre semana</span>
+        <span><span class="dot" style="background:var(--purple)"></span>Cambio directo / transpaso</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" [class.open]="logAbierta">
+    <div class="card-head" (click)="toggleCard('log')">
+      <div class="ic"><mat-icon>history</mat-icon></div>
+      <div><h2>Cambios registrados</h2><small>Todo transpaso marcado en el calendario queda acá, con motivo</small></div>
+      <div class="chev"><mat-icon>expand_more</mat-icon></div>
+    </div>
+    <div class="card-body">
+      <div class="log">
+        @if (!cambios.length) {
+          <div class="log-empty">Todavía no hay cambios directos registrados este mes.</div>
+        }
+        @for (c of cambios; track c.id) {
+          <div class="log-row">
+            <div class="ic">⇄</div>
+            <div>
+              <b>{{ cortoDe(c.asesor) }}</b>
+              — {{ c.fecha | date:'d MMM' }} → <b>{{ c.tipo === 'desc-dom' ? 'Descanso (domingo)' : c.tipo === 'desc-sem' ? 'Descanso (entre semana)' : 'Trabaja' }}</b>
+              @if (c.motivo) { <div class="motivo">{{ c.motivo }}</div> }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+</div>
+
+@if (panel) {
+  <div class="backdrop show" (click)="$event.target === $event.currentTarget && cerrarPanel()">
+    <div class="panel">
+      <div class="panel-h">
+        <div>
+          <b>{{ panel.corto }}</b>
+          <small>{{ panel.dia }} de {{ mesLabelActual }}</small>
+        </div>
+      </div>
+      <div class="panel-b">
+        <div class="estado-actual">{{ panel.estadoTexto }}</div>
+        <div>
+          <label>Cambiar a</label>
+          <select [(ngModel)]="panel.tipoSel">
+            <option value="trabaja">Trabaja</option>
+            <option value="desc-dom">Descanso (domingo)</option>
+            <option value="desc-sem">Descanso (entre semana)</option>
+          </select>
+        </div>
+        <div>
+          <label>Motivo del cambio / transpaso</label>
+          <textarea rows="2" [(ngModel)]="panel.motivo" placeholder="Ej: cambio directo con Karen Yudith, ella cubre el domingo 15"></textarea>
+        </div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn ghost" (click)="cerrarPanel()">Cancelar</button>
+        @if (panel.cambioId) {
+          <button class="btn danger" (click)="quitarCambioActual()">Quitar cambio</button>
+        }
+        <button class="btn primary" (click)="guardarCambio()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}
