@@ -1,4 +1,4 @@
-:host { display: block; height: 100%; min-height: 0; position: relative; }
+:host { display: block; height: 100%; min-height: 0; position: relative; --mod-rgb: 255,193,69; }
 /* =========================================================
    FORMULARIO DE FILTROS
    ========================================================= */
@@ -19,8 +19,9 @@
 .form button {
     height: 40px;
     border-radius: 8px !important;
-    background: #1A5FAD !important;
+    background: linear-gradient(135deg, #1A5FAD, rgb(255,193,69)) !important;
     color: #fff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,.22);
     border: none !important;
     font-weight: 600 !important;
     font-size: 13px !important;
@@ -29,7 +30,6 @@
 }
 
 .form button:hover {
-    background: #2B73D1 !important;
     box-shadow: 0 4px 18px rgba(26,95,173,0.38) !important;
     transform: translateY(-1px);
 }
@@ -80,15 +80,20 @@
 }
 
 .section-header mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    color: #1A5FAD;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    font-size: 17px;
+    border-radius: 9px;
+    background: rgba(255,193,69, .22);
+    color: rgb(255,193,69);
 }
 
 /* Tema por sede: las cabeceras del detalle usan el color de la sede */
 .detalle-sede .section-header { border-left-color: var(--sede-color, #1A5FAD); }
-.detalle-sede .section-header mat-icon { color: var(--sede-color, #1A5FAD); }
+.detalle-sede .section-header mat-icon { background: var(--sede-color, #1A5FAD); color: #fff; }
 .detalle-sede .card-resumen { border-top-color: var(--sede-color, #1A5FAD); }
 .detalle-sede .card-resumen .valor { color: var(--sede-color, #1A5FAD); }
 /* Excepciones de KPI que conservan su color semántico */
@@ -141,7 +146,7 @@
     border-radius: 12px;
     padding: 18px 16px;
     border: 1px solid #CCDAEE;
-    border-top: 3px solid #1A5FAD;
+    border-top: 3px solid rgb(255,193,69);
     text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
     position: relative;
@@ -153,14 +158,14 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 60px;
-    background: linear-gradient(180deg, rgba(26,95,173,0.05) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(255,193,69,0.10) 0%, transparent 100%);
     pointer-events: none;
 }
 
 .card-resumen:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(26,95,173,0.14);
-    border-color: #1A5FAD;
+    box-shadow: 0 8px 24px rgba(255,193,69,0.22);
+    border-color: rgb(255,193,69);
 }
 
 .card-resumen .titulo {
