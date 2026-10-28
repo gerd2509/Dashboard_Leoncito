@@ -1,6 +1,10 @@
 :host { display: block; }
 
-.ra-wrap { padding: 16px 18px; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 18px; max-width: 680px; }
+.ra-wrap { padding: 16px 18px; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; gap: 18px; max-width: 980px; margin: 0 auto; }
+
+/* El botón de marcar queda centrado y de un ancho cómodo (no estirado a los
+   980px de la tarjeta) — lo ancho beneficia sobre todo a la tabla de abajo. */
+.ra-card:first-of-type .ra-btn { max-width: 420px; margin: 0 auto; }
 
 .ra-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 20px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
 
