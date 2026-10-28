@@ -33,10 +33,11 @@ export class VentasCampoComponent implements OnInit {
   readonly tiendaGestor = esGestorTiendaRealzza(this.auth.getUsuario()) ? tiendaFijaRealzza(this.auth.getUsuario()) : '';
   tiendaVentas: string = this.tiendaGestor || 'REALZZA';
 
-  // La venta cuenta en la tienda del VENDEDOR (su CAP), no en la etiqueta de sede de la
-  // venta — un vendedor de Chiclayo puede vender con etiqueta Piura y viceversa; el monto
-  // y la comisión son de su propia tienda. `detEntranRz`/`detSalenRz` muestran el cruce
-  // (igual que el ↙/↗ de Avance de Cartera, aquí por vendedor en vez de por DNI).
+  // La venta cuenta SIEMPRE en la tienda que dice su propia ETIQUETA de sede (el monto del
+  // KPI de arriba es por tienda física, no por quién vendió) — el CAP del vendedor es solo
+  // informativo, para avisar cuando una venta de esta tienda es de un vendedor que en el CAP
+  // pertenece a otra (`detEntranRz`), o cuando un vendedor de esta tienda tiene una venta
+  // etiquetada en otra (`detSalenRz`, no suma aquí). Ninguno de los dos mueve el total.
   detEntranRz: { tienda: string; vendedor: string; ops: number; monto: number }[] = [];
   detSalenRz: { tienda: string; vendedor: string; ops: number; monto: number }[] = [];
   /** Acumula el detalle cruzado (ops/monto por tienda+vendedor); mismo criterio de "venta
@@ -448,23 +449,18 @@ export class VentasCampoComponent implements OnInit {
       const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
       const vendedorNombre = (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
       const etiquetaTienda = tiendaDeSedeRealzza(sede);
-      // Si el vendedor no está en el CAP de Piura ni de Lima (un asesor de Call sin
-      // tienda propia, O un vendedor real que el CAP aún no tiene cargado), se usa la
-      // tienda FÍSICA de la venta como "tienda dueña" en vez de asumir Chiclayo a
-      // ciegas — eso atribuía mal tanto ventas de Call hechas en Piura/Lima como
-      // ventas reales de vendedores nuevos aún no sincronizados.
-      const tiendaReal = this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
       const vistaTodas = this.tiendaVentas === 'TODAS';
+      const tiendaCapVendedor = vistaTodas ? etiquetaTienda : this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
 
-      if (!vistaTodas && tiendaReal !== this.tiendaVentas) {
-        // No es de esta tienda por vendedor: si la ETIQUETA de la venta sí es de esta
-        // tienda, es una venta cruzada que "sale" hacia la tienda real — solo informativa.
-        if (etiquetaTienda === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, tiendaReal, vendedorNombre, monto, esNC);
+      if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
+        // No es de esta tienda por ETIQUETA: si el vendedor sí pertenece (por CAP) a esta
+        // tienda, es informativo (su venta quedó registrada/suma en la otra tienda).
+        if (tiendaCapVendedor === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
         continue;
       }
-      // Es de esta tienda por vendedor (o vista "TODAS"): cuenta en el monto/comisión.
-      if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
-        this.acumularCruceRz(this.detEntranRz, etiquetaTienda, vendedorNombre, monto, esNC);
+      // Es de esta tienda por ETIQUETA (o vista "TODAS"): cuenta en el monto/comisión.
+      if (!vistaTodas && tiendaCapVendedor !== this.tiendaVentas) {
+        this.acumularCruceRz(this.detEntranRz, tiendaCapVendedor, vendedorNombre, monto, esNC);
       }
 
       // dataVentas: SIEMPRE por su mes de VENTA (fechaCv), "congelado" — se agrega aunque
@@ -617,18 +613,17 @@ export class VentasCampoComponent implements OnInit {
         const idventa = (row['IDVENTA'] || '').toString().trim();
         const vendedorNombre = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
         const etiquetaTienda = tiendaDeSedeRealzza(sede);
-        // Mismo criterio que procesarBD(): si el vendedor no está en el CAP de Piura ni
-        // de Lima, se usa la tienda FÍSICA de la venta como tienda dueña en vez del
-        // default 'REALZZA' (Chiclayo) de tiendaDeVendedor().
-        const tiendaReal = this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
+        // Mismo criterio que procesarBD(): la venta cuenta por su propia ETIQUETA; el CAP
+        // del vendedor solo alimenta los recuadros informativos (no mueve el total).
         const vistaTodas = this.tiendaVentas === 'TODAS';
+        const tiendaCapVendedor = vistaTodas ? etiquetaTienda : this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
 
-        if (!vistaTodas && tiendaReal !== this.tiendaVentas) {
-          if (etiquetaTienda === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, tiendaReal, vendedorNombre, monto, esNC);
+        if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
+          if (tiendaCapVendedor === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
           return;
         }
-        if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
-          this.acumularCruceRz(this.detEntranRz, etiquetaTienda, vendedorNombre, monto, esNC);
+        if (!vistaTodas && tiendaCapVendedor !== this.tiendaVentas) {
+          this.acumularCruceRz(this.detEntranRz, tiendaCapVendedor, vendedorNombre, monto, esNC);
         }
         const esRz = true;
 
