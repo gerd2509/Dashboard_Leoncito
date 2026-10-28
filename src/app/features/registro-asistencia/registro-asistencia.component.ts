@@ -1,5 +1,4 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { AsistenciaService, MarcaAsistencia } from '../../services/asistencia.service';
@@ -84,19 +83,44 @@ export class RegistroAsistenciaComponent implements OnInit {
     );
   }
 
-  // ── Listado de revisión (admin/gerente/supervisor) ──
+  // ── Listado de revisión (admin/gerente/supervisor) — por MES, con combo de
+  // sede y de asesor (filtran en el navegador sobre lo ya cargado del mes). ──
   cargandoListado = false;
   filas: MarcaAsistencia[] = [];
-  form: UntypedFormGroup;
+  mes: Date = new Date();
+  sedeFiltro = '';     // '' = todas
+  asesorFiltro = '';   // '' = todos
 
-  constructor(private fb: UntypedFormBuilder) {
-    const hoy = new Date();
-    this.form = this.fb.group({ desde: [hoy], hasta: [hoy] });
+  /** Lista de sedes con marcas en el mes cargado, para el combo (más "Todas"). */
+  get sedesDisponibles(): string[] {
+    return Array.from(new Set(this.filas.map(f => f.sede).filter(Boolean))).sort();
+  }
+  /** Lista de asesores con marcas en el mes cargado (y, si ya eligió una sede,
+   *  acotada a esa sede), para el combo (más "Todos"). */
+  get asesoresDisponibles(): string[] {
+    const base = this.sedeFiltro ? this.filas.filter(f => f.sede === this.sedeFiltro) : this.filas;
+    return Array.from(new Set(base.map(f => f.nombre).filter(Boolean))).sort();
+  }
+  get filasFiltradas(): MarcaAsistencia[] {
+    return this.filas.filter(f =>
+      (!this.sedeFiltro || f.sede === this.sedeFiltro) &&
+      (!this.asesorFiltro || f.nombre === this.asesorFiltro));
+  }
+
+  onMesChange(): void {
+    this.sedeFiltro = ''; this.asesorFiltro = '';
+    this.cargarListado();
+  }
+  onSedeFiltroChange(): void {
+    // Si el asesor elegido no pertenece a la sede nueva, se limpia.
+    if (this.asesorFiltro && !this.asesoresDisponibles.includes(this.asesorFiltro)) this.asesorFiltro = '';
   }
 
   cargarListado(): void {
     this.cargandoListado = true;
-    const desde = this.ymd(this.form.value.desde), hasta = this.ymd(this.form.value.hasta);
+    const anio = this.mes.getFullYear(), mesNum = this.mes.getMonth();
+    const desde = this.ymd(new Date(anio, mesNum, 1));
+    const hasta = this.ymd(new Date(anio, mesNum + 1, 0));   // último día del mes
     this.srv.listar(desde, hasta).subscribe({
       next: (rows) => { this.filas = rows; this.cargandoListado = false; },
       error: () => { this.cargandoListado = false; },

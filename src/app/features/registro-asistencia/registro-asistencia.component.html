@@ -30,18 +30,25 @@
   <div class="ra-card" *ngIf="puedeVerListado">
     <div class="ra-head">
       <mat-icon>fact_check</mat-icon>
-      <div><h2>Marcas registradas</h2><small>Revisa quién marcó dentro o fuera de la ubicación esperada.</small></div>
+      <div><h2>Asistencias Registradas</h2><small>Revisa quién marcó dentro o fuera de la ubicación esperada.</small></div>
     </div>
 
-    <form class="ra-filtros" [formGroup]="form">
-      <dx-date-box formControlName="desde" type="date" label="Desde" labelMode="floating" stylingMode="outlined" width="150" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
-      <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" stylingMode="outlined" width="150" [displayFormat]="'dd/MM/yyyy'"></dx-date-box>
+    <div class="ra-filtros">
+      <dx-date-box [(value)]="mes" type="date" displayFormat="MMMM yyyy" label="Mes" labelMode="floating"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" width="160"
+        (onValueChanged)="onMesChange()"></dx-date-box>
+      <dx-select-box [dataSource]="sedesDisponibles" [(value)]="sedeFiltro" (onValueChanged)="onSedeFiltroChange()"
+        label="Sede" labelMode="floating" stylingMode="outlined" width="170"
+        placeholder="Todas" [showClearButton]="true"></dx-select-box>
+      <dx-select-box [dataSource]="asesoresDisponibles" [(value)]="asesorFiltro"
+        label="Asesor" labelMode="floating" stylingMode="outlined" width="200" [searchEnabled]="true"
+        placeholder="Todos" [showClearButton]="true"></dx-select-box>
       <button class="ra-btn sm" type="button" (click)="cargarListado()" [disabled]="cargandoListado">
-        <mat-icon>search</mat-icon> Consultar
+        <mat-icon>refresh</mat-icon> Actualizar
       </button>
-    </form>
+    </div>
 
-    <dx-data-grid [dataSource]="filas" [showBorders]="true" [rowAlternationEnabled]="true"
+    <dx-data-grid [dataSource]="filasFiltradas" [showBorders]="true" [rowAlternationEnabled]="true"
       [hoverStateEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="true">
       <dxo-loading-indicator [show]="cargandoListado"></dxo-loading-indicator>
       <dxo-filter-row [visible]="true"></dxo-filter-row>
@@ -52,13 +59,14 @@
       <dxi-column dataField="sede" caption="Sede" [minWidth]="140"></dxi-column>
       <dxi-column dataField="distancia_metros" caption="Distancia" dataType="number" [width]="100" cellTemplate="distTpl"></dxi-column>
       <dxi-column caption="Estado" [width]="170" cellTemplate="estadoTpl" alignment="center"></dxi-column>
+      <dxo-summary><dxi-total-item alignment="right" column="nombre" summaryType="count" displayFormat="Total: {0}"></dxi-total-item></dxo-summary>
 
       <div *dxTemplate="let c of 'distTpl'">{{ c.value != null ? (c.value | number) + ' m' : '—' }}</div>
       <div *dxTemplate="let c of 'estadoTpl'">
         <span class="ra-badge" [ngClass]="estadoClase(c.data)">{{ estadoTexto(c.data) }}</span>
       </div>
     </dx-data-grid>
-    <div *ngIf="!filas.length && !cargandoListado" class="ra-empty"><mat-icon>search_off</mat-icon> Sin marcas en el rango.</div>
+    <div *ngIf="!filasFiltradas.length && !cargandoListado" class="ra-empty"><mat-icon>search_off</mat-icon> Sin asistencias en el mes/filtro elegido.</div>
   </div>
 
 </div>
