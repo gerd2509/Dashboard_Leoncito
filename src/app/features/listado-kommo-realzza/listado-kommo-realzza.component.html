@@ -152,29 +152,35 @@
       </div>
       <div class="lk-error" *ngIf="errorAuditoria"><mat-icon>error_outline</mat-icon> {{ errorAuditoria }}</div>
 
-      <div class="ak-lotes" *ngIf="auditLotes.length">
-        <table class="ak-tabla">
-          <thead>
-            <tr>
-              <th>Fecha</th><th>Período</th><th>Por embudo</th><th>Total</th>
-              <th>Bien</th><th>Por mejorar</th><th>Pendiente</th><th>% Bien (revisado)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let l of auditLotes" (click)="abrirLote(l)" title="Ver detalle de este lote">
-              <td>{{ l.creado_en | date:'d MMM, HH:mm' }}</td>
-              <td>{{ meses[l.mes-1].t }} {{ l.anio }}</td>
-              <td class="ak-num">{{ l.cantidad_por_embudo }}</td>
-              <td class="ak-num">{{ l.total }}</td>
-              <td class="ak-num ak-bien">{{ l.bien }}</td>
-              <td class="ak-num ak-mejorar">{{ l.mejorar }}</td>
-              <td class="ak-num" [class.ak-pendiente]="l.pendiente > 0">{{ l.pendiente }}</td>
-              <td class="ak-num">{{ (l.bien + l.mejorar) ? (pctBienDe(l) | number:'1.0-0') + '%' : '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="ak-tabla-wrap">
+        <div class="ak-grid-overlay" *ngIf="sorteando">
+          <app-loading-overlay [inline]="true" [visible]="sorteando" icon="casino"
+            mensaje="Sorteando auditoría…" submensaje="Eligiendo leads al azar de cada embudo…"></app-loading-overlay>
+        </div>
+        <div class="ak-lotes ak-tabla-scroll" *ngIf="auditLotes.length">
+          <table class="ak-tabla">
+            <thead>
+              <tr>
+                <th>Fecha</th><th>Período</th><th>Por embudo</th><th>Total</th>
+                <th>Bien</th><th>Por mejorar</th><th>Pendiente</th><th>% Bien (revisado)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of auditLotes" (click)="abrirLote(l)" title="Ver detalle de este lote">
+                <td>{{ l.creado_en | date:'d MMM, HH:mm' }}</td>
+                <td>{{ meses[l.mes-1].t }} {{ l.anio }}</td>
+                <td class="ak-num">{{ l.cantidad_por_embudo }}</td>
+                <td class="ak-num">{{ l.total }}</td>
+                <td class="ak-num ak-bien">{{ l.bien }}</td>
+                <td class="ak-num ak-mejorar">{{ l.mejorar }}</td>
+                <td class="ak-num" [class.ak-pendiente]="l.pendiente > 0">{{ l.pendiente }}</td>
+                <td class="ak-num">{{ (l.bien + l.mejorar) ? (pctBienDe(l) | number:'1.0-0') + '%' : '—' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="ak-vacio" *ngIf="!auditLotes.length && !sorteando">Todavía no hay auditorías para esta tienda. Elige el mes de arriba y dale a "Sortear auditoría".</p>
       </div>
-      <p class="ak-vacio" *ngIf="!auditLotes.length && !sorteando">Todavía no hay auditorías para esta tienda. Elige el mes de arriba y dale a "Sortear auditoría".</p>
     </ng-container>
 
     <!-- Pantalla 2: detalle del lote elegido (clic en un lead abre su revisión) -->
@@ -190,31 +196,38 @@
           {{ sincronizandoLote ? 'Sincronizando…' : 'Sincronizar' }}
         </button>
       </div>
-      <table class="ak-tabla" *ngIf="!cargandoLote">
-        <thead>
-          <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th><th>Fotos</th></tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead" title="Ver/editar la revisión">
-            <td>{{ l.lead_id }}</td>
-            <td>{{ l.nombre_cliente }}</td>
-            <td>{{ l.embudo }}</td>
-            <td>{{ l.responsable }}</td>
-            <td>{{ l.fecha_creacion_lead }}</td>
-            <td>
-              <span class="ak-badge" [class.ak-badge-bien]="l.resultado === 'bien'"
-                [class.ak-badge-mejorar]="l.resultado === 'mejorar'" [class.ak-badge-pendiente]="l.resultado === 'pendiente'">
-                {{ l.resultado === 'bien' ? 'Bien' : l.resultado === 'mejorar' ? 'Por mejorar' : 'Pendiente' }}
-              </span>
-            </td>
-            <td class="ak-num">
-              <span class="ak-fotos-count" *ngIf="l.fotos.length"><mat-icon>photo_camera</mat-icon>{{ l.fotos.length }}</span>
-              <span class="ak-fotos-count ak-fotos-count-vacio" *ngIf="!l.fotos.length">—</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p *ngIf="cargandoLote">Cargando…</p>
+      <div class="ak-tabla-wrap">
+        <div class="ak-grid-overlay" *ngIf="cargandoLote">
+          <app-loading-overlay [inline]="true" [visible]="cargandoLote" icon="list_alt"
+            mensaje="Cargando leads del lote…" submensaje="Trayendo el detalle y las fotos guardadas…"></app-loading-overlay>
+        </div>
+        <div class="ak-tabla-scroll" *ngIf="!cargandoLote">
+          <table class="ak-tabla">
+            <thead>
+              <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th><th>Fotos</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead" title="Ver/editar la revisión">
+                <td>{{ l.lead_id }}</td>
+                <td>{{ l.nombre_cliente }}</td>
+                <td>{{ l.embudo }}</td>
+                <td>{{ l.responsable }}</td>
+                <td>{{ l.fecha_creacion_lead }}</td>
+                <td>
+                  <span class="ak-badge" [class.ak-badge-bien]="l.resultado === 'bien'"
+                    [class.ak-badge-mejorar]="l.resultado === 'mejorar'" [class.ak-badge-pendiente]="l.resultado === 'pendiente'">
+                    {{ l.resultado === 'bien' ? 'Bien' : l.resultado === 'mejorar' ? 'Por mejorar' : 'Pendiente' }}
+                  </span>
+                </td>
+                <td class="ak-num">
+                  <span class="ak-fotos-count" *ngIf="l.fotos.length"><mat-icon>photo_camera</mat-icon>{{ l.fotos.length }}</span>
+                  <span class="ak-fotos-count ak-fotos-count-vacio" *ngIf="!l.fotos.length">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </ng-container>
   </div>
 </div>
