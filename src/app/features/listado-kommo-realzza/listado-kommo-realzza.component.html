@@ -267,7 +267,7 @@
       <label>Fotos de evidencia</label>
       <div class="ak-fotos">
         <div class="ak-foto" *ngFor="let f of rev.fotosUrl; let i = index">
-          <img [src]="f" alt="evidencia" (click)="fotoAmpliada = f" title="Ver en grande">
+          <img [src]="f" alt="evidencia" (click)="ampliarFoto(f, $event)" title="Ver en grande">
           <button type="button" class="ak-foto-quitar" (click)="quitarFotoPreview(i)" title="Quitar"><mat-icon>close</mat-icon></button>
         </div>
       </div>
@@ -349,7 +349,7 @@
                 <p>{{ l.comentario || 'Sin comentario.' }}</p>
               </div>
               <div class="ak-mejorar-fotos">
-                <img *ngFor="let f of l.fotosUrl" [src]="f" alt="evidencia" (click)="fotoAmpliada = f" title="Ver en grande">
+                <img *ngFor="let f of l.fotosUrl" [src]="f" alt="evidencia" (click)="ampliarFoto(f, $event)" title="Ver en grande">
               </div>
             </div>
           </div>

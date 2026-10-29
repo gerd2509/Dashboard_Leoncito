@@ -145,6 +145,7 @@
 .ak-menu-exportar-opciones button:hover { background: #F4F7FC; color: #1E3A5F; }
 .ak-menu-exportar-opciones button mat-icon { font-size: 17px; width: 17px; height: 17px; color: #FF6B6B; }
 .ak-tabla-scroll-chica { max-height: none; overflow-y: visible; }
+.ak-tabla-scroll-chica .ak-tabla th { position: static; }
 .ak-reporte-subtitulo {
   display: flex; align-items: center; gap: 6px; margin: 18px 0 10px; font-size: 13.5px; color: #1E3A5F;
 }
@@ -239,7 +240,7 @@
 .ak-btn-quitar mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
 .ak-lightbox {
-  position: fixed; inset: 0; background: rgba(10,18,32,.85); z-index: 110;
+  position: fixed; inset: 0; background: rgba(10,18,32,.85); z-index: 1000;
   display: flex; align-items: center; justify-content: center; padding: 24px; cursor: zoom-out;
 }
 .ak-lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.5); cursor: default; }

@@ -264,6 +264,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   } | null = null;
   /** Foto (URL) mostrada en grande al hacer clic en una miniatura. */
   fotoAmpliada: string | null = null;
+  ampliarFoto(f: string, ev: Event): void { ev.stopPropagation(); this.fotoAmpliada = f; }
 
   async toggleAuditoria(): Promise<void> {
     this.mostrarAuditoria = !this.mostrarAuditoria;
