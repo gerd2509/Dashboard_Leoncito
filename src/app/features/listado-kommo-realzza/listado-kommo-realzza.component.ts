@@ -71,7 +71,19 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   setTienda(t: TiendaRealzza): void {
     if (this.tienda === t) return;
     this.tienda = t;
-    this.cargar();
+    this.refrescarVistaActual();
+  }
+
+  /** Recarga lo que corresponda según la vista activa: el listado normal, o (si está
+   *  en Auditoría) el histórico de lotes de la tienda/tabla elegida — cambiar de tienda
+   *  o de mes mientras se está en Auditoría debe reflejarse ahí, no en el listado. */
+  async refrescarVistaActual(): Promise<void> {
+    if (this.mostrarAuditoria) {
+      this.cerrarLote();
+      await this.cargarLotes();
+    } else {
+      await this.cargar();
+    }
   }
 
   setVerTodo(v: boolean): void {
@@ -255,7 +267,8 @@ export class ListadoKommoRealzzaComponent implements OnInit {
 
   async toggleAuditoria(): Promise<void> {
     this.mostrarAuditoria = !this.mostrarAuditoria;
-    if (this.mostrarAuditoria && !this.auditLotes.length) await this.cargarLotes();
+    this.cerrarLote();
+    if (this.mostrarAuditoria) await this.cargarLotes();
   }
 
   async cargarLotes(): Promise<void> {

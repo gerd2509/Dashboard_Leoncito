@@ -20,9 +20,9 @@
   <div class="lk-form-row">
     <form class="lk-form" [formGroup]="form">
       <dx-select-box width="110" [dataSource]="anios" formControlName="anio" label="Año" labelMode="floating"
-        stylingMode="outlined" [disabled]="verTodo" (onValueChanged)="cargar()"></dx-select-box>
+        stylingMode="outlined" [disabled]="!mostrarAuditoria && verTodo" (onValueChanged)="refrescarVistaActual()"></dx-select-box>
       <dx-select-box width="160" [dataSource]="meses" displayExpr="t" valueExpr="v" formControlName="mes" label="Mes"
-        labelMode="floating" stylingMode="outlined" [disabled]="verTodo" (onValueChanged)="cargar()"></dx-select-box>
+        labelMode="floating" stylingMode="outlined" [disabled]="!mostrarAuditoria && verTodo" (onValueChanged)="refrescarVistaActual()"></dx-select-box>
       <ng-container *ngIf="!mostrarAuditoria">
         <button mat-stroked-button type="button" (click)="cargar()" [disabled]="isLoading || verTodo">
           <mat-icon>search</mat-icon> Ver
