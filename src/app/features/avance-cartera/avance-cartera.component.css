@@ -146,6 +146,16 @@ mat-icon.girando { animation: ac-spin .8s linear infinite; }
 .chart-box dx-chart, .chart-box dx-pie-chart { height: 300px; }
 @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
 
+.participacion-venta { margin-bottom: 20px; }
+.participacion-venta h3 small { font-weight: 500; color: var(--gris); margin-left: 6px; }
+.part-venta-body { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: center; }
+.part-venta-tabla table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.part-venta-tabla th { background: var(--azul); color: #fff; font-weight: 600; padding: 8px 10px; text-align: center; }
+.part-venta-tabla th.left, .part-venta-tabla td.left { text-align: left; }
+.part-venta-tabla td { padding: 8px 10px; border-top: 1px solid var(--borde); text-align: center; font-weight: 600; }
+.part-venta-tabla tbody tr:nth-child(even) { background: var(--azul-suave); }
+@media (max-width: 900px) { .part-venta-body { grid-template-columns: 1fr; } }
+
 /* Tabla asesores */
 .tabla-asesores { margin-bottom: 20px; }
 .tabla-asesores h3 { margin: 0 0 12px; font-size: 15px; font-weight: 700; }

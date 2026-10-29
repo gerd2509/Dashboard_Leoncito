@@ -82,6 +82,11 @@ interface ResumenAsesor {
  *  cuántos tiene asignados de ese tipo, cuántos vendió y su % de concreción. */
 interface ConcrecionTipo { tipo: string; asignados: number; vendidos: number; pct: number; }
 
+/** Participación del monto vendido por tipo de cliente (columna `tipo_cliente` de la
+ *  tabla `ventas`, tal cual) — viene de TODAS las ventas del mes/sede, sin cruzar por
+ *  DNI contra la cartera importada (así no depende de qué Excel se haya subido). */
+interface ParticipacionTipo { tipo: string; monto: number; pct: number; }
+
 interface ResumenSede {
   sedeKey: string; sede: string;
   asignados: number; gestionados: number;
@@ -167,6 +172,11 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   private ventasLista = new Map<string, VentaLista[]>();   // dni → ventas (cerradas) con su sede
   detVentas: { sede: string; tipo: 'in' | 'out'; lista: DetalleVenta[]; tabla: ResumenSede[] } | null = null;
   private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
+  // Monto vendido por tipo de cliente (columna `tipo_cliente` de `ventas`, tal cual),
+  // por sede donde se CERRÓ la venta — TODAS las ventas del mes, no solo las de DNIs que
+  // aparecen en el Excel de cartera subido (de ahí "global"). sedeKey → tipo → monto.
+  private ventasTipoPorSede = new Map<string, Map<string, number>>();
+  participacionVenta: ParticipacionTipo[] = [];
   // sedeKey → dni → registros de gestión reales ese mes (para Intensidad, acotado al
   // grupo/cuadro que se esté mostrando — no el total de la sede completa). El # de
   // gestiones = registros.length; se guarda el detalle para poder verlo caso por caso.
@@ -466,7 +476,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.gestionesCallCenterPorDni = new Map();
     this.detalleIntensidad = []; this.detIntensidad = null; this.detGestionCliente = null;
     this.detalleSeguimiento = []; this.detSeguimiento = null;
-    this.porDia = []; this.distribucion = [];
+    this.porDia = []; this.distribucion = []; this.participacionVenta = []; this.ventasTipoPorSede = new Map();
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
     this.totalNoContacto = this.totalPendientes = this.avanceGlobal = this.gestionesMes = 0;
@@ -767,6 +777,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     const corte = this.finDeCorte();   // usado en ambos cruces de ventas de abajo
     this.ventasPorDni = new Map();
     this.ventasLista = new Map();
+    this.ventasTipoPorSede = new Map();
     const vistos = new Set<string>();   // codigo_cv ya contados (evita duplicados)
     try {
       const rows = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
@@ -791,6 +802,15 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         const listaDni = this.ventasLista.get(dni) ?? [];
         listaDni.push({ cv, sedeKey: sedeVenta, sedeNombre: this.sedeCfg.getConfig(sedeVenta)?.nombre ?? String(r.sede ?? ''), monto, fecha: String(r.fecha_cv ?? '').slice(0, 10) });
         this.ventasLista.set(dni, listaDni);
+        // Participación por tipo de cliente: TODAS las ventas efectivas de la sede ese
+        // mes (no solo las de DNIs presentes en la cartera subida) — solo sedes piso
+        // reconocidas, igual que buildSedes().
+        if (this.sedeCfg.getConfig(sedeVenta)?.nombre) {
+          const tipo = (r.tipo_cliente || '').toString().trim().toUpperCase() || 'SIN TIPO';
+          const porTipo = this.ventasTipoPorSede.get(sedeVenta) ?? new Map<string, number>();
+          porTipo.set(tipo, (porTipo.get(tipo) || 0) + monto);
+          this.ventasTipoPorSede.set(sedeVenta, porTipo);
+        }
       }
     } catch { /* sin ventas → el cuadro muestra 0 */ }
     this.ventasCallPorAsesor = new Map();
@@ -995,6 +1015,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
           `cartera:${ym}:${cg.grupo}:call-center`)],
       }));
     }
+    this.participacionVenta = this.calcularParticipacionVenta();
   }
 
   /** Detalle de Intensidad: 1 fila por cliente (DNI) con su # real de gestiones (con
@@ -1286,6 +1307,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.resumenAsesores = (this.esPiso && !this.sedeDetalle) ? [] : this.agregarPorAsesor(subset);
     this.ventasAsesor = this.calcularVentasAsesor(subset);
     this.desglosePorAsesor = (this.esPiso && this.sedeDetalle) ? this.calcularDesglosePorTipo(subset) : {};
+    this.participacionVenta = this.esPiso ? this.calcularParticipacionVenta() : [];
     this.asesorDesplegado = null;
   }
 
@@ -1355,6 +1377,27 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         .sort((a, b) => a.tipo.localeCompare(b.tipo));
     });
     return out;
+  }
+
+  /** Participación de venta por tipo de cliente: global (todas las sedes piso) o de la
+   *  sede en detalle, según el scope actual — siempre desde `ventasTipoPorSede` (TODAS
+   *  las ventas del mes, sin cruzar por DNI contra la cartera subida). */
+  private calcularParticipacionVenta(): ParticipacionTipo[] {
+    const scope = (this.sedeDetalle && this.sedeDetalle !== 'call-center') ? this.sedeDetalle : null;
+    const totales = new Map<string, number>();
+    const sumarSede = (porTipo: Map<string, number>) => {
+      for (const [tipo, monto] of porTipo) totales.set(tipo, (totales.get(tipo) || 0) + monto);
+    };
+    if (scope) {
+      const porTipo = this.ventasTipoPorSede.get(scope);
+      if (porTipo) sumarSede(porTipo);
+    } else {
+      for (const porTipo of this.ventasTipoPorSede.values()) sumarSede(porTipo);
+    }
+    const total = Array.from(totales.values()).reduce((a, b) => a + b, 0);
+    return Array.from(totales.entries())
+      .map(([tipo, monto]) => ({ tipo, monto, pct: total > 0 ? Math.round((monto / total) * 1000) / 10 : 0 }))
+      .sort((a, b) => b.monto - a.monto);
   }
 
   /** Asesor cuyo desglose por tipo está desplegado en la tabla (uno a la vez). */
@@ -1526,4 +1569,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   customizeTooltipPie = (arg: any) => ({ text: `${arg.argumentText}: ${arg.value} (${arg.percentText})` });
   customizeLabelPie = (arg: any) => `${arg.argumentText}: ${arg.valueText} (${arg.percentText})`;
   customizePointPie = (p: any) => ({ color: p.data?.color });
+
+  customizeTooltipVenta = (arg: any) => ({ text: `${arg.argumentText}: ${this.soles(arg.value)} (${arg.percentText})` });
+  customizeLabelVenta = (arg: any) => `${arg.argumentText}: ${arg.percentText}`;
 }

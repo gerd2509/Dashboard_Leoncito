@@ -167,6 +167,34 @@
         </div>
       </div>
 
+      <!-- Participación de venta por tipo de cliente (Piso): TODAS las ventas del mes
+           (global o de la sede en detalle), no solo las de DNIs de la cartera subida. -->
+      <div class="chart-box participacion-venta" *ngIf="esPiso && participacionVenta.length">
+        <h3>Participación de venta por tipo de cliente <small *ngIf="sedeDetalle">— {{ nombreSedeDetalle }}</small><small *ngIf="!sedeDetalle">— Global (todas las sedes)</small></h3>
+        <div class="part-venta-body">
+          <dx-pie-chart [dataSource]="participacionVenta" palette="Soft" type="doughnut">
+            <dxi-series argumentField="tipo" valueField="monto">
+              <dxo-label [visible]="true" [customizeText]="customizeLabelVenta" backgroundColor="none">
+                <dxo-connector [visible]="true" [width]="1"></dxo-connector>
+              </dxo-label>
+            </dxi-series>
+            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipVenta"></dxo-tooltip>
+          </dx-pie-chart>
+          <div class="part-venta-tabla">
+            <table>
+              <thead><tr><th class="left">Tipo de cliente</th><th>Monto</th><th>%</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let t of participacionVenta">
+                  <td class="left">{{ t.tipo }}</td>
+                  <td>{{ soles(t.monto) }}</td>
+                  <td>{{ t.pct }}%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Tabla por SEDE (solo Piso en vista global) -->
       <div class="tabla-asesores" *ngIf="esPiso && !sedeDetalle">
         <h3>Avance por sede <small>(elige una sede arriba para ver su detalle)</small></h3>
