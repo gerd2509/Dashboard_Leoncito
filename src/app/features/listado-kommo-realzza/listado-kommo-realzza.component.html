@@ -204,7 +204,7 @@
         <div class="ak-tabla-scroll" *ngIf="!cargandoLote">
           <table class="ak-tabla">
             <thead>
-              <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th><th>Fotos</th></tr>
+              <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th><th>Fotos</th><th></th></tr>
             </thead>
             <tbody>
               <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead" title="Ver/editar la revisión">
@@ -222,6 +222,11 @@
                 <td class="ak-num">
                   <span class="ak-fotos-count" *ngIf="l.fotos.length"><mat-icon>photo_camera</mat-icon>{{ l.fotos.length }}</span>
                   <span class="ak-fotos-count ak-fotos-count-vacio" *ngIf="!l.fotos.length">—</span>
+                </td>
+                <td class="ak-num">
+                  <button type="button" class="ak-btn-quitar" (click)="quitarLead(l, $event)" title="Quitar de la auditoría">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
                 </td>
               </tr>
             </tbody>

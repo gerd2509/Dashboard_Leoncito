@@ -52,4 +52,9 @@ export class AuditoriaKommoService {
   sincronizarLote(loteId: number): Observable<{ success: boolean; actualizados: number }> {
     return this.http.post<{ success: boolean; actualizados: number }>(`${this.base}/lotes/${loteId}/sincronizar`, {});
   }
+
+  /** Quita un lead del lote (p.ej. si quedó de más en un embudo tras sincronizar). */
+  quitarLead(id: number): Observable<{ success: boolean }> {
+    return this.http.delete<{ success: boolean }>(`${this.base}/leads/${id}`);
+  }
 }

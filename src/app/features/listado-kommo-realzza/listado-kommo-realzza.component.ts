@@ -2,6 +2,7 @@ import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { DxDataGridComponent } from 'devextreme-angular';
+import { custom } from 'devextreme/ui/dialog';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { CargaVentasService } from '../../services/carga-ventas.service';
@@ -299,6 +300,27 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       await this.abrirLote(this.loteActivo);
     } catch (e) { console.error('Error al sincronizar el lote:', e); }
     finally { this.sincronizandoLote = false; }
+  }
+
+  /** Quita un lead sorteado del lote (p.ej. quedó de más en su embudo tras sincronizar). */
+  async quitarLead(lead: LeadAuditoria, ev: Event): Promise<void> {
+    ev.stopPropagation();
+    if (!this.loteActivo) return;
+    const dialog = custom({
+      title: 'Quitar de la auditoría',
+      messageHtml: `<div style="padding:10px 6px;font-size:15px;color:#1E3A5F;">¿Quitar a <b>${lead.nombre_cliente}</b> de esta auditoría? Se borra su revisión si tenía.</div>`,
+      buttons: [
+        { text: 'Cancelar', type: 'danger', stylingMode: 'contained', onClick: () => false },
+        { text: 'Quitar', type: 'success', stylingMode: 'contained', onClick: () => true },
+      ],
+    });
+    const confirmado = await dialog.show();
+    if (!confirmado) return;
+    try {
+      await lastValueFrom(this.auditSrv.quitarLead(lead.id));
+      this.leadsLote = this.leadsLote.filter(l => l.id !== lead.id);
+      await this.cargarLotes();
+    } catch (e) { console.error('Error al quitar el lead:', e); }
   }
 
   abrirRevision(lead: LeadAuditoria): void {
