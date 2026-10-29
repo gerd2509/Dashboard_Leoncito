@@ -157,14 +157,16 @@ mat-icon.girando { animation: ac-spin .8s linear infinite; }
 }
 .part-venta-centro .pvc-label { font-size: 13px; font-weight: 600; color: var(--gris); }
 .part-venta-centro .pvc-monto { font-size: 18px; font-weight: 800; color: var(--azul); line-height: 1.2; }
-.part-venta-tabla table, .part-venta-naturaleza table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.part-venta-tabla th, .part-venta-naturaleza th { background: var(--azul); color: #fff; font-weight: 600; padding: 8px 10px; text-align: center; }
+.part-venta-tabla table, .part-venta-naturaleza table, .part-venta-detalle table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.part-venta-tabla th, .part-venta-naturaleza th, .part-venta-detalle th { background: var(--azul); color: #fff; font-weight: 600; padding: 8px 10px; text-align: center; white-space: nowrap; }
 .part-venta-tabla th.left, .part-venta-tabla td.left,
-.part-venta-naturaleza th.left, .part-venta-naturaleza td.left { text-align: left; }
-.part-venta-tabla td, .part-venta-naturaleza td { padding: 8px 10px; border-top: 1px solid var(--borde); text-align: center; font-weight: 600; }
-.part-venta-tabla tbody tr:nth-child(even), .part-venta-naturaleza tbody tr:nth-child(even) { background: var(--azul-suave); }
-.part-venta-naturaleza { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); }
-.part-venta-naturaleza h4 { margin: 0 0 10px; font-size: 14px; font-weight: 700; color: var(--texto); }
+.part-venta-naturaleza th.left, .part-venta-naturaleza td.left,
+.part-venta-detalle th.left, .part-venta-detalle td.left { text-align: left; }
+.part-venta-tabla td, .part-venta-naturaleza td, .part-venta-detalle td { padding: 8px 10px; border-top: 1px solid var(--borde); text-align: center; font-weight: 600; white-space: nowrap; }
+.part-venta-tabla tbody tr:nth-child(even), .part-venta-naturaleza tbody tr:nth-child(even), .part-venta-detalle tbody tr:nth-child(even) { background: var(--azul-suave); }
+.part-venta-naturaleza, .part-venta-detalle { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borde); }
+.part-venta-naturaleza h4, .part-venta-detalle h4 { margin: 0 0 10px; font-size: 14px; font-weight: 700; color: var(--texto); }
+.part-venta-detalle-scroll { max-height: 420px; overflow-y: auto; }
 @media (max-width: 900px) { .part-venta-body { grid-template-columns: 1fr; } }
 
 /* Tabla asesores */

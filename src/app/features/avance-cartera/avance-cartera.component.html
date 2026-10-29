@@ -170,7 +170,13 @@
       <!-- Participación de venta por tipo de cliente (Piso): TODAS las ventas del mes
            (global o de la sede en detalle), no solo las de DNIs de la cartera subida. -->
       <div class="chart-box participacion-venta" *ngIf="esPiso && participacionVenta.length">
-        <h3>Participación de venta por tipo de cliente <small *ngIf="sedeDetalle">— {{ nombreSedeDetalle }}</small><small *ngIf="!sedeDetalle">— Global (todas las sedes)</small></h3>
+        <div class="asesor-head">
+          <h3>Participación de venta por tipo de cliente <small *ngIf="sedeDetalle">— {{ nombreSedeDetalle }}</small><small *ngIf="!sedeDetalle">— Global (todas las sedes)</small></h3>
+          <button class="btn-regresar" (click)="toggleDetalleParticipacion()">
+            <mat-icon>{{ mostrarDetalleParticipacion ? 'visibility_off' : 'list_alt' }}</mat-icon>
+            {{ mostrarDetalleParticipacion ? 'Ocultar detalle' : 'Ver detalle de ventas' }}
+          </button>
+        </div>
         <div class="part-venta-body">
           <div class="part-venta-donut">
             <dx-pie-chart [dataSource]="participacionVenta" palette="Soft" type="doughnut">
@@ -214,6 +220,37 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Detalle fila por fila: cada venta con su asesor asignado, quién la vendió,
+             naturaleza, BASE y sede — igual que el reporte de referencia. -->
+        <div class="part-venta-detalle" *ngIf="mostrarDetalleParticipacion">
+          <h4>Detalle de ventas ({{ detalleParticipacionVenta.length }})</h4>
+          <div class="tabla-scroll part-venta-detalle-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th class="left">DNI</th><th class="left">Asesor Asignado</th>
+                  <th class="left">Vendedor</th><th class="left">Naturaleza</th>
+                  <th class="left">Negocio</th><th class="left">BASE</th>
+                  <th class="left">Sede</th><th>Monto</th><th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of detalleParticipacionVenta">
+                  <td class="left">{{ d.dni }}</td>
+                  <td class="left">{{ d.asesorAsignado }}</td>
+                  <td class="left">{{ d.vendedor }}</td>
+                  <td class="left">{{ d.naturaleza }}</td>
+                  <td class="left">Leoncito</td>
+                  <td class="left">{{ d.grupo }}</td>
+                  <td class="left">{{ d.sedeNombre }}</td>
+                  <td>{{ soles(d.monto) }}</td>
+                  <td>{{ d.fecha }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

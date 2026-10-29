@@ -92,6 +92,13 @@ interface ParticipacionTipo { tipo: string; monto: number; pct: number; }
  *  base asignada" (mismo DNI que cae en "No asignado" arriba). */
 interface NaturalezaVenta { label: string; monto: number; pct: number; }
 
+/** Una fila del detalle (una venta) detrás de Participación/Naturaleza — mismas
+ *  columnas que el reporte de referencia (Asesor Asignado, Naturaleza, BASE, Sede). */
+interface DetalleVentaTipo {
+  dni: string; asesorAsignado: string; vendedor: string; naturaleza: string;
+  grupo: string; sedeNombre: string; monto: number; fecha: string;
+}
+
 interface ResumenSede {
   sedeKey: string; sede: string;
   asignados: number; gestionados: number;
@@ -179,6 +186,9 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
   participacionVenta: ParticipacionTipo[] = [];
   naturalezaVenta: NaturalezaVenta[] = [];
+  detalleParticipacionVenta: DetalleVentaTipo[] = [];
+  mostrarDetalleParticipacion = false;
+  toggleDetalleParticipacion(): void { this.mostrarDetalleParticipacion = !this.mostrarDetalleParticipacion; }
   // sedeKey → dni → registros de gestión reales ese mes (para Intensidad, acotado al
   // grupo/cuadro que se esté mostrando — no el total de la sede completa). El # de
   // gestiones = registros.length; se guarda el detalle para poder verlo caso por caso.
@@ -479,6 +489,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.detalleIntensidad = []; this.detIntensidad = null; this.detGestionCliente = null;
     this.detalleSeguimiento = []; this.detSeguimiento = null;
     this.porDia = []; this.distribucion = []; this.participacionVenta = []; this.naturalezaVenta = [];
+    this.detalleParticipacionVenta = []; this.mostrarDetalleParticipacion = false;
     this.sedeDetalle = ''; this.sedesDisponiblesDetalle = [];
     this.totalCartera = this.totalGestionados = this.totalContacto = 0;
     this.totalNoContacto = this.totalPendientes = this.avanceGlobal = this.gestionesMes = 0;
@@ -1010,8 +1021,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
           `cartera:${ym}:${cg.grupo}:call-center`)],
       }));
     }
-    this.participacionVenta = this.calcularParticipacionVenta();
-    this.naturalezaVenta = this.calcularNaturalezaVenta();
+    const detalleVenta = this.calcularDetalleParticipacionVenta();
+    this.detalleParticipacionVenta = detalleVenta;
+    this.participacionVenta = this.calcularParticipacionVenta(detalleVenta);
+    this.naturalezaVenta = this.calcularNaturalezaVenta(detalleVenta);
   }
 
   /** Detalle de Intensidad: 1 fila por cliente (DNI) con su # real de gestiones (con
@@ -1303,8 +1316,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     this.resumenAsesores = (this.esPiso && !this.sedeDetalle) ? [] : this.agregarPorAsesor(subset);
     this.ventasAsesor = this.calcularVentasAsesor(subset);
     this.desglosePorAsesor = (this.esPiso && this.sedeDetalle) ? this.calcularDesglosePorTipo(subset) : {};
-    this.participacionVenta = this.esPiso ? this.calcularParticipacionVenta() : [];
-    this.naturalezaVenta = this.esPiso ? this.calcularNaturalezaVenta() : [];
+    const detalleVenta = this.esPiso ? this.calcularDetalleParticipacionVenta() : [];
+    this.detalleParticipacionVenta = detalleVenta;
+    this.participacionVenta = this.esPiso ? this.calcularParticipacionVenta(detalleVenta) : [];
+    this.naturalezaVenta = this.esPiso ? this.calcularNaturalezaVenta(detalleVenta) : [];
     this.asesorDesplegado = null;
   }
 
@@ -1376,66 +1391,59 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     return out;
   }
 
-  /** Participación de venta por tipo de cliente: global (todas las sedes piso) o de la
-   *  sede en detalle, según el scope actual. Fuente = TODAS las ventas efectivas del mes
-   *  (ventasLista, ya sin NC/incautación — mismo filtro de cargarVentasYMetasSede), cada
-   *  una clasificada por el TipoCliente de SU DNI en la cartera/Call Center importada
-   *  (mismo grupoTipo que el resto del módulo). Si el DNI que compró no está en NINGUNA
-   *  base subida, cae en "RECURRENTE — No asignado": compró, pero no está asignado a
-   *  ningún asesor en el Excel que se cargó. */
-  private calcularParticipacionVenta(): ParticipacionTipo[] {
+  /** Detalle fila por fila (una por venta) detrás de Participación/Naturaleza — mismo
+   *  scope (sede actual) y mismo filtro (ventasLista, ya sin NC/incautación). Cruza el
+   *  DNI comprador contra la cartera/Call Center importada para saber su asesor
+   *  asignado y su BASE (grupoTipo); si el DNI no está en ninguna base subida, queda
+   *  "sin asignar". De acá se derivan, sumando, tanto el donut por tipo de cliente
+   *  como el cuadro de Naturaleza — así los tres SIEMPRE suman lo mismo. */
+  private calcularDetalleParticipacionVenta(): DetalleVentaTipo[] {
     const scope = (this.sedeDetalle && this.sedeDetalle !== 'call-center') ? this.sedeDetalle : null;
-    const dniAGrupo = new Map<string, string>();
+    const dniInfo = new Map<string, { asesor: string; grupo: string }>();
     for (const c of [...this.clientes, ...this.clientesCallCenter]) {
-      if (c.dni && !dniAGrupo.has(c.dni)) dniAGrupo.set(c.dni, this.grupoTipo(c.tipoCliente));
+      if (c.dni && !dniInfo.has(c.dni)) dniInfo.set(c.dni, { asesor: c.asesor, grupo: this.grupoTipo(c.tipoCliente) });
     }
-    const totales = new Map<string, number>();
+    const out: DetalleVentaTipo[] = [];
     for (const [dni, ventas] of this.ventasLista) {
-      const grupo = dniAGrupo.get(dni) ?? 'RECURRENTE — No asignado';
+      const info = dniInfo.get(dni);
       for (const v of ventas) {
         if (!this.sedeCfg.getConfig(v.sedeKey)?.nombre) continue;   // solo sedes piso reconocidas
         if (scope && v.sedeKey !== scope) continue;
-        totales.set(grupo, (totales.get(grupo) || 0) + v.monto);
+        const asesorAsignado = info?.asesor ?? '';
+        const naturaleza = !info ? 'Sin base asignada'
+          : (v.vendedor === asesorAsignado ? 'Vendido por el asesor asignado' : 'Vendido por otro asesor');
+        out.push({
+          dni, asesorAsignado: asesorAsignado || '—', vendedor: v.vendedor || '—', naturaleza,
+          grupo: info?.grupo ?? 'RECURRENTE — No asignado', sedeNombre: v.sedeNombre, monto: v.monto, fecha: v.fecha,
+        });
       }
     }
-    const total = Array.from(totales.values()).reduce((a, b) => a + b, 0);
+    return out.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.monto - a.monto);
+  }
+
+  /** Participación de venta por tipo de cliente (BASE), sumando el detalle anterior. */
+  private calcularParticipacionVenta(detalle: DetalleVentaTipo[]): ParticipacionTipo[] {
+    const totales = new Map<string, number>();
+    for (const d of detalle) totales.set(d.grupo, (totales.get(d.grupo) || 0) + d.monto);
+    const total = detalle.reduce((a, d) => a + d.monto, 0);
     return Array.from(totales.entries())
       .map(([tipo, monto]) => ({ tipo, monto, pct: total > 0 ? Math.round((monto / total) * 1000) / 10 : 0 }))
       .sort((a, b) => b.monto - a.monto);
   }
 
-  /** Total vendido de un cuadro de participación (donut + naturaleza comparten el
+  /** Total vendido de un cuadro de participación (donut y naturaleza comparten el
    *  mismo universo de ventas, así que ambos deben sumar lo mismo). */
   totalMontoTipo(s: { monto: number }[]): number { return s.reduce((a, r) => a + r.monto, 0); }
 
-  /** Quién cerró cada venta (campo `vendedor` de `ventas`) contra el asesor asignado a
-   *  ese DNI en la base importada (cartera/Call Center) — mismo universo y mismo total
-   *  que calcularParticipacionVenta(), solo que agrupado por "quién vendió" en vez de
-   *  "tipo de cliente". Los DNIs sin base asignada (igual que "No asignado" del donut)
-   *  quedan en su propio bucket, no se puede saber si "correspondía" a alguien. */
-  private calcularNaturalezaVenta(): NaturalezaVenta[] {
-    const scope = (this.sedeDetalle && this.sedeDetalle !== 'call-center') ? this.sedeDetalle : null;
-    const dniAsesor = new Map<string, string>();
-    for (const c of [...this.clientes, ...this.clientesCallCenter]) {
-      if (c.dni && !dniAsesor.has(c.dni)) dniAsesor.set(c.dni, c.asesor);
-    }
-    let asignado = 0, otro = 0, sinBase = 0;
-    for (const [dni, ventas] of this.ventasLista) {
-      const asesorAsignado = dniAsesor.get(dni);
-      for (const v of ventas) {
-        if (!this.sedeCfg.getConfig(v.sedeKey)?.nombre) continue;
-        if (scope && v.sedeKey !== scope) continue;
-        if (!asesorAsignado) { sinBase += v.monto; continue; }
-        if (v.vendedor === asesorAsignado) asignado += v.monto; else otro += v.monto;
-      }
-    }
-    const total = asignado + otro + sinBase;
-    const pct = (m: number) => total > 0 ? Math.round((m / total) * 1000) / 10 : 0;
-    return [
-      { label: 'Vendido por el asesor asignado', monto: asignado, pct: pct(asignado) },
-      { label: 'Vendido por otro asesor', monto: otro, pct: pct(otro) },
-      { label: 'Sin base asignada', monto: sinBase, pct: pct(sinBase) },
-    ].filter(r => r.monto > 0);
+  /** Naturaleza de la gestión (quién cerró cada venta vs. el asesor asignado), sumando
+   *  el mismo detalle anterior — por eso siempre calza con el total del donut. */
+  private calcularNaturalezaVenta(detalle: DetalleVentaTipo[]): NaturalezaVenta[] {
+    const totales = new Map<string, number>();
+    for (const d of detalle) totales.set(d.naturaleza, (totales.get(d.naturaleza) || 0) + d.monto);
+    const total = detalle.reduce((a, d) => a + d.monto, 0);
+    return Array.from(totales.entries())
+      .map(([label, monto]) => ({ label, monto, pct: total > 0 ? Math.round((monto / total) * 1000) / 10 : 0 }))
+      .sort((a, b) => b.monto - a.monto);
   }
 
   /** Asesor cuyo desglose por tipo está desplegado en la tabla (uno a la vez). */
