@@ -190,9 +190,8 @@
           <mat-icon>arrow_back</mat-icon> Volver a lotes
         </button>
         <h4><mat-icon>list_alt</mat-icon> Leads del lote — {{ meses[lote.mes-1].t }} {{ lote.anio }}</h4>
-        <button mat-stroked-button type="button" class="ak-btn-sync" (click)="mostrandoReporte = !mostrandoReporte" [disabled]="cargandoLote">
-          <mat-icon>{{ mostrandoReporte ? 'list_alt' : 'summarize' }}</mat-icon>
-          {{ mostrandoReporte ? 'Ver leads' : 'Reporte' }}
+        <button mat-stroked-button type="button" class="ak-btn-sync" (click)="mostrandoReporte = true" [disabled]="cargandoLote">
+          <mat-icon>summarize</mat-icon> Reporte
         </button>
         <button mat-stroked-button type="button" class="ak-btn-sync" (click)="sincronizarLote()" [disabled]="sincronizandoLote"
           title="Refresca embudo/asesor de estos leads por si cambiaron en Kommo (no toca lo ya revisado)">
@@ -201,47 +200,7 @@
         </button>
       </div>
 
-      <!-- Reporte: resumen por asesor + comentarios de "Por mejorar" con fotos -->
-      <ng-container *ngIf="mostrandoReporte && !cargandoLote">
-        <div class="ak-reporte-acciones">
-          <button mat-stroked-button type="button" (click)="exportarReporte()">
-            <mat-icon>file_download</mat-icon> Exportar reporte a Excel
-          </button>
-        </div>
-        <div class="ak-tabla-scroll ak-tabla-scroll-chica">
-          <table class="ak-tabla">
-            <thead>
-              <tr><th>Asesor</th><th>Total</th><th>Bien</th><th>Por mejorar</th><th>Pendiente</th><th>% Bien (revisado)</th></tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of reportePorAsesor">
-                <td>{{ r.asesor }}</td>
-                <td class="ak-num">{{ r.total }}</td>
-                <td class="ak-num ak-bien">{{ r.bien }}</td>
-                <td class="ak-num ak-mejorar">{{ r.mejorar }}</td>
-                <td class="ak-num" [class.ak-pendiente]="r.pendiente > 0">{{ r.pendiente }}</td>
-                <td class="ak-num">{{ (r.bien + r.mejorar) ? r.pctBien + '%' : '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h5 class="ak-reporte-subtitulo"><mat-icon>thumb_down</mat-icon> Puntos a mejorar ({{ leadsPorMejorar.length }})</h5>
-        <div class="ak-mejorar-lista" *ngIf="leadsPorMejorar.length; else sinMejorar">
-          <div class="ak-mejorar-item" *ngFor="let l of leadsPorMejorar">
-            <div class="ak-mejorar-info">
-              <b>{{ l.responsable }}</b> · {{ l.nombre_cliente }} · Lead #{{ l.lead_id }} · {{ l.embudo }}
-              <p>{{ l.comentario || 'Sin comentario.' }}</p>
-            </div>
-            <div class="ak-mejorar-fotos">
-              <img *ngFor="let f of l.fotosUrl" [src]="f" alt="evidencia" (click)="fotoAmpliada = f" title="Ver en grande">
-            </div>
-          </div>
-        </div>
-        <ng-template #sinMejorar><p class="ak-vacio">Ningún lead marcado "Por mejorar" todavía.</p></ng-template>
-      </ng-container>
-
-      <div class="ak-tabla-wrap" *ngIf="!mostrandoReporte">
+      <div class="ak-tabla-wrap">
         <div class="ak-grid-overlay" *ngIf="cargandoLote">
           <app-loading-overlay [inline]="true" [visible]="cargandoLote" icon="list_alt"
             mensaje="Cargando leads del lote…" submensaje="Trayendo el detalle y las fotos guardadas…"></app-loading-overlay>
@@ -336,4 +295,57 @@
 <div class="ak-lightbox" *ngIf="fotoAmpliada as foto" (click)="fotoAmpliada = null">
   <img [src]="foto" alt="evidencia ampliada">
   <button type="button" class="ak-lightbox-cerrar" (click)="fotoAmpliada = null"><mat-icon>close</mat-icon></button>
+</div>
+
+<div class="ak-backdrop" *ngIf="mostrandoReporte && loteActivo as lote" (click)="$event.target === $event.currentTarget && (mostrandoReporte = false)">
+  <div class="ak-panel ak-panel-reporte">
+    <div class="ak-panel-head">
+      <div>
+        <b>Reporte de auditoría</b>
+        <small>{{ meses[lote.mes-1].t }} {{ lote.anio }}</small>
+      </div>
+      <button mat-icon-button type="button" (click)="mostrandoReporte = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="ak-panel-body">
+      <div class="ak-reporte-acciones">
+        <button mat-stroked-button type="button" (click)="exportarReporte()">
+          <mat-icon>file_download</mat-icon> Exportar a Excel
+        </button>
+      </div>
+      <div class="ak-tabla-scroll ak-tabla-scroll-chica">
+        <table class="ak-tabla">
+          <thead>
+            <tr><th>Asesor</th><th>Bien</th><th>Por mejorar</th><th>% Por mejorar</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of reportePorAsesor">
+              <td>{{ r.asesor }}</td>
+              <td class="ak-num ak-bien">{{ r.bien }}</td>
+              <td class="ak-num ak-mejorar">{{ r.mejorar }}</td>
+              <td class="ak-num" [class.ak-mejorar]="r.pctMejorar >= 50">{{ r.pctMejorar }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h5 class="ak-reporte-subtitulo"><mat-icon>thumb_down</mat-icon> Puntos a mejorar ({{ leadsPorMejorar.length }})</h5>
+      <div *ngIf="leadsPorMejorarAgrupados.length; else sinMejorar">
+        <div class="ak-mejorar-grupo" *ngFor="let g of leadsPorMejorarAgrupados">
+          <div class="ak-mejorar-grupo-h">{{ g.asesor }} <span>({{ g.leads.length }})</span></div>
+          <div class="ak-mejorar-lista">
+            <div class="ak-mejorar-item" *ngFor="let l of g.leads">
+              <div class="ak-mejorar-info">
+                {{ l.nombre_cliente }} · Lead #{{ l.lead_id }} · {{ l.embudo }}
+                <p>{{ l.comentario || 'Sin comentario.' }}</p>
+              </div>
+              <div class="ak-mejorar-fotos">
+                <img *ngFor="let f of l.fotosUrl" [src]="f" alt="evidencia" (click)="fotoAmpliada = f" title="Ver en grande">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-template #sinMejorar><p class="ak-vacio">Ningún lead marcado "Por mejorar" todavía.</p></ng-template>
+    </div>
+  </div>
 </div>

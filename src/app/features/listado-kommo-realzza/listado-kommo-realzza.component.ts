@@ -305,28 +305,41 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   // ═══ Reporte del lote: resumen por asesor + comentarios de "Por mejorar" con fotos ═══
   mostrandoReporte = false;
 
-  /** Resumen por asesor (ordenado de peor a mejor % Bien, para priorizar a quién
-   *  reforzar primero) a partir de los leads ya cargados del lote. */
-  get reportePorAsesor(): { asesor: string; total: number; bien: number; mejorar: number; pendiente: number; pctBien: number }[] {
-    const map = new Map<string, { total: number; bien: number; mejorar: number; pendiente: number }>();
+  /** Resumen por asesor (ordenado de mayor a menor % Por mejorar, para que arriba
+   *  queden quienes más necesitan refuerzo) a partir de los leads ya cargados del lote.
+   *  Solo cuenta lo ya revisado (Bien/Por mejorar) — los pendientes no aportan al
+   *  análisis de calidad de respuesta. */
+  get reportePorAsesor(): { asesor: string; bien: number; mejorar: number; pctMejorar: number }[] {
+    const map = new Map<string, { bien: number; mejorar: number }>();
     for (const l of this.leadsLote) {
+      if (l.resultado === 'pendiente') continue;
       const key = l.responsable || 'SIN ASESOR';
-      const acc = map.get(key) || { total: 0, bien: 0, mejorar: 0, pendiente: 0 };
-      acc.total++;
-      if (l.resultado === 'bien') acc.bien++;
-      else if (l.resultado === 'mejorar') acc.mejorar++;
-      else acc.pendiente++;
+      const acc = map.get(key) || { bien: 0, mejorar: 0 };
+      if (l.resultado === 'bien') acc.bien++; else acc.mejorar++;
       map.set(key, acc);
     }
     return Array.from(map.entries())
-      .map(([asesor, v]) => ({ asesor, ...v, pctBien: (v.bien + v.mejorar) ? Math.round((v.bien / (v.bien + v.mejorar)) * 100) : 0 }))
-      .sort((a, b) => a.pctBien - b.pctBien || a.asesor.localeCompare(b.asesor));
+      .map(([asesor, v]) => ({ asesor, ...v, pctMejorar: Math.round((v.mejorar / (v.bien + v.mejorar)) * 100) }))
+      .sort((a, b) => b.pctMejorar - a.pctMejorar || a.asesor.localeCompare(b.asesor));
   }
 
-  /** Leads marcados "Por mejorar", con su comentario y fotos, agrupados por asesor. */
+  /** Leads marcados "Por mejorar" agrupados por asesor (su nombre de embudo), para no
+   *  repetirlo en cada fila — un bloque por asesor con sus leads adentro. */
+  get leadsPorMejorarAgrupados(): { asesor: string; leads: LeadAuditoria[] }[] {
+    const map = new Map<string, LeadAuditoria[]>();
+    for (const l of this.leadsLote) {
+      if (l.resultado !== 'mejorar') continue;
+      const key = l.responsable || 'SIN ASESOR';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(l);
+    }
+    return Array.from(map.entries())
+      .map(([asesor, leads]) => ({ asesor, leads }))
+      .sort((a, b) => a.asesor.localeCompare(b.asesor));
+  }
+
   get leadsPorMejorar(): LeadAuditoria[] {
-    return this.leadsLote.filter(l => l.resultado === 'mejorar')
-      .sort((a, b) => a.responsable.localeCompare(b.responsable));
+    return this.leadsLote.filter(l => l.resultado === 'mejorar');
   }
 
   /** Exporta el reporte (resumen por asesor + comentarios de "Por mejorar") a Excel. */
@@ -335,8 +348,8 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     const wb = new Workbook();
 
     const wsResumen = wb.addWorksheet('Resumen por asesor');
-    wsResumen.addRow(['Asesor', 'Total', 'Bien', 'Por mejorar', 'Pendiente', '% Bien (revisado)']).font = { bold: true };
-    for (const r of this.reportePorAsesor) wsResumen.addRow([r.asesor, r.total, r.bien, r.mejorar, r.pendiente, r.pctBien + '%']);
+    wsResumen.addRow(['Asesor', 'Bien', 'Por mejorar', '% Por mejorar']).font = { bold: true };
+    for (const r of this.reportePorAsesor) wsResumen.addRow([r.asesor, r.bien, r.mejorar, r.pctMejorar + '%']);
     wsResumen.columns.forEach(c => c.width = 20);
 
     const wsMejorar = wb.addWorksheet('Puntos a mejorar');
