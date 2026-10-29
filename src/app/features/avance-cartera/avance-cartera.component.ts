@@ -1344,7 +1344,9 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         const agg = porSede?.get(this.sedeDetalle);
         if (agg) ops = agg.ops;
       }
-      if (ops > 0) acc.vendidos++;
+      // Suma operaciones (no clientes): así "vendidos" calza con "Ventas (ops)" de la
+      // fila del asesor (calcularVentasAsesor), que también cuenta operaciones y no clientes.
+      acc.vendidos += ops;
     }
     const out: Record<string, ConcrecionTipo[]> = {};
     map.forEach((porTipo, asesor) => {
