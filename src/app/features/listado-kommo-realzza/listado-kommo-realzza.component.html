@@ -183,7 +183,7 @@
       </div>
       <table class="ak-tabla" *ngIf="!cargandoLote">
         <thead>
-          <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th></tr>
+          <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th><th>Fotos</th></tr>
         </thead>
         <tbody>
           <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead" title="Ver/editar la revisión">
@@ -197,6 +197,10 @@
                 [class.ak-badge-mejorar]="l.resultado === 'mejorar'" [class.ak-badge-pendiente]="l.resultado === 'pendiente'">
                 {{ l.resultado === 'bien' ? 'Bien' : l.resultado === 'mejorar' ? 'Por mejorar' : 'Pendiente' }}
               </span>
+            </td>
+            <td class="ak-num">
+              <span class="ak-fotos-count" *ngIf="l.fotos.length"><mat-icon>photo_camera</mat-icon>{{ l.fotos.length }}</span>
+              <span class="ak-fotos-count ak-fotos-count-vacio" *ngIf="!l.fotos.length">—</span>
             </td>
           </tr>
         </tbody>
@@ -232,7 +236,7 @@
       <label>Fotos de evidencia</label>
       <div class="ak-fotos">
         <div class="ak-foto" *ngFor="let f of rev.fotosUrl; let i = index">
-          <img [src]="f" alt="evidencia">
+          <img [src]="f" alt="evidencia" (click)="fotoAmpliada = f" title="Ver en grande">
           <button type="button" class="ak-foto-quitar" (click)="quitarFotoPreview(i)" title="Quitar"><mat-icon>close</mat-icon></button>
         </div>
       </div>
@@ -255,4 +259,9 @@
       </button>
     </div>
   </div>
+</div>
+
+<div class="ak-lightbox" *ngIf="fotoAmpliada as foto" (click)="fotoAmpliada = null">
+  <img [src]="foto" alt="evidencia ampliada">
+  <button type="button" class="ak-lightbox-cerrar" (click)="fotoAmpliada = null"><mat-icon>close</mat-icon></button>
 </div>

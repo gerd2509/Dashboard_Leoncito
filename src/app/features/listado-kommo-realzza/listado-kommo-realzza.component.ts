@@ -249,6 +249,8 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     lead: LeadAuditoria; resultado: ResultadoAuditoria; comentario: string;
     fotos: string[]; fotosUrl: string[]; nuevasFotos: string[]; guardando: boolean;
   } | null = null;
+  /** Foto (URL) mostrada en grande al hacer clic en una miniatura. */
+  fotoAmpliada: string | null = null;
 
   async toggleAuditoria(): Promise<void> {
     this.mostrarAuditoria = !this.mostrarAuditoria;
