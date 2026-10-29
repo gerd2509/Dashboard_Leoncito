@@ -46,4 +46,10 @@ export class AuditoriaKommoService {
   guardarRevision(id: number, resultado: ResultadoAuditoria, comentario: string, fotos: string[]): Observable<{ success: boolean; fotos: string[] }> {
     return this.http.put<{ success: boolean; fotos: string[] }>(`${this.base}/leads/${id}`, { resultado, comentario, fotos });
   }
+
+  /** Refresca nombre_cliente/embudo/responsable/fecha de cada lead del lote contra el
+   *  dato actual de Kommo, sin tocar resultado/comentario/fotos ya guardados. */
+  sincronizarLote(loteId: number): Observable<{ success: boolean; actualizados: number }> {
+    return this.http.post<{ success: boolean; actualizados: number }>(`${this.base}/lotes/${loteId}/sincronizar`, {});
+  }
 }

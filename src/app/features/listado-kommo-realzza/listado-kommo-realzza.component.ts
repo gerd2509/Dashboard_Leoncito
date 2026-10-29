@@ -288,6 +288,19 @@ export class ListadoKommoRealzzaComponent implements OnInit {
 
   cerrarLote(): void { this.loteActivo = null; this.leadsLote = []; }
 
+  sincronizandoLote = false;
+  /** Refresca embudo/asesor/cliente de los leads del lote contra Kommo (por si alguno
+   *  se reasignó después del sorteo) sin perder lo ya revisado. */
+  async sincronizarLote(): Promise<void> {
+    if (!this.loteActivo) return;
+    this.sincronizandoLote = true;
+    try {
+      await lastValueFrom(this.auditSrv.sincronizarLote(this.loteActivo.id));
+      await this.abrirLote(this.loteActivo);
+    } catch (e) { console.error('Error al sincronizar el lote:', e); }
+    finally { this.sincronizandoLote = false; }
+  }
+
   abrirRevision(lead: LeadAuditoria): void {
     this.revision = {
       lead, resultado: lead.resultado === 'pendiente' ? 'bien' : lead.resultado,

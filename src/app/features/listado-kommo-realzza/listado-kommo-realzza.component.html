@@ -23,27 +23,29 @@
         stylingMode="outlined" [disabled]="verTodo" (onValueChanged)="cargar()"></dx-select-box>
       <dx-select-box width="160" [dataSource]="meses" displayExpr="t" valueExpr="v" formControlName="mes" label="Mes"
         labelMode="floating" stylingMode="outlined" [disabled]="verTodo" (onValueChanged)="cargar()"></dx-select-box>
-      <button mat-stroked-button type="button" (click)="cargar()" [disabled]="isLoading || verTodo">
-        <mat-icon>search</mat-icon> Ver
-      </button>
-      <button mat-stroked-button type="button" class="lk-btn-todo" [class.active]="verTodo"
-        (click)="setVerTodo(!verTodo)" [disabled]="isLoading">
-        <mat-icon>{{ verTodo ? 'event' : 'all_inclusive' }}</mat-icon>
-        {{ verTodo ? 'Ver por mes' : 'Ver todo' }}
-      </button>
-      <button mat-flat-button color="primary" type="button" (click)="sincronizar()" [disabled]="sincronizando">
-        <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
-        {{ sincronizando ? 'Sincronizando…' : 'Sincronizar con Kommo' }}
-      </button>
-      <button mat-stroked-button type="button" (click)="exportar()" *ngIf="filas.length">
-        <mat-icon>file_download</mat-icon> Exportar
-      </button>
-      <button mat-stroked-button type="button" (click)="exportarPorEmbudo()" *ngIf="filas.length" title="Un archivo con una hoja por asesor/embudo">
-        <mat-icon>group_work</mat-icon> Exportar por Asesor
-      </button>
+      <ng-container *ngIf="!mostrarAuditoria">
+        <button mat-stroked-button type="button" (click)="cargar()" [disabled]="isLoading || verTodo">
+          <mat-icon>search</mat-icon> Ver
+        </button>
+        <button mat-stroked-button type="button" class="lk-btn-todo" [class.active]="verTodo"
+          (click)="setVerTodo(!verTodo)" [disabled]="isLoading">
+          <mat-icon>{{ verTodo ? 'event' : 'all_inclusive' }}</mat-icon>
+          {{ verTodo ? 'Ver por mes' : 'Ver todo' }}
+        </button>
+        <button mat-flat-button color="primary" type="button" (click)="sincronizar()" [disabled]="sincronizando">
+          <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
+          {{ sincronizando ? 'Sincronizando…' : 'Sincronizar con Kommo' }}
+        </button>
+        <button mat-stroked-button type="button" (click)="exportar()" *ngIf="filas.length">
+          <mat-icon>file_download</mat-icon> Exportar
+        </button>
+        <button mat-stroked-button type="button" (click)="exportarPorEmbudo()" *ngIf="filas.length" title="Un archivo con una hoja por asesor/embudo">
+          <mat-icon>group_work</mat-icon> Exportar por Asesor
+        </button>
+      </ng-container>
     </form>
 
-    <div class="lk-kpis" *ngIf="!error && totalLeads">
+    <div class="lk-kpis" *ngIf="!mostrarAuditoria && !error && totalLeads">
       <div class="lk-kpi"><span>{{ verTodo ? 'Leads (todo)' : 'Leads del mes' }}</span><b>{{ totalLeads | number }}</b></div>
       <div class="lk-kpi" [class.lk-kpi-alerta]="totalSinResponder > 0">
         <span>Sin responder</span><b>{{ totalSinResponder | number }} ({{ pctSinResponder | number:'1.1-1' }}%)</b>
@@ -51,10 +53,12 @@
     </div>
   </div>
 
-  <p class="lk-hint" *ngIf="verTodo"><mat-icon>info</mat-icon> Mostrando todos los meses. Para sincronizar un mes puntual, vuelve a "Ver por mes".</p>
+  <ng-container *ngIf="!mostrarAuditoria">
+    <p class="lk-hint" *ngIf="verTodo"><mat-icon>info</mat-icon> Mostrando todos los meses. Para sincronizar un mes puntual, vuelve a "Ver por mes".</p>
 
-  <div class="lk-mensaje" *ngIf="mensajeSync"><mat-icon>check_circle</mat-icon> {{ mensajeSync }}</div>
-  <div class="lk-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+    <div class="lk-mensaje" *ngIf="mensajeSync"><mat-icon>check_circle</mat-icon> {{ mensajeSync }}</div>
+    <div class="lk-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+  </ng-container>
 
   <div class="lk-contenido" *ngIf="!mostrarAuditoria">
     <div class="lk-grid-overlay" *ngIf="isLoading || sincronizando">
@@ -180,6 +184,11 @@
           <mat-icon>arrow_back</mat-icon> Volver a lotes
         </button>
         <h4><mat-icon>list_alt</mat-icon> Leads del lote — {{ meses[lote.mes-1].t }} {{ lote.anio }}</h4>
+        <button mat-stroked-button type="button" class="ak-btn-sync" (click)="sincronizarLote()" [disabled]="sincronizandoLote"
+          title="Refresca embudo/asesor de estos leads por si cambiaron en Kommo (no toca lo ya revisado)">
+          <mat-icon>{{ sincronizandoLote ? 'hourglass_empty' : 'sync' }}</mat-icon>
+          {{ sincronizandoLote ? 'Sincronizando…' : 'Sincronizar' }}
+        </button>
       </div>
       <table class="ak-tabla" *ngIf="!cargandoLote">
         <thead>
