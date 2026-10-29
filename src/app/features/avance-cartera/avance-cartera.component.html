@@ -194,6 +194,20 @@
                 </td>
               </tr>
             </tbody>
+            <tfoot *ngIf="resumenSedes.length">
+              <tr>
+                <td class="left">Total general</td>
+                <td>{{ totBase(resumenSedes).asignados }}</td>
+                <td>{{ totBase(resumenSedes).gestionados }}</td>
+                <td class="c-ok">{{ totBase(resumenSedes).contacto }}</td>
+                <td class="c-no">{{ totBase(resumenSedes).noContacto }}</td>
+                <td class="c-alerta">{{ totBase(resumenSedes).pendientes }}</td>
+                <td>
+                  <div class="mini-bar"><span [class]="claseAvance(totBase(resumenSedes).avance)" [style.width.%]="totBase(resumenSedes).avance"></span></div>
+                  <b>{{ totBase(resumenSedes).avance }}%</b>
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -266,12 +280,41 @@
                           </tr>
                           <tr *ngIf="!desglosePorAsesor[r.asesor]?.length"><td colspan="4" class="vacio-tipo">Sin datos de tipo de cliente para este asesor.</td></tr>
                         </tbody>
+                        <tfoot *ngIf="desglosePorAsesor[r.asesor]?.length">
+                          <tr>
+                            <td class="left">Total</td>
+                            <td>{{ totTipo(desglosePorAsesor[r.asesor]).asignados }}</td>
+                            <td><b>{{ totTipo(desglosePorAsesor[r.asesor]).vendidos }}</b></td>
+                            <td>
+                              <div class="mini-bar"><span [class]="claseAvance(totTipo(desglosePorAsesor[r.asesor]).pct)" [style.width.%]="totTipo(desglosePorAsesor[r.asesor]).pct"></span></div>
+                              <b>{{ totTipo(desglosePorAsesor[r.asesor]).pct }}%</b>
+                            </td>
+                          </tr>
+                        </tfoot>
                       </table>
                     </div>
                   </td>
                 </tr>
               </ng-container>
             </tbody>
+            <tfoot *ngIf="resumenAsesores.length">
+              <tr>
+                <td class="left">Total general</td>
+                <td>{{ totBase(resumenAsesores).asignados }}</td>
+                <td>{{ totBase(resumenAsesores).gestionados }}</td>
+                <td class="c-ok">{{ totBase(resumenAsesores).contacto }}</td>
+                <td class="c-no">{{ totBase(resumenAsesores).noContacto }}</td>
+                <td class="c-alerta">{{ totBase(resumenAsesores).pendientes }}</td>
+                <td>
+                  <div class="mini-bar"><span [class]="claseAvance(totBase(resumenAsesores).avance)" [style.width.%]="totBase(resumenAsesores).avance"></span></div>
+                  <b>{{ totBase(resumenAsesores).avance }}%</b>
+                </td>
+                <td *ngIf="esPiso && sedeDetalle"><b>{{ totVentasAsesores(resumenAsesores).ops }}</b></td>
+                <td *ngIf="esPiso && sedeDetalle">S/ {{ totVentasAsesores(resumenAsesores).monto | number:'1.0-0' }}</td>
+                <td *ngIf="esPiso && sedeDetalle">{{ totVentasAsesores(resumenAsesores).concrecion }}%</td>
+                <td *ngIf="esPiso && sedeDetalle"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -392,6 +435,12 @@
             </tr>
             <tr *ngIf="!detVentas.lista.length" class="vacio"><td colspan="7">Sin ventas</td></tr>
           </tbody>
+          <tfoot *ngIf="detVentas.lista.length">
+            <tr>
+              <td class="left" colspan="6">Total ({{ detVentas.lista.length }} venta{{ detVentas.lista.length === 1 ? '' : 's' }})</td>
+              <td class="mono">{{ soles(totMontoCruce(detVentas.lista)) }}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

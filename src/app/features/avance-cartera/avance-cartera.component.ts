@@ -1184,6 +1184,37 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     };
   }
 
+  /** Fila "Total" de las tablas simples por sede / por asesor (asignados, gestionados,
+   *  contacto, no contacto, pendientes y el % avance resultante). */
+  totBase(s: { asignados: number; gestionados: number; contacto: number; noContacto: number; pendientes: number }[]) {
+    const asignados = s.reduce((a, r) => a + r.asignados, 0);
+    const gestionados = s.reduce((a, r) => a + r.gestionados, 0);
+    const contacto = s.reduce((a, r) => a + r.contacto, 0);
+    const noContacto = s.reduce((a, r) => a + r.noContacto, 0);
+    const pendientes = s.reduce((a, r) => a + r.pendientes, 0);
+    return { asignados, gestionados, contacto, noContacto, pendientes, avance: asignados > 0 ? Math.round((gestionados / asignados) * 100) : 0 };
+  }
+
+  /** Total de Ventas (ops)/Monto/Concreción de la tabla "Avance por asesor" (Piso con
+   *  sede elegida) — mismo criterio que concrecionAsesor(), pero sumado. */
+  totVentasAsesores(s: { asesor: string; contacto: number }[]) {
+    let ops = 0, monto = 0, contacto = 0;
+    for (const r of s) { ops += this.ventaDe(r.asesor).ops; monto += this.ventaDe(r.asesor).monto; contacto += r.contacto; }
+    return { ops, monto, concrecion: contacto > 0 ? Math.round((ops / contacto) * 100) : 0 };
+  }
+
+  /** Total del monto de la tabla de detalle de ventas cruzadas (↙/↗). */
+  totMontoCruce(s: DetalleVenta[]): number {
+    return s.reduce((a, d) => a + d.monto, 0);
+  }
+
+  /** Total del desglose por tipo de cliente de un asesor (asignados/vendidos/%). */
+  totTipo(s: ConcrecionTipo[]) {
+    const asignados = s.reduce((a, r) => a + r.asignados, 0);
+    const vendidos = s.reduce((a, r) => a + r.vendidos, 0);
+    return { asignados, vendidos, pct: asignados > 0 ? Math.round((vendidos / asignados) * 100) : 0 };
+  }
+
   /** Edita la meta de una sede (persiste con la clave del cuadro: cartera:[grupo:]<sede>). */
   onMetaCartera(r: ResumenSede, valor: any): void {
     r.meta = Number(String(valor).replace(/[^0-9.]/g, '')) || 0;
