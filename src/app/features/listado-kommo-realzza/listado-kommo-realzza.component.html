@@ -308,9 +308,19 @@
     </div>
     <div class="ak-panel-body">
       <div class="ak-reporte-acciones">
-        <button mat-stroked-button type="button" (click)="exportarReporte()">
-          <mat-icon>file_download</mat-icon> Exportar a Excel
-        </button>
+        <div class="ak-menu-exportar">
+          <button mat-stroked-button type="button" (click)="mostrarMenuExportar = !mostrarMenuExportar">
+            <mat-icon>file_download</mat-icon> Exportar <mat-icon class="ak-menu-caret">arrow_drop_down</mat-icon>
+          </button>
+          <div class="ak-menu-exportar-opciones" *ngIf="mostrarMenuExportar">
+            <button type="button" (click)="exportarReporte(); mostrarMenuExportar = false">
+              <mat-icon>table_chart</mat-icon> Excel
+            </button>
+            <button type="button" (click)="imprimirReporte(); mostrarMenuExportar = false">
+              <mat-icon>picture_as_pdf</mat-icon> PDF
+            </button>
+          </div>
+        </div>
       </div>
       <div class="ak-tabla-scroll ak-tabla-scroll-chica">
         <table class="ak-tabla">

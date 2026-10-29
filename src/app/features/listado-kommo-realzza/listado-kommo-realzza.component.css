@@ -127,6 +127,19 @@
 
 /* ── Reporte del lote ── */
 .ak-reporte-acciones { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.ak-menu-exportar { position: relative; }
+.ak-menu-caret { font-size: 18px !important; width: 18px !important; height: 18px !important; margin-left: -4px; }
+.ak-menu-exportar-opciones {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 140px;
+  background: #fff; border: 1px solid #e3e9f2; border-radius: 10px; box-shadow: 0 10px 28px rgba(20,49,79,.18);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.ak-menu-exportar-opciones button {
+  display: flex; align-items: center; gap: 8px; border: 0; background: #fff; padding: 9px 14px;
+  font-size: 13px; font-weight: 600; color: #4a6a88; cursor: pointer; text-align: left;
+}
+.ak-menu-exportar-opciones button:hover { background: #F4F7FC; color: #1E3A5F; }
+.ak-menu-exportar-opciones button mat-icon { font-size: 17px; width: 17px; height: 17px; color: #FF6B6B; }
 .ak-tabla-scroll-chica { max-height: 32vh; }
 .ak-reporte-subtitulo {
   display: flex; align-items: center; gap: 6px; margin: 18px 0 10px; font-size: 13.5px; color: #1E3A5F;
@@ -150,7 +163,7 @@
 .ak-mejorar-fotos { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; max-width: 220px; }
 .ak-mejorar-fotos img { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; border: 1px solid #e3e9f2; cursor: pointer; }
 
-.ak-panel-reporte { width: min(820px, 95vw); max-height: 92vh; }
+.ak-panel.ak-panel-reporte { width: min(960px, 95vw); max-height: 92vh; }
 .ak-panel-reporte .ak-mejorar-lista { max-height: none; }
 
 /* ── Popup de revisión ── */

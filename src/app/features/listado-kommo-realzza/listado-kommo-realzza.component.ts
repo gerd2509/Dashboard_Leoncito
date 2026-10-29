@@ -363,6 +363,73 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     FileSaver.saveAs(blob, `Reporte Auditoria Kommo - ${this.meses[this.loteActivo.mes - 1].t} ${this.loteActivo.anio}.xlsx`);
   }
 
+  mostrarMenuExportar = false;
+
+  /** Abre una ventana con el reporte ya maquetado para imprimir — el usuario elige
+   *  "Guardar como PDF" en el diálogo de impresión del navegador (mismo truco que usa
+   *  Control Supervisor, sin librerías de PDF). */
+  imprimirReporte(): void {
+    if (!this.loteActivo) return;
+    const periodo = `${this.meses[this.loteActivo.mes - 1].t} ${this.loteActivo.anio}`;
+    const esc = (s: any) => (s ?? '').toString()
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const filasResumen = this.reportePorAsesor.map(r =>
+      `<tr><td>${esc(r.asesor)}</td><td class="ok">${r.bien}</td><td class="bad">${r.mejorar}</td>` +
+      `<td class="${r.pctMejorar >= 50 ? 'bad' : ''}">${r.pctMejorar}%</td></tr>`).join('');
+
+    const gruposMejorar = this.leadsPorMejorarAgrupados.map(g => `
+      <h2>${esc(g.asesor)} (${g.leads.length})</h2>
+      ${g.leads.map(l => `
+        <div class="item">
+          <div class="item-info"><b>${esc(l.nombre_cliente)}</b> · Lead #${l.lead_id} · ${esc(l.embudo)}<p>${esc(l.comentario || 'Sin comentario.')}</p></div>
+          <div class="item-fotos">${l.fotosUrl.map(f => `<img src="${esc(f)}">`).join('')}</div>
+        </div>`).join('')}
+    `).join('');
+
+    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Reporte Auditoría Kommo — ${esc(periodo)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2a44; margin: 24px; }
+  h1 { font-size: 20px; color: #1E3A5F; margin: 0 0 2px; }
+  .meta { color: #5b7188; font-size: 13px; margin-bottom: 18px; }
+  h2 { font-size: 13.5px; color: #1E3A5F; border-left: 4px solid #1A5FAD; padding-left: 8px; margin: 18px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+  th { background: #293964; color: #fff; padding: 6px 8px; text-align: center; font-weight: 700; }
+  td { border: 1px solid #dde5f0; padding: 5px 8px; text-align: center; }
+  th:first-child, td:first-child { text-align: left; }
+  td.ok { color: #2E7D32; font-weight: 700; }
+  td.bad { color: #c62828; font-weight: 700; }
+  .item { border: 1px solid #dde5f0; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; display: flex; gap: 10px; page-break-inside: avoid; }
+  .item-info { flex: 1; font-size: 12px; color: #444; }
+  .item-info b { color: #1E3A5F; }
+  .item-info p { margin: 4px 0 0; }
+  .item-fotos { display: flex; gap: 4px; flex-shrink: 0; }
+  .item-fotos img { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; border: 1px solid #dde5f0; }
+  footer { margin-top: 20px; font-size: 10.5px; color: #8a9bb0; text-align: center; }
+  @media print { body { margin: 10mm; } h2 { page-break-after: avoid; } }
+</style></head><body onload="window.print()">
+  <h1>Reporte de Auditoría Kommo — Realzza</h1>
+  <div class="meta"><b>Período:</b> ${esc(periodo)} &nbsp;·&nbsp; <b>Generado:</b> ${esc(new Date().toLocaleString('es-PE'))}</div>
+
+  <h2>Resumen por asesor</h2>
+  <table><thead><tr><th>Asesor</th><th>Bien</th><th>Por mejorar</th><th>% Por mejorar</th></tr></thead>
+  <tbody>${filasResumen}</tbody></table>
+
+  <h2 style="border:0;padding:0;margin-top:22px;">Puntos a mejorar (${this.leadsPorMejorar.length})</h2>
+  ${gruposMejorar || '<p>Ningún lead marcado "Por mejorar" todavía.</p>'}
+
+  <footer>Dashboard Leoncito · Auditoría Kommo — documento generado automáticamente</footer>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) { console.error('Habilita las ventanas emergentes para imprimir el reporte.'); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
+
   sincronizandoLote = false;
   /** Refresca embudo/asesor/cliente de los leads del lote contra Kommo (por si alguno
    *  se reasignó después del sorteo) sin perder lo ya revisado. */
