@@ -152,9 +152,10 @@ mat-icon.girando { animation: ac-spin .8s linear infinite; }
 .tabla-scroll { overflow-x: auto; border: 1px solid var(--borde); border-radius: 12px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th { background: var(--azul); color: #fff; font-weight: 600; padding: 10px 12px; white-space: nowrap; text-align: center; }
-thead th.left, tbody td.left { text-align: left; }
+thead th.left, tbody td.left, tfoot td.left { text-align: left; }
 tbody td { padding: 9px 12px; border-top: 1px solid var(--borde); text-align: center; font-weight: 600; }
 tbody tr:nth-child(even) { background: var(--azul-suave); }
+tfoot td { padding: 9px 12px; text-align: center; font-weight: 800; color: #1E3A5F; background: #eef3fb; border-top: 2px solid #d5e0ee; }
 .c-ok { color: var(--ok); }
 .c-no { color: var(--no); }
 .c-alerta { color: var(--alerta); }
