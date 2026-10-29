@@ -124,6 +124,13 @@ export class HorariosComponent implements OnInit {
     await this.cargarMes();
   }
 
+  cambiarMes(mes: number): void {
+    const op = this.opcionesMes.find(o => o.mes === mes);
+    this.anio = op?.anio ?? this.anio;
+    this.mes = mes;
+    this.cargarMes();
+  }
+
   private async cargarRoster() {
     const filas = await this.capSedes.filasSede(SEDE, true);
     this.asesores = filas

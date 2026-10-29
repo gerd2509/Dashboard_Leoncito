@@ -8,7 +8,7 @@
       <h1>Horarios — Realzza Chiclayo</h1>
       <p>Rotación de domingos + descansos entre semana</p>
     </div>
-    <select class="mes-select" [(ngModel)]="mes" (ngModelChange)="cargarMes()">
+    <select class="mes-select" [ngModel]="mes" (ngModelChange)="cambiarMes(+$event)">
       @for (op of opcionesMes; track op.mes) {
         <option [value]="op.mes">{{ op.label }}</option>
       }
