@@ -353,12 +353,12 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   get esRealzza(): boolean { return (this.canal || '').toLowerCase() === 'realzza'; }
 
   // Casos híbridos: vendedores cuyas VENTAS son de un canal pero sus GESTIONES se
-  // registran en otro. BRENDA vende como Realzza pero gestiona en Call (como antes);
-  // el sheet de gestión Call la tiene con otra ortografía del nombre.
+  // registran en otro. BRENDA vendía como Realzza pero gestionaba en Call (hasta
+  // ago-2026); su ortografía ya está normalizada a "NICOLL" (doble L) en todas
+  // partes — este mapa solo cubre el override de CANAL, no de ortografía.
   //   clave = vendedor (el de ventas)  →  { canal de gestión, nombre en el sheet de gestión }
   private readonly overrideGestion: Record<string, { canal: string; nombre: string }> = {
-    'BERNAL BAZAN BRENDA NICOLL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
-    'BERNAL BAZAN BRENDA NICOL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOL' },
+    'BERNAL BAZAN BRENDA NICOLL': { canal: 'call', nombre: 'BERNAL BAZAN BRENDA NICOLL' },
   };
   /** Override de CANAL de gestión vigente: BRENDA gestionaba en Call HASTA agosto-2026;
    *  desde septiembre-2026 pasó a Realzza → ya no se aplica (usa su canal real). */
@@ -366,10 +366,8 @@ export class MiPanelComponent implements OnInit, OnDestroy {
     if (new Date() >= new Date(2026, 8, 1)) return undefined;
     return this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
   }
-  /** Nombre canónico para HACER MATCH de gestiones. Independiente de la fecha: la data
-   *  (gestion_call de ago y gestion_realzza desde sep) usa 'BERNAL BAZAN BRENDA NICOL'
-   *  (una L) mientras el vendedor puede venir con otra ortografía → si no se corrige,
-   *  el filtro exacto no encuentra nada y el panel sale en 0. */
+  /** Nombre canónico para HACER MATCH de gestiones (ya normalizado a "NICOLL" en toda
+   *  la data — este override solo queda por si `vendedor` llegara con otra variante). */
   private nombreParaGestion(): string {
     const o = this.overrideGestion[(this.vendedor || '').toUpperCase().trim()];
     return o ? o.nombre : this.vendedor;

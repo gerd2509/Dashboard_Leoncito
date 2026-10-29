@@ -58,12 +58,12 @@ export function esGerenteRealzzaGeneral(u: any): boolean {
  * Nombre CANÓNICO del asesor para las GESTIONES: es el que guardan los registros
  * (Call/Realzza/KOMMO) y por el que Mi Panel filtra. Usa `vendedor` (identidad
  * estable) y NO `nombre` (que puede tener typos/variantes, p.ej. "Aurora Guilllen").
- * BRENDA se normaliza a la ortografía del Call ("...NICOL") para que empate con su
- * override en Mi Panel y con la data histórica. Solo ella.
+ * BRENDA se normaliza a "...NICOLL" (doble L) — su ortografía correcta, la misma
+ * del CAP, usuarios.vendedor y sus ventas — para que empate con todo lo demás.
  */
 export function asesorGestion(u: any): string {
   const v = (u?.vendedor || u?.nombre || '').toString().trim();
-  if (v.toUpperCase().includes('BERNAL BAZAN BRENDA')) return 'BERNAL BAZAN BRENDA NICOL';
+  if (v.toUpperCase().includes('BERNAL BAZAN BRENDA')) return 'BERNAL BAZAN BRENDA NICOLL';
   return v;
 }
 

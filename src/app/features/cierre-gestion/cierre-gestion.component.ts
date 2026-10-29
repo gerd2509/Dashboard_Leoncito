@@ -186,7 +186,7 @@ export class CierreGestionComponent implements OnInit {
   // afectar agosto. Aurora (RZ10) salió de Realzza.
   private readonly KELLY = { value: 'CC8', viewValue: 'CHANTA CAMPOS KELLY KARINTIA' };
   private readonly ANITA = { value: 'CC21', viewValue: 'CHANAME SOTO ANITA NOEMI' };
-  private readonly BRENDA = { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOL' };
+  private readonly BRENDA = { value: 'CC12', viewValue: 'BERNAL BAZAN BRENDA NICOLL' };
   private get TRANSICION() { return [this.KELLY, this.ANITA, this.BRENDA]; }
   private get kellyAnitaRealzza(): boolean {
     const f: Date = this.formCierreGestion?.value?.fechaGestion || new Date();

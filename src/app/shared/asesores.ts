@@ -31,7 +31,7 @@ export const ASESORES_REALZZA: AsesorRef[] = [
   // Pasaron de Call a Realzza (desde sep-2026; mantienen código CC).
   { value: 'CC8',  nombre: 'CHANTA CAMPOS KELLY KARINTIA' },
   { value: 'CC21', nombre: 'CHANAME SOTO ANITA NOEMI' },
-  { value: 'CC12', nombre: 'BERNAL BAZAN BRENDA NICOL' },
+  { value: 'CC12', nombre: 'BERNAL BAZAN BRENDA NICOLL' },
 ];
 
 /** Asesoras de Call Center que a veces figuran en la columna de asesor/asignación de
