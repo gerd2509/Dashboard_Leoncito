@@ -235,11 +235,18 @@
           <img [src]="f" alt="evidencia">
           <button type="button" class="ak-foto-quitar" (click)="quitarFotoPreview(i)" title="Quitar"><mat-icon>close</mat-icon></button>
         </div>
-        <label class="ak-foto-agregar">
-          <mat-icon>add_a_photo</mat-icon>
-          <input type="file" accept="image/*" multiple (change)="onFotosSeleccionadas($event)" hidden>
-        </label>
       </div>
+      <div class="ak-fotos-acciones">
+        <button type="button" class="ak-foto-btn" (click)="inputArchivo.click()">
+          <mat-icon>add_photo_alternate</mat-icon> Subir archivo
+        </button>
+        <button type="button" class="ak-foto-btn" (click)="inputCamara.click()">
+          <mat-icon>photo_camera</mat-icon> Tomar foto
+        </button>
+      </div>
+      <p class="ak-fotos-hint"><mat-icon>content_paste</mat-icon> En PC también puedes pegar una captura con Ctrl+V.</p>
+      <input #inputArchivo type="file" accept="image/*" multiple (change)="onFotosSeleccionadas($event)" hidden>
+      <input #inputCamara type="file" accept="image/*" capture="environment" (change)="onFotosSeleccionadas($event)" hidden>
     </div>
     <div class="ak-panel-actions">
       <button mat-stroked-button type="button" (click)="cerrarRevision()">Cancelar</button>

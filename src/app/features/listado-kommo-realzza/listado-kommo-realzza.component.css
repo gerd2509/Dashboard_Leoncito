@@ -152,11 +152,19 @@
   background: rgba(0,0,0,.6); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
 }
 .ak-foto-quitar mat-icon { font-size: 12px; width: 12px; height: 12px; }
-.ak-foto-agregar {
-  width: 72px; height: 72px; border-radius: 10px; border: 2px dashed #cddcec; display: flex; align-items: center; justify-content: center;
-  color: #6b7a90; cursor: pointer;
+
+.ak-fotos-acciones { display: flex; gap: 8px; margin-top: 8px; }
+.ak-foto-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px dashed #cddcec; background: #fff; border-radius: 10px; padding: 9px; font-weight: 700; font-size: 12.5px;
+  color: #4a6a88; cursor: pointer;
 }
-.ak-foto-agregar:hover { border-color: #FF6B6B; color: #FF6B6B; }
+.ak-foto-btn:hover { border-color: #FF6B6B; color: #FF6B6B; border-style: solid; }
+.ak-foto-btn mat-icon { font-size: 17px; width: 17px; height: 17px; }
+.ak-fotos-hint {
+  display: flex; align-items: center; gap: 4px; margin: 6px 0 0; font-size: 11px; color: #6b7a90;
+}
+.ak-fotos-hint mat-icon { font-size: 13px; width: 13px; height: 13px; }
 
 .ak-panel-actions { display: flex; gap: 8px; padding: 0 16px 16px; }
 .ak-panel-actions button { flex: 1; }

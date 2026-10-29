@@ -292,9 +292,36 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       comentario: lead.comentario || '', fotos: [...lead.fotos], fotosUrl: [...lead.fotosUrl],
       nuevasFotos: [], guardando: false,
     };
+    document.addEventListener('paste', this.onPegarFoto);
   }
 
-  cerrarRevision(): void { this.revision = null; }
+  cerrarRevision(): void {
+    document.removeEventListener('paste', this.onPegarFoto);
+    this.revision = null;
+  }
+
+  /** Pegar (Ctrl+V) una captura mientras el popup de revisión está abierto — la agrega
+   *  como foto, igual que si se hubiera elegido con "Subir archivo". Arrow function (no
+   *  método normal) para poder sacarla de `document` en cerrarRevision() con la misma
+   *  referencia con la que se agregó. */
+  private onPegarFoto = (ev: ClipboardEvent): void => {
+    if (!this.revision || !ev.clipboardData) return;
+    let huboImagen = false;
+    for (const item of Array.from(ev.clipboardData.items)) {
+      if (!item.type.startsWith('image/')) continue;
+      const file = item.getAsFile();
+      if (!file) continue;
+      huboImagen = true;
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (!this.revision) return;
+        this.revision.nuevasFotos.push(reader.result as string);
+        this.revision.fotosUrl.push(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    if (huboImagen) ev.preventDefault();
+  };
 
   onFotosSeleccionadas(ev: Event): void {
     const input = ev.target as HTMLInputElement;
