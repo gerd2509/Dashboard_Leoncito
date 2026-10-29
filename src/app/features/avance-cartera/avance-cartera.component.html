@@ -172,15 +172,21 @@
       <div class="chart-box participacion-venta" *ngIf="esPiso && participacionVenta.length">
         <h3>Participación de venta por tipo de cliente <small *ngIf="sedeDetalle">— {{ nombreSedeDetalle }}</small><small *ngIf="!sedeDetalle">— Global (todas las sedes)</small></h3>
         <div class="part-venta-body">
-          <dx-pie-chart [dataSource]="participacionVenta" palette="Soft" type="doughnut">
-            <dxi-series argumentField="tipo" valueField="monto">
-              <dxo-label [visible]="true" [customizeText]="customizeLabelVenta" backgroundColor="none">
-                <dxo-connector [visible]="true" [width]="1"></dxo-connector>
-              </dxo-label>
-            </dxi-series>
-            <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
-            <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipVenta"></dxo-tooltip>
-          </dx-pie-chart>
+          <div class="part-venta-donut">
+            <dx-pie-chart [dataSource]="participacionVenta" palette="Soft" type="doughnut">
+              <dxi-series argumentField="tipo" valueField="monto">
+                <dxo-label [visible]="true" [customizeText]="customizeLabelVenta" backgroundColor="none">
+                  <dxo-connector [visible]="true" [width]="1"></dxo-connector>
+                </dxo-label>
+              </dxi-series>
+              <dxo-legend verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+              <dxo-tooltip [enabled]="true" [customizeTooltip]="customizeTooltipVenta"></dxo-tooltip>
+            </dx-pie-chart>
+            <div class="part-venta-centro">
+              <span class="pvc-label">Venta Total</span>
+              <span class="pvc-monto">{{ soles(totalMontoTipo(participacionVenta)) }}</span>
+            </div>
+          </div>
           <div class="part-venta-tabla">
             <table>
               <thead><tr><th class="left">Tipo de cliente</th><th>Monto</th><th>%</th></tr></thead>
@@ -193,6 +199,21 @@
               </tbody>
             </table>
           </div>
+        </div>
+
+        <!-- Detalle adicional: quién cerró cada venta vs. el asesor asignado al DNI -->
+        <div class="part-venta-naturaleza" *ngIf="naturalezaVenta.length">
+          <h4>Naturaleza de la gestión</h4>
+          <table>
+            <thead><tr><th class="left">Naturaleza</th><th>Monto</th><th>%</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let n of naturalezaVenta">
+                <td class="left">{{ n.label }}</td>
+                <td>{{ soles(n.monto) }}</td>
+                <td>{{ n.pct }}%</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
