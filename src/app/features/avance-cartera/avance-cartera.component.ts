@@ -1403,35 +1403,69 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   }
 
   /** Detalle fila por fila (una por venta) detrás de Participación/Naturaleza — mismo
-   *  scope (sede actual) y mismo filtro (ventasLista, ya sin NC/incautación). Cruza el
-   *  DNI comprador contra la cartera/Call Center importada para saber su asesor
-   *  asignado y su BASE (categoriaVenta); si el DNI no está en ninguna base subida,
-   *  queda "sin asignar". De acá se derivan, sumando, tanto el donut por tipo de
-   *  cliente como el cuadro de Naturaleza — así los tres SIEMPRE suman lo mismo. */
+   *  scope (sede actual) y mismo filtro (ya sin NC/incautación). Cruza el DNI comprador
+   *  contra la cartera/Call Center importada para saber su asesor asignado y su BASE
+   *  (categoriaVenta); si el DNI no está en ninguna base subida, queda "sin asignar".
+   *  De acá se derivan, sumando, tanto el donut por tipo de cliente como el cuadro de
+   *  Naturaleza — así los tres SIEMPRE suman lo mismo.
+   *
+   *  OJO: Piso y Call Center son canales de venta DISTINTOS (tablas `ventas` vs
+   *  `ventas_call`) — igual que la fila "Call Center" del resto del módulo
+   *  (calcularVentasCCTotales), acá Call Center se mide SOLO por su propio canal
+   *  (ventasCallPorAsesor), nunca cruzando sus DNIs contra las ventas de piso — si no,
+   *  el monto no calza con el que ya se ve en Avance por sede / Asignados Totales. */
   private calcularDetalleParticipacionVenta(): DetalleVentaTipo[] {
-    const scope = (this.sedeDetalle && this.sedeDetalle !== 'call-center') ? this.sedeDetalle : null;
-    const dniInfo = new Map<string, { asesor: string; grupo: string }>();
+    const soloCallCenter = this.sedeDetalle === 'call-center';
+    const scopeSede = (this.sedeDetalle && !soloCallCenter) ? this.sedeDetalle : null;
+
+    const dniInfoPiso = new Map<string, { asesor: string; grupo: string }>();
     for (const c of this.clientes) {
-      if (c.dni && !dniInfo.has(c.dni)) dniInfo.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, false) });
+      if (c.dni && !dniInfoPiso.has(c.dni)) dniInfoPiso.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, false) });
     }
+    const dniInfoCC = new Map<string, { asesor: string; grupo: string }>();
     for (const c of this.clientesCallCenter) {
-      if (c.dni && !dniInfo.has(c.dni)) dniInfo.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, true) });
+      if (c.dni && !dniInfoCC.has(c.dni)) dniInfoCC.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, true) });
     }
+
     const out: DetalleVentaTipo[] = [];
-    for (const [dni, ventas] of this.ventasLista) {
-      const info = dniInfo.get(dni);
-      for (const v of ventas) {
-        if (!this.sedeCfg.getConfig(v.sedeKey)?.nombre) continue;   // solo sedes piso reconocidas
-        if (scope && v.sedeKey !== scope) continue;
-        const asesorAsignado = info?.asesor ?? '';
-        const naturaleza = !info ? 'Sin base asignada'
-          : (v.vendedor === asesorAsignado ? 'Vendido por el asesor asignado' : 'Vendido por otro asesor');
+
+    if (!soloCallCenter) {
+      // Piso: ventas de la tabla `ventas`. Los DNIs asignados a Call Center no se
+      // cuentan aquí aunque tengan alguna compra de piso — se miden por su canal.
+      for (const [dni, ventas] of this.ventasLista) {
+        if (dniInfoCC.has(dni)) continue;
+        const info = dniInfoPiso.get(dni);
+        for (const v of ventas) {
+          if (!this.sedeCfg.getConfig(v.sedeKey)?.nombre) continue;   // solo sedes piso reconocidas
+          if (scopeSede && v.sedeKey !== scopeSede) continue;
+          const asesorAsignado = info?.asesor ?? '';
+          const naturaleza = !info ? 'Sin base asignada'
+            : (v.vendedor === asesorAsignado ? 'Vendido por el asesor asignado' : 'Vendido por otro asesor');
+          out.push({
+            dni, asesorAsignado: asesorAsignado || '—', vendedor: v.vendedor || '—', naturaleza,
+            grupo: info?.grupo ?? 'RECURRENTE — No asignado', sedeNombre: v.sedeNombre, monto: v.monto, fecha: v.fecha,
+          });
+        }
+      }
+    }
+
+    if (!scopeSede) {
+      // Call Center: ventas de SU canal (ventasCallPorAsesor) — mismo cruce que usa
+      // calcularVentasCCTotales/calcularVentasAsesor para esta fila en el resto del
+      // módulo. Solo entra en la vista global o al elegir "Call Center" como sede.
+      const vistos = new Set<string>();
+      for (const c of this.clientesCallCenter) {
+        if (!c.dni || vistos.has(`${c.asesor}|${c.dni}`)) continue;
+        vistos.add(`${c.asesor}|${c.dni}`);
+        const d = this.ventasCallPorAsesor.get(c.asesor)?.get(c.dni);
+        if (!d || d.ops <= 0) continue;
         out.push({
-          dni, asesorAsignado: asesorAsignado || '—', vendedor: v.vendedor || '—', naturaleza,
-          grupo: info?.grupo ?? 'RECURRENTE — No asignado', sedeNombre: v.sedeNombre, monto: v.monto, fecha: v.fecha,
+          dni: c.dni, asesorAsignado: c.asesor, vendedor: c.asesor, naturaleza: 'Vendido por el asesor asignado',
+          grupo: this.categoriaVenta(c, true), sedeNombre: 'Call Center', monto: d.monto, fecha: '',
         });
       }
     }
+
     return out.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.monto - a.monto);
   }
 
