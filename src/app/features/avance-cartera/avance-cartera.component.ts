@@ -1391,17 +1391,31 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     return out;
   }
 
+  /** BASE de un cliente para el donut de Participación: a diferencia de grupoTipo()
+   *  (que fusiona NUEVO+AFILIACIONES y DORMIDO+NO VIGENTE para los demás cuadros del
+   *  módulo), acá se respeta el TipoCliente tal cual viene en el Excel — así NUEVO y
+   *  AFILIACIONES salen como categorías separadas. Los de Call Center se agrupan
+   *  aparte en su propia categoría (no por su TipoCliente de piso). */
+  private categoriaVenta(c: ClienteCartera, esCallCenter: boolean): string {
+    if (esCallCenter) return 'CALL CENTER (Asignado)';
+    const t = (c.tipoCliente || '').toString().trim().toUpperCase();
+    return t && t !== 'SIN TIPO' ? t : 'SIN TIPO';
+  }
+
   /** Detalle fila por fila (una por venta) detrás de Participación/Naturaleza — mismo
    *  scope (sede actual) y mismo filtro (ventasLista, ya sin NC/incautación). Cruza el
    *  DNI comprador contra la cartera/Call Center importada para saber su asesor
-   *  asignado y su BASE (grupoTipo); si el DNI no está en ninguna base subida, queda
-   *  "sin asignar". De acá se derivan, sumando, tanto el donut por tipo de cliente
-   *  como el cuadro de Naturaleza — así los tres SIEMPRE suman lo mismo. */
+   *  asignado y su BASE (categoriaVenta); si el DNI no está en ninguna base subida,
+   *  queda "sin asignar". De acá se derivan, sumando, tanto el donut por tipo de
+   *  cliente como el cuadro de Naturaleza — así los tres SIEMPRE suman lo mismo. */
   private calcularDetalleParticipacionVenta(): DetalleVentaTipo[] {
     const scope = (this.sedeDetalle && this.sedeDetalle !== 'call-center') ? this.sedeDetalle : null;
     const dniInfo = new Map<string, { asesor: string; grupo: string }>();
-    for (const c of [...this.clientes, ...this.clientesCallCenter]) {
-      if (c.dni && !dniInfo.has(c.dni)) dniInfo.set(c.dni, { asesor: c.asesor, grupo: this.grupoTipo(c.tipoCliente) });
+    for (const c of this.clientes) {
+      if (c.dni && !dniInfo.has(c.dni)) dniInfo.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, false) });
+    }
+    for (const c of this.clientesCallCenter) {
+      if (c.dni && !dniInfo.has(c.dni)) dniInfo.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, true) });
     }
     const out: DetalleVentaTipo[] = [];
     for (const [dni, ventas] of this.ventasLista) {
