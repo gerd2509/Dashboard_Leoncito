@@ -315,6 +315,16 @@ tbody tr:nth-child(even) { background: var(--azul-suave); }
 .tabla-asesores h3 small { color: var(--gris); font-weight: 500; font-size: 13px; }
 .fila-click { cursor: pointer; }
 .fila-click:hover td { background: #e9f2fd; }
+
+/* Desglose por tipo de cliente (Afiliaciones/Lover A/Lover B) de cada asesor */
+.chev-tipo { color: var(--gris); transition: transform .2s; vertical-align: middle; }
+.chev-tipo.abierto { transform: rotate(180deg); color: var(--azul); }
+.fila-desglose-tipo td { padding: 0; border-top: 0; background: var(--azul-suave); }
+.desglose-tipo { padding: 10px 16px 14px; }
+.tabla-tipo { font-size: 12.5px; background: #fff; border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+.tabla-tipo thead th { padding: 7px 12px; font-size: 11px; }
+.tabla-tipo tbody td { padding: 7px 12px; }
+.vacio-tipo { color: var(--gris); font-style: italic; text-align: center; }
 /* Fila "Call Center": no es una sede física (no es clickeable) — se marca aparte, sutil. */
 .fila-call-center td { border-top: 2px solid #d5e0ee; font-style: italic; }
 .fila-call-center td.left { font-weight: 700; font-style: normal; }

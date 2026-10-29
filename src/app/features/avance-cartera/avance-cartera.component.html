@@ -224,24 +224,53 @@
                 <th *ngIf="esPiso && sedeDetalle">Ventas (ops)</th>
                 <th *ngIf="esPiso && sedeDetalle">Monto vendido</th>
                 <th *ngIf="esPiso && sedeDetalle">Concreción</th>
+                <th *ngIf="esPiso && sedeDetalle"></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of resumenAsesores">
-                <td class="left">{{ r.asesor }}</td>
-                <td>{{ r.asignados }}</td>
-                <td>{{ r.gestionados }}</td>
-                <td class="c-ok">{{ r.contacto }}</td>
-                <td class="c-no">{{ r.noContacto }}</td>
-                <td class="c-alerta">{{ r.pendientes }}</td>
-                <td>
-                  <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
-                  <b>{{ r.avance }}%</b>
-                </td>
-                <td *ngIf="esPiso && sedeDetalle"><b>{{ ventaDe(r.asesor).ops }}</b></td>
-                <td *ngIf="esPiso && sedeDetalle">S/ {{ ventaDe(r.asesor).monto | number:'1.0-0' }}</td>
-                <td *ngIf="esPiso && sedeDetalle">{{ concrecionAsesor(r) }}%</td>
-              </tr>
+              <ng-container *ngFor="let r of resumenAsesores">
+                <tr [class.fila-click]="esPiso && sedeDetalle" (click)="esPiso && sedeDetalle && toggleDesgloseAsesor(r.asesor)">
+                  <td class="left">{{ r.asesor }}</td>
+                  <td>{{ r.asignados }}</td>
+                  <td>{{ r.gestionados }}</td>
+                  <td class="c-ok">{{ r.contacto }}</td>
+                  <td class="c-no">{{ r.noContacto }}</td>
+                  <td class="c-alerta">{{ r.pendientes }}</td>
+                  <td>
+                    <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
+                    <b>{{ r.avance }}%</b>
+                  </td>
+                  <td *ngIf="esPiso && sedeDetalle"><b>{{ ventaDe(r.asesor).ops }}</b></td>
+                  <td *ngIf="esPiso && sedeDetalle">S/ {{ ventaDe(r.asesor).monto | number:'1.0-0' }}</td>
+                  <td *ngIf="esPiso && sedeDetalle">{{ concrecionAsesor(r) }}%</td>
+                  <td *ngIf="esPiso && sedeDetalle">
+                    <mat-icon class="chev-tipo" [class.abierto]="asesorDesplegado === r.asesor">expand_more</mat-icon>
+                  </td>
+                </tr>
+                <tr *ngIf="esPiso && sedeDetalle && asesorDesplegado === r.asesor" class="fila-desglose-tipo">
+                  <td [attr.colspan]="11">
+                    <div class="desglose-tipo">
+                      <table class="tabla-tipo">
+                        <thead>
+                          <tr><th class="left">Tipo de cliente</th><th>Asignados</th><th>Vendidos</th><th>Concreción</th></tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let t of desglosePorAsesor[r.asesor]">
+                            <td class="left">{{ t.tipo }}</td>
+                            <td>{{ t.asignados }}</td>
+                            <td><b>{{ t.vendidos }}</b></td>
+                            <td>
+                              <div class="mini-bar"><span [class]="claseAvance(t.pct)" [style.width.%]="t.pct"></span></div>
+                              <b>{{ t.pct }}%</b>
+                            </td>
+                          </tr>
+                          <tr *ngIf="!desglosePorAsesor[r.asesor]?.length"><td colspan="4" class="vacio-tipo">Sin datos de tipo de cliente para este asesor.</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
             </tbody>
           </table>
         </div>

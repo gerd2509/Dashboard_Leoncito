@@ -78,6 +78,10 @@ interface ResumenAsesor {
   contacto: number; noContacto: number; pendientes: number; avance: number;
 }
 
+/** Desglose de un asesor por tipo de cliente (Afiliaciones / Lover A / Lover B):
+ *  cuántos tiene asignados de ese tipo, cuántos vendió y su % de concreción. */
+interface ConcrecionTipo { tipo: string; asignados: number; vendidos: number; pct: number; }
+
 interface ResumenSede {
   sedeKey: string; sede: string;
   asignados: number; gestionados: number;
@@ -1250,6 +1254,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     // En Piso global (sin sede) la tabla principal es "por sede"; con sede, "por asesor".
     this.resumenAsesores = (this.esPiso && !this.sedeDetalle) ? [] : this.agregarPorAsesor(subset);
     this.ventasAsesor = this.calcularVentasAsesor(subset);
+    this.desglosePorAsesor = (this.esPiso && this.sedeDetalle) ? this.calcularDesglosePorTipo(subset) : {};
+    this.asesorDesplegado = null;
   }
 
   /** Concreción por asesor: ventas de los DNIs de su cartera cerradas en la sede en detalle
@@ -1277,6 +1283,52 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       o.ops += ops; o.monto += monto; out[c.asesor] = o;
     }
     return out;
+  }
+
+  /** Lo mismo que calcularVentasAsesor, pero separado por tipo de cliente (Afiliaciones /
+   *  Lover A / Lover B) — "asignados" cuenta TODAS las filas (igual que agregarPorAsesor,
+   *  para que sume lo mismo que la columna "Asignados" de la tabla), "vendidos" dedupe por
+   *  DNI (igual que la concreción general). */
+  private calcularDesglosePorTipo(clientes: ClienteCartera[]): Record<string, ConcrecionTipo[]> {
+    const enCC = this.sedeDetalle === 'call-center';
+    const map = new Map<string, Map<string, { asignados: number; vendidos: number }>>();
+    const vistos = new Set<string>();
+    for (const c of clientes) {
+      const tipo = this.grupoTipo(c.tipoCliente);
+      let porTipo = map.get(c.asesor);
+      if (!porTipo) { porTipo = new Map(); map.set(c.asesor, porTipo); }
+      let acc = porTipo.get(tipo);
+      if (!acc) { acc = { asignados: 0, vendidos: 0 }; porTipo.set(tipo, acc); }
+      acc.asignados++;
+
+      if (!c.dni) continue;
+      const clave = `${c.asesor}|${c.dni}`;
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
+      let ops = 0;
+      if (enCC) {
+        ops = this.ventasCallPorAsesor.get(c.asesor)?.get(c.dni)?.ops || 0;
+      } else {
+        const porSede = this.ventasPorDni.get(c.dni);
+        const agg = porSede?.get(this.sedeDetalle);
+        if (agg) ops = agg.ops;
+      }
+      if (ops > 0) acc.vendidos++;
+    }
+    const out: Record<string, ConcrecionTipo[]> = {};
+    map.forEach((porTipo, asesor) => {
+      out[asesor] = Array.from(porTipo.entries())
+        .map(([tipo, v]) => ({ tipo, asignados: v.asignados, vendidos: v.vendidos, pct: v.asignados ? Math.round((v.vendidos / v.asignados) * 100) : 0 }))
+        .sort((a, b) => a.tipo.localeCompare(b.tipo));
+    });
+    return out;
+  }
+
+  /** Asesor cuyo desglose por tipo está desplegado en la tabla (uno a la vez). */
+  asesorDesplegado: string | null = null;
+  desglosePorAsesor: Record<string, ConcrecionTipo[]> = {};
+  toggleDesgloseAsesor(asesor: string): void {
+    this.asesorDesplegado = this.asesorDesplegado === asesor ? null : asesor;
   }
 
   private construirPorDia(clientes: ClienteCartera[]): void {
