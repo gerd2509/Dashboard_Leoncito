@@ -298,49 +298,46 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       const { leads } = await lastValueFrom(this.auditSrv.obtenerLoteDetalle(lote.id));
       this.leadsLote = leads;
     } catch (e) { console.error('Error al cargar el lote:', e); this.leadsLote = []; }
-    finally { this.cargandoLote = false; }
+    finally { this.cargandoLote = false; this.recomputarReporte(); }
   }
 
   cerrarLote(): void { this.loteActivo = null; this.leadsLote = []; this.mostrandoReporte = false; }
 
   // ═══ Reporte del lote: resumen por asesor + comentarios de "Por mejorar" con fotos ═══
+  // IMPORTANTE: estos 3 van como PROPIEDADES cacheadas (no getters) y se recalculan con
+  // recomputarReporte() cada vez que cambia leadsLote. Un getter aquí crearía arrays/objetos
+  // nuevos en cada detección de cambios de Angular, y como *ngFor no tiene trackBy, eso
+  // destruye y recrea las <img> en cada ciclo — justo lo que rompía el clic para agrandarlas.
   mostrandoReporte = false;
+  reportePorAsesor: { asesor: string; bien: number; mejorar: number; pctMejorar: number }[] = [];
+  leadsPorMejorarAgrupados: { asesor: string; leads: LeadAuditoria[] }[] = [];
+  leadsPorMejorar: LeadAuditoria[] = [];
 
-  /** Resumen por asesor (ordenado de mayor a menor % Por mejorar, para que arriba
-   *  queden quienes más necesitan refuerzo) a partir de los leads ya cargados del lote.
-   *  Solo cuenta lo ya revisado (Bien/Por mejorar) — los pendientes no aportan al
-   *  análisis de calidad de respuesta. */
-  get reportePorAsesor(): { asesor: string; bien: number; mejorar: number; pctMejorar: number }[] {
-    const map = new Map<string, { bien: number; mejorar: number }>();
+  /** Recalcula el resumen por asesor y los puntos a mejorar a partir de leadsLote. Se
+   *  llama cada vez que leadsLote cambia (al abrir el lote, guardar una revisión o
+   *  quitar un lead) — nunca desde el template. */
+  private recomputarReporte(): void {
+    const mapResumen = new Map<string, { bien: number; mejorar: number }>();
+    const mapMejorar = new Map<string, LeadAuditoria[]>();
     for (const l of this.leadsLote) {
-      if (l.resultado === 'pendiente') continue;
       const key = l.responsable || 'SIN ASESOR';
-      const acc = map.get(key) || { bien: 0, mejorar: 0 };
-      if (l.resultado === 'bien') acc.bien++; else acc.mejorar++;
-      map.set(key, acc);
+      if (l.resultado !== 'pendiente') {
+        const acc = mapResumen.get(key) || { bien: 0, mejorar: 0 };
+        if (l.resultado === 'bien') acc.bien++; else acc.mejorar++;
+        mapResumen.set(key, acc);
+      }
+      if (l.resultado === 'mejorar') {
+        if (!mapMejorar.has(key)) mapMejorar.set(key, []);
+        mapMejorar.get(key)!.push(l);
+      }
     }
-    return Array.from(map.entries())
+    this.reportePorAsesor = Array.from(mapResumen.entries())
       .map(([asesor, v]) => ({ asesor, ...v, pctMejorar: Math.round((v.mejorar / (v.bien + v.mejorar)) * 100) }))
       .sort((a, b) => b.pctMejorar - a.pctMejorar || a.asesor.localeCompare(b.asesor));
-  }
-
-  /** Leads marcados "Por mejorar" agrupados por asesor (su nombre de embudo), para no
-   *  repetirlo en cada fila — un bloque por asesor con sus leads adentro. */
-  get leadsPorMejorarAgrupados(): { asesor: string; leads: LeadAuditoria[] }[] {
-    const map = new Map<string, LeadAuditoria[]>();
-    for (const l of this.leadsLote) {
-      if (l.resultado !== 'mejorar') continue;
-      const key = l.responsable || 'SIN ASESOR';
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(l);
-    }
-    return Array.from(map.entries())
+    this.leadsPorMejorarAgrupados = Array.from(mapMejorar.entries())
       .map(([asesor, leads]) => ({ asesor, leads }))
       .sort((a, b) => a.asesor.localeCompare(b.asesor));
-  }
-
-  get leadsPorMejorar(): LeadAuditoria[] {
-    return this.leadsLote.filter(l => l.resultado === 'mejorar');
+    this.leadsPorMejorar = this.leadsLote.filter(l => l.resultado === 'mejorar');
   }
 
   /** Exporta el reporte (resumen por asesor + comentarios de "Por mejorar") a Excel. */
@@ -461,6 +458,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     try {
       await lastValueFrom(this.auditSrv.quitarLead(lead.id));
       this.leadsLote = this.leadsLote.filter(l => l.id !== lead.id);
+      this.recomputarReporte();
       await this.cargarLotes();
     } catch (e) { console.error('Error al quitar el lead:', e); }
   }
