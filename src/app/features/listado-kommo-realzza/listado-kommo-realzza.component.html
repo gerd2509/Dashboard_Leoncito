@@ -5,6 +5,10 @@
       <h2>Listado Kommo — Realzza</h2>
       <p>Leads traídos directo de Kommo: embudo, estado y quién respondió. Chiclayo / Piura / Lima.</p>
     </div>
+    <button mat-stroked-button type="button" class="lk-btn-auditoria" (click)="toggleAuditoria()">
+      <mat-icon>{{ mostrarAuditoria ? 'arrow_back' : 'fact_check' }}</mat-icon>
+      {{ mostrarAuditoria ? 'Volver al listado' : 'Auditoría' }}
+    </button>
   </div>
 
   <div class="lk-tabs">
@@ -37,9 +41,6 @@
       <button mat-stroked-button type="button" (click)="exportarPorEmbudo()" *ngIf="filas.length" title="Un archivo con una hoja por asesor/embudo">
         <mat-icon>group_work</mat-icon> Exportar por Asesor
       </button>
-      <button mat-stroked-button type="button" class="lk-btn-todo" [class.active]="mostrarAuditoria" (click)="toggleAuditoria()">
-        <mat-icon>fact_check</mat-icon> Auditoría
-      </button>
     </form>
 
     <div class="lk-kpis" *ngIf="!error && totalLeads">
@@ -55,7 +56,7 @@
   <div class="lk-mensaje" *ngIf="mensajeSync"><mat-icon>check_circle</mat-icon> {{ mensajeSync }}</div>
   <div class="lk-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
 
-  <div class="lk-contenido">
+  <div class="lk-contenido" *ngIf="!mostrarAuditoria">
     <div class="lk-grid-overlay" *ngIf="isLoading || sincronizando">
       <app-loading-overlay *ngIf="sincronizando" [inline]="true" [visible]="sincronizando" icon="cloud_sync"
         mensaje="Conectando con Kommo…" submensaje="Trayendo lo que cambió desde la última sincronización…"></app-loading-overlay>
@@ -129,57 +130,63 @@
   </div>
 
   <div class="ak-wrap" *ngIf="mostrarAuditoria">
-    <div class="ak-head">
-      <h3><mat-icon>fact_check</mat-icon> Auditoría Kommo</h3>
-      <p>Sortea leads ya respondidos de cada embudo (del mes/tienda de arriba) para revisarlos a mano en Kommo.</p>
-    </div>
+    <!-- Pantalla 1: sorteo + histórico de lotes (clic en uno abre su detalle) -->
+    <ng-container *ngIf="!loteActivo">
+      <div class="ak-head">
+        <h3><mat-icon>fact_check</mat-icon> Auditoría Kommo</h3>
+        <p>Sortea leads ya respondidos de cada embudo (del mes/tienda de arriba) para revisarlos a mano en Kommo.</p>
+      </div>
 
-    <div class="ak-sorteo">
-      <label class="ak-label-num">Mínimo por embudo
-        <input type="number" min="1" [(ngModel)]="cantidadPorEmbudo" class="ak-input-num">
-      </label>
-      <button mat-flat-button color="primary" type="button" (click)="sortearAuditoria()" [disabled]="sorteando">
-        <mat-icon>{{ sorteando ? 'hourglass_empty' : 'casino' }}</mat-icon>
-        {{ sorteando ? 'Sorteando…' : 'Sortear auditoría' }}
-      </button>
-    </div>
-    <div class="lk-error" *ngIf="errorAuditoria"><mat-icon>error_outline</mat-icon> {{ errorAuditoria }}</div>
+      <div class="ak-sorteo">
+        <label class="ak-label-num">Mínimo por embudo
+          <input type="number" min="1" [(ngModel)]="cantidadPorEmbudo" class="ak-input-num">
+        </label>
+        <button mat-flat-button color="primary" type="button" (click)="sortearAuditoria()" [disabled]="sorteando">
+          <mat-icon>{{ sorteando ? 'hourglass_empty' : 'casino' }}</mat-icon>
+          {{ sorteando ? 'Sorteando…' : 'Sortear auditoría' }}
+        </button>
+      </div>
+      <div class="lk-error" *ngIf="errorAuditoria"><mat-icon>error_outline</mat-icon> {{ errorAuditoria }}</div>
 
-    <div class="ak-lotes" *ngIf="auditLotes.length">
-      <table class="ak-tabla">
-        <thead>
-          <tr>
-            <th>Fecha</th><th>Período</th><th>Por embudo</th><th>Total</th>
-            <th>Bien</th><th>Por mejorar</th><th>Pendiente</th><th>% Bien (revisado)</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let l of auditLotes" [class.ak-row-activa]="loteActivo?.id === l.id" (click)="abrirLote(l)">
-            <td>{{ l.creado_en | date:'d MMM, HH:mm' }}</td>
-            <td>{{ meses[l.mes-1]?.t }} {{ l.anio }}</td>
-            <td class="ak-num">{{ l.cantidad_por_embudo }}</td>
-            <td class="ak-num">{{ l.total }}</td>
-            <td class="ak-num ak-bien">{{ l.bien }}</td>
-            <td class="ak-num ak-mejorar">{{ l.mejorar }}</td>
-            <td class="ak-num" [class.ak-pendiente]="l.pendiente > 0">{{ l.pendiente }}</td>
-            <td class="ak-num">{{ (l.bien + l.mejorar) ? (pctBienDe(l) | number:'1.0-0') + '%' : '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="ak-vacio" *ngIf="!auditLotes.length && !sorteando">Todavía no hay auditorías para esta tienda. Elige el mes de arriba y dale a "Sortear auditoría".</p>
+      <div class="ak-lotes" *ngIf="auditLotes.length">
+        <table class="ak-tabla">
+          <thead>
+            <tr>
+              <th>Fecha</th><th>Período</th><th>Por embudo</th><th>Total</th>
+              <th>Bien</th><th>Por mejorar</th><th>Pendiente</th><th>% Bien (revisado)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let l of auditLotes" (click)="abrirLote(l)" title="Ver detalle de este lote">
+              <td>{{ l.creado_en | date:'d MMM, HH:mm' }}</td>
+              <td>{{ meses[l.mes-1].t }} {{ l.anio }}</td>
+              <td class="ak-num">{{ l.cantidad_por_embudo }}</td>
+              <td class="ak-num">{{ l.total }}</td>
+              <td class="ak-num ak-bien">{{ l.bien }}</td>
+              <td class="ak-num ak-mejorar">{{ l.mejorar }}</td>
+              <td class="ak-num" [class.ak-pendiente]="l.pendiente > 0">{{ l.pendiente }}</td>
+              <td class="ak-num">{{ (l.bien + l.mejorar) ? (pctBienDe(l) | number:'1.0-0') + '%' : '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="ak-vacio" *ngIf="!auditLotes.length && !sorteando">Todavía no hay auditorías para esta tienda. Elige el mes de arriba y dale a "Sortear auditoría".</p>
+    </ng-container>
 
-    <div class="ak-detalle" *ngIf="loteActivo">
+    <!-- Pantalla 2: detalle del lote elegido (clic en un lead abre su revisión) -->
+    <ng-container *ngIf="loteActivo as lote">
       <div class="ak-detalle-head">
-        <h4><mat-icon>list_alt</mat-icon> Leads del lote — {{ meses[loteActivo.mes-1]?.t }} {{ loteActivo.anio }}</h4>
-        <button mat-icon-button type="button" (click)="cerrarLote()" title="Cerrar"><mat-icon>close</mat-icon></button>
+        <button mat-stroked-button type="button" (click)="cerrarLote()">
+          <mat-icon>arrow_back</mat-icon> Volver a lotes
+        </button>
+        <h4><mat-icon>list_alt</mat-icon> Leads del lote — {{ meses[lote.mes-1].t }} {{ lote.anio }}</h4>
       </div>
       <table class="ak-tabla" *ngIf="!cargandoLote">
         <thead>
           <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th></tr>
         </thead>
         <tbody>
-          <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead">
+          <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead" title="Ver/editar la revisión">
             <td>{{ l.lead_id }}</td>
             <td>{{ l.nombre_cliente }}</td>
             <td>{{ l.embudo }}</td>
@@ -195,7 +202,7 @@
         </tbody>
       </table>
       <p *ngIf="cargandoLote">Cargando…</p>
-    </div>
+    </ng-container>
   </div>
 </div>
 
