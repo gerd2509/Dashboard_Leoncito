@@ -9,6 +9,7 @@ import { ExcelExportService } from '../../services/excel/excel.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { AuditoriaKommoService, LoteAuditoria, LeadAuditoria, ResultadoAuditoria } from '../../services/auditoria-kommo.service';
 
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
 
@@ -37,6 +38,7 @@ interface ResumenEmbudo {
 export class ListadoKommoRealzzaComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
   private excelSrv = inject(ExcelExportService);
+  private auditSrv = inject(AuditoriaKommoService);
 
   @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
 
@@ -228,5 +230,112 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       e.cellElement.style.color = 'white';
       e.cellElement.style.fontWeight = 'bold';
     }
+  }
+
+  // ═══════════════════════ Auditoría Kommo ═══════════════════════
+  // Sortea N leads YA RESPONDIDOS de cada embudo (del mes/tienda elegidos arriba) y
+  // arma un lote para revisar a mano en Kommo: resultado (Bien/Por mejorar) +
+  // comentario + fotos de evidencia por lead. Todo queda guardado en BD con fecha.
+  mostrarAuditoria = false;
+  cantidadPorEmbudo = 5;
+  sorteando = false;
+  errorAuditoria = '';
+  auditLotes: LoteAuditoria[] = [];
+  loteActivo: LoteAuditoria | null = null;
+  leadsLote: LeadAuditoria[] = [];
+  cargandoLote = false;
+
+  revision: {
+    lead: LeadAuditoria; resultado: ResultadoAuditoria; comentario: string;
+    fotos: string[]; fotosUrl: string[]; nuevasFotos: string[]; guardando: boolean;
+  } | null = null;
+
+  async toggleAuditoria(): Promise<void> {
+    this.mostrarAuditoria = !this.mostrarAuditoria;
+    if (this.mostrarAuditoria && !this.auditLotes.length) await this.cargarLotes();
+  }
+
+  async cargarLotes(): Promise<void> {
+    try { this.auditLotes = await lastValueFrom(this.auditSrv.obtenerLotes(this.tienda)); }
+    catch (e) { console.error('Error al cargar lotes de auditoría:', e); }
+  }
+
+  async sortearAuditoria(): Promise<void> {
+    this.sorteando = true; this.errorAuditoria = '';
+    try {
+      const { anio, mes } = this.form.value;
+      const r = await lastValueFrom(this.auditSrv.sortear(this.tienda, anio, mes, this.cantidadPorEmbudo));
+      await this.cargarLotes();
+      const nuevo = this.auditLotes.find(l => l.id === r.loteId);
+      if (nuevo) await this.abrirLote(nuevo);
+    } catch (e: any) {
+      console.error('Error al sortear auditoría:', e);
+      this.errorAuditoria = e?.error?.message || 'No se pudo sortear la auditoría (revisa que haya leads respondidos en ese mes).';
+    } finally { this.sorteando = false; }
+  }
+
+  async abrirLote(lote: LoteAuditoria): Promise<void> {
+    this.loteActivo = lote;
+    this.cargandoLote = true;
+    try {
+      const { leads } = await lastValueFrom(this.auditSrv.obtenerLoteDetalle(lote.id));
+      this.leadsLote = leads;
+    } catch (e) { console.error('Error al cargar el lote:', e); this.leadsLote = []; }
+    finally { this.cargandoLote = false; }
+  }
+
+  cerrarLote(): void { this.loteActivo = null; this.leadsLote = []; }
+
+  abrirRevision(lead: LeadAuditoria): void {
+    this.revision = {
+      lead, resultado: lead.resultado === 'pendiente' ? 'bien' : lead.resultado,
+      comentario: lead.comentario || '', fotos: [...lead.fotos], fotosUrl: [...lead.fotosUrl],
+      nuevasFotos: [], guardando: false,
+    };
+  }
+
+  cerrarRevision(): void { this.revision = null; }
+
+  onFotosSeleccionadas(ev: Event): void {
+    const input = ev.target as HTMLInputElement;
+    if (!this.revision || !input.files) return;
+    Array.from(input.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (!this.revision) return;
+        this.revision.nuevasFotos.push(reader.result as string);
+        this.revision.fotosUrl.push(reader.result as string); // vista previa local hasta guardar
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = '';
+  }
+
+  /** Quita una foto de la vista previa (índice sobre `fotosUrl`, que va existentes
+   *  primero y nuevas después, en el mismo orden que `fotos`/`nuevasFotos`). */
+  quitarFotoPreview(i: number): void {
+    if (!this.revision) return;
+    if (i < this.revision.fotos.length) this.revision.fotos.splice(i, 1);
+    else this.revision.nuevasFotos.splice(i - this.revision.fotos.length, 1);
+    this.revision.fotosUrl.splice(i, 1);
+  }
+
+  async guardarRevision(): Promise<void> {
+    if (!this.revision || !this.loteActivo) return;
+    this.revision.guardando = true;
+    try {
+      const fotosAEnviar = [...this.revision.fotos, ...this.revision.nuevasFotos];
+      await lastValueFrom(this.auditSrv.guardarRevision(this.revision.lead.id, this.revision.resultado, this.revision.comentario, fotosAEnviar));
+      this.cerrarRevision();
+      await this.abrirLote(this.loteActivo);
+      await this.cargarLotes();
+    } catch (e) { console.error('Error al guardar revisión:', e); }
+    finally { if (this.revision) this.revision.guardando = false; }
+  }
+
+  /** % de lo YA revisado (bien+mejorar, sin contar pendientes) que salió "Bien". */
+  pctBienDe(l: LoteAuditoria): number {
+    const revisados = l.bien + l.mejorar;
+    return revisados ? (l.bien / revisados) * 100 : 0;
   }
 }

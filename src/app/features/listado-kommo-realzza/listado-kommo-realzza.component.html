@@ -37,6 +37,9 @@
       <button mat-stroked-button type="button" (click)="exportarPorEmbudo()" *ngIf="filas.length" title="Un archivo con una hoja por asesor/embudo">
         <mat-icon>group_work</mat-icon> Exportar por Asesor
       </button>
+      <button mat-stroked-button type="button" class="lk-btn-todo" [class.active]="mostrarAuditoria" (click)="toggleAuditoria()">
+        <mat-icon>fact_check</mat-icon> Auditoría
+      </button>
     </form>
 
     <div class="lk-kpis" *ngIf="!error && totalLeads">
@@ -122,6 +125,120 @@
           </tr>
         </tfoot>
       </table>
+    </div>
+  </div>
+
+  <div class="ak-wrap" *ngIf="mostrarAuditoria">
+    <div class="ak-head">
+      <h3><mat-icon>fact_check</mat-icon> Auditoría Kommo</h3>
+      <p>Sortea leads ya respondidos de cada embudo (del mes/tienda de arriba) para revisarlos a mano en Kommo.</p>
+    </div>
+
+    <div class="ak-sorteo">
+      <label class="ak-label-num">Mínimo por embudo
+        <input type="number" min="1" [(ngModel)]="cantidadPorEmbudo" class="ak-input-num">
+      </label>
+      <button mat-flat-button color="primary" type="button" (click)="sortearAuditoria()" [disabled]="sorteando">
+        <mat-icon>{{ sorteando ? 'hourglass_empty' : 'casino' }}</mat-icon>
+        {{ sorteando ? 'Sorteando…' : 'Sortear auditoría' }}
+      </button>
+    </div>
+    <div class="lk-error" *ngIf="errorAuditoria"><mat-icon>error_outline</mat-icon> {{ errorAuditoria }}</div>
+
+    <div class="ak-lotes" *ngIf="auditLotes.length">
+      <table class="ak-tabla">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Período</th><th>Por embudo</th><th>Total</th>
+            <th>Bien</th><th>Por mejorar</th><th>Pendiente</th><th>% Bien (revisado)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let l of auditLotes" [class.ak-row-activa]="loteActivo?.id === l.id" (click)="abrirLote(l)">
+            <td>{{ l.creado_en | date:'d MMM, HH:mm' }}</td>
+            <td>{{ meses[l.mes-1]?.t }} {{ l.anio }}</td>
+            <td class="ak-num">{{ l.cantidad_por_embudo }}</td>
+            <td class="ak-num">{{ l.total }}</td>
+            <td class="ak-num ak-bien">{{ l.bien }}</td>
+            <td class="ak-num ak-mejorar">{{ l.mejorar }}</td>
+            <td class="ak-num" [class.ak-pendiente]="l.pendiente > 0">{{ l.pendiente }}</td>
+            <td class="ak-num">{{ (l.bien + l.mejorar) ? (pctBienDe(l) | number:'1.0-0') + '%' : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="ak-vacio" *ngIf="!auditLotes.length && !sorteando">Todavía no hay auditorías para esta tienda. Elige el mes de arriba y dale a "Sortear auditoría".</p>
+
+    <div class="ak-detalle" *ngIf="loteActivo">
+      <div class="ak-detalle-head">
+        <h4><mat-icon>list_alt</mat-icon> Leads del lote — {{ meses[loteActivo.mes-1]?.t }} {{ loteActivo.anio }}</h4>
+        <button mat-icon-button type="button" (click)="cerrarLote()" title="Cerrar"><mat-icon>close</mat-icon></button>
+      </div>
+      <table class="ak-tabla" *ngIf="!cargandoLote">
+        <thead>
+          <tr><th>ID Lead</th><th>Cliente</th><th>Embudo</th><th>Asesor</th><th>Fecha creación</th><th>Resultado</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let l of leadsLote" (click)="abrirRevision(l)" class="ak-fila-lead">
+            <td>{{ l.lead_id }}</td>
+            <td>{{ l.nombre_cliente }}</td>
+            <td>{{ l.embudo }}</td>
+            <td>{{ l.responsable }}</td>
+            <td>{{ l.fecha_creacion_lead }}</td>
+            <td>
+              <span class="ak-badge" [class.ak-badge-bien]="l.resultado === 'bien'"
+                [class.ak-badge-mejorar]="l.resultado === 'mejorar'" [class.ak-badge-pendiente]="l.resultado === 'pendiente'">
+                {{ l.resultado === 'bien' ? 'Bien' : l.resultado === 'mejorar' ? 'Por mejorar' : 'Pendiente' }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="cargandoLote">Cargando…</p>
+    </div>
+  </div>
+</div>
+
+<div class="ak-backdrop" *ngIf="revision as rev" (click)="$event.target === $event.currentTarget && cerrarRevision()">
+  <div class="ak-panel">
+    <div class="ak-panel-head">
+      <div>
+        <b>{{ rev.lead.nombre_cliente }}</b>
+        <small>Lead #{{ rev.lead.lead_id }} · {{ rev.lead.embudo }} · {{ rev.lead.fecha_creacion_lead }}</small>
+      </div>
+      <button mat-icon-button type="button" (click)="cerrarRevision()"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="ak-panel-body">
+      <label>Resultado</label>
+      <div class="ak-resultado-pick">
+        <button type="button" [class.on]="rev.resultado === 'bien'" (click)="rev.resultado = 'bien'">
+          <mat-icon>thumb_up</mat-icon> Bien
+        </button>
+        <button type="button" class="ak-mejorar-btn" [class.on]="rev.resultado === 'mejorar'" (click)="rev.resultado = 'mejorar'">
+          <mat-icon>thumb_down</mat-icon> Por mejorar
+        </button>
+      </div>
+
+      <label>Comentario</label>
+      <textarea rows="3" [(ngModel)]="rev.comentario" placeholder="Qué viste al revisar este lead en Kommo…"></textarea>
+
+      <label>Fotos de evidencia</label>
+      <div class="ak-fotos">
+        <div class="ak-foto" *ngFor="let f of rev.fotosUrl; let i = index">
+          <img [src]="f" alt="evidencia">
+          <button type="button" class="ak-foto-quitar" (click)="quitarFotoPreview(i)" title="Quitar"><mat-icon>close</mat-icon></button>
+        </div>
+        <label class="ak-foto-agregar">
+          <mat-icon>add_a_photo</mat-icon>
+          <input type="file" accept="image/*" multiple (change)="onFotosSeleccionadas($event)" hidden>
+        </label>
+      </div>
+    </div>
+    <div class="ak-panel-actions">
+      <button mat-stroked-button type="button" (click)="cerrarRevision()">Cancelar</button>
+      <button mat-flat-button color="primary" type="button" (click)="guardarRevision()" [disabled]="rev.guardando">
+        {{ rev.guardando ? 'Guardando…' : 'Guardar' }}
+      </button>
     </div>
   </div>
 </div>
