@@ -300,7 +300,55 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     finally { this.cargandoLote = false; }
   }
 
-  cerrarLote(): void { this.loteActivo = null; this.leadsLote = []; }
+  cerrarLote(): void { this.loteActivo = null; this.leadsLote = []; this.mostrandoReporte = false; }
+
+  // ═══ Reporte del lote: resumen por asesor + comentarios de "Por mejorar" con fotos ═══
+  mostrandoReporte = false;
+
+  /** Resumen por asesor (ordenado de peor a mejor % Bien, para priorizar a quién
+   *  reforzar primero) a partir de los leads ya cargados del lote. */
+  get reportePorAsesor(): { asesor: string; total: number; bien: number; mejorar: number; pendiente: number; pctBien: number }[] {
+    const map = new Map<string, { total: number; bien: number; mejorar: number; pendiente: number }>();
+    for (const l of this.leadsLote) {
+      const key = l.responsable || 'SIN ASESOR';
+      const acc = map.get(key) || { total: 0, bien: 0, mejorar: 0, pendiente: 0 };
+      acc.total++;
+      if (l.resultado === 'bien') acc.bien++;
+      else if (l.resultado === 'mejorar') acc.mejorar++;
+      else acc.pendiente++;
+      map.set(key, acc);
+    }
+    return Array.from(map.entries())
+      .map(([asesor, v]) => ({ asesor, ...v, pctBien: (v.bien + v.mejorar) ? Math.round((v.bien / (v.bien + v.mejorar)) * 100) : 0 }))
+      .sort((a, b) => a.pctBien - b.pctBien || a.asesor.localeCompare(b.asesor));
+  }
+
+  /** Leads marcados "Por mejorar", con su comentario y fotos, agrupados por asesor. */
+  get leadsPorMejorar(): LeadAuditoria[] {
+    return this.leadsLote.filter(l => l.resultado === 'mejorar')
+      .sort((a, b) => a.responsable.localeCompare(b.responsable));
+  }
+
+  /** Exporta el reporte (resumen por asesor + comentarios de "Por mejorar") a Excel. */
+  async exportarReporte(): Promise<void> {
+    if (!this.loteActivo) return;
+    const wb = new Workbook();
+
+    const wsResumen = wb.addWorksheet('Resumen por asesor');
+    wsResumen.addRow(['Asesor', 'Total', 'Bien', 'Por mejorar', 'Pendiente', '% Bien (revisado)']).font = { bold: true };
+    for (const r of this.reportePorAsesor) wsResumen.addRow([r.asesor, r.total, r.bien, r.mejorar, r.pendiente, r.pctBien + '%']);
+    wsResumen.columns.forEach(c => c.width = 20);
+
+    const wsMejorar = wb.addWorksheet('Puntos a mejorar');
+    wsMejorar.addRow(['Asesor', 'Cliente', 'ID Lead', 'Embudo', 'Comentario', 'Fotos']).font = { bold: true };
+    for (const l of this.leadsPorMejorar) wsMejorar.addRow([l.responsable, l.nombre_cliente, l.lead_id, l.embudo, l.comentario || '', l.fotos.length]);
+    wsMejorar.columns.forEach(c => c.width = 24);
+    (wsMejorar.getColumn(5) as any).width = 60;
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    FileSaver.saveAs(blob, `Reporte Auditoria Kommo - ${this.meses[this.loteActivo.mes - 1].t} ${this.loteActivo.anio}.xlsx`);
+  }
 
   sincronizandoLote = false;
   /** Refresca embudo/asesor/cliente de los leads del lote contra Kommo (por si alguno
