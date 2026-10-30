@@ -15,6 +15,7 @@ const EXCLUIDOS_ROTACION = new Set([
   'CHANAME SOTO ANITA NOEMI',
   'TORRES ALVARADO JUDY ESMERALDA',
   'MORALES ÑIQUE MARIA CANDELARIA',
+  'MORETO DELGADO PATRICIA ESTEFANY',
 ]);
 
 // Nombres cortos conocidos (para los demás, se deriva automáticamente del 3er token del nombre CAP).
