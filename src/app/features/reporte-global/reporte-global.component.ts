@@ -113,14 +113,16 @@ export class ReporteGlobalComponent implements OnInit {
   detalleCargando = false;
   detalleTitulo = '';
   detalleColor = '#1A5FAD';
-  detalleFilas: { vendedor: string; cliente: string; producto: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number }[] = [];
+  detalleFilas: { vendedor: string; cliente: string; producto: string; entidad: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number }[] = [];
 
   get detalleTotal(): number { return this.detalleFilas.reduce((s, f) => s + (f.monto || 0), 0); }
 
   /** `dimension` decide por qué columna filtra el backend: 'entidad' (Aliados/Motos por
    *  sede — GLOBAL GO/BRILLA/LEONCITO/…), 'marca' (Motos por Marca × Sede — Wanxin/Ssenda)
-   *  o 'tipo' (Motos por Tipo × Sede — Lineal/Mototaxi/Carguera). */
-  async abrirDetalle(fila: FilaPivot, col: ColPivot, dimension: 'entidad' | 'marca' | 'tipo' = 'entidad'): Promise<void> {
+   *  o 'tipo' (Motos por Tipo × Sede — Lineal/Mototaxi/Carguera). `soloMoto` = la tabla
+   *  es de motos pero filtra por entidad sola (Motos por Sede) — sin esto, la entidad por
+   *  sí sola trae TODAS sus ventas, no solo las motos. */
+  async abrirDetalle(fila: FilaPivot, col: ColPivot, dimension: 'entidad' | 'marca' | 'tipo' = 'entidad', soloMoto = false): Promise<void> {
     const sedesRaw = [...(this.rawSedesPorKey.get(fila.sedeKey) || [])];
     if (!sedesRaw.length) return;
     this.detalleTitulo = `${fila.sede} — ${col.label}`;
@@ -130,7 +132,7 @@ export class ReporteGlobalComponent implements OnInit {
     this.detalleFilas = [];
     try {
       const { anio, mes } = this.form.value;
-      const filtro = dimension === 'entidad' ? { entidad: col.key } : { [dimension]: col.key };
+      const filtro = { ...(dimension === 'entidad' ? { entidad: col.key } : { [dimension]: col.key }), soloMoto };
       const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(anio, mes || undefined, undefined, sedesRaw, filtro));
       this.detalleFilas = filas || [];
     } catch (e) {

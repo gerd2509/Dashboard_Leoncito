@@ -177,13 +177,13 @@
     <div class="am-card">
       <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(# operaciones · clic en un número para ver el detalle)</em></div>
       <div class="am-scroll">
-        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosOps, moneda: false, detallable: true, dimension: 'entidad' }"></ng-container>
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosOps, moneda: false, detallable: true, dimension: 'entidad', soloMoto: true }"></ng-container>
       </div>
     </div>
     <div class="am-card">
       <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(monto neto S/ · clic en un número para ver el detalle)</em></div>
       <div class="am-scroll">
-        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMonto, moneda: true, detallable: true, dimension: 'entidad' }"></ng-container>
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMonto, moneda: true, detallable: true, dimension: 'entidad', soloMoto: true }"></ng-container>
       </div>
     </div>
   </div>
@@ -326,7 +326,7 @@
 </div>
 
 <!-- ══════════ Plantilla reutilizable de tabla pivote ══════════ -->
-<ng-template #tabla let-p let-moneda="moneda" let-detallable="detallable" let-dimension="dimension">
+<ng-template #tabla let-p let-moneda="moneda" let-detallable="detallable" let-dimension="dimension" let-soloMoto="soloMoto">
   <table class="am-table" *ngIf="p">
     <thead>
       <tr>
@@ -339,7 +339,7 @@
       <tr *ngFor="let f of p.filas">
         <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
         <td *ngFor="let c of p.cols" [class.rg-celda-click]="detallable && f.valores[c.key]"
-          (click)="detallable && f.valores[c.key] && abrirDetalle(f, c, dimension || 'entidad')">
+          (click)="detallable && f.valores[c.key] && abrirDetalle(f, c, dimension || 'entidad', !!soloMoto)">
           {{ moneda ? soles(f.valores[c.key]) : (f.valores[c.key] | number) }}
         </td>
         <td class="tot">{{ moneda ? soles(f.total) : (f.total | number) }}</td>
@@ -370,16 +370,17 @@
     <div class="rg-detalle-body">
       <app-loading-overlay *ngIf="detalleCargando" [inline]="true" [visible]="detalleCargando" mensaje="Cargando detalle…" icon="receipt_long"></app-loading-overlay>
       <table class="am-table rg-detalle-tabla" *ngIf="!detalleCargando">
-        <thead><tr><th class="ta-l">Asesor</th><th class="ta-l">Cliente</th><th class="ta-l">Producto</th><th>Monto</th><th>Fecha</th></tr></thead>
+        <thead><tr><th class="ta-l">Asesor</th><th class="ta-l">Cliente</th><th class="ta-l">Producto</th><th class="ta-l">Entidad</th><th>Monto</th><th>Fecha</th></tr></thead>
         <tbody>
           <tr *ngFor="let f of detalleFilas">
             <td class="ta-l" [title]="f.vendedor">{{ nombreRank(f.vendedor) || '—' }}</td>
             <td class="ta-l" [title]="f.cliente">{{ nombreRank(f.cliente) || '—' }}</td>
             <td class="ta-l rg-detalle-producto" [title]="f.producto">{{ f.producto || '—' }}</td>
+            <td class="ta-l">{{ f.entidad || '—' }}</td>
             <td class="tot">{{ soles(f.monto) }}</td>
             <td>{{ fechaCorta(f) }}</td>
           </tr>
-          <tr *ngIf="!detalleFilas.length" class="vacio"><td colspan="5">Sin ventas para esta celda</td></tr>
+          <tr *ngIf="!detalleFilas.length" class="vacio"><td colspan="6">Sin ventas para esta celda</td></tr>
         </tbody>
       </table>
     </div>
