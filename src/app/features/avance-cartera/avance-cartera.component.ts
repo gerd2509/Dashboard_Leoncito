@@ -1394,18 +1394,20 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   }
 
   /** BASE final de una venta — replica la lógica real de Leoncito (hoja "Afect" del
-   *  Excel de control): si la VENTA viene marcada "CLIENTE NUEVO" (tabla `ventas`),
-   *  es NUEVO sin importar la cartera. Si es "CLIENTE RECURRENTE", se cruza su DNI
-   *  contra la cartera: AFILIACIONES queda aparte (su propio cuadro en el módulo,
-   *  igual que grupoTipo); REENGANCHE/CANCELADO/LOVER A → R.VIGENTE; DORMIDO/NO
-   *  VIGENTE/LOVER B → R.DORMIDO; si no está en ninguna base → R. NO ASIGNADO
-   *  (compró pero no tiene asesor asignado). */
+   *  Excel de control), con un ajuste: si la cartera del DNI está marcada
+   *  AFILIACIONES, eso manda primero (son ventas aparte de las "NUEVO" genéricas,
+   *  aunque también sean la primera compra del cliente — mismo cuadro "Gestión de
+   *  Base de Datos — AFILIACIONES (Nuevos)" que ya existe en el módulo). Si no,
+   *  y la VENTA viene marcada "CLIENTE NUEVO" (tabla `ventas`), es NUEVO sin
+   *  importar el resto de la cartera. Si es "CLIENTE RECURRENTE": REENGANCHE/
+   *  CANCELADO/LOVER A → R.VIGENTE; DORMIDO/NO VIGENTE/LOVER B → R.DORMIDO; si no
+   *  está en ninguna base → R. NO ASIGNADO (compró pero no tiene asesor asignado). */
   private categoriaVentaFinal(ventaTipoCliente: string, baseCartera: string | undefined): string {
+    const b = (baseCartera || '').toUpperCase();
+    if (/AFILIAC/.test(b)) return 'AFILIACIONES';
     const tc = (ventaTipoCliente || '').toUpperCase();
     if (tc.includes('NUEVO')) return 'NUEVO';
     if (!baseCartera) return 'R. NO ASIGNADO';
-    const b = baseCartera.toUpperCase();
-    if (/AFILIAC/.test(b)) return 'AFILIACIONES';
     if (/REENGANCHE|CANCELAD|LOVER\s*A/.test(b)) return 'R.VIGENTE';
     if (/DORMIDO|NO\s*VIGENTE|LOVER\s*B/.test(b)) return 'R.DORMIDO';
     if (/NUEVO/.test(b)) return 'NUEVO';
