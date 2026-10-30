@@ -1396,7 +1396,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   /** BASE final de una venta — replica la lógica real de Leoncito (hoja "Afect" del
    *  Excel de control): si la VENTA viene marcada "CLIENTE NUEVO" (tabla `ventas`),
    *  es NUEVO sin importar la cartera. Si es "CLIENTE RECURRENTE", se cruza su DNI
-   *  contra la cartera: REENGANCHE/CANCELADO/LOVER A → R.VIGENTE; DORMIDO/NO
+   *  contra la cartera: AFILIACIONES queda aparte (su propio cuadro en el módulo,
+   *  igual que grupoTipo); REENGANCHE/CANCELADO/LOVER A → R.VIGENTE; DORMIDO/NO
    *  VIGENTE/LOVER B → R.DORMIDO; si no está en ninguna base → R. NO ASIGNADO
    *  (compró pero no tiene asesor asignado). */
   private categoriaVentaFinal(ventaTipoCliente: string, baseCartera: string | undefined): string {
@@ -1404,9 +1405,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     if (tc.includes('NUEVO')) return 'NUEVO';
     if (!baseCartera) return 'R. NO ASIGNADO';
     const b = baseCartera.toUpperCase();
+    if (/AFILIAC/.test(b)) return 'AFILIACIONES';
     if (/REENGANCHE|CANCELAD|LOVER\s*A/.test(b)) return 'R.VIGENTE';
     if (/DORMIDO|NO\s*VIGENTE|LOVER\s*B/.test(b)) return 'R.DORMIDO';
-    if (/NUEVO|AFILIAC/.test(b)) return 'NUEVO';
+    if (/NUEVO/.test(b)) return 'NUEVO';
     return b || 'R. NO ASIGNADO';
   }
 
@@ -1470,8 +1472,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       // Call Center: ventas de SU canal (ventasCallPorAsesor) — mismo cruce que usa
       // calcularVentasCCTotales/calcularVentasAsesor para esta fila en el resto del
       // módulo. Solo entra en la vista global o al elegir "Call Center" como sede.
-      // No se replica el NUEVO/RECURRENTE de piso: ventasCallPorAsesor no trae el
-      // TipoCliente por venta, solo el agregado — se agrupan aparte, como ya se hacía.
+      // Equivale a "R.A CONTAC" del reporte de referencia: clientes asignados a Call
+      // Center (base de recontacto) en vez de a la cartera de piso.
       const vistos = new Set<string>();
       for (const c of this.clientesCallCenter) {
         if (!c.dni || vistos.has(`${c.asesor}|${c.dni}`)) continue;
@@ -1480,7 +1482,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         if (!d || d.ops <= 0) continue;
         out.push({
           dni: c.dni, asesorAsignado: c.asesor, vendedor: c.asesor, naturaleza: 'Vendido por el asesor asignado',
-          grupo: 'CALL CENTER (Asignado)', sedeNombre: 'Call Center', monto: d.monto, fecha: '', grupoDias: '',
+          grupo: 'R.A CONTAC', sedeNombre: 'Call Center', monto: d.monto, fecha: '', grupoDias: '',
         });
       }
     }
