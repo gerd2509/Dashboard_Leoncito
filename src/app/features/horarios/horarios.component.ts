@@ -10,7 +10,12 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 const SEDE = 'REALZZA CHICLAYO';
 
 // Asesores que SÍ están en el CAP pero no entran a esta rotación (decisión puntual, no un dato del CAP).
-const EXCLUIDOS_ROTACION = new Set(['LLONTOP DAVILA DENNIS CHRISTIAN']);
+const EXCLUIDOS_ROTACION = new Set([
+  'LLONTOP DAVILA DENNIS CHRISTIAN',
+  'CHANAME SOTO ANITA NOEMI',
+  'TORRES ALVARADO JUDY ESMERALDA',
+  'MORALES ÑIQUE MARIA CANDELARIA',
+]);
 
 // Nombres cortos conocidos (para los demás, se deriva automáticamente del 3er token del nombre CAP).
 const NOMBRES_CORTOS: Record<string, string> = {
