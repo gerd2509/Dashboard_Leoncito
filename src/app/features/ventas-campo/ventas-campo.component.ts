@@ -11,6 +11,7 @@ import { AuthService } from '../../services/auth.service';
 import { TIENDAS_REALZZA, esGestorTiendaRealzza, esSedeRealzza, tiendaDeSedeRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
+import { ASESORES_CALL_CENTER_CARTERA } from '../../shared/asesores';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -986,9 +987,13 @@ export class VentasCampoComponent implements OnInit {
   }
 
   private resolverNombreVendedor(vendedorOriginal: string, tipoBase: string = ''): string {
-    // La fila "CALL" agrupa SOLO las ventas cuyo TipoBase es CALL. Una venta de un
-    // vendedor Realzza que traiga un código CC en AsesorVenta pero sin TipoBase CALL
-    // es Realzza y suma a su asesor Realzza real (no se separa a "CALL").
+    // Las 6 asesoras de Call Center (Patricia, Dexy, Karen, Maria, Judy, Juana) siguen
+    // siendo CALL en el CAP aunque cierren una venta en tienda (TipoBase='TIENDA' en vez
+    // de 'CALL') — toda su venta suma a la fila "CALL", nunca a su nombre individual.
+    if (ASESORES_CALL_CENTER_CARTERA.has((vendedorOriginal || '').toString().trim().toUpperCase())) return 'CALL';
+    // Para el resto: la fila "CALL" agrupa SOLO las ventas cuyo TipoBase es CALL. Una
+    // venta de un vendedor Realzza que traiga un código CC en AsesorVenta pero sin
+    // TipoBase CALL es Realzza y suma a su asesor Realzza real (no se separa a "CALL").
     if ((tipoBase || '').toString().trim().toUpperCase() === 'CALL') return 'CALL';
     if (this.grupoBrilla.has(vendedorOriginal)) return 'BRILLA';
     return this.nombresCortos[vendedorOriginal] || NOMBRE_CORTO_PIURA[vendedorOriginal] || vendedorOriginal;
