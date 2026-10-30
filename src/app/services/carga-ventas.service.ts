@@ -135,15 +135,23 @@ export class CargaVentasService {
     if (dia) params = params.set('dia', dia);
     return this.http.get<any[]>(`${this.root}/reporte-global`, { params });
   }
-  /** Detalle de ventas (asesor, cliente, producto, monto, fecha) que arman una celda del
-   *  cuadro "Aliados por Entidad × Sede" — `sedesRaw` son los textos de sede EXACTOS que el
-   *  front agregó para esa fila (puede haber más de uno por sedeKey). */
-  obtenerReporteGlobalDetalle(anio: number, mes: number | undefined, dia: number | undefined, sedesRaw: string[], entidad: string): Observable<{
+  /** Detalle de ventas (asesor, cliente, producto, monto, fecha) que arman una celda de
+   *  cualquier cuadro "× Sede" del Reporte Global — `sedesRaw` son los textos de sede
+   *  EXACTOS que el front agregó para esa fila (puede haber más de uno por sedeKey).
+   *  `filtro.entidad` = Aliados/Motos por sede (GLOBAL GO/BRILLA/LEONCITO/…); `filtro.marca`
+   *  / `filtro.tipo` = Motos por Marca/Tipo × sede (implica "solo motos" en el backend). */
+  obtenerReporteGlobalDetalle(
+    anio: number, mes: number | undefined, dia: number | undefined, sedesRaw: string[],
+    filtro: { entidad?: string; marca?: string; tipo?: string },
+  ): Observable<{
     vendedor: string; cliente: string; producto: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number;
   }[]> {
-    let params = new HttpParams().set('anio', anio).set('sede', sedesRaw.join(',')).set('entidad', entidad || '');
+    let params = new HttpParams().set('anio', anio).set('sede', sedesRaw.join(','));
     if (mes) params = params.set('mes', mes);
     if (dia) params = params.set('dia', dia);
+    if (filtro.entidad !== undefined) params = params.set('entidad', filtro.entidad || '');
+    if (filtro.marca) params = params.set('marca', filtro.marca);
+    if (filtro.tipo) params = params.set('tipo', filtro.tipo);
     return this.http.get<any[]>(`${this.root}/reporte-global-detalle`, { params });
   }
   /** Motos a nivel detalle por (sede, credito PROPIO/GLOBAL, marca, tipo, vendedor) + # motos

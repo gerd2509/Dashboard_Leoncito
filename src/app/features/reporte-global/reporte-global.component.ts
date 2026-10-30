@@ -117,7 +117,10 @@ export class ReporteGlobalComponent implements OnInit {
 
   get detalleTotal(): number { return this.detalleFilas.reduce((s, f) => s + (f.monto || 0), 0); }
 
-  async abrirDetalleAliado(fila: FilaPivot, col: ColPivot): Promise<void> {
+  /** `dimension` decide por qué columna filtra el backend: 'entidad' (Aliados/Motos por
+   *  sede — GLOBAL GO/BRILLA/LEONCITO/…), 'marca' (Motos por Marca × Sede — Wanxin/Ssenda)
+   *  o 'tipo' (Motos por Tipo × Sede — Lineal/Mototaxi/Carguera). */
+  async abrirDetalle(fila: FilaPivot, col: ColPivot, dimension: 'entidad' | 'marca' | 'tipo' = 'entidad'): Promise<void> {
     const sedesRaw = [...(this.rawSedesPorKey.get(fila.sedeKey) || [])];
     if (!sedesRaw.length) return;
     this.detalleTitulo = `${fila.sede} — ${col.label}`;
@@ -127,7 +130,8 @@ export class ReporteGlobalComponent implements OnInit {
     this.detalleFilas = [];
     try {
       const { anio, mes } = this.form.value;
-      const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(anio, mes || undefined, undefined, sedesRaw, col.key));
+      const filtro = dimension === 'entidad' ? { entidad: col.key } : { [dimension]: col.key };
+      const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(anio, mes || undefined, undefined, sedesRaw, filtro));
       this.detalleFilas = filas || [];
     } catch (e) {
       console.error('Error detalle Reporte Global:', e);

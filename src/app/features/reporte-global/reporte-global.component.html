@@ -175,15 +175,15 @@
   <!-- ══════════ MOTOS por sede (GG vs propio) ══════════ -->
   <div class="am-pair">
     <div class="am-card">
-      <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(# operaciones)</em></div>
+      <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(# operaciones · clic en un número para ver el detalle)</em></div>
       <div class="am-scroll">
-        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosOps, moneda: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosOps, moneda: false, detallable: true, dimension: 'entidad' }"></ng-container>
       </div>
     </div>
     <div class="am-card">
-      <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(monto neto S/)</em></div>
+      <div class="am-cardhead moto"><mat-icon>two_wheeler</mat-icon> Motos por Sede <em>(monto neto S/ · clic en un número para ver el detalle)</em></div>
       <div class="am-scroll">
-        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMonto, moneda: true }"></ng-container>
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMonto, moneda: true, detallable: true, dimension: 'entidad' }"></ng-container>
       </div>
     </div>
   </div>
@@ -191,15 +191,15 @@
   <!-- ══════════ MOTOS por MARCA / TIPO × sede (# motos) ══════════ -->
   <div class="am-pair">
     <div class="am-card">
-      <div class="am-cardhead moto"><mat-icon>sell</mat-icon> Motos por Marca × Sede <em>(# motos)</em></div>
+      <div class="am-cardhead moto"><mat-icon>sell</mat-icon> Motos por Marca × Sede <em>(# motos · clic en un número para ver el detalle)</em></div>
       <div class="am-scroll">
-        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMarca, moneda: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosMarca, moneda: false, detallable: true, dimension: 'marca' }"></ng-container>
       </div>
     </div>
     <div class="am-card">
-      <div class="am-cardhead moto"><mat-icon>category</mat-icon> Motos por Tipo × Sede <em>(# motos · carguera = trimoto de carga)</em></div>
+      <div class="am-cardhead moto"><mat-icon>category</mat-icon> Motos por Tipo × Sede <em>(# motos · carguera = trimoto de carga · clic en un número para ver el detalle)</em></div>
       <div class="am-scroll">
-        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosTipo, moneda: false }"></ng-container>
+        <ng-container *ngTemplateOutlet="tabla; context: { $implicit: motosTipo, moneda: false, detallable: true, dimension: 'tipo' }"></ng-container>
       </div>
     </div>
   </div>
@@ -326,7 +326,7 @@
 </div>
 
 <!-- ══════════ Plantilla reutilizable de tabla pivote ══════════ -->
-<ng-template #tabla let-p let-moneda="moneda" let-detallable="detallable">
+<ng-template #tabla let-p let-moneda="moneda" let-detallable="detallable" let-dimension="dimension">
   <table class="am-table" *ngIf="p">
     <thead>
       <tr>
@@ -339,7 +339,7 @@
       <tr *ngFor="let f of p.filas">
         <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
         <td *ngFor="let c of p.cols" [class.rg-celda-click]="detallable && f.valores[c.key]"
-          (click)="detallable && f.valores[c.key] && abrirDetalleAliado(f, c)">
+          (click)="detallable && f.valores[c.key] && abrirDetalle(f, c, dimension || 'entidad')">
           {{ moneda ? soles(f.valores[c.key]) : (f.valores[c.key] | number) }}
         </td>
         <td class="tot">{{ moneda ? soles(f.total) : (f.total | number) }}</td>
