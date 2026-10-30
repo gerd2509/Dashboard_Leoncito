@@ -1,8 +1,13 @@
-:host { display: block; position: relative; }
+:host { display: block; position: relative; --mod-rgb: 255,193,69; }
 
 .am-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin: 4px 0 16px; }
-.am-title { display: flex; align-items: center; gap: 11px; }
-.am-title mat-icon { color: #1A5FAD; font-size: 28px; width: 28px; height: 28px; }
+.am-title { display: flex; align-items: center; gap: 13px; }
+.am-title mat-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 42px; height: 42px; border-radius: 12px; font-size: 22px;
+  background: linear-gradient(135deg, #1A5FAD, rgb(var(--mod-rgb)));
+  color: #fff; box-shadow: 0 6px 14px rgba(26,95,173,.26);
+}
 .am-title b { display: block; font-size: 15.5px; color: #1E3A5F; }
 .am-title small { display: block; font-size: 12px; color: #7d93a8; }
 .am-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -100,7 +105,7 @@
 }
 @keyframes rg-fade { from { opacity: 0; } to { opacity: 1; } }
 .rg-detalle-modal {
-  background: #fff; border-radius: 16px; width: 100%; max-width: 1080px; max-height: 86vh;
+  background: #fff; border-radius: 16px; width: 100%; max-width: 1360px; max-height: 86vh;
   display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 70px rgba(10,25,50,.45);
   animation: rg-pop .18s cubic-bezier(.22,1.2,.36,1) both;
 }
@@ -123,14 +128,17 @@
 .rg-detalle-tabla thead th {
   position: sticky; top: 0; z-index: 1; background: #f3f6fb;
 }
-.rg-detalle-tabla th:nth-child(1), .rg-detalle-tabla td:nth-child(1) { width: 17%; }
-.rg-detalle-tabla th:nth-child(2), .rg-detalle-tabla td:nth-child(2) { width: 17%; }
-.rg-detalle-tabla th:nth-child(3), .rg-detalle-tabla td:nth-child(3) { width: 42%; }
-.rg-detalle-tabla th:nth-child(4), .rg-detalle-tabla td:nth-child(4) { width: 12%; }
-.rg-detalle-tabla th:nth-child(5), .rg-detalle-tabla td:nth-child(5) { width: 12%; }
+.rg-detalle-tabla th:nth-child(1), .rg-detalle-tabla td:nth-child(1) { width: 10%; }
+.rg-detalle-tabla th:nth-child(2), .rg-detalle-tabla td:nth-child(2) { width: 15%; }
+.rg-detalle-tabla th:nth-child(3), .rg-detalle-tabla td:nth-child(3) { width: 15%; }
+.rg-detalle-tabla th:nth-child(4), .rg-detalle-tabla td:nth-child(4) { width: 36%; }
+.rg-detalle-tabla th:nth-child(5), .rg-detalle-tabla td:nth-child(5) { width: 13%; }
+.rg-detalle-tabla th:nth-child(6), .rg-detalle-tabla td:nth-child(6) { width: 11%; }
 .rg-detalle-tabla td { white-space: normal; word-break: break-word; }
 .rg-detalle-tabla td.ta-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rg-detalle-producto { text-transform: capitalize; }
+/* Producto es la celda más larga: se deja envolver en 2-3 líneas en vez de truncar con
+   "…" — con el ancho del modal ya alcanza, y así se ve el texto completo. */
+.rg-detalle-producto { text-transform: capitalize; white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
 .rg-detalle-tabla tbody tr:nth-child(even) { background: #fafcfe; }
 
 /* Badge de margen % */

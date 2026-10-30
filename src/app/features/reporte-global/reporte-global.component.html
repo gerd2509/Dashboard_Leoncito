@@ -370,15 +370,15 @@
     <div class="rg-detalle-body">
       <app-loading-overlay *ngIf="detalleCargando" [inline]="true" [visible]="detalleCargando" mensaje="Cargando detalle…" icon="receipt_long"></app-loading-overlay>
       <table class="am-table rg-detalle-tabla" *ngIf="!detalleCargando">
-        <thead><tr><th class="ta-l">Asesor</th><th class="ta-l">Cliente</th><th class="ta-l">Producto</th><th class="ta-l">Entidad</th><th>Monto</th><th>Fecha</th></tr></thead>
+        <thead><tr><th>Fecha</th><th class="ta-l">Asesor</th><th class="ta-l">Cliente</th><th class="ta-l">Producto</th><th class="ta-l">Entidad</th><th>Monto</th></tr></thead>
         <tbody>
           <tr *ngFor="let f of detalleFilas">
+            <td>{{ fechaCorta(f) }}</td>
             <td class="ta-l" [title]="f.vendedor">{{ nombreRank(f.vendedor) || '—' }}</td>
             <td class="ta-l" [title]="f.cliente">{{ nombreRank(f.cliente) || '—' }}</td>
             <td class="ta-l rg-detalle-producto" [title]="f.producto">{{ f.producto || '—' }}</td>
             <td class="ta-l">{{ f.entidad || '—' }}</td>
             <td class="tot">{{ soles(f.monto) }}</td>
-            <td>{{ fechaCorta(f) }}</td>
           </tr>
           <tr *ngIf="!detalleFilas.length" class="vacio"><td colspan="6">Sin ventas para esta celda</td></tr>
         </tbody>
