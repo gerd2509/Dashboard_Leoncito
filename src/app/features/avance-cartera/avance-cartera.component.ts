@@ -1393,25 +1393,26 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     return out;
   }
 
-  /** BASE final de una venta — replica la lógica real de Leoncito (hoja "Afect" del
-   *  Excel de control), con un ajuste: si la cartera del DNI está marcada
-   *  AFILIACIONES, eso manda primero (son ventas aparte de las "NUEVO" genéricas,
-   *  aunque también sean la primera compra del cliente — mismo cuadro "Gestión de
-   *  Base de Datos — AFILIACIONES (Nuevos)" que ya existe en el módulo). Si no,
-   *  y la VENTA viene marcada "CLIENTE NUEVO" (tabla `ventas`), es NUEVO sin
-   *  importar el resto de la cartera. Si es "CLIENTE RECURRENTE": REENGANCHE/
-   *  CANCELADO/LOVER A → R.VIGENTE; DORMIDO/NO VIGENTE/LOVER B → R.DORMIDO; si no
-   *  está en ninguna base → R. NO ASIGNADO (compró pero no tiene asesor asignado). */
+  /** BASE final de una venta: la CARTERA manda siempre que el DNI tenga match —
+   *  mismo criterio que usan los cuadros "Gestión de Base de Datos" de este mismo
+   *  módulo (buildSedes/grupoTipo, que suman TODAS las ventas del DNI sin mirar si
+   *  esa venta puntual vino marcada CLIENTE NUEVO o RECURRENTE) — así R.VIGENTE y
+   *  R.DORMIDO calzan con el Total general de esos cuadros (Lover A / Lover B).
+   *  AFILIACIONES / REENGANCHE+CANCELADO+LOVER A → R.VIGENTE / DORMIDO+NO
+   *  VIGENTE+LOVER B → R.DORMIDO / NUEVO (cartera) → NUEVO. Solo cuando el DNI NO
+   *  está en ninguna base se usa el flag de la venta: CLIENTE NUEVO → NUEVO (recién
+   *  llegado, nunca estuvo en una base) / si no, R. NO ASIGNADO (compró pero no
+   *  tiene asesor asignado). */
   private categoriaVentaFinal(ventaTipoCliente: string, baseCartera: string | undefined): string {
-    const b = (baseCartera || '').toUpperCase();
-    if (/AFILIAC/.test(b)) return 'AFILIACIONES';
-    const tc = (ventaTipoCliente || '').toUpperCase();
-    if (tc.includes('NUEVO')) return 'NUEVO';
-    if (!baseCartera) return 'R. NO ASIGNADO';
-    if (/REENGANCHE|CANCELAD|LOVER\s*A/.test(b)) return 'R.VIGENTE';
-    if (/DORMIDO|NO\s*VIGENTE|LOVER\s*B/.test(b)) return 'R.DORMIDO';
-    if (/NUEVO/.test(b)) return 'NUEVO';
-    return b || 'R. NO ASIGNADO';
+    if (baseCartera) {
+      const b = baseCartera.toUpperCase();
+      if (/AFILIAC/.test(b)) return 'AFILIACIONES';
+      if (/REENGANCHE|CANCELAD|LOVER\s*A/.test(b)) return 'R.VIGENTE';
+      if (/DORMIDO|NO\s*VIGENTE|LOVER\s*B/.test(b)) return 'R.DORMIDO';
+      if (/NUEVO/.test(b)) return 'NUEVO';
+      return b;
+    }
+    return (ventaTipoCliente || '').toUpperCase().includes('NUEVO') ? 'NUEVO' : 'R. NO ASIGNADO';
   }
 
   /** "Grupo Días" de una venta: quincena del mes en que se cerró (1 al 13 / 14 al
