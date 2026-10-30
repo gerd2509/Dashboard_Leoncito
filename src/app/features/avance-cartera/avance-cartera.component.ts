@@ -93,10 +93,11 @@ interface ParticipacionTipo { tipo: string; monto: number; pct: number; }
 interface NaturalezaVenta { label: string; monto: number; pct: number; }
 
 /** Una fila del detalle (una venta) detrás de Participación/Naturaleza — mismas
- *  columnas que el reporte de referencia (Asesor Asignado, Naturaleza, BASE, Sede). */
+ *  columnas que el reporte de referencia (Asesor Asignado, Naturaleza, BASE, Sede,
+ *  Grupo Días). */
 interface DetalleVentaTipo {
   dni: string; asesorAsignado: string; vendedor: string; naturaleza: string;
-  grupo: string; sedeNombre: string; monto: number; fecha: string;
+  grupo: string; sedeNombre: string; monto: number; fecha: string; grupoDias: string;
 }
 
 interface ResumenSede {
@@ -125,7 +126,7 @@ interface ResumenSede {
 }
 
 interface DetalleVenta { dni: string; cv: string; asesorBase: string; sedeBase: string; sedeVenta: string; monto: number; fecha: string; }
-interface VentaLista { cv: string; sedeKey: string; sedeNombre: string; monto: number; fecha: string; vendedor: string; }
+interface VentaLista { cv: string; sedeKey: string; sedeNombre: string; monto: number; fecha: string; vendedor: string; tipoCliente: string; }
 /** Un registro de gestión real (fecha/resultado) para el detalle de un cliente —
  *  detrás del número de "N° Gestiones" de la Intensidad. */
 interface RegistroGestionDetalle { fecha: Date; tipo: string; estado: string; celular: string; motivo: string; }
@@ -815,6 +816,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         listaDni.push({
           cv, sedeKey: sedeVenta, sedeNombre: this.sedeCfg.getConfig(sedeVenta)?.nombre ?? String(r.sede ?? ''),
           monto, fecha: String(r.fecha_cv ?? '').slice(0, 10), vendedor: (r.vendedor || '').toString().trim().toUpperCase(),
+          tipoCliente: (r.tipo_cliente || '').toString().trim().toUpperCase(),
         });
         this.ventasLista.set(dni, listaDni);
       }
@@ -1391,23 +1393,37 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     return out;
   }
 
-  /** BASE de un cliente para el donut de Participación: a diferencia de grupoTipo()
-   *  (que fusiona NUEVO+AFILIACIONES y DORMIDO+NO VIGENTE para los demás cuadros del
-   *  módulo), acá se respeta el TipoCliente tal cual viene en el Excel — así NUEVO y
-   *  AFILIACIONES salen como categorías separadas. Los de Call Center se agrupan
-   *  aparte en su propia categoría (no por su TipoCliente de piso). */
-  private categoriaVenta(c: ClienteCartera, esCallCenter: boolean): string {
-    if (esCallCenter) return 'CALL CENTER (Asignado)';
-    const t = (c.tipoCliente || '').toString().trim().toUpperCase();
-    return t && t !== 'SIN TIPO' ? t : 'SIN TIPO';
+  /** BASE final de una venta — replica la lógica real de Leoncito (hoja "Afect" del
+   *  Excel de control): si la VENTA viene marcada "CLIENTE NUEVO" (tabla `ventas`),
+   *  es NUEVO sin importar la cartera. Si es "CLIENTE RECURRENTE", se cruza su DNI
+   *  contra la cartera: REENGANCHE/CANCELADO/LOVER A → R.VIGENTE; DORMIDO/NO
+   *  VIGENTE/LOVER B → R.DORMIDO; si no está en ninguna base → R. NO ASIGNADO
+   *  (compró pero no tiene asesor asignado). */
+  private categoriaVentaFinal(ventaTipoCliente: string, baseCartera: string | undefined): string {
+    const tc = (ventaTipoCliente || '').toUpperCase();
+    if (tc.includes('NUEVO')) return 'NUEVO';
+    if (!baseCartera) return 'R. NO ASIGNADO';
+    const b = baseCartera.toUpperCase();
+    if (/REENGANCHE|CANCELAD|LOVER\s*A/.test(b)) return 'R.VIGENTE';
+    if (/DORMIDO|NO\s*VIGENTE|LOVER\s*B/.test(b)) return 'R.DORMIDO';
+    if (/NUEVO|AFILIAC/.test(b)) return 'NUEVO';
+    return b || 'R. NO ASIGNADO';
+  }
+
+  /** "Grupo Días" de una venta: quincena del mes en que se cerró (1 al 13 / 14 al
+   *  31), igual que la columna homónima del Excel de referencia. */
+  private grupoDiasDe(fecha: string): string {
+    const dia = parseInt((fecha || '').slice(8, 10), 10);
+    if (!dia) return '';
+    return dia <= 13 ? '1 al 13' : '14 al 31';
   }
 
   /** Detalle fila por fila (una por venta) detrás de Participación/Naturaleza — mismo
    *  scope (sede actual) y mismo filtro (ya sin NC/incautación). Cruza el DNI comprador
    *  contra la cartera/Call Center importada para saber su asesor asignado y su BASE
-   *  (categoriaVenta); si el DNI no está en ninguna base subida, queda "sin asignar".
-   *  De acá se derivan, sumando, tanto el donut por tipo de cliente como el cuadro de
-   *  Naturaleza — así los tres SIEMPRE suman lo mismo.
+   *  (categoriaVentaFinal); si el DNI no está en ninguna base subida, queda "sin
+   *  asignar". De acá se derivan, sumando, tanto el donut por tipo de cliente como el
+   *  cuadro de Naturaleza — así los tres SIEMPRE suman lo mismo.
    *
    *  OJO: Piso y Call Center son canales de venta DISTINTOS (tablas `ventas` vs
    *  `ventas_call`) — igual que la fila "Call Center" del resto del módulo
@@ -1418,13 +1434,13 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     const soloCallCenter = this.sedeDetalle === 'call-center';
     const scopeSede = (this.sedeDetalle && !soloCallCenter) ? this.sedeDetalle : null;
 
-    const dniInfoPiso = new Map<string, { asesor: string; grupo: string }>();
+    const dniInfoPiso = new Map<string, { asesor: string; tipoClienteCartera: string }>();
     for (const c of this.clientes) {
-      if (c.dni && !dniInfoPiso.has(c.dni)) dniInfoPiso.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, false) });
+      if (c.dni && !dniInfoPiso.has(c.dni)) dniInfoPiso.set(c.dni, { asesor: c.asesor, tipoClienteCartera: c.tipoCliente });
     }
-    const dniInfoCC = new Map<string, { asesor: string; grupo: string }>();
+    const dniInfoCC = new Map<string, { asesor: string }>();
     for (const c of this.clientesCallCenter) {
-      if (c.dni && !dniInfoCC.has(c.dni)) dniInfoCC.set(c.dni, { asesor: c.asesor, grupo: this.categoriaVenta(c, true) });
+      if (c.dni && !dniInfoCC.has(c.dni)) dniInfoCC.set(c.dni, { asesor: c.asesor });
     }
 
     const out: DetalleVentaTipo[] = [];
@@ -1443,7 +1459,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
             : (v.vendedor === asesorAsignado ? 'Vendido por el asesor asignado' : 'Vendido por otro asesor');
           out.push({
             dni, asesorAsignado: asesorAsignado || '—', vendedor: v.vendedor || '—', naturaleza,
-            grupo: info?.grupo ?? 'RECURRENTE — No asignado', sedeNombre: v.sedeNombre, monto: v.monto, fecha: v.fecha,
+            grupo: this.categoriaVentaFinal(v.tipoCliente, info?.tipoClienteCartera),
+            sedeNombre: v.sedeNombre, monto: v.monto, fecha: v.fecha, grupoDias: this.grupoDiasDe(v.fecha),
           });
         }
       }
@@ -1453,6 +1470,8 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       // Call Center: ventas de SU canal (ventasCallPorAsesor) — mismo cruce que usa
       // calcularVentasCCTotales/calcularVentasAsesor para esta fila en el resto del
       // módulo. Solo entra en la vista global o al elegir "Call Center" como sede.
+      // No se replica el NUEVO/RECURRENTE de piso: ventasCallPorAsesor no trae el
+      // TipoCliente por venta, solo el agregado — se agrupan aparte, como ya se hacía.
       const vistos = new Set<string>();
       for (const c of this.clientesCallCenter) {
         if (!c.dni || vistos.has(`${c.asesor}|${c.dni}`)) continue;
@@ -1461,7 +1480,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         if (!d || d.ops <= 0) continue;
         out.push({
           dni: c.dni, asesorAsignado: c.asesor, vendedor: c.asesor, naturaleza: 'Vendido por el asesor asignado',
-          grupo: this.categoriaVenta(c, true), sedeNombre: 'Call Center', monto: d.monto, fecha: '',
+          grupo: 'CALL CENTER (Asignado)', sedeNombre: 'Call Center', monto: d.monto, fecha: '', grupoDias: '',
         });
       }
     }

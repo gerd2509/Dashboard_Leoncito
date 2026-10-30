@@ -233,7 +233,7 @@
                   <th class="left">DNI</th><th class="left">Asesor Asignado</th>
                   <th class="left">Vendedor</th><th class="left">Naturaleza</th>
                   <th class="left">Negocio</th><th class="left">BASE</th>
-                  <th class="left">Sede</th><th>Monto</th><th>Fecha</th>
+                  <th class="left">Sede</th><th class="left">Grupo Días</th><th>Monto</th><th>Fecha</th>
                 </tr>
               </thead>
               <tbody>
@@ -245,6 +245,7 @@
                   <td class="left">Leoncito</td>
                   <td class="left">{{ d.grupo }}</td>
                   <td class="left">{{ d.sedeNombre }}</td>
+                  <td class="left">{{ d.grupoDias }}</td>
                   <td>{{ soles(d.monto) }}</td>
                   <td>{{ d.fecha }}</td>
                 </tr>
