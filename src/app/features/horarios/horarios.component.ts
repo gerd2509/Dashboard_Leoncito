@@ -191,7 +191,15 @@ export class HorariosComponent implements OnInit {
 
   private reconstruirMapas() {
     this.rotacionMap = new Map(this.rotacion.map(r => [r.asesor, r]));
-    this.cambiosMap = new Map(this.cambios.map(c => [`${c.asesor}|${new Date(c.fecha).getDate()}`, c]));
+    this.cambiosMap = new Map(this.cambios.map(c => [`${c.asesor}|${this.diaDeFecha(c.fecha)}`, c]));
+  }
+
+  /** Extrae el día del mes directo del string "YYYY-MM-DD..." que manda el backend, SIN
+   *  pasar por `new Date(...)` — eso interpreta una fecha sin hora como medianoche UTC, y
+   *  `.getDate()` la vuelve a convertir a hora LOCAL: en Perú (UTC-5) un 25 guardado se lee
+   *  como 24. Leer los dígitos del string evita por completo el corrimiento de huso horario. */
+  private diaDeFecha(fecha: string): number {
+    return parseInt(String(fecha).slice(8, 10), 10);
   }
 
   // ───────────────────── Motor de reglas (domingo cierra la semana) ─────────────────────
