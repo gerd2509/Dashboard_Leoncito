@@ -123,10 +123,10 @@
                 @for (d of diasMes; track d) {
                   <td class="cell" (click)="abrirPanel(a, d)" [title]="a.corto + ' · ' + d + ' · ' + etiquetaEstado(estadoDia(a.nombre, d))">
                     <div class="mk"
-                      [class.trabaja]="estadoDia(a.nombre, d).tipo === 'trabaja' && !estadoDia(a.nombre, d).manual"
-                      [class.desc-dom]="estadoDia(a.nombre, d).tipo === 'desc-dom'"
-                      [class.desc-sem]="estadoDia(a.nombre, d).tipo === 'desc-sem'"
-                      [class.override]="!!estadoDia(a.nombre, d).manual"></div>
+                      [class.trabaja]="estadoDia(a.nombre, d).tipo === 'trabaja'"
+                      [class.desc-dom]="estadoDia(a.nombre, d).tipo === 'desc-dom' && !estadoDia(a.nombre, d).manual"
+                      [class.desc-sem]="estadoDia(a.nombre, d).tipo === 'desc-sem' && !estadoDia(a.nombre, d).manual"
+                      [class.override]="!!estadoDia(a.nombre, d).manual && estadoDia(a.nombre, d).tipo !== 'trabaja'"></div>
                   </td>
                 }
               </tr>
