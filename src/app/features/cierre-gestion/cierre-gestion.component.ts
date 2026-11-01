@@ -9,6 +9,7 @@ import { CapSedesService } from '../../services/cap-sedes.service';
 import { nombreCorto as nombreCortoCompartido } from '../../shared/asesores';
 import { AsesoresPorTienda, NOMBRE_CORTO_PIURA } from '../../shared/asesores-por-tienda';
 import { TIENDAS_REALZZA, esGestorTiendaRealzza, tiendaFijaRealzza } from '../../shared/canal-usuario';
+import { HorariosService, HorarioReglas, HorarioCambio, estadoDiaAsesor } from '../../services/horarios.service';
 import * as XLSX from 'xlsx';
 import { DxSchedulerComponent } from 'devextreme-angular';
 
@@ -36,6 +37,14 @@ export class CierreGestionComponent implements OnInit {
   protected auth    = inject(AuthService);
   private cap = inject(CapSedesService);
   private tiendas = new AsesoresPorTienda(this.cap);
+  private horariosSvc = inject(HorariosService);
+
+  // Sede donde Horarios (rotación de día libre) está implementado — hoy solo Realzza
+  // Chiclayo. Se usa para no listar, en las 3 tablas de esa tienda, a un asesor que la
+  // fecha de `fechaGestion` tiene descanso según Horarios.
+  private readonly SEDE_HORARIOS = 'REALZZA CHICLAYO';
+  private horariosReglas: HorarioReglas = { slots: [], rotacion: [] };
+  private horariosCambios: HorarioCambio[] = [];
 
   // Tienda: Call Center · Realzza Chiclayo/Piura/Lima (asesores del CAP) · Todas (stackea
   // la gestión de cada una, una debajo de otra). Un gestor Realzza de Piura/Lima no ve el
@@ -247,6 +256,17 @@ export class CierreGestionComponent implements OnInit {
   private get asesoresRealzzaChiclayoContactables() {
     return this.asesoresRealzzaChiclayo.filter(a => !this.SIN_CONTACTABILIDAD_REALZZA.includes(a.value));
   }
+  // Mismo roster de arriba, pero sin quienes en Horarios tienen descanso/día libre la
+  // fecha de `fechaGestion` — así no aparecen en las 3 tablas de Realzza Chiclayo ese día.
+  private get asesoresRealzzaChiclayoHoy() {
+    return this.asesoresRealzzaChiclayoContactables.filter(a => !this.asesorDescansaHoy(a.viewValue));
+  }
+  private asesorDescansaHoy(nombreAsesor: string): boolean {
+    const f = this.obtenerFechaSeleccionada();
+    if (!f) return false;
+    const fecha = new Date(f.anio, f.mes - 1, f.dia);
+    return estadoDiaAsesor(nombreAsesor, fecha, this.horariosReglas, this.horariosCambios) !== 'trabaja';
+  }
 
   get asesoresKommoCall() {
     return this.kommoCallIds
@@ -313,11 +333,25 @@ export class CierreGestionComponent implements OnInit {
     return { desde: new Date(f.getFullYear(), f.getMonth(), 1), hasta: new Date(f.getFullYear(), f.getMonth() + 1, 0) };
   }
 
+  // Reglas/cambios de Horarios (Realzza Chiclayo) del mes seleccionado — para excluir de
+  // sus 3 tablas a quien esa fecha tiene descanso/día libre. Con fallback silencioso: si
+  // falla, simplemente no se excluye a nadie (no debe tumbar el resto de Cierre de Gestión).
+  private async cargarHorarios(desdeMes: Date): Promise<void> {
+    const anio = desdeMes.getFullYear(), mes = desdeMes.getMonth() + 1;
+    const [reglas, cambios] = await Promise.all([
+      lastValueFrom(this.horariosSvc.obtenerReglas(this.SEDE_HORARIOS, anio, mes)).catch(() => ({ slots: [], rotacion: [] } as HorarioReglas)),
+      lastValueFrom(this.horariosSvc.obtenerCambios(this.SEDE_HORARIOS, anio, mes)).catch(() => [] as HorarioCambio[])
+    ]);
+    this.horariosReglas = reglas;
+    this.horariosCambios = cambios;
+  }
+
   async ngOnInit() {
     this.isLoading = true;
     try {
       await this.tiendas.cargar();
       const r = this.rangoMes();
+      const horariosPromise = this.cargarHorarios(r.desde);
       const [dataCall, dataRealzza, dataKOMMO] = await Promise.all([
         lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
         lastValueFrom(this.service.getSheetDataCampoRango(r)),  // BD gestion_realzza (mes)
@@ -325,6 +359,7 @@ export class CierreGestionComponent implements OnInit {
         // lastValueFrom(this.service.getSheetDataPostVenta()),
         lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
+      await horariosPromise;
 
       this.dataOriginal = dataCall;
       this.dataRealzza = dataRealzza;
@@ -386,6 +421,7 @@ export class CierreGestionComponent implements OnInit {
     try {
       await this.tiendas.cargar();
       const r = this.rangoMes();
+      const horariosPromise = this.cargarHorarios(r.desde);
       const [dataCall, dataRealzza, dataKOMMO] = await Promise.all([
         lastValueFrom(this.service.getSheetDataCallRango(r)),   // BD gestion_call (mes)
         lastValueFrom(this.service.getSheetDataCampoRango(r)),  // BD gestion_realzza (mes)
@@ -393,6 +429,7 @@ export class CierreGestionComponent implements OnInit {
         // lastValueFrom(this.service.getSheetDataPostVenta()),
         lastValueFrom(this.service.getSheetKOMMORango(r))       // BD gestion_kommo (mes)
       ]);
+      await horariosPromise;
       this.dataOriginal = dataCall;
       this.dataRealzza = dataRealzza;
       // this.dataPostVenta = dataPost;
@@ -429,7 +466,7 @@ export class CierreGestionComponent implements OnInit {
         key: 'REALZZA', nombre: 'REALZZA CHICLAYO', icono: '🏢', claseBarra: 'realzza-bar',
         campoAsesor: 'ASESOR REALZZA', campoEstado: 'ESTADO DE GESTIÓN REALZZA', campoMarket: 'MARKET PLACE R',
         dataContactab: this.dataRealzza, dataKommo: this.dataKOMMO,
-        asesoresContactab: this.asesoresRealzzaChiclayoContactables, asesoresKommo: this.asesoresRealzzaChiclayoContactables,
+        asesoresContactab: this.asesoresRealzzaChiclayoHoy, asesoresKommo: this.asesoresRealzzaChiclayoHoy,
       },
       {
         key: 'REALZZA PIURA', nombre: 'REALZZA PIURA', icono: '🏢', claseBarra: 'realzza-bar',
