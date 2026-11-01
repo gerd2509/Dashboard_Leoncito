@@ -203,13 +203,12 @@ export class CierreGestionComponent implements OnInit {
     return a > 2026 || (a === 2026 && m >= 9);
   }
 
-  // LISTA ASESORES CALL CENTER (base, sin los que pasan a Realzza por fecha)
+  // LISTA ASESORES CALL CENTER (base, sin los que pasan a Realzza por fecha). Maria (CC6)
+  // y Judy (CC15) están RENUNCIA en el Maestro CAP — ya no cuentan, se sacaron de la lista.
   private asesoresCallBase = [
     { value: 'CC1', viewValue: 'MORETO DELGADO PATRICIA ESTEFANY' },
     { value: 'CC2', viewValue: 'VALDERA PISCOYA DEXY ROSARIO' },
     { value: 'CC5', viewValue: 'QUISPE FONSECA KAREN AIMEE' },
-    { value: 'CC6', viewValue: 'MORALES ÑIQUE MARIA CANDELARIA' },
-    { value: 'CC15', viewValue: 'TORRES ALVARADO JUDY ESMERALDA' },
     { value: 'CC19', viewValue: 'SANDOVAL OTINIANO JUANA DEL PILAR' }
   ];
 
@@ -229,22 +228,24 @@ export class CierreGestionComponent implements OnInit {
   private get asesoresRealzzaChiclayo() {
     return this.asesoresDeTienda('REALZZA');
   }
-  // Excluye a quien ya cuenta como CALL (asesoresCallBase) — p.ej. Patricia (CC1), cuya
-  // Sede en el CAP es "Realzza Chiclayo" (ahí cubre piso a veces) pero su gestión es
-  // Call: sin este filtro saldría duplicada, una vez en CALL y otra en REALZZA.
+  // Excluye solo a Patricia (CC1): su Sede en el CAP es "Realzza Chiclayo" (ahí cubre piso
+  // a veces) pero gestiona casi siempre por Call, así que se cuenta solo ahí. El resto de
+  // asesoresCallBase (Dexy, Karen Aimee, Juana) sí gestiona volumen real en Realzza además
+  // de Call — se muestran en ambos lados, cada tabla reflejando su actividad real de ese
+  // canal ese día (0 el día/canal que no trabajaron, dato real el que sí).
   private asesoresDeTienda(t: string): { value: string; viewValue: string }[] {
-    const nombresCall = new Set(this.asesoresCallBase.map(a => a.viewValue));
+    const patricia = this.asesoresCallBase[0].viewValue;
     return (this.tiendas.listaDe(t) ?? [])
-      .filter(n => !nombresCall.has(n))
+      .filter(n => n !== patricia)
       .map(n => ({ value: n, viewValue: n }));
   }
 
   // ── Sublistas KOMMO (mismo corte por fecha) ──
-  // Call KOMMO: KAREN, ESMERALDA (+KELLY, BRENDA hasta ago)
+  // Call KOMMO: DEXY, KAREN (+KELLY, BRENDA hasta ago)
   private get kommoCallIds() {
     return this.kellyAnitaRealzza
-      ? ['CC2', 'CC5', 'CC15']
-      : ['CC2', 'CC5', 'CC15', 'CC8', 'CC12'];
+      ? ['CC2', 'CC5']
+      : ['CC2', 'CC5', 'CC8', 'CC12'];
   }
   // Ana Rut y Nataly no participan en Contactabilidad, KOMMO ni Market Place de Realzza
   // Chiclayo — el resto de la tienda sí, en los 3 cuadros. Por nombre completo (ya no
@@ -272,13 +273,6 @@ export class CierreGestionComponent implements OnInit {
     return this.kommoCallIds
       .map(id => this.asesoresCall.find(a => a.value === id))
       .filter((a): a is { value: string; viewValue: string } => !!a);
-  }
-  // Las 3 tablas de CALL (Contactabilidad, KOMMO, Market Place) muestran SOLO a Patricia
-  // (CC1) — el resto del equipo CALL (Dexy/Karen/Maria/Judy/Juana) ya no gestiona estos 3
-  // cuadros. El resto del dashboard (agendamientos, derivaciones, etc.) sigue usando
-  // asesoresCall completo, sin cambios.
-  private get asesoresCallTablas() {
-    return this.asesoresCall.filter(a => a.value === 'CC1');
   }
   private textoPctTotal(d: any[]): string {
     const c = d.reduce((a, r) => a + (r['CONTACTO'] || 0), 0);
@@ -460,7 +454,7 @@ export class CierreGestionComponent implements OnInit {
         key: 'CALL', nombre: 'CALL CENTER', icono: '📞', claseBarra: 'call-bar',
         campoAsesor: 'ASESOR CONTACT', campoEstado: 'ESTADO DE GESTIÓN', campoMarket: 'MARKET PLACE L',
         dataContactab: this.dataOriginal, dataKommo: this.dataKOMMO,
-        asesoresContactab: this.asesoresCallTablas, asesoresKommo: this.asesoresCallTablas, asesoresMarket: this.asesoresCallTablas,
+        asesoresContactab: this.asesoresCall, asesoresKommo: this.asesoresKommoCall, asesoresMarket: this.asesoresCall,
       },
       {
         key: 'REALZZA', nombre: 'REALZZA CHICLAYO', icono: '🏢', claseBarra: 'realzza-bar',
