@@ -3,10 +3,17 @@ import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { AsistenciaService, MarcaAsistencia } from '../../services/asistencia.service';
 import { AuthService } from '../../services/auth.service';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
 
 interface ResultadoMarca {
   ok: boolean; sinUbicacion: boolean; titulo: string; detalle: string;
 }
+
+/** Fila + fecha "YYYY-MM-DD" derivada de creado_en, para agrupar el detalle por
+ *  día en la grilla (dataField ordenable como texto/cronológico a la vez) y
+ *  para el Excel exportado. */
+interface MarcaAsistenciaVM extends MarcaAsistencia { fechaGrupo: string; }
 
 /**
  * Registro de Asistencia (piloto, Realzza): un botón que toma la ubicación del
@@ -86,7 +93,7 @@ export class RegistroAsistenciaComponent implements OnInit {
   // ── Listado de revisión (admin/gerente/supervisor) — por MES, con combo de
   // sede y de asesor (filtran en el navegador sobre lo ya cargado del mes). ──
   cargandoListado = false;
-  filas: MarcaAsistencia[] = [];
+  filas: MarcaAsistenciaVM[] = [];
   mes: Date = new Date();
   sedeFiltro = '';     // '' = todas
   asesorFiltro = '';   // '' = todos
@@ -98,7 +105,7 @@ export class RegistroAsistenciaComponent implements OnInit {
   // maestro-cap.component.ts).
   sedesDisponibles: string[] = [];
   asesoresDisponibles: string[] = [];
-  filasFiltradas: MarcaAsistencia[] = [];
+  filasFiltradas: MarcaAsistenciaVM[] = [];
 
   private recomputarSedes(): void {
     this.sedesDisponibles = Array.from(new Set(this.filas.map(f => f.sede).filter(Boolean))).sort();
@@ -134,7 +141,8 @@ export class RegistroAsistenciaComponent implements OnInit {
     const hasta = this.ymd(new Date(anio, mesNum + 1, 0));   // último día del mes
     this.srv.listar(desde, hasta).subscribe({
       next: (rows) => {
-        this.filas = rows; this.cargandoListado = false;
+        this.filas = rows.map(f => ({ ...f, fechaGrupo: this.ymd(new Date(f.creado_en)) }));
+        this.cargandoListado = false;
         this.recomputarSedes(); this.recomputarAsesores(); this.recomputarFilasFiltradas();
       },
       error: () => { this.cargandoListado = false; },
@@ -144,6 +152,17 @@ export class RegistroAsistenciaComponent implements OnInit {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
+  /** Cabecera de cada grupo de fecha en la grilla: "lunes, 25 de noviembre" a partir
+   *  del "YYYY-MM-DD" agrupado — se parsea a mano (no `new Date(texto)`) para no
+   *  correr el día por huso horario (mismo caso que ya se corrigió en Horarios). */
+  fechaLegible(ymd: string): string {
+    const [y, m, d] = (ymd || '').split('-').map(Number);
+    if (!y || !m || !d) return ymd;
+    const fecha = new Date(y, m - 1, d);
+    const texto = fecha.toLocaleDateString('es-PE', { weekday: 'long', day: '2-digit', month: 'long' });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  }
+
   estadoClase(f: MarcaAsistencia): string {
     if (f.dentro_rango === null) return 'sin-config';
     return f.dentro_rango ? 'ok' : 'fuera';
@@ -151,5 +170,31 @@ export class RegistroAsistenciaComponent implements OnInit {
   estadoTexto(f: MarcaAsistencia): string {
     if (f.dentro_rango === null) return 'Sin ubicación configurada';
     return f.dentro_rango ? 'Dentro de rango' : 'Fuera de rango';
+  }
+
+  /** Excel de lo mostrado (respeta los filtros de sede/asesor activos). */
+  async exportarExcel(): Promise<void> {
+    const wb = new Workbook();
+    const ws = wb.addWorksheet('Asistencias');
+    const hr = ws.addRow(['Fecha', 'Hora', 'Asesor', 'Sede', 'Distancia (m)', 'Estado']);
+    hr.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
+    });
+    for (const f of this.filasFiltradas) {
+      const d = new Date(f.creado_en);
+      ws.addRow([
+        d.toLocaleDateString('es-PE'),
+        d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+        f.nombre, f.sede,
+        f.distancia_metros ?? '', this.estadoTexto(f),
+      ]);
+    }
+    ws.columns.forEach((col, i) => { col.width = i === 2 || i === 3 ? 28 : 14; });
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const mesLabel = `${this.mes.getFullYear()}-${String(this.mes.getMonth() + 1).padStart(2, '0')}`;
+    FileSaver.saveAs(blob, `Asistencias_${mesLabel}.xlsx`);
   }
 }

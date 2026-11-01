@@ -46,6 +46,9 @@
       <button class="ra-btn sm" type="button" (click)="cargarListado()" [disabled]="cargandoListado">
         <mat-icon>refresh</mat-icon> Actualizar
       </button>
+      <button class="ra-btn sm verde" type="button" (click)="exportarExcel()" [disabled]="!filasFiltradas.length">
+        <mat-icon>file_download</mat-icon> Exportar a Excel
+      </button>
     </div>
 
     <dx-data-grid [dataSource]="filasFiltradas" [showBorders]="true" [rowAlternationEnabled]="true"
@@ -54,13 +57,19 @@
       <dxo-filter-row [visible]="true"></dxo-filter-row>
       <dxo-paging [pageSize]="20"></dxo-paging>
       <dxo-sorting mode="multiple"></dxo-sorting>
-      <dxi-column dataField="creado_en" caption="Fecha y hora" dataType="datetime" [width]="150" sortOrder="desc"></dxi-column>
+      <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
+      <dxo-group-panel [visible]="false"></dxo-group-panel>
+      <dxi-column dataField="fechaGrupo" caption="Fecha" [groupIndex]="0" sortOrder="desc" groupCellTemplate="grupoTpl"></dxi-column>
+      <dxi-column dataField="creado_en" caption="Hora" dataType="datetime" format="HH:mm" [width]="90" sortOrder="desc"></dxi-column>
       <dxi-column dataField="nombre" caption="Asesor" [minWidth]="160"></dxi-column>
       <dxi-column dataField="sede" caption="Sede" [minWidth]="140"></dxi-column>
       <dxi-column dataField="distancia_metros" caption="Distancia" dataType="number" [width]="100" cellTemplate="distTpl"></dxi-column>
       <dxi-column caption="Estado" [width]="170" cellTemplate="estadoTpl" alignment="center"></dxi-column>
       <dxo-summary><dxi-total-item alignment="right" column="nombre" summaryType="count" displayFormat="Total: {0}"></dxi-total-item></dxo-summary>
 
+      <div *dxTemplate="let g of 'grupoTpl'">
+        <b>{{ fechaLegible(g.value) }}</b> <span class="ra-grupo-count">({{ g.data?.items?.length ?? g.data?.count }})</span>
+      </div>
       <div *dxTemplate="let c of 'distTpl'">{{ c.value != null ? (c.value | number) + ' m' : '—' }}</div>
       <div *dxTemplate="let c of 'estadoTpl'">
         <span class="ra-badge" [ngClass]="estadoClase(c.data)">{{ estadoTexto(c.data) }}</span>

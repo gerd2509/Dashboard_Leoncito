@@ -21,6 +21,10 @@
 .ra-btn:hover:not([disabled]) { background: #14497f; }
 .ra-btn[disabled] { opacity: .65; cursor: default; }
 .ra-btn.sm { width: auto; padding: 9px 16px; font-size: 13px; }
+.ra-btn.sm.verde { background: linear-gradient(135deg, #1E9E5A, #2ECC71); }
+.ra-btn.sm[disabled] { background: #cfd8dc; }
+
+.ra-grupo-count { font-weight: 600; color: #78909c; font-size: 12px; }
 .ra-btn mat-icon.girando { animation: ra-spin .8s linear infinite; }
 @keyframes ra-spin { to { transform: rotate(360deg); } }
 
