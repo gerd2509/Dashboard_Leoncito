@@ -149,6 +149,21 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   private valoresPctLlamadas: number[] = [];
   private valoresPctCartas: number[] = [];
 
+  // Sedes cerradas: dejan de aparecer en este módulo desde su fecha de cierre en
+  // adelante, pero SIGUEN saliendo si se elige un día anterior (histórico real de
+  // cuando sí operaban) — por eso no se borran de SedeConfigService (ese es
+  // compartido por toda la app y rompería el histórico de otros módulos también).
+  private readonly SEDES_CERRADAS_DESDE = new Map<string, Date>([
+    ['chongoyape', new Date(2026, 10, 1)],
+    ['oyotun', new Date(2026, 10, 1)],
+    ['cayalti', new Date(2026, 10, 1)],
+    ['jayanca', new Date(2026, 10, 1)],
+  ]);
+  private sedeSigueAbierta(key: string, fecha: Date): boolean {
+    const cierre = this.SEDES_CERRADAS_DESDE.get(key);
+    return !cierre || fecha < cierre;
+  }
+
   private listData: any[] = [];
   private sedesObjetivo: { key: string; nombre: string }[] = [];
   // Roster de vendedores ACTIVOS por sede, tomado del CAP (nombres correctos).
@@ -176,28 +191,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     this.cargarAfiliacionesLocal();   // afiliaciones guardadas en el navegador (si hay)
-    const u = this.auth.getUsuario();
-    const sedesU = this.auth.sedesUsuario();
-    const esGlobal = !u || u.rol === 'admin' || this.sedeConfig.incluyeTodas(sedesU);
-
-    if (esGlobal) {
-      // Orden por zona (CENTRO → NORTE → SUR) para que las tarjetas de detalle
-      // coincidan con el resumen agrupado. Excluye sedes `soloVentas` (de piso, sin
-      // gestión de Call Center, ej. Piura/Lima): no tienen llamadas/cartas que mostrar.
-      this.sedesObjetivo = this.sedeConfig.getSedesConGestionCall()
-        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
-    } else {
-      // Una o varias sedes/zonas asignadas al usuario (las zonas se expanden a sus sedes).
-      const sedesFisicas = this.sedeConfig.expandirSedes(sedesU);
-      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
-        .filter(s => sedesFisicas.includes(s.key))
-        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
-      if (!this.sedesObjetivo.length) {
-        const cfg = this.sedeConfig.getConfig(u!.sede);
-        if (cfg) this.sedesObjetivo = [{ key: this.sedeConfig.normalizar(u!.sede), nombre: cfg.nombre }];
-      }
-    }
-
+    this.recalcularSedesObjetivo();
     this.construirEvoScope();   // opciones de ámbito para la evolución (Global/Zona/Sede)
 
     // Mostrar headers de inmediato (skeleton) para que no se vea vacío al cargar
@@ -209,6 +203,38 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     // El CAP se carga en segundo plano; al llegar, recalcula con los nombres correctos.
     this.cargarRosterCap();
+  }
+
+  /** Arma `sedesObjetivo` según el perfil del usuario, filtrando además las sedes
+   *  cerradas que no sigan abiertas para la fecha elegida (sedeSigueAbierta). Se
+   *  llama en ngOnInit y de nuevo en cada cargarDatos(), para que cambiar el día a
+   *  un mes anterior (cuando una sede sí operaba) la vuelva a mostrar. */
+  private recalcularSedesObjetivo(): void {
+    const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
+    const u = this.auth.getUsuario();
+    const sedesU = this.auth.sedesUsuario();
+    const esGlobal = !u || u.rol === 'admin' || this.sedeConfig.incluyeTodas(sedesU);
+
+    if (esGlobal) {
+      // Orden por zona (CENTRO → NORTE → SUR) para que las tarjetas de detalle
+      // coincidan con el resumen agrupado. Excluye sedes `soloVentas` (de piso, sin
+      // gestión de Call Center, ej. Piura/Lima): no tienen llamadas/cartas que mostrar.
+      this.sedesObjetivo = this.sedeConfig.getSedesConGestionCall()
+        .filter(s => this.sedeSigueAbierta(s.key, fecha))
+        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
+    } else {
+      // Una o varias sedes/zonas asignadas al usuario (las zonas se expanden a sus sedes).
+      const sedesFisicas = this.sedeConfig.expandirSedes(sedesU);
+      this.sedesObjetivo = this.sedeConfig.getSedesParaCombo()
+        .filter(s => sedesFisicas.includes(s.key) && this.sedeSigueAbierta(s.key, fecha))
+        .sort((a, b) => this.ordenSedes.indexOf(a.key) - this.ordenSedes.indexOf(b.key));
+      if (!this.sedesObjetivo.length) {
+        const cfg = this.sedeConfig.getConfig(u!.sede);
+        if (cfg && this.sedeSigueAbierta(this.sedeConfig.normalizar(u!.sede), fecha)) {
+          this.sedesObjetivo = [{ key: this.sedeConfig.normalizar(u!.sede), nombre: cfg.nombre }];
+        }
+      }
+    }
   }
 
   // Roster de vendedores ACTIVOS por sede desde el CAP (no bloquea el render).
@@ -261,6 +287,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   async cargarDatos() {
     this.isLoading = true;
     try {
+      // Recalcula sedesObjetivo primero: si el usuario cambió la fecha a un mes
+      // donde una sede hoy cerrada seguía operando, debe reaparecer.
+      this.recalcularSedesObjetivo();
       // Solo el día seleccionado (el sheet de sedes es enorme; filtrar en el backend
       // evita descargar todo el histórico y que la app se cuelgue al refrescar).
       const fecha = this.formCtrl.value.fechaGestion as Date;
