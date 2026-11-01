@@ -982,23 +982,21 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   private construirResumenSedes(clientes: ClienteCartera[]): void {
     this.detIntensidad = null; this.detGestionCliente = null;   // cierra lo abierto: ya no es válido
     this.detSeguimiento = null;
-    // Prefijo por MES seleccionado → las metas se guardan por mes (cada mes independiente).
+    // Prefijo por MES seleccionado → las metas se guardan por mes y arrancan en 0 cada
+    // mes nuevo (son metas sobre la base de ESE mes, no un número global fijo — ese es
+    // el de Avance de Metas, que es otra cosa). Antes había un "respaldo" a la clave sin
+    // mes que, al evaluarse de nuevo cada vez que ese mes pasaba a ser "el actual", en la
+    // práctica nunca dejaba resetear nada — se quita.
     const ym = `${this.fecha.getFullYear()}-${String(this.fecha.getMonth() + 1).padStart(2, '0')}`;
-    // Respaldo de las metas ya cargadas (clave sin mes): solo se usa en el mes en curso,
-    // para no perder lo puesto; los demás meses arrancan limpios.
-    const hoy = new Date();
-    const esMesActual = hoy.getMonth() === this.fecha.getMonth() && hoy.getFullYear() === this.fecha.getFullYear();
-    const legacy = esMesActual ? 'cartera:' : '';
-    const legacyG = (g: string) => esMesActual ? 'cartera:' + g + ':' : '';
-    this.resumenSedes = this.buildSedes(clientes, `cartera:${ym}:`, legacy);
+    this.resumenSedes = this.buildSedes(clientes, `cartera:${ym}:`, '');
     this.sedesDisponiblesDetalle = this.resumenSedes.map(s => ({ key: s.sedeKey || 'sin-sede', nombre: s.sede }));
     // Cuadro consolidado general (Todos) + un cuadro separado por cada grupo de tipo de cliente.
-    this.consolidado = this.buildSedes(this.clientes, `cartera:${ym}:`, legacy);
+    this.consolidado = this.buildSedes(this.clientes, `cartera:${ym}:`, '');
     const grupos = [...new Set(this.clientes.map(c => this.grupoTipo(c.tipoCliente)))].sort();
     this.consolidadoGrupos = (grupos.length > 1 || (grupos.length === 1 && grupos[0] !== 'SIN TIPO'))
       ? grupos.map(g => ({
           grupo: g,
-          filas: this.buildSedes(this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === g), `cartera:${ym}:${g}:`, legacyG(g)),
+          filas: this.buildSedes(this.clientes.filter(c => this.grupoTipo(c.tipoCliente) === g), `cartera:${ym}:${g}:`, ''),
         }))
       : [];   // si no hay tipos reales, no muestra cuadros por grupo
 
