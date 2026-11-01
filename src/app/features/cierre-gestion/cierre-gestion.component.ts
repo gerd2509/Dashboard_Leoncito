@@ -220,8 +220,14 @@ export class CierreGestionComponent implements OnInit {
   private get asesoresRealzzaChiclayo() {
     return this.asesoresDeTienda('REALZZA');
   }
+  // Excluye a quien ya cuenta como CALL (asesoresCallBase) — p.ej. Patricia (CC1), cuya
+  // Sede en el CAP es "Realzza Chiclayo" (ahí cubre piso a veces) pero su gestión es
+  // Call: sin este filtro saldría duplicada, una vez en CALL y otra en REALZZA.
   private asesoresDeTienda(t: string): { value: string; viewValue: string }[] {
-    return (this.tiendas.listaDe(t) ?? []).map(n => ({ value: n, viewValue: n }));
+    const nombresCall = new Set(this.asesoresCallBase.map(a => a.viewValue));
+    return (this.tiendas.listaDe(t) ?? [])
+      .filter(n => !nombresCall.has(n))
+      .map(n => ({ value: n, viewValue: n }));
   }
 
   // ── Sublistas KOMMO (mismo corte por fecha) ──
