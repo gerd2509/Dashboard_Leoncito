@@ -253,6 +253,13 @@ export class CierreGestionComponent implements OnInit {
       .map(id => this.asesoresCall.find(a => a.value === id))
       .filter((a): a is { value: string; viewValue: string } => !!a);
   }
+  // Las 3 tablas de CALL (Contactabilidad, KOMMO, Market Place) muestran SOLO a Patricia
+  // (CC1) — el resto del equipo CALL (Dexy/Karen/Maria/Judy/Juana) ya no gestiona estos 3
+  // cuadros. El resto del dashboard (agendamientos, derivaciones, etc.) sigue usando
+  // asesoresCall completo, sin cambios.
+  private get asesoresCallTablas() {
+    return this.asesoresCall.filter(a => a.value === 'CC1');
+  }
   private textoPctTotal(d: any[]): string {
     const c = d.reduce((a, r) => a + (r['CONTACTO'] || 0), 0);
     const t = d.reduce((a, r) => a + (r['TOTAL'] || 0), 0);
@@ -416,7 +423,7 @@ export class CierreGestionComponent implements OnInit {
         key: 'CALL', nombre: 'CALL CENTER', icono: '📞', claseBarra: 'call-bar',
         campoAsesor: 'ASESOR CONTACT', campoEstado: 'ESTADO DE GESTIÓN', campoMarket: 'MARKET PLACE L',
         dataContactab: this.dataOriginal, dataKommo: this.dataKOMMO,
-        asesoresContactab: this.asesoresCall, asesoresKommo: this.asesoresKommoCall, asesoresMarket: this.asesoresCall,
+        asesoresContactab: this.asesoresCallTablas, asesoresKommo: this.asesoresCallTablas, asesoresMarket: this.asesoresCallTablas,
       },
       {
         key: 'REALZZA', nombre: 'REALZZA CHICLAYO', icono: '🏢', claseBarra: 'realzza-bar',
