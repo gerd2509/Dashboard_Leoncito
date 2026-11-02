@@ -545,7 +545,7 @@ export class VentasCampoComponent implements OnInit {
           IDVENTA: r.codigo_cv, FECHAVENTA: fechaCv, MontoConsolidado: Math.abs(monto), Productos: r.productos,
           ClienteVenta: margenCliente.get(id) || r.cliente_venta || '', DocIdentidad: (r.doc_identidad || '').toString().trim(),
           Vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(), EstadoVenta: r.estado_venta,
-          AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito,
+          AsesorVenta: r.asesor_venta, Entidad: r.entidad, TipoCredito: r.tipo_credito, TipoProducto: r.tipo_producto,
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(), LineaRealItems: lineaRealItems, Cuotas: r.cuotas,
           SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
           DiaAF: this.parseNumber(r.dia_af), MesAF: this.parseNumber(r.mes_af), AñoAF: this.parseNumber(r.anio_af),
@@ -735,6 +735,7 @@ export class VentasCampoComponent implements OnInit {
             AsesorVenta: row['AsesorVenta'],
             Entidad: row['Entidad'],
             TipoCredito: row['TipoCredito'],
+            TipoProducto: row['TipoProducto'],
             TipoBase: (row['TipoBase'] || '').toString().trim().toUpperCase(),
             LineaRealItems: lineaRealItems,
             DiaAF: this.parseNumber(row['DiaAF']),
@@ -1383,9 +1384,13 @@ export class VentasCampoComponent implements OnInit {
     this.maxMontoEntidad = this.ventasPorEntidad.length > 0 ? this.ventasPorEntidad[0].MontoVentas : 1;
   }
 
+  /** ¿El producto de la venta (o de la NC) es una moto? Mismo criterio en las 3 tablas. */
+  private esProductoMoto(tipoProducto: any): boolean {
+    return (tipoProducto || '').toString().toUpperCase().includes('MOTO');
+  }
+
   generarMotosPorEntidad(): void {
-    const motos = this.filtroVentas.filter(v =>
-      (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
+    const motos = this.filtroVentas.filter(v => this.esProductoMoto(v.TipoProducto));
     const allEnts = new Set(this.filtroVentas.map(v => this.entidadDisplay(v.Entidad)));
     const map = new Map<string, { monto: number; ops: number }>();
     allEnts.forEach(e => map.set(e, { monto: 0, ops: 0 }));
@@ -1394,23 +1399,27 @@ export class VentasCampoComponent implements OnInit {
       const cur = map.get(ent) || { monto: 0, ops: 0 };
       map.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
+    // NC/incautaciones de motos restan en su propio mes de afectación — mismo criterio
+    // que Ventas por Entidad/Tipo de Crédito (agruparNCTodas). Las NC que NO son de moto
+    // caen en una clave aparte y no tocan este cuadro.
+    const mapNC = this.agruparNCTodas(nc => this.esProductoMoto(nc.TipoProducto) ? this.entidadDisplay(nc.Entidad) : '');
     this.motosPorEntidad = Array.from(map, ([Entidad, d]) => ({
-      Entidad, Monto: Math.round(d.monto), NroOps: d.ops
+      Entidad, Monto: Math.round(d.monto - (mapNC.get(Entidad) || 0)), NroOps: d.ops
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoEntidad = this.motosPorEntidad.length > 0 ? this.motosPorEntidad[0].Monto : 1;
   }
 
   generarMotosPorTipoProducto(): void {
-    const motos = this.filtroVentas.filter(v =>
-      (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
+    const motos = this.filtroVentas.filter(v => this.esProductoMoto(v.TipoProducto));
     const map = new Map<string, { monto: number; ops: number }>();
     motos.forEach(v => {
       const tipo = v.TipoProducto || 'SIN TIPO';
       const cur = map.get(tipo) || { monto: 0, ops: 0 };
       map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
+    const mapNC = this.agruparNCTodas(nc => this.esProductoMoto(nc.TipoProducto) ? (nc.TipoProducto || 'SIN TIPO') : '');
     this.motosPorTipoProducto = Array.from(map, ([TipoProducto, d]) => ({
-      TipoProducto, Monto: Math.round(d.monto), NroOps: d.ops
+      TipoProducto, Monto: Math.round(d.monto - (mapNC.get(TipoProducto) || 0)), NroOps: d.ops
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoTipo = this.motosPorTipoProducto.length > 0 ? this.motosPorTipoProducto[0].Monto : 1;
   }
@@ -1420,16 +1429,18 @@ export class VentasCampoComponent implements OnInit {
    *  muestran TODAS las motos (incl. "SIN TIPO DE BASE") para que el total cuadre con
    *  Motos por Entidad y Motos por Tipo Producto, que están al lado. */
   generarMotosPorTipoBase(): void {
-    const motos = this.filtroVentas.filter(v =>
-      (v.TipoProducto || '').toString().toUpperCase().includes('MOTO'));
+    const motos = this.filtroVentas.filter(v => this.esProductoMoto(v.TipoProducto));
     const map = new Map<string, { monto: number; ops: number }>();
     motos.forEach(v => {
       const tipo = (v.TipoBase || '').toString().trim().toUpperCase() || 'SIN TIPO DE BASE';
       const cur = map.get(tipo) || { monto: 0, ops: 0 };
       map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
+    const mapNC = this.agruparNCTodas(nc => this.esProductoMoto(nc.TipoProducto)
+      ? ((nc.TipoBase || '').toString().trim().toUpperCase() || 'SIN TIPO DE BASE')
+      : '');
     this.motosPorTipoBase = Array.from(map, ([TipoBase, d]) => ({
-      TipoBase, Monto: Math.round(d.monto), NroOps: d.ops
+      TipoBase, Monto: Math.round(d.monto - (mapNC.get(TipoBase) || 0)), NroOps: d.ops
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoTipoBase = this.motosPorTipoBase.length > 0 ? this.motosPorTipoBase[0].Monto : 1;
   }
