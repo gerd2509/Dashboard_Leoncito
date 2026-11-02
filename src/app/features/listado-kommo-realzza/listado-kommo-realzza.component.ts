@@ -57,6 +57,11 @@ export class ListadoKommoRealzzaComponent implements OnInit {
 
   filas: FilaLead[] = [];
 
+  // Embudos que ya no deben salir en este listado (Ana Rut/Anyela/Nataly ya no gestionan
+  // y "Embudo de ventas" es un embudo genérico, no de un asesor) — se filtran apenas
+  // llega la data, así tampoco cuentan en los resúmenes por embudo/día de abajo.
+  private readonly EMBUDOS_EXCLUIDOS = new Set(['ANA RUT', 'EMBUDO DE VENTAS', 'ANYELA I AV7', 'NATALY AV2']);
+
   readonly anios = [2025, 2026];
   readonly meses = [
     { v: 1, t: 'Enero' }, { v: 2, t: 'Febrero' }, { v: 3, t: 'Marzo' },
@@ -100,9 +105,10 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     this.isLoading = true; this.error = '';
     try {
       const { anio, mes } = this.form.value;
-      this.filas = await lastValueFrom(this.verTodo
+      const filas = await lastValueFrom(this.verTodo
         ? this.ventasSrv.obtenerListadoLeadsKommo(undefined, undefined, this.tienda)
         : this.ventasSrv.obtenerListadoLeadsKommo(anio, mes, this.tienda));
+      this.filas = filas.filter(f => !this.EMBUDOS_EXCLUIDOS.has((f.embudo || '').toString().trim().toUpperCase()));
     } catch (e) {
       console.error('Error al cargar el listado de Kommo:', e);
       this.error = 'No se pudo cargar el listado.';
