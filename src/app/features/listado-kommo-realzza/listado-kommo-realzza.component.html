@@ -131,6 +131,40 @@
         </tfoot>
       </table>
     </div>
+
+    <div class="lk-resumen" *ngIf="resumenPorDia.length">
+      <h3><mat-icon>calendar_month</mat-icon> Leads por día — {{ meses[form.value.mes - 1].t }} {{ form.value.anio }}</h3>
+      <p class="lk-resumen-hint">Cuántos leads cayeron cada día del mes, cuántos ya están respondidos y la concreción (% respondidos). Refleja el filtro o búsqueda activo en la grilla de arriba.</p>
+      <table class="lk-tabla-resumen">
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>N° Leads</th>
+            <th>Respondidos</th>
+            <th>Sin responder</th>
+            <th>% Concreción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of resumenPorDia">
+            <td class="lk-tr-embudo">{{ r.dia }}</td>
+            <td class="lk-tr-num">{{ r.total | number }}</td>
+            <td class="lk-tr-num lk-tr-si">{{ r.respondidos | number }}</td>
+            <td class="lk-tr-num" [class.lk-tr-no]="r.noRespondidos > 0">{{ r.noRespondidos | number }}</td>
+            <td class="lk-tr-num">{{ r.total ? (r.pctConcrecion | number:'1.1-1') : '—' }}{{ r.total ? '%' : '' }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td class="lk-tr-num">{{ resumenTotal.total | number }}</td>
+            <td class="lk-tr-num lk-tr-si">{{ resumenTotal.respondidos | number }}</td>
+            <td class="lk-tr-num lk-tr-no">{{ resumenTotal.noRespondidos | number }}</td>
+            <td class="lk-tr-num">{{ resumenTotal.total ? (resumenTotal.respondidos / resumenTotal.total * 100 | number:'1.1-1') : 0 }}%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   </div>
 
   <div class="ak-wrap" *ngIf="mostrarAuditoria">

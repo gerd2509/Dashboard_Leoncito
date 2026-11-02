@@ -23,6 +23,10 @@ interface ResumenEmbudo {
   embudo: string; total: number; respondidos: number; noRespondidos: number; pctRespondidos: number;
 }
 
+interface ResumenDia {
+  dia: number; total: number; respondidos: number; noRespondidos: number; pctConcrecion: number;
+}
+
 /**
  * "Listado Kommo Realzza": trae los leads del mes directo de la API de Kommo (botón
  * Sincronizar) y los lista con su embudo/estado/fechas/quién los modificó — para ver
@@ -200,8 +204,16 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   get pctSinResponder(): number { return this.totalLeads ? (this.totalSinResponder / this.totalLeads) * 100 : 0; }
 
   resumenEmbudo: ResumenEmbudo[] = [];
+  resumenPorDia: ResumenDia[] = [];
 
-  /** Recalcula el detalle por asesor/embudo a partir de TODO lo que cumple el
+  /** Extrae el día del mes directo del string "D/M/YYYY" que manda el backend
+   *  (concatenación literal de dia_cr/mes_cr/anio_cr, sin pasar por Date). */
+  private diaDeFechaCreacion(fechaStr: string): number {
+    const dia = parseInt((fechaStr || '').split('/')[0], 10);
+    return isNaN(dia) ? 0 : dia;
+  }
+
+  /** Recalcula el detalle por asesor/embudo y por día a partir de TODO lo que cumple el
    *  filtro/búsqueda activo en la grilla (no solo la página visible) — se dispara
    *  cada vez que la grilla re-renderiza por un filtro, búsqueda o carga nueva.
    *  Usa el mismo truco que los exports: lee del store con el filtro combinado,
@@ -228,6 +240,29 @@ export class ListadoKommoRealzzaComponent implements OnInit {
         pctRespondidos: total ? (respondidos / total) * 100 : 0,
       }))
       .sort((a, b) => b.total - a.total);
+
+    // Leads por día del mes seleccionado — solo tiene sentido con un mes puntual elegido
+    // (en "Ver Todo" se mezclarían leads de distintos meses en el mismo número de día).
+    const { anio, mes } = this.form.value;
+    if (this.verTodo || !anio || !mes) { this.resumenPorDia = []; return; }
+    const porDia = new Map<number, { total: number; respondidos: number }>();
+    for (const f of datos) {
+      const dia = this.diaDeFechaCreacion(f.fecha_creacion);
+      if (!dia) continue;
+      const acc = porDia.get(dia) || { total: 0, respondidos: 0 };
+      acc.total++;
+      if (f.respondido) acc.respondidos++;
+      porDia.set(dia, acc);
+    }
+    const diasMes = new Date(anio, mes, 0).getDate();
+    this.resumenPorDia = Array.from({ length: diasMes }, (_, i) => i + 1).map(dia => {
+      const { total, respondidos } = porDia.get(dia) || { total: 0, respondidos: 0 };
+      return {
+        dia, total, respondidos, noRespondidos: total - respondidos,
+        // Concreción = % de los leads del día que ya están gestionados/respondidos.
+        pctConcrecion: total ? (respondidos / total) * 100 : 0,
+      };
+    });
   }
 
   get resumenTotal(): { total: number; respondidos: number; noRespondidos: number } {
