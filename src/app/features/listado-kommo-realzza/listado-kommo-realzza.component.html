@@ -132,31 +132,34 @@
       </table>
     </div>
 
-    <div class="lk-resumen" *ngIf="resumenPorDia.length">
-      <h3><mat-icon>calendar_month</mat-icon> Leads por día y embudo — {{ meses[form.value.mes - 1].t }} {{ form.value.anio }}</h3>
-      <p class="lk-resumen-hint">Cuántos leads cayeron cada día en cada embudo, cuántos ya están respondidos y la concreción (% respondidos). Solo días ya transcurridos del mes. Refleja el filtro o búsqueda activo en la grilla de arriba.</p>
-      <dx-data-grid [dataSource]="resumenPorDia" [showBorders]="true" [showColumnLines]="true" [showRowLines]="true"
-          [columnAutoWidth]="true" [hoverStateEnabled]="true">
-        <dxo-paging [enabled]="false"></dxo-paging>
-        <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
-        <dxo-group-panel [visible]="false"></dxo-group-panel>
-        <dxi-column dataField="dia" caption="Día" [groupIndex]="0" sortOrder="desc" groupCellTemplate="diaGrupoTpl"></dxi-column>
-        <dxi-column dataField="embudo" caption="Embudo" alignment="left" [minWidth]="140"></dxi-column>
-        <dxi-column dataField="total" caption="N° Leads" alignment="center"></dxi-column>
-        <dxi-column dataField="respondidos" caption="Respondidos" alignment="center" cellTemplate="respondidosTpl"></dxi-column>
-        <dxi-column dataField="noRespondidos" caption="Sin responder" alignment="center" cellTemplate="noRespondidosTpl"></dxi-column>
-        <dxi-column dataField="pctConcrecion" caption="% Concreción" alignment="center" cellTemplate="pctTpl"></dxi-column>
-
-        <div *dxTemplate="let g of 'diaGrupoTpl'">
-          <b>Día {{ g.value }}</b>
-          <span class="lk-resumen-hint" style="margin:0 0 0 8px;">
-            {{ totalDeGrupoDia(g).total | number }} leads · {{ totalDeGrupoDia(g).respondidos | number }} respondidos · {{ totalDeGrupoDia(g).noRespondidos | number }} sin responder · {{ totalDeGrupoDia(g).pctConcrecion | number:'1.0-0' }}% concreción
-          </span>
-        </div>
-        <div *dxTemplate="let c of 'respondidosTpl'"><span class="lk-tr-si">{{ c.value | number }}</span></div>
-        <div *dxTemplate="let c of 'noRespondidosTpl'"><span [class.lk-tr-no]="c.value > 0">{{ c.value | number }}</span></div>
-        <div *dxTemplate="let c of 'pctTpl'">{{ c.data.total ? (c.value | number:'1.1-1') + '%' : '—' }}</div>
-      </dx-data-grid>
+    <div class="lk-resumen" *ngIf="pivotLeadsPorDia as p">
+      <h3><mat-icon>calendar_month</mat-icon> Leads por embudo y día — {{ meses[form.value.mes - 1].t }} {{ form.value.anio }}</h3>
+      <p class="lk-resumen-hint">Cuántos leads cayeron en cada embudo, día por día. Solo días ya transcurridos del mes. Refleja el filtro o búsqueda activo en la grilla de arriba.</p>
+      <div style="overflow-x:auto;">
+        <table class="lk-tabla-resumen">
+          <thead>
+            <tr>
+              <th>Embudo</th>
+              <th *ngFor="let c of p.cols" class="lk-tr-num">{{ c.dia }}</th>
+              <th class="lk-tr-num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of p.filas">
+              <td class="lk-tr-embudo">{{ f.embudo }}</td>
+              <td *ngFor="let c of p.cols" class="lk-tr-num">{{ f.valores[c.key] || '' }}</td>
+              <td class="lk-tr-num"><b>{{ f.total | number }}</b></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td *ngFor="let c of p.cols" class="lk-tr-num">{{ p.totales[c.key] || '' }}</td>
+              <td class="lk-tr-num">{{ p.totalGeneral | number }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   </div>
 

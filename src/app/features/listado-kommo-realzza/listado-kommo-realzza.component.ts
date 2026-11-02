@@ -23,9 +23,9 @@ interface ResumenEmbudo {
   embudo: string; total: number; respondidos: number; noRespondidos: number; pctRespondidos: number;
 }
 
-interface ResumenDiaEmbudo {
-  dia: number; embudo: string; total: number; respondidos: number; noRespondidos: number; pctConcrecion: number;
-}
+interface ColDia { key: string; dia: number; }
+interface FilaPivotEmbudo { embudo: string; valores: Record<string, number>; total: number; }
+interface PivotLeadsDia { cols: ColDia[]; filas: FilaPivotEmbudo[]; totales: Record<string, number>; totalGeneral: number; }
 
 /**
  * "Listado Kommo Realzza": trae los leads del mes directo de la API de Kommo (botón
@@ -210,7 +210,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   get pctSinResponder(): number { return this.totalLeads ? (this.totalSinResponder / this.totalLeads) * 100 : 0; }
 
   resumenEmbudo: ResumenEmbudo[] = [];
-  resumenPorDia: ResumenDiaEmbudo[] = [];
+  pivotLeadsPorDia: PivotLeadsDia | null = null;
 
   /** Extrae el día del mes directo del string "D/M/YYYY" que manda el backend
    *  (concatenación literal de dia_cr/mes_cr/anio_cr, sin pasar por Date). */
@@ -247,45 +247,37 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Leads por día y por embudo del mes seleccionado — solo tiene sentido con un mes
-    // puntual elegido (en "Ver Todo" se mezclarían leads de distintos meses en el mismo
-    // número de día). Solo días YA TRANSCURRIDOS: si es el mes en curso, hasta hoy; si es
-    // un mes pasado, todos sus días; si fuera un mes futuro, ninguno.
+    // Leads por día (columnas) × embudo (filas) del mes seleccionado — solo tiene sentido
+    // con un mes puntual elegido (en "Ver Todo" se mezclarían leads de distintos meses en
+    // el mismo número de día). Solo columnas de días YA TRANSCURRIDOS: si es el mes en
+    // curso, hasta hoy; si es un mes pasado, todos sus días; si fuera un mes futuro, ninguna.
     const { anio, mes } = this.form.value;
-    if (this.verTodo || !anio || !mes) { this.resumenPorDia = []; return; }
+    if (this.verTodo || !anio || !mes) { this.pivotLeadsPorDia = null; return; }
     const hoy = new Date();
     const esMesActual = hoy.getFullYear() === anio && hoy.getMonth() + 1 === mes;
     const esMesFuturo = anio > hoy.getFullYear() || (anio === hoy.getFullYear() && mes > hoy.getMonth() + 1);
     const diasMes = new Date(anio, mes, 0).getDate();
     const diasTranscurridos = esMesFuturo ? 0 : (esMesActual ? hoy.getDate() : diasMes);
+    if (!diasTranscurridos) { this.pivotLeadsPorDia = null; return; }
 
-    const porDiaEmbudo = new Map<string, { dia: number; embudo: string; total: number; respondidos: number }>();
+    const cols: ColDia[] = Array.from({ length: diasTranscurridos }, (_, i) => ({ key: String(i + 1), dia: i + 1 }));
+    const porEmbudoDia = new Map<string, Record<string, number>>();
+    const totales: Record<string, number> = {};
+    cols.forEach(c => (totales[c.key] = 0));
     for (const f of datos) {
       const dia = this.diaDeFechaCreacion(f.fecha_creacion);
       if (!dia || dia > diasTranscurridos) continue;
       const embudo = f.embudo || 'SIN EMBUDO';
-      const clave = `${dia}|${embudo}`;
-      const acc = porDiaEmbudo.get(clave) || { dia, embudo, total: 0, respondidos: 0 };
-      acc.total++;
-      if (f.respondido) acc.respondidos++;
-      porDiaEmbudo.set(clave, acc);
+      let fila = porEmbudoDia.get(embudo);
+      if (!fila) { fila = {}; cols.forEach(c => (fila![c.key] = 0)); porEmbudoDia.set(embudo, fila); }
+      fila[String(dia)] = (fila[String(dia)] || 0) + 1;
+      totales[String(dia)] = (totales[String(dia)] || 0) + 1;
     }
-    this.resumenPorDia = [...porDiaEmbudo.values()]
-      .map(({ dia, embudo, total, respondidos }) => ({
-        dia, embudo, total, respondidos, noRespondidos: total - respondidos,
-        // Concreción = % de los leads del día (de ese embudo) que ya están gestionados/respondidos.
-        pctConcrecion: total ? (respondidos / total) * 100 : 0,
-      }))
-      .sort((a, b) => b.dia - a.dia || b.total - a.total);
-  }
-
-  /** Total/respondidos/concreción de TODO un grupo "Día X" (todos sus embudos juntos),
-   *  para el encabezado del grupo en la grilla "Leads por día y embudo". */
-  totalDeGrupoDia(g: any): { total: number; respondidos: number; noRespondidos: number; pctConcrecion: number } {
-    const items: ResumenDiaEmbudo[] = g?.data?.items || [];
-    const total = items.reduce((s, r) => s + r.total, 0);
-    const respondidos = items.reduce((s, r) => s + r.respondidos, 0);
-    return { total, respondidos, noRespondidos: total - respondidos, pctConcrecion: total ? (respondidos / total) * 100 : 0 };
+    const filas: FilaPivotEmbudo[] = [...porEmbudoDia.entries()]
+      .map(([embudo, valores]) => ({ embudo, valores, total: Object.values(valores).reduce((s, v) => s + v, 0) }))
+      .sort((a, b) => b.total - a.total);
+    const totalGeneral = filas.reduce((s, f) => s + f.total, 0);
+    this.pivotLeadsPorDia = { cols, filas, totales, totalGeneral };
   }
 
   get resumenTotal(): { total: number; respondidos: number; noRespondidos: number } {
