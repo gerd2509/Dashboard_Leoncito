@@ -19,9 +19,9 @@
       <mat-icon>error_outline</mat-icon> {{ errorGeo }}
     </div>
 
-    <div class="ra-msg" [class.ok]="resultado.ok && !resultado.sinUbicacion" [class.warn]="!resultado.ok"
-      [class.neutro]="resultado.sinUbicacion" *ngIf="resultado">
-      <mat-icon>{{ resultado.sinUbicacion ? 'info' : (resultado.ok ? 'check_circle' : 'warning') }}</mat-icon>
+    <div class="ra-msg" [class.ok]="resultado.ok && !resultado.sinUbicacion && !resultado.yaRegistrado" [class.warn]="!resultado.ok"
+      [class.neutro]="resultado.sinUbicacion || resultado.yaRegistrado" *ngIf="resultado">
+      <mat-icon>{{ resultado.yaRegistrado ? 'event_available' : (resultado.sinUbicacion ? 'info' : (resultado.ok ? 'check_circle' : 'warning')) }}</mat-icon>
       <div><b>{{ resultado.titulo }}</b><br><small>{{ resultado.detalle }}</small></div>
     </div>
   </div>

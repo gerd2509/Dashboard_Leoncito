@@ -7,7 +7,7 @@ import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 
 interface ResultadoMarca {
-  ok: boolean; sinUbicacion: boolean; titulo: string; detalle: string;
+  ok: boolean; sinUbicacion: boolean; yaRegistrado: boolean; titulo: string; detalle: string;
 }
 
 /** Fila + fecha "YYYY-MM-DD" derivada de creado_en, para agrupar el detalle por
@@ -61,23 +61,34 @@ export class RegistroAsistenciaComponent implements OnInit {
             this.marcando = false;
             if (r.sinUbicacionConfigurada) {
               this.resultado = {
-                ok: true, sinUbicacion: true, titulo: 'Asistencia registrada',
+                ok: true, sinUbicacion: true, yaRegistrado: false, titulo: 'Asistencia registrada',
                 detalle: 'Tu tienda todavía no tiene una ubicación configurada, así que no se validó la distancia — igual quedó guardada.',
               };
             } else if (r.dentroRango) {
               this.resultado = {
-                ok: true, sinUbicacion: false, titulo: '¡Asistencia registrada!',
+                ok: true, sinUbicacion: false, yaRegistrado: false, titulo: '¡Asistencia registrada!',
                 detalle: `Estás a ${r.distanciaMetros} m de ${r.sede}.`,
               };
             } else {
               this.resultado = {
-                ok: false, sinUbicacion: false, titulo: 'Registrada, pero fuera de ubicación',
+                ok: false, sinUbicacion: false, yaRegistrado: false, titulo: 'Registrada, pero fuera de ubicación',
                 detalle: `Estás a ${r.distanciaMetros} m de ${r.sede}. Quedó marcada para revisión.`,
               };
             }
             if (this.puedeVerListado) this.cargarListado();
           },
-          error: () => { this.marcando = false; this.errorGeo = 'No se pudo registrar tu asistencia. Intenta de nuevo.'; },
+          error: (err) => {
+            this.marcando = false;
+            if (err?.error?.yaRegistrado) {
+              const hora = err.error.creadoEn ? new Date(err.error.creadoEn).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : '';
+              this.resultado = {
+                ok: true, sinUbicacion: false, yaRegistrado: true, titulo: 'Ya registraste tu asistencia hoy',
+                detalle: hora ? `Tu asistencia de hoy quedó registrada a las ${hora}. No puedes volver a marcarla.` : 'Ya marcaste tu asistencia hoy. No puedes volver a marcarla.',
+              };
+              return;
+            }
+            this.errorGeo = 'No se pudo registrar tu asistencia. Intenta de nuevo.';
+          },
         });
       },
       (err) => {

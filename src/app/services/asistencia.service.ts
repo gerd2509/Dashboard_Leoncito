@@ -13,6 +13,10 @@ export interface RespuestaAsistencia {
   success: boolean; id: number; creadoEn: string; sede: string;
   distanciaMetros: number | null; dentroRango: boolean | null; sinUbicacionConfigurada: boolean;
 }
+/** Body del error 409 cuando el usuario intenta marcar dos veces el mismo día. */
+export interface AsistenciaYaRegistrada {
+  success: false; yaRegistrado: true; message: string; creadoEn: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AsistenciaService {
