@@ -1021,6 +1021,20 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
           `cartera:${ym}:${cg.grupo}:call-center`)],
       }));
     }
+    // "Asignados Totales": la meta por sede ya no se edita aparte — es la SUMA de lo
+    // puesto en cada tabla de tipo de base (Afiliaciones, Lover A, Lover B, ...) para esa
+    // misma sede. Se recalcula sola cada vez que cambia una meta de esas tablas.
+    if (this.consolidadoGrupos.length) {
+      const metaPorSede = new Map<string, number>();
+      this.consolidadoGrupos.forEach(cg => cg.filas.forEach(f => {
+        const sk = f.sedeKey || 'sin-sede';
+        metaPorSede.set(sk, (metaPorSede.get(sk) || 0) + (f.meta || 0));
+      }));
+      this.consolidado = this.consolidado.map(r => {
+        const meta = metaPorSede.get(r.sedeKey || 'sin-sede') || 0;
+        return { ...r, meta, avanceMeta: meta > 0 ? Math.round((r.monto / meta) * 100) : 0 };
+      });
+    }
     const detalleVenta = this.calcularDetalleParticipacionVenta();
     this.detalleParticipacionVenta = detalleVenta;
     this.participacionVenta = this.calcularParticipacionVenta(detalleVenta);

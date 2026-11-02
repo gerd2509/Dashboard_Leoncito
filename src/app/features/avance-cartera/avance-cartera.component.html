@@ -468,8 +468,11 @@
             <td class="mono">{{ soles(r.ticket) }}</td>
             <td>{{ r.concrecion }}%</td>
             <td class="meta-cell">
-              <input type="number" class="meta-in" [value]="r.meta || ''" placeholder="0"
+              <input *ngIf="titulo !== 'Asignados Totales'; else metaSuma" type="number" class="meta-in" [value]="r.meta || ''" placeholder="0"
                 (change)="onMetaCartera(r, $any($event.target).value)" />
+              <ng-template #metaSuma>
+                <span class="mono" title="Suma de la meta de esta sede en Afiliaciones, Lover A, Lover B, …">{{ soles(r.meta) }}</span>
+              </ng-template>
             </td>
             <td class="mono">{{ soles(r.proyeccion) }}</td>
             <td><b [class]="claseMeta(r.avanceMeta)" class="pct-badge">{{ r.avanceMeta }}%</b></td>
