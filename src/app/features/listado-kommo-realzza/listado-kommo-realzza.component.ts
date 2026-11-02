@@ -23,8 +23,8 @@ interface ResumenEmbudo {
   embudo: string; total: number; respondidos: number; noRespondidos: number; pctRespondidos: number;
 }
 
-interface ResumenDia {
-  dia: number; total: number; respondidos: number; noRespondidos: number; pctConcrecion: number;
+interface ResumenDiaEmbudo {
+  dia: number; embudo: string; total: number; respondidos: number; noRespondidos: number; pctConcrecion: number;
 }
 
 /**
@@ -210,7 +210,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   get pctSinResponder(): number { return this.totalLeads ? (this.totalSinResponder / this.totalLeads) * 100 : 0; }
 
   resumenEmbudo: ResumenEmbudo[] = [];
-  resumenPorDia: ResumenDia[] = [];
+  resumenPorDia: ResumenDiaEmbudo[] = [];
 
   /** Extrae el día del mes directo del string "D/M/YYYY" que manda el backend
    *  (concatenación literal de dia_cr/mes_cr/anio_cr, sin pasar por Date). */
@@ -247,28 +247,45 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       }))
       .sort((a, b) => b.total - a.total);
 
-    // Leads por día del mes seleccionado — solo tiene sentido con un mes puntual elegido
-    // (en "Ver Todo" se mezclarían leads de distintos meses en el mismo número de día).
+    // Leads por día y por embudo del mes seleccionado — solo tiene sentido con un mes
+    // puntual elegido (en "Ver Todo" se mezclarían leads de distintos meses en el mismo
+    // número de día). Solo días YA TRANSCURRIDOS: si es el mes en curso, hasta hoy; si es
+    // un mes pasado, todos sus días; si fuera un mes futuro, ninguno.
     const { anio, mes } = this.form.value;
     if (this.verTodo || !anio || !mes) { this.resumenPorDia = []; return; }
-    const porDia = new Map<number, { total: number; respondidos: number }>();
+    const hoy = new Date();
+    const esMesActual = hoy.getFullYear() === anio && hoy.getMonth() + 1 === mes;
+    const esMesFuturo = anio > hoy.getFullYear() || (anio === hoy.getFullYear() && mes > hoy.getMonth() + 1);
+    const diasMes = new Date(anio, mes, 0).getDate();
+    const diasTranscurridos = esMesFuturo ? 0 : (esMesActual ? hoy.getDate() : diasMes);
+
+    const porDiaEmbudo = new Map<string, { dia: number; embudo: string; total: number; respondidos: number }>();
     for (const f of datos) {
       const dia = this.diaDeFechaCreacion(f.fecha_creacion);
-      if (!dia) continue;
-      const acc = porDia.get(dia) || { total: 0, respondidos: 0 };
+      if (!dia || dia > diasTranscurridos) continue;
+      const embudo = f.embudo || 'SIN EMBUDO';
+      const clave = `${dia}|${embudo}`;
+      const acc = porDiaEmbudo.get(clave) || { dia, embudo, total: 0, respondidos: 0 };
       acc.total++;
       if (f.respondido) acc.respondidos++;
-      porDia.set(dia, acc);
+      porDiaEmbudo.set(clave, acc);
     }
-    const diasMes = new Date(anio, mes, 0).getDate();
-    this.resumenPorDia = Array.from({ length: diasMes }, (_, i) => i + 1).map(dia => {
-      const { total, respondidos } = porDia.get(dia) || { total: 0, respondidos: 0 };
-      return {
-        dia, total, respondidos, noRespondidos: total - respondidos,
-        // Concreción = % de los leads del día que ya están gestionados/respondidos.
+    this.resumenPorDia = [...porDiaEmbudo.values()]
+      .map(({ dia, embudo, total, respondidos }) => ({
+        dia, embudo, total, respondidos, noRespondidos: total - respondidos,
+        // Concreción = % de los leads del día (de ese embudo) que ya están gestionados/respondidos.
         pctConcrecion: total ? (respondidos / total) * 100 : 0,
-      };
-    });
+      }))
+      .sort((a, b) => b.dia - a.dia || b.total - a.total);
+  }
+
+  /** Total/respondidos/concreción de TODO un grupo "Día X" (todos sus embudos juntos),
+   *  para el encabezado del grupo en la grilla "Leads por día y embudo". */
+  totalDeGrupoDia(g: any): { total: number; respondidos: number; noRespondidos: number; pctConcrecion: number } {
+    const items: ResumenDiaEmbudo[] = g?.data?.items || [];
+    const total = items.reduce((s, r) => s + r.total, 0);
+    const respondidos = items.reduce((s, r) => s + r.respondidos, 0);
+    return { total, respondidos, noRespondidos: total - respondidos, pctConcrecion: total ? (respondidos / total) * 100 : 0 };
   }
 
   get resumenTotal(): { total: number; respondidos: number; noRespondidos: number } {
