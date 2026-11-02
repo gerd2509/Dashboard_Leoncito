@@ -41,6 +41,17 @@ export class VentasCampoComponent implements OnInit {
   // etiquetada en otra (`detSalenRz`, no suma aquí). Ninguno de los dos mueve el total.
   detEntranRz: { tienda: string; vendedor: string; ops: number; monto: number }[] = [];
   detSalenRz: { tienda: string; vendedor: string; ops: number; monto: number }[] = [];
+  // Mismo universo que detSalenRz (ventas de un vendedor de esta tienda etiquetadas en
+  // otra Realzza), pero acumulado por el NOMBRE YA RESUELTO (resolverNombreVendedor) para
+  // poder sumarlo directo a la fila del vendedor en la tabla de Bonos — no suma al monto
+  // global de ventas de la tienda (eso sigue saliendo solo de dataVentas/filtroVentas).
+  private otrasTiendasPorAsesor = new Map<string, { ops: number; monto: number }>();
+  // Filas crudas (con fecha) de todo el año cargado, SIN filtrar aún por el rango de
+  // fechaInicio/fechaFin del formulario — igual que dataVentas vs filtroVentas. Se
+  // reconstruyen detEntranRz/detSalenRz/otrasTiendasPorAsesor desde aquí en
+  // aplicarFiltros(), así el rango de fechas también acota estos 3 (antes se armaban una
+  // sola vez al cargar el año entero y no respetaban el rango seleccionado).
+  private crucesRzRaw: { tipo: 'entra' | 'sale'; tienda: string; vendedor: string; monto: number; esNC: boolean; fecha: Date; tipoBase: string }[] = [];
   /** Acumula el detalle cruzado (ops/monto por tienda+vendedor); mismo criterio de "venta
    *  válida" que el resto del módulo (sin NC, monto > 0). */
   private acumularCruceRz(arr: { tienda: string; vendedor: string; ops: number; monto: number }[], tienda: string, vendedor: string, monto: number, esNC: boolean): void {
@@ -49,16 +60,27 @@ export class VentasCampoComponent implements OnInit {
     if (!fila) { fila = { tienda, vendedor, ops: 0, monto: 0 }; arr.push(fila); }
     fila.ops += 1; fila.monto += monto;
   }
-  // Mismo universo que detSalenRz (ventas de un vendedor de esta tienda etiquetadas en
-  // otra Realzza), pero acumulado por el NOMBRE YA RESUELTO (resolverNombreVendedor) para
-  // poder sumarlo directo a la fila del vendedor en la tabla de Bonos — no suma al monto
-  // global de ventas de la tienda (eso sigue saliendo solo de dataVentas/filtroVentas).
-  private otrasTiendasPorAsesor = new Map<string, { ops: number; monto: number }>();
   private acumularOtraTienda(nombreResuelto: string, monto: number, esNC: boolean): void {
     if (esNC || monto <= 0 || !nombreResuelto) return;
     const cur = this.otrasTiendasPorAsesor.get(nombreResuelto) || { ops: 0, monto: 0 };
     cur.ops += 1; cur.monto += monto;
     this.otrasTiendasPorAsesor.set(nombreResuelto, cur);
+  }
+  /** Reconstruye detEntranRz/detSalenRz/otrasTiendasPorAsesor desde crucesRzRaw, filtrando
+   *  por el mismo rango [fechaInicio, fechaFin] que usa aplicarFiltros() para filtroVentas. */
+  private reconstruirCrucesRz(fechaInicio: Date, fechaFin: Date): void {
+    this.detEntranRz = [];
+    this.detSalenRz = [];
+    this.otrasTiendasPorAsesor = new Map();
+    this.crucesRzRaw.forEach(c => {
+      if (c.fecha < fechaInicio || c.fecha > fechaFin) return;
+      if (c.tipo === 'entra') {
+        this.acumularCruceRz(this.detEntranRz, c.tienda, c.vendedor, c.monto, c.esNC);
+      } else {
+        this.acumularCruceRz(this.detSalenRz, c.tienda, c.vendedor, c.monto, c.esNC);
+        this.acumularOtraTienda(this.resolverNombreVendedor(c.vendedor, c.tipoBase), c.monto, c.esNC);
+      }
+    });
   }
   // Tienda "CAP" del vendedor para el cruce entre tiendas Realzza. Las 6 asesoras de Call
   // Center (Patricia, Dexy, Karen, Maria, Judy, Juana) ya no están ACTIVAS en el CAP de
@@ -458,9 +480,7 @@ export class VentasCampoComponent implements OnInit {
     this.dataVentas = [];
     this.dataNotasCredito = [];
     this.dataGlobalGo = [];
-    this.detEntranRz = [];
-    this.detSalenRz = [];
-    this.otrasTiendasPorAsesor = new Map();
+    this.crucesRzRaw = [];
 
     for (const r of vrows) {
       const sede = (r.sede || '').toString().trim().toUpperCase();
@@ -481,15 +501,16 @@ export class VentasCampoComponent implements OnInit {
         // No es de esta tienda por ETIQUETA: si el vendedor sí pertenece (por CAP) a esta
         // tienda, es informativo (su venta quedó registrada/suma en la otra tienda) y,
         // además, suma al NETO de su fila en la tabla de Bonos (no al total de la tienda).
+        // Se guarda cruda (con fecha); reconstruirCrucesRz() la filtra por el rango
+        // seleccionado al armar detSalenRz/otrasTiendasPorAsesor.
         if (tiendaCapVendedor === this.tiendaVentas) {
-          this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
-          this.acumularOtraTienda(this.resolverNombreVendedor(vendedorNombre, tipoBaseVenta), monto, esNC);
+          this.crucesRzRaw.push({ tipo: 'sale', tienda: etiquetaTienda, vendedor: vendedorNombre, monto, esNC, fecha: fechaCv, tipoBase: tipoBaseVenta });
         }
         continue;
       }
       // Es de esta tienda por ETIQUETA (o vista "TODAS"): cuenta en el monto/comisión.
       if (!vistaTodas && tiendaCapVendedor !== this.tiendaVentas) {
-        this.acumularCruceRz(this.detEntranRz, tiendaCapVendedor, vendedorNombre, monto, esNC);
+        this.crucesRzRaw.push({ tipo: 'entra', tienda: tiendaCapVendedor, vendedor: vendedorNombre, monto, esNC, fecha: fechaCv, tipoBase: tipoBaseVenta });
       }
 
       // dataVentas: SIEMPRE por su mes de VENTA (fechaCv), "congelado" — se agrega aunque
@@ -629,9 +650,7 @@ export class VentasCampoComponent implements OnInit {
       this.dataVentas = [];
       this.dataNotasCredito = [];
       this.dataGlobalGo = [];
-      this.detEntranRz = [];
-      this.detSalenRz = [];
-      this.otrasTiendasPorAsesor = new Map();
+      this.crucesRzRaw = [];
 
       jsonData.forEach((row: any) => {
         const sede = (row['Sede'] || '').toString().trim().toUpperCase();
@@ -641,23 +660,25 @@ export class VentasCampoComponent implements OnInit {
         const monto = this.parseNumber(row['MontoConsolidado']);
         const esNC = this.esVentaReductora(estadoVenta);
         const idventa = (row['IDVENTA'] || '').toString().trim();
+        const fechaCv = this.getFechaJS(row['FECHAVENTA']);
         const vendedorNombre = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
         const tipoBaseVenta = (row['TipoBase'] || '').toString().trim().toUpperCase();
         const etiquetaTienda = tiendaDeSedeRealzza(sede);
         // Mismo criterio que procesarBD(): la venta cuenta por su propia ETIQUETA; el CAP
-        // del vendedor solo alimenta los recuadros informativos (no mueve el total).
+        // del vendedor solo alimenta los recuadros informativos (no mueve el total). Se
+        // guarda cruda (con fecha); reconstruirCrucesRz() la filtra por el rango
+        // seleccionado al armar detSalenRz/detEntranRz/otrasTiendasPorAsesor.
         const vistaTodas = this.tiendaVentas === 'TODAS';
         const tiendaCapVendedor = this.tiendaCapDeVendedor(vendedorNombre, etiquetaTienda, vistaTodas);
 
         if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
           if (tiendaCapVendedor === this.tiendaVentas) {
-            this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
-            this.acumularOtraTienda(this.resolverNombreVendedor(vendedorNombre, tipoBaseVenta), monto, esNC);
+            this.crucesRzRaw.push({ tipo: 'sale', tienda: etiquetaTienda, vendedor: vendedorNombre, monto, esNC, fecha: fechaCv, tipoBase: tipoBaseVenta });
           }
           return;
         }
         if (!vistaTodas && tiendaCapVendedor !== this.tiendaVentas) {
-          this.acumularCruceRz(this.detEntranRz, tiendaCapVendedor, vendedorNombre, monto, esNC);
+          this.crucesRzRaw.push({ tipo: 'entra', tienda: tiendaCapVendedor, vendedor: vendedorNombre, monto, esNC, fecha: fechaCv, tipoBase: tipoBaseVenta });
         }
         const esRz = true;
 
@@ -833,6 +854,8 @@ export class VentasCampoComponent implements OnInit {
       }
       return true;
     });
+
+    this.reconstruirCrucesRz(fechaInicio, fechaFin);
 
     this.filtrarNotasCredito();
 
