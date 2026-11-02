@@ -102,6 +102,8 @@
             dataType="number" [format]="'S/ #,##0'" />
         <dxi-column dataField="NC" caption="NOTAS CRÉD." alignment="center"
             dataType="number" [format]="'S/ #,##0'" />
+        <dxi-column dataField="OTRASTIENDAS" caption="OTRAS TIENDAS" alignment="center"
+            dataType="number" [format]="'S/ #,##0'" />
         <dxi-column dataField="NETO" caption="NETO" alignment="center"
             dataType="number" [format]="'S/ #,##0'" />
         <dxi-column dataField="TICKET" caption="TICKET" alignment="center"
@@ -116,6 +118,7 @@
             <dxi-total-item alignment="left" column="ASESOR" displayFormat="TOTAL"></dxi-total-item>
             <dxi-total-item column="VENTAS" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
             <dxi-total-item column="NC" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
+            <dxi-total-item column="OTRASTIENDAS" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
             <dxi-total-item column="NETO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
             <dxi-total-item column="BONO" summaryType="sum" displayFormat="S/ {0}" [valueFormat]="'#,##0'"></dxi-total-item>
         </dxo-summary>

@@ -49,6 +49,28 @@ export class VentasCampoComponent implements OnInit {
     if (!fila) { fila = { tienda, vendedor, ops: 0, monto: 0 }; arr.push(fila); }
     fila.ops += 1; fila.monto += monto;
   }
+  // Mismo universo que detSalenRz (ventas de un vendedor de esta tienda etiquetadas en
+  // otra Realzza), pero acumulado por el NOMBRE YA RESUELTO (resolverNombreVendedor) para
+  // poder sumarlo directo a la fila del vendedor en la tabla de Bonos — no suma al monto
+  // global de ventas de la tienda (eso sigue saliendo solo de dataVentas/filtroVentas).
+  private otrasTiendasPorAsesor = new Map<string, { ops: number; monto: number }>();
+  private acumularOtraTienda(nombreResuelto: string, monto: number, esNC: boolean): void {
+    if (esNC || monto <= 0 || !nombreResuelto) return;
+    const cur = this.otrasTiendasPorAsesor.get(nombreResuelto) || { ops: 0, monto: 0 };
+    cur.ops += 1; cur.monto += monto;
+    this.otrasTiendasPorAsesor.set(nombreResuelto, cur);
+  }
+  // Tienda "CAP" del vendedor para el cruce entre tiendas Realzza. Las 6 asesoras de Call
+  // Center (Patricia, Dexy, Karen, Maria, Judy, Juana) ya no están ACTIVAS en el CAP de
+  // ninguna tienda Realzza (algunas RENUNCIA, otras siguen siendo Call) — sin este caso
+  // especial, el fallback de tiendaDeVendedor() devuelve la propia etiqueta de la venta,
+  // lo que hace imposible detectarlas como "fuera de su tienda" (su tienda física es
+  // Chiclayo), aunque hayan vendido en Piura o Lima.
+  private tiendaCapDeVendedor(vendedorNombre: string, etiquetaTienda: string, vistaTodas: boolean): string {
+    if (vistaTodas) return etiquetaTienda;
+    if (ASESORES_CALL_CENTER_CARTERA.has(vendedorNombre)) return 'REALZZA';
+    return this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
+  }
   setTiendaVentas(t: string): void {
     if (this.tiendaGestor) return;
     this.tiendaVentas = t || 'REALZZA';
@@ -438,6 +460,7 @@ export class VentasCampoComponent implements OnInit {
     this.dataGlobalGo = [];
     this.detEntranRz = [];
     this.detSalenRz = [];
+    this.otrasTiendasPorAsesor = new Map();
 
     for (const r of vrows) {
       const sede = (r.sede || '').toString().trim().toUpperCase();
@@ -449,14 +472,19 @@ export class VentasCampoComponent implements OnInit {
       const id = (r.codigo_cv ?? '').toString().trim();
       const fechaCv = new Date(r.anio_cv, (r.mes_cv || 1) - 1, r.dia_cv || 1);
       const vendedorNombre = (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
+      const tipoBaseVenta = (r.tipo_base || '').toString().trim().toUpperCase();
       const etiquetaTienda = tiendaDeSedeRealzza(sede);
       const vistaTodas = this.tiendaVentas === 'TODAS';
-      const tiendaCapVendedor = vistaTodas ? etiquetaTienda : this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
+      const tiendaCapVendedor = this.tiendaCapDeVendedor(vendedorNombre, etiquetaTienda, vistaTodas);
 
       if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
         // No es de esta tienda por ETIQUETA: si el vendedor sí pertenece (por CAP) a esta
-        // tienda, es informativo (su venta quedó registrada/suma en la otra tienda).
-        if (tiendaCapVendedor === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
+        // tienda, es informativo (su venta quedó registrada/suma en la otra tienda) y,
+        // además, suma al NETO de su fila en la tabla de Bonos (no al total de la tienda).
+        if (tiendaCapVendedor === this.tiendaVentas) {
+          this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
+          this.acumularOtraTienda(this.resolverNombreVendedor(vendedorNombre, tipoBaseVenta), monto, esNC);
+        }
         continue;
       }
       // Es de esta tienda por ETIQUETA (o vista "TODAS"): cuenta en el monto/comisión.
@@ -603,6 +631,7 @@ export class VentasCampoComponent implements OnInit {
       this.dataGlobalGo = [];
       this.detEntranRz = [];
       this.detSalenRz = [];
+      this.otrasTiendasPorAsesor = new Map();
 
       jsonData.forEach((row: any) => {
         const sede = (row['Sede'] || '').toString().trim().toUpperCase();
@@ -613,14 +642,18 @@ export class VentasCampoComponent implements OnInit {
         const esNC = this.esVentaReductora(estadoVenta);
         const idventa = (row['IDVENTA'] || '').toString().trim();
         const vendedorNombre = (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase();
+        const tipoBaseVenta = (row['TipoBase'] || '').toString().trim().toUpperCase();
         const etiquetaTienda = tiendaDeSedeRealzza(sede);
         // Mismo criterio que procesarBD(): la venta cuenta por su propia ETIQUETA; el CAP
         // del vendedor solo alimenta los recuadros informativos (no mueve el total).
         const vistaTodas = this.tiendaVentas === 'TODAS';
-        const tiendaCapVendedor = vistaTodas ? etiquetaTienda : this.tiendas.tiendaDeVendedor(vendedorNombre, etiquetaTienda);
+        const tiendaCapVendedor = this.tiendaCapDeVendedor(vendedorNombre, etiquetaTienda, vistaTodas);
 
         if (!vistaTodas && etiquetaTienda !== this.tiendaVentas) {
-          if (tiendaCapVendedor === this.tiendaVentas) this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
+          if (tiendaCapVendedor === this.tiendaVentas) {
+            this.acumularCruceRz(this.detSalenRz, etiquetaTienda, vendedorNombre, monto, esNC);
+            this.acumularOtraTienda(this.resolverNombreVendedor(vendedorNombre, tipoBaseVenta), monto, esNC);
+          }
           return;
         }
         if (!vistaTodas && tiendaCapVendedor !== this.tiendaVentas) {
@@ -1865,15 +1898,21 @@ export class VentasCampoComponent implements OnInit {
     // aparte en su propio mes de afectación — mismo criterio que Reporte Global.
     const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
 
-    // Unión con quienes SOLO tienen NC arrastrada (0 ventas en el rango) — igual que
-    // generarResumenPorVendedor(); si no, esos vendedores (y su NC) desaparecían de la
-    // tabla entera y el TOTAL no cuadraba con "Avance de Ventas por Vendedor".
-    const nombres = new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]);
+    // Unión con quienes SOLO tienen NC arrastrada (0 ventas en el rango) o solo vendieron
+    // en otra tienda Realzza (0 ventas propias de ESTA tienda) — igual que
+    // generarResumenPorVendedor(); si no, esos vendedores (y su NC/venta cruzada)
+    // desaparecían de la tabla entera y el TOTAL no cuadraba con "Avance de Ventas por Vendedor".
+    const nombres = new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys(), ...this.otrasTiendasPorAsesor.keys()]);
     this.tablaBonosAsesor = Array.from(nombres).map(nombre => {
       const data = mapVentas.get(nombre) || { ventas: 0, ops: 0 };
       const ventas = Math.round(data.ventas);
       const montoNC = Math.round(mapNCTodas.get(nombre) || 0);
-      const montoNeto = ventas - montoNC;   // sin recortar en 0: debe cuadrar con las demás tablas
+      // Ventas que este vendedor hizo en OTRA tienda Realzza (Piura/Lima vistas desde
+      // Chiclayo, o viceversa): no suman al monto global de ESTA tienda (dataVentas/
+      // filtroVentas las excluye por etiqueta), pero sí al NETO de su propia fila para
+      // el cálculo de su bono — ver acumularOtraTienda().
+      const ventasOtrasTiendas = Math.round(this.otrasTiendasPorAsesor.get(nombre)?.monto || 0);
+      const montoNeto = ventas - montoNC + ventasOtrasTiendas;   // sin recortar en 0: debe cuadrar con las demás tablas
       const ticket = data.ops > 0 ? Math.round(data.ventas / data.ops) : 0;
       // Proyección/bono SÍ se acotan en 0 (no tiene sentido proyectar o bonificar en
       // negativo), pero eso no debe ocultar el NETO real de la fila/el total.
@@ -1893,6 +1932,7 @@ export class VentasCampoComponent implements OnInit {
         ASESOR: nombre,
         VENTAS: ventas,
         NC: montoNC,
+        OTRASTIENDAS: ventasOtrasTiendas,
         NETO: montoNeto,
         TICKET: ticket,
         TICKETDIARIO: ticketDiario,
