@@ -47,6 +47,9 @@
           <mat-icon>{{ generandoReporte ? 'hourglass_empty' : 'summarize' }}</mat-icon>
           {{ generandoReporte ? 'Generando…' : 'Reporte' }}
         </button>
+        <span style="background:yellow;color:#000;font-weight:800;padding:4px 10px;border-radius:6px;">
+          RK-DEBUG mostrando={{ mostrandoReporteGeneral }} datos={{ reporteGeneralDatos.length }}
+        </span>
       </ng-container>
     </form>
 
@@ -93,7 +96,9 @@
       <dxi-column dataField="respondido" caption="Respondido" alignment="center" [width]="110" cellTemplate="respTpl"></dxi-column>
 
       <div *dxTemplate="let c of 'respTpl'">
-        <span class="lk-badge" [class.lk-badge-si]="c.value" [class.lk-badge-no]="!c.value">{{ c.value ? 'Sí' : 'No' }}</span>
+        <span class="lk-badge" [class.lk-badge-si]="c.value" [class.lk-badge-no]="!c.value">
+          <mat-icon>{{ c.value ? 'check_circle' : 'cancel' }}</mat-icon>{{ c.value ? 'Sí' : 'No' }}
+        </span>
       </div>
     </dx-data-grid>
 
@@ -122,7 +127,7 @@
             <td class="lk-tr-num">{{ r.total | number }}</td>
             <td class="lk-tr-num lk-tr-si">{{ r.respondidos | number }}</td>
             <td class="lk-tr-num" [class.lk-tr-no]="r.noRespondidos > 0">{{ r.noRespondidos | number }}</td>
-            <td class="lk-tr-num">{{ r.pctRespondidos | number:'1.0-0' }}%</td>
+            <td class="lk-tr-num">{{ r.pctRespondidos | number:'1.1-1' }}%</td>
           </tr>
         </tbody>
         <tfoot>
@@ -131,7 +136,7 @@
             <td class="lk-tr-num">{{ resumenTotal.total | number }}</td>
             <td class="lk-tr-num lk-tr-si">{{ resumenTotal.respondidos | number }}</td>
             <td class="lk-tr-num lk-tr-no">{{ resumenTotal.noRespondidos | number }}</td>
-            <td class="lk-tr-num">{{ resumenTotal.total ? (resumenTotal.respondidos / resumenTotal.total * 100 | number:'1.0-0') : 0 }}%</td>
+            <td class="lk-tr-num">{{ resumenTotal.total ? (resumenTotal.respondidos / resumenTotal.total * 100 | number:'1.1-1') : 0 }}%</td>
           </tr>
         </tfoot>
       </table>
