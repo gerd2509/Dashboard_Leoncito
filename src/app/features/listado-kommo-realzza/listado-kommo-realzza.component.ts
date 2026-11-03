@@ -1,10 +1,11 @@
-import { Component, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { DxDataGridComponent } from 'devextreme-angular';
 import { custom } from 'devextreme/ui/dialog';
 import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
+import html2canvas from 'html2canvas';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ExcelExportService } from '../../services/excel/excel.service';
 import { SheetsService } from '../../services/service-google.service';
@@ -59,6 +60,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   private sheets = inject(SheetsService);
 
   @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
+  @ViewChild('reporteModal', { static: false }) reporteModal?: ElementRef<HTMLElement>;
 
   form: UntypedFormGroup;
   tienda: TiendaRealzza = 'REALZZA';
@@ -335,9 +337,19 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     };
   }
 
+  // Estado del popup del reporte general (vive en la misma página, no en una pestaña nueva).
+  mostrandoReporteGeneral = false;
+  reporteGeneralDatos: DatosReporteTienda[] = [];
+  reporteGeneralAnio = 0;
+  reporteGeneralMes = 0;
+  reporteGeneralPeriodo = '';
+  reporteGeneralGeneradoEn = '';
+  exportMenuAbierto = false;
+  exportandoImagen = false;
+
   /** Botón "Reporte": trae el detalle (día × embudo) y el embudo KOMMO de las 3 tiendas de
-   *  Realzza del mes elegido arriba, y arma un solo documento imprimible (mismo truco que
-   *  el reporte de Auditoría: ventana nueva + "Guardar como PDF" del navegador). */
+   *  Realzza del mes elegido arriba y abre el popup con todo junto, listo para exportar
+   *  (PDF, imagen o Excel) desde el mismo popup. */
   async abrirReporteGeneral(): Promise<void> {
     const { anio, mes } = this.form.value;
     if (this.verTodo || !anio || !mes) {
@@ -347,14 +359,95 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     this.generandoReporte = true; this.error = '';
     try {
       const tiendas: TiendaRealzza[] = ['REALZZA', 'REALZZA PIURA', 'REALZZA LIMA'];
-      const datos = await Promise.all(tiendas.map(t => this.datosReporteTienda(t, anio, mes)));
-      this.imprimirReporteGeneral(anio, mes, datos);
+      this.reporteGeneralDatos = await Promise.all(tiendas.map(t => this.datosReporteTienda(t, anio, mes)));
+      this.reporteGeneralAnio = anio;
+      this.reporteGeneralMes = mes;
+      this.reporteGeneralPeriodo = `${this.meses.find(m => m.v === mes)?.t || mes} ${anio}`;
+      this.reporteGeneralGeneradoEn = new Date().toLocaleString('es-PE');
+      this.exportMenuAbierto = false;
+      this.mostrandoReporteGeneral = true;
     } catch (e) {
       console.error('Error al generar el reporte general:', e);
       this.error = 'No se pudo generar el reporte general.';
     } finally {
       this.generandoReporte = false;
     }
+  }
+
+  cerrarReporteGeneral(): void {
+    this.mostrandoReporteGeneral = false;
+    this.exportMenuAbierto = false;
+  }
+
+  toggleExportMenu(): void { this.exportMenuAbierto = !this.exportMenuAbierto; }
+
+  /** Lleva el scroll del popup a la sección de esa tienda (las 3 están siempre ahí, una
+   *  debajo de otra — las "pestañas" son solo un atajo para saltar entre ellas). */
+  irASedeReporte(tienda: TiendaRealzza): void {
+    const el = document.getElementById('rk-sede-' + tienda.replace(/\s+/g, '-'));
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /** "Guardar como PDF": reusa los datos ya cargados del popup y abre la versión imprimible
+   *  en una ventana nueva — el usuario elige "Guardar como PDF" en el diálogo de impresión
+   *  del navegador (mismo truco que el reporte de Auditoría, sin librerías de PDF). */
+  exportarReporteGeneralPdf(): void {
+    this.exportMenuAbierto = false;
+    this.imprimirReporteGeneral(this.reporteGeneralAnio, this.reporteGeneralMes, this.reporteGeneralDatos);
+  }
+
+  /** "Guardar como Imagen": capa el popup tal cual se ve (con html2canvas) y descarga un PNG. */
+  async exportarReporteGeneralImagen(): Promise<void> {
+    this.exportMenuAbierto = false;
+    if (!this.reporteModal) return;
+    this.exportandoImagen = true;
+    try {
+      const canvas = await html2canvas(this.reporteModal.nativeElement, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+      await new Promise<void>(resolve => {
+        canvas.toBlob(blob => {
+          if (blob) FileSaver.saveAs(blob, `${this.nombreReporte()}.png`);
+          resolve();
+        });
+      });
+    } catch (e) {
+      console.error('Error al exportar el reporte a imagen:', e);
+      this.error = 'No se pudo exportar el reporte a imagen.';
+    } finally {
+      this.exportandoImagen = false;
+    }
+  }
+
+  /** "Exportar a Excel": una hoja por tienda, con el embudo y el pivot de días de cada una. */
+  async exportarReporteGeneralExcel(): Promise<void> {
+    this.exportMenuAbierto = false;
+    const wb = new Workbook();
+    for (const d of this.reporteGeneralDatos) {
+      const ws = wb.addWorksheet(d.nombre.replace('Realzza ', '').slice(0, 31));
+      ws.addRow([d.nombre]).font = { bold: true, size: 14 };
+      ws.addRow([`Leads del mes: ${d.totalLeads}`, `Sin responder: ${d.sinResponder}`]);
+      ws.addRow([]);
+      if (d.embudo) {
+        ws.addRow(['Embudo KOMMO (LEADS)']).font = { bold: true };
+        ws.addRow(['Etapa', 'Cantidad', '%']).font = { bold: true };
+        for (const e of d.embudo.etapas) ws.addRow([e.nombre, e.op, e.nombre === 'ASIGNADOS' ? 100 : e.ratio]);
+        ws.addRow([]);
+      }
+      if (d.pivot) {
+        ws.addRow(['Leads por embudo y día']).font = { bold: true };
+        ws.addRow(['Embudo', ...d.pivot.cols.map(c => c.dia), 'Total']).font = { bold: true };
+        for (const f of d.pivot.filas) ws.addRow([f.embudo, ...d.pivot.cols.map(c => f.valores[c.key] || 0), f.total]);
+        ws.addRow(['Total', ...d.pivot.cols.map(c => d.pivot!.totales[c.key] || 0), d.pivot.totalGeneral]).font = { bold: true };
+      }
+      ws.columns.forEach(c => c.width = 13);
+      (ws.getColumn(1) as any).width = 26;
+    }
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    FileSaver.saveAs(blob, `${this.nombreReporte()}.xlsx`);
+  }
+
+  private nombreReporte(): string {
+    return `Reporte Kommo Realzza - ${this.reporteGeneralPeriodo}`.replace(/[\\/:*?"<>|]/g, '');
   }
 
   private imprimirReporteGeneral(anio: number, mes: number, datos: DatosReporteTienda[]): void {
@@ -365,10 +458,11 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     const seccionTienda = (d: DatosReporteTienda): string => {
       const pctSinResponder = d.totalLeads ? Math.round((d.sinResponder / d.totalLeads) * 1000) / 10 : 0;
       const filasEmbudo = d.embudo ? d.embudo.etapas.map((e, i) => `
-        <div class="etapa">
-          <span class="etapa-nombre">${esc(e.nombre)}</span>
-          <div class="etapa-barra-wrap"><div class="etapa-barra" style="width:${this.anchoBarra(e)}%;background:${this.colorEtapa(i)}"></div></div>
-          <span class="etapa-valor"><b>${e.op}</b> · ${e.nombre === 'ASIGNADOS' ? '100%' : e.ratio + '%'}</span>
+        <div class="funnel-row">
+          <div class="funnel-block" style="width:${this.anchoBarra(e)}%;background:${this.colorEtapa(i)};${i < 2 ? 'color:#0e2a4d' : ''}">
+            <span class="fb-nombre">${esc(e.nombre)}</span><span class="fb-valor">${e.op}</span>
+          </div>
+          <span class="fb-ratio">${e.nombre === 'ASIGNADOS' ? '100%' : e.ratio + '%'}</span>
         </div>`).join('') : '<p class="vacio">Sin datos de embudo para este mes.</p>';
 
       const pivot = d.pivot;
@@ -383,12 +477,14 @@ export class ListadoKommoRealzzaComponent implements OnInit {
 
       return `
         <section class="sede">
-          <h2>${esc(d.nombre)}</h2>
-          <div class="kpis"><span>Leads del mes: <b>${d.totalLeads}</b></span><span class="${d.sinResponder ? 'bad' : ''}">Sin responder: <b>${d.sinResponder}</b> (${pctSinResponder}%)</span></div>
-          <h3>Embudo KOMMO (LEADS)</h3>
-          <div class="embudo">${filasEmbudo}</div>
-          <h3>Leads por embudo y día</h3>
-          ${tablaPivot}
+          <div class="sede-head">
+            <h2>${esc(d.nombre)}</h2>
+            <div class="kpis"><span>Leads del mes <b>${d.totalLeads}</b></span><span class="${d.sinResponder ? 'bad' : ''}">Sin responder <b>${d.sinResponder}</b> (${pctSinResponder}%)</span></div>
+          </div>
+          <div class="sede-grid">
+            <div class="funnel">${filasEmbudo}</div>
+            <div>${tablaPivot}</div>
+          </div>
         </section>`;
     };
 
@@ -399,25 +495,33 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2a44; margin: 24px; }
   h1 { font-size: 20px; color: #1E3A5F; margin: 0 0 2px; }
   .meta { color: #5b7188; font-size: 13px; margin-bottom: 20px; }
-  section.sede { margin-bottom: 30px; page-break-inside: avoid; }
-  section.sede h2 { font-size: 16px; color: #fff; background: #1A5FAD; padding: 7px 12px; border-radius: 6px; margin: 0 0 8px; }
-  h3 { font-size: 12.5px; color: #1E3A5F; border-left: 4px solid #1A5FAD; padding-left: 8px; margin: 14px 0 8px; }
-  .kpis { display: flex; gap: 22px; font-size: 12.5px; color: #44536a; margin-bottom: 4px; }
+  section.sede { margin-bottom: 26px; page-break-inside: avoid; border: 1px solid #dde5f0; border-radius: 10px; padding: 14px 16px; }
+  .sede-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .sede-head h2 { font-size: 15px; color: #1E3A5F; margin: 0; }
+  .kpis { display: flex; gap: 18px; font-size: 11.5px; color: #44536a; }
   .kpis .bad { color: #c62828; font-weight: 700; }
-  .embudo { display: flex; flex-direction: column; gap: 6px; max-width: 620px; }
-  .etapa { display: flex; align-items: center; gap: 10px; }
-  .etapa-nombre { width: 100px; flex: none; font-size: 10.5px; font-weight: 700; color: #52514E; }
-  .etapa-barra-wrap { flex: 1; background: #F0EFEA; border-radius: 4px; height: 16px; }
-  .etapa-barra { height: 100%; border-radius: 4px; }
-  .etapa-valor { width: 110px; flex: none; font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
-  table.pivot { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 6px; }
+  .sede-grid { display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: start; }
+  .funnel { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .funnel-row { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .funnel-block {
+    height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    color: #fff; margin: 0 auto;
+  }
+  .fb-nombre { font-size: 9px; font-weight: 700; letter-spacing: .03em; }
+  .fb-valor { font-size: 11.5px; font-weight: 800; }
+  .fb-ratio { font-size: 9px; color: #8a9bb0; font-weight: 600; }
+  table.pivot { width: 100%; border-collapse: collapse; font-size: 9px; }
   table.pivot th { background: #293964; color: #fff; padding: 3px 4px; text-align: center; font-weight: 700; }
   table.pivot td { border: 1px solid #dde5f0; padding: 2px 4px; text-align: center; }
   table.pivot th:first-child, table.pivot td:first-child { text-align: left; }
   table.pivot tfoot td { font-weight: 700; background: #F4F6FA; }
   .vacio { font-size: 11.5px; color: #8a9bb0; font-style: italic; }
   footer { margin-top: 20px; font-size: 10.5px; color: #8a9bb0; text-align: center; }
-  @media print { body { margin: 10mm; } section.sede { page-break-after: always; } section.sede:last-of-type { page-break-after: auto; } }
+  @media print {
+    body { margin: 10mm; }
+    section.sede { page-break-after: always; border-color: transparent; }
+    section.sede:last-of-type { page-break-after: auto; }
+  }
 </style></head><body onload="window.print()">
   <h1>Reporte Kommo — Realzza</h1>
   <div class="meta"><b>Período:</b> ${esc(periodo)} &nbsp;·&nbsp; <b>Generado:</b> ${esc(new Date().toLocaleString('es-PE'))}</div>

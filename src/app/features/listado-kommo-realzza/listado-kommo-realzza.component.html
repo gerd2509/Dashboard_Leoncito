@@ -413,4 +413,95 @@
       <ng-template #sinMejorar><p class="ak-vacio">Ningún lead marcado "Por mejorar" todavía.</p></ng-template>
     </div>
   </div>
+
+  <!-- ═══════════════ Popup: Reporte general (3 tiendas en un solo documento) ═══════════════ -->
+  <div class="rk-overlay" *ngIf="mostrandoReporteGeneral" (click)="cerrarReporteGeneral()">
+    <div class="rk-modal" #reporteModal (click)="$event.stopPropagation()">
+
+      <div class="rk-head">
+        <div class="rk-head-ico"><mat-icon>bar_chart</mat-icon></div>
+        <div class="rk-head-titles">
+          <h1>Reporte Kommo — Realzza</h1>
+          <div class="rk-meta">
+            <span><b>Período</b> {{ reporteGeneralPeriodo }}</span>
+            <span><b>Generado</b> {{ reporteGeneralGeneradoEn }}</span>
+            <span><b>Sedes</b> Chiclayo · Piura · Lima</span>
+          </div>
+        </div>
+        <div class="rk-actions">
+          <div class="rk-export-group">
+            <button type="button" class="rk-btn rk-btn-ghost" (click)="toggleExportMenu()" [disabled]="exportandoImagen">
+              <mat-icon>{{ exportandoImagen ? 'hourglass_empty' : 'file_download' }}</mat-icon>
+              {{ exportandoImagen ? 'Exportando…' : 'Exportar' }}
+              <mat-icon class="rk-caret">arrow_drop_down</mat-icon>
+            </button>
+            <div class="rk-export-menu" *ngIf="exportMenuAbierto">
+              <button type="button" (click)="exportarReporteGeneralPdf()"><mat-icon>picture_as_pdf</mat-icon> Guardar como PDF</button>
+              <button type="button" (click)="exportarReporteGeneralImagen()"><mat-icon>image</mat-icon> Guardar como Imagen</button>
+              <button type="button" (click)="exportarReporteGeneralExcel()"><mat-icon>table_chart</mat-icon> Exportar a Excel</button>
+            </div>
+          </div>
+          <button type="button" class="rk-btn rk-btn-close" (click)="cerrarReporteGeneral()" title="Cerrar">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="rk-tabs">
+        <button type="button" *ngFor="let d of reporteGeneralDatos" (click)="irASedeReporte(d.tienda)">
+          {{ d.nombre.replace('Realzza ', '') }} <span class="rk-tag">{{ d.totalLeads }}</span>
+        </button>
+      </div>
+
+      <div class="rk-body">
+        <section class="rk-sede" *ngFor="let d of reporteGeneralDatos" [id]="'rk-sede-' + d.tienda.replace(' ', '-')">
+          <div class="rk-sede-head">
+            <h2><span class="rk-dot"></span>{{ d.nombre }}</h2>
+            <div class="rk-kpi-row">
+              <span class="rk-kpi-pill">Leads del mes <b>{{ d.totalLeads | number }}</b></span>
+              <span class="rk-kpi-pill" [class.rk-alerta]="d.sinResponder > 0">
+                Sin responder <b>{{ d.sinResponder | number }}</b> ({{ d.totalLeads ? (d.sinResponder / d.totalLeads * 100 | number:'1.1-1') : 0 }}%)
+              </span>
+            </div>
+          </div>
+
+          <div class="rk-sede-grid">
+            <div class="rk-funnel" *ngIf="d.embudo as emb; else sinEmbudoReporte">
+              <div class="rk-funnel-row" *ngFor="let e of emb.etapas; let i = index">
+                <div class="rk-funnel-block" [style.width.%]="anchoBarra(e)" [style.background]="colorEtapa(i)">
+                  <span class="rk-fb-nombre">{{ e.nombre }}</span><span class="rk-fb-valor">{{ e.op | number }}</span>
+                </div>
+                <span class="rk-fb-ratio">{{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</span>
+              </div>
+            </div>
+            <ng-template #sinEmbudoReporte><p class="rk-vacio">Sin datos de embudo para este mes.</p></ng-template>
+
+            <div class="rk-pivot-wrap" *ngIf="d.pivot as p; else sinPivotReporte">
+              <table class="rk-pivot">
+                <caption>Leads por embudo y día — {{ reporteGeneralPeriodo }}</caption>
+                <thead><tr><th>Embudo</th><th *ngFor="let c of p.cols">{{ c.dia }}</th><th>Total</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let f of p.filas">
+                    <td>{{ f.embudo }}</td>
+                    <td *ngFor="let c of p.cols">{{ f.valores[c.key] || '' }}</td>
+                    <td><b>{{ f.total }}</b></td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total</td>
+                    <td *ngFor="let c of p.cols">{{ p.totales[c.key] || '' }}</td>
+                    <td>{{ p.totalGeneral }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <ng-template #sinPivotReporte><p class="rk-vacio">Sin días transcurridos de este mes todavía.</p></ng-template>
+          </div>
+        </section>
+      </div>
+
+      <div class="rk-foot">Dashboard Leoncito · Listado Kommo Realzza — documento generado automáticamente</div>
+    </div>
+  </div>
 </div>
