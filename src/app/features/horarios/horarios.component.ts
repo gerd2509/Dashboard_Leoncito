@@ -75,6 +75,17 @@ const SEED_SLOTS_NOV_2026: { etiqueta: string; nota: string | null; domingos: nu
 const DIA_NOMBRE: Record<number, string> = { 2: 'Martes', 3: 'Miércoles', 4: 'Jueves', 5: 'Viernes' };
 const NOMBRE_GRUPO: Record<number, string> = { 0: 'Rota A (parte martes)', 1: 'Rota B (parte miércoles)', 2: 'Rota C (parte jueves)' };
 
+// Orden fijo de cada grupo (4 personas c/u) — solo para decidir, dentro del grupo al
+// que le toca jueves esa semana, a cuál de los 4 se le desvía a viernes (ver diaRotacion
+// más abajo): William (fijo, inamovible) ya descansa jueves, así que si las 4 del grupo
+// también caen jueves ese día queda en 5 en vez de 4. Desviando a 1 de los 4 a viernes,
+// jueves y viernes quedan ambos en 4 (con Dexy, fija en viernes), igual que martes/miércoles.
+const ORDEN_GRUPO: Record<number, string[]> = {
+  0: ['BELEN CARRASCO MARYORI JAHAIRA', 'MONTALVO LUYO ERNESTO ADOLFO', 'RIVAS PURISACA KAREN YUDITH', 'SANTAMARIA GUZMAN MERLY BRIGHITE'],
+  1: ['CHANTA CAMPOS KELLY KARINTIA', 'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO', 'PEREZ TINEO MARICIELO TATIANA', 'TORRES ALVARADO JUDY ESMERALDA'],
+  2: ['BERNAL BAZAN BRENDA NICOLL', 'MIÑOPE GONZALES ANYELA ESTHEFANY', 'QUISPE FONSECA KAREN AIMEE', 'UCHOFEN VIGO FELICITA'],
+};
+
 interface AsesorVM { nombre: string; corto: string; }
 interface EstadoDia { tipo: 'trabaja' | 'desc-dom' | 'desc-sem'; manual?: boolean; motivo?: string | null; cambioId?: number; }
 interface PanelState { asesor: string; corto: string; dia: number; estadoTexto: string; tipoSel: string; motivo: string; cambioId: number | null; }
@@ -221,6 +232,23 @@ export class HorariosComponent implements OnInit {
     return orden[((grupo + semana) % 3 + 3) % 3];
   }
 
+  /** Jueves ya trae a William (fijo, inamovible) — si las 4 personas del grupo al que le
+   *  toca jueves esa semana también descansaran jueves, quedaría en 5. Para que jueves y
+   *  viernes queden ambos en 4 (viernes ya tiene a Dexy, fija), 1 de las 4 del grupo pasa a
+   *  viernes esa semana en vez de jueves; cuál de las 4 rota con el tiempo para repartirlo.
+   *  Si esa semana alguna de las 4 ya se queda sin descanso de entre semana porque le tocó
+   *  domingo libre (regla de arriba), ya bajó sola — no se desvía a nadie más. */
+  private diaConDesvioAViernes(grupo: number, domRef: number, asesor: string): number {
+    const miembros = ORDEN_GRUPO[grupo] || [];
+    if (!miembros.includes(asesor)) return 4;
+    const disponibles = miembros.filter(m => !this.descansaDomingoEsaSemana(m, domRef));
+    if (disponibles.length < miembros.length) return 4;
+    const semana = Math.round((domRef - 8) / 7);
+    const turnoDeJueves = Math.floor(semana / 3);
+    const idxDesviado = ((turnoDeJueves % disponibles.length) + disponibles.length) % disponibles.length;
+    return disponibles[idxDesviado] === asesor ? 5 : 4;
+  }
+
   estadoDia(asesor: string, dia: number): EstadoDia {
     const cambio = this.cambiosMap.get(`${asesor}|${dia}`);
     if (cambio) return { tipo: cambio.tipo as EstadoDia['tipo'], manual: true, motivo: cambio.motivo, cambioId: cambio.id };
@@ -230,7 +258,8 @@ export class HorariosComponent implements OnInit {
     const regla = this.rotacionMap.get(asesor);
     if (!regla) return { tipo: 'trabaja' };
     const domRef = this.domingoDeLaSemana(dia);
-    const diaQueLeToca = regla.inamovible ? regla.diaFijo : (regla.grupo != null ? this.diaRotacion(regla.grupo, domRef) : null);
+    let diaQueLeToca = regla.inamovible ? regla.diaFijo : (regla.grupo != null ? this.diaRotacion(regla.grupo, domRef) : null);
+    if (diaQueLeToca === 4 && !regla.inamovible && regla.grupo != null) diaQueLeToca = this.diaConDesvioAViernes(regla.grupo, domRef, asesor);
     if (diaQueLeToca == null || diaQueLeToca !== dow) return { tipo: 'trabaja' };
     if (tieneDomingoEstaSemana && !regla.inamovible) return { tipo: 'trabaja' };
     return { tipo: 'desc-sem' };
