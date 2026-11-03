@@ -420,7 +420,10 @@
   </div>
 
   <!-- ═══════════════ Popup: Reporte general (3 tiendas en un solo documento) ═══════════════ -->
-  <div class="rk-overlay" *ngIf="mostrandoReporteGeneral" (click)="cerrarReporteGeneral()">
+  <div style="position:fixed;inset:0;z-index:99999;background:red;color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;" *ngIf="mostrandoReporteGeneral">
+    RK-DEBUG-MINIMO visible
+  </div>
+  <div class="rk-overlay" *ngIf="false" (click)="cerrarReporteGeneral()">
     <div class="rk-modal" #reporteModal (click)="$event.stopPropagation()">
 
       <div class="rk-head">
