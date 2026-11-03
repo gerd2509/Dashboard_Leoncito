@@ -31,6 +31,9 @@ interface FilaBono {
   totalManual: number;
   totalPagar: number;
   esSupervisor?: boolean;   // fila agregada desde el CAP (supervisor sin venta propia) — no vendedor
+  esLogistico?: boolean;    // fila agregada a mano (logística, no está en el CAP) — no vendedor
+  esPrimerSupervisor?: boolean;   // primera fila del grupo "SUPERVISORES" (para el separador)
+  esPrimerLogistico?: boolean;    // primera fila del grupo "LOGÍSTICA" (para el separador)
 }
 interface SeccionBono {
   canal: Canal;
@@ -248,7 +251,7 @@ export class PagoBonosComponent implements OnInit {
 
   private armarFila(canal: Canal, codigo: string, asesor: string, ventaPropia: number,
                      otrasSedes: { tienda: string; monto: number }[], anio: number, mes: number, bonoCalculado: number,
-                     esSupervisor = false): FilaBono {
+                     esSupervisor = false, esLogistico = false): FilaBono {
     const manuales = this.manualesDe(canal, asesor);
     const totalManual = manuales.reduce((s, b) => s + (Number(b.monto) || 0), 0);
     const totalOtrasSedes = otrasSedes.reduce((s, o) => s + o.monto, 0);
@@ -262,7 +265,7 @@ export class PagoBonosComponent implements OnInit {
       proyeccion: this.proyectar(neto, anio, mes),
       bonoCalculado, manuales, totalManual,
       totalPagar: bonoCalculado + totalManual,
-      esSupervisor,
+      esSupervisor, esLogistico,
     };
   }
 
@@ -296,6 +299,13 @@ export class PagoBonosComponent implements OnInit {
     REALZZA: { titulo: 'REALZZA CHICLAYO', icono: 'storefront', color: '#2E7D32' },
     'REALZZA PIURA': { titulo: 'REALZZA PIURA', icono: 'store', color: '#6A1B9A' },
     'REALZZA LIMA': { titulo: 'REALZZA LIMA', icono: 'local_mall', color: '#E65100' },
+  };
+
+  // Personal de LOGÍSTICA: no está en el CAP de ninguna sede (a diferencia de los
+  // supervisores), así que se agrega a mano acá. Mismo trato que un supervisor: fila
+  // en S/0, bono 100% manual (p. ej. "Bono Logístico").
+  private readonly LOGISTICA_POR_TIENDA: Partial<Record<TiendaRealzza, string[]>> = {
+    REALZZA: ['RIOJAS VENTURA ANDERSON JEFRY'],
   };
 
   /** REALZZA (×3 tiendas a la vez — hace falta ver TODAS juntas para el crédito
@@ -381,7 +391,24 @@ export class PagoBonosComponent implements OnInit {
         if (porTienda[tienda].has(nombre)) continue;
         filas.push(this.armarFila(tienda, nombre, nombre, 0, [], anio, mes, 0, true));
       }
-      filas.sort((a, b) => b.neto - a.neto);
+      // Personal de LOGÍSTICA (no está en el CAP de ninguna sede — se agrega a mano):
+      // mismo trato que un supervisor, fila en 0, bono 100% manual.
+      for (const nombre of (this.LOGISTICA_POR_TIENDA[tienda] || [])) {
+        if (porTienda[tienda].has(nombre)) continue;
+        filas.push(this.armarFila(tienda, nombre, nombre, 0, [], anio, mes, 0, false, true));
+      }
+      // Vendedores (por venta, de mayor a menor) primero; SUPERVISORES al final;
+      // LOGÍSTICA al final de todo — cada grupo separado con su propio encabezado.
+      filas.sort((a, b) => {
+        const grupo = (f: FilaBono) => f.esLogistico ? 2 : f.esSupervisor ? 1 : 0;
+        const ga = grupo(a), gb = grupo(b);
+        if (ga !== gb) return ga - gb;
+        return ga === 0 ? b.neto - a.neto : a.asesor.localeCompare(b.asesor);
+      });
+      const primerSupervisor = filas.find(f => f.esSupervisor);
+      if (primerSupervisor) primerSupervisor.esPrimerSupervisor = true;
+      const primerLogistico = filas.find(f => f.esLogistico);
+      if (primerLogistico) primerLogistico.esPrimerLogistico = true;
       return this.totalizarSeccion({ canal: tienda, ...this.infoTienda[tienda], filas, totalVentaPropia: 0, totalOtrasSedes: 0, totalNeto: 0, totalProyeccion: 0, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
     });
   }
