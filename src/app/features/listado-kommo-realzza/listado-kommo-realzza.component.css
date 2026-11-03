@@ -310,19 +310,22 @@
 .rk-kpi-pill.rk-alerta { background: #FDECEC; border-color: #f5c2c2; color: #C62828; }
 .rk-kpi-pill.rk-alerta b { color: #C62828; }
 
-.rk-sede-grid { display: grid; grid-template-columns: 420px 1fr; gap: 24px; align-items: start; }
-@media (max-width: 900px) { .rk-sede-grid { grid-template-columns: 1fr; } }
+.rk-sede-grid { display: grid; grid-template-columns: 520px 1fr; gap: 24px; align-items: start; }
+@media (max-width: 1000px) { .rk-sede-grid { grid-template-columns: 1fr; } }
 
-/* Nombre/valor SIEMPRE afuera de la barra (nunca adentro) — así el texto nunca queda
-   cortado ni ilegible cuando el tramo se angosta mucho (Gestionados/Interesados/...). */
-.rk-funnel { display: flex; flex-direction: column; gap: 10px; }
-.rk-funnel-row { width: 100%; }
-.rk-fb-label { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-.rk-fb-nombre { font-size: 11px; font-weight: 800; letter-spacing: .04em; color: #1E3A5F; }
-.rk-fb-valor { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; color: #0B0B0B; white-space: nowrap; }
-.rk-fb-ratio { font-size: 11px; color: #8a9bb0; font-weight: 600; }
-.rk-funnel-track { background: #eef2f8; border-radius: 7px; height: 16px; }
-.rk-funnel-block { height: 100%; border-radius: 7px; box-shadow: 0 2px 6px -1px rgba(14,42,77,.18); }
+/* Embudo tipo pirámide (nombre + valor ADENTRO del bloque, centrado, angostándose) — el
+   ancho mínimo de cada bloque es generoso (ver anchoBarraReporte) para que el nombre de la
+   etapa siempre quepa, incluso en los tramos más angostos. */
+.rk-funnel { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.rk-funnel-row { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rk-funnel-block {
+  height: 40px; border-radius: 9px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: #fff; box-shadow: 0 3px 8px -2px rgba(14,42,77,.18); white-space: nowrap; padding: 0 14px;
+}
+.rk-funnel-row:nth-child(-n+2) .rk-funnel-block { color: #0e2a4d; }
+.rk-fb-nombre { font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.rk-fb-valor { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.rk-fb-ratio { font-size: 10.5px; color: #8a9bb0; font-weight: 600; }
 
 .rk-pivot-wrap { overflow-x: auto; }
 table.rk-pivot { width: 100%; border-collapse: collapse; font-size: 11.5px; }

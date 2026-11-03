@@ -218,6 +218,13 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     return Math.min(100, Math.max(e.ratio, 4));
   }
 
+  /** Igual que anchoBarra, pero con un mínimo mucho más generoso — para el embudo del
+   *  Reporte, donde el nombre de la etapa va ADENTRO del bloque y debe caber siempre,
+   *  incluso en los tramos más angostos (Gestionados/Interesados/Derivados/Ventas). */
+  anchoBarraReporte(e: EtapaFunnel): number {
+    return Math.min(100, Math.max(e.ratio, 55));
+  }
+
   // Rampa ordinal de un solo tono (azul, claro→oscuro) para las 6 etapas del embudo:
   // además del largo, el color se va oscureciendo a medida que el embudo se angosta.
   private readonly RAMPA_ETAPAS = ['#86b6ef', '#6da7ec', '#5598e7', '#2a78d6', '#256abf', '#184f95'];
@@ -483,7 +490,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       const pctSinResponder = d.totalLeads ? Math.round((d.sinResponder / d.totalLeads) * 1000) / 10 : 0;
       const filasEmbudo = d.embudo ? d.embudo.etapas.map((e, i) => `
         <div class="funnel-row">
-          <div class="funnel-block" style="width:${this.anchoBarra(e)}%;background:${this.colorEtapa(i)};${i < 2 ? 'color:#0e2a4d' : ''}">
+          <div class="funnel-block" style="width:${this.anchoBarraReporte(e)}%;background:${this.colorEtapa(i)};${i < 2 ? 'color:#0e2a4d' : ''}">
             <span class="fb-nombre">${esc(e.nombre)}</span><span class="fb-valor">${e.op}</span>
           </div>
           <span class="fb-ratio">${e.nombre === 'ASIGNADOS' ? '100%' : e.ratio + '%'}</span>
@@ -524,12 +531,12 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   .sede-head h2 { font-size: 15px; color: #1E3A5F; margin: 0; }
   .kpis { display: flex; gap: 18px; font-size: 11.5px; color: #44536a; }
   .kpis .bad { color: #c62828; font-weight: 700; }
-  .sede-grid { display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: start; }
+  .sede-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
   .funnel { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .funnel-row { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .funnel-block {
     height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; gap: 6px;
-    color: #fff; margin: 0 auto;
+    color: #fff; margin: 0 auto; white-space: nowrap; padding: 0 10px;
   }
   .fb-nombre { font-size: 9px; font-weight: 700; letter-spacing: .03em; }
   .fb-valor { font-size: 11.5px; font-weight: 800; }

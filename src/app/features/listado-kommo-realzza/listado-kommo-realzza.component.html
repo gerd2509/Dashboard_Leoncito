@@ -467,13 +467,10 @@
         <div class="rk-sede-grid">
           <div class="rk-funnel" *ngIf="d.embudo as emb; else sinEmbudoReporte">
             <div class="rk-funnel-row" *ngFor="let e of emb.etapas; let i = index">
-              <div class="rk-fb-label">
-                <span class="rk-fb-nombre">{{ e.nombre }}</span>
-                <span class="rk-fb-valor">{{ e.op | number }} <span class="rk-fb-ratio">· {{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</span></span>
+              <div class="rk-funnel-block" [style.width.%]="anchoBarraReporte(e)" [style.background]="colorEtapa(i)">
+                <span class="rk-fb-nombre">{{ e.nombre }}</span><span class="rk-fb-valor">{{ e.op | number }}</span>
               </div>
-              <div class="rk-funnel-track">
-                <div class="rk-funnel-block" [style.width.%]="anchoBarra(e)" [style.background]="colorEtapa(i)"></div>
-              </div>
+              <span class="rk-fb-ratio">{{ e.nombre === 'ASIGNADOS' ? '100%' : (e.ratio + '%') }}</span>
             </div>
           </div>
           <ng-template #sinEmbudoReporte><p class="rk-vacio">Sin datos de embudo para este mes.</p></ng-template>
