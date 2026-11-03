@@ -49,6 +49,8 @@
           <thead>
             <tr>
               <th class="pb-th-asesor">ASESOR</th>
+              <th>VENTA</th>
+              <th class="pb-th-manuales">VENTA OTRA SEDE</th>
               <th>VENTA NETA</th>
               <th>PROYECCIÓN</th>
               <th>BONO CALC.</th>
@@ -57,8 +59,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let f of sec.filas">
+            <tr *ngFor="let f of sec.filas" [class.pb-fila-call-center]="f.asesor === 'CALL CENTER'">
               <td class="pb-td-asesor">{{ f.asesor }}</td>
+              <td class="pb-num">S/ {{ f.ventaPropia | number }}</td>
+              <td class="pb-manuales">
+                <span class="pb-chip pb-chip-otrasede" *ngFor="let o of f.otrasSedes">{{ o.tienda }}: S/ {{ o.monto | number }}</span>
+                <span class="pb-sin-dato" *ngIf="!f.otrasSedes.length">—</span>
+              </td>
               <td class="pb-num">S/ {{ f.neto | number }}</td>
               <td class="pb-num">S/ {{ f.proyeccion | number }}</td>
               <td class="pb-num pb-bono-calc">S/ {{ f.bonoCalculado | number }}</td>

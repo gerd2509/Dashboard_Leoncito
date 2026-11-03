@@ -10,7 +10,9 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { BonosManualesService, BonoManual } from '../../services/bonos-manuales.service';
 import { AuthService } from '../../services/auth.service';
-import { ASESORES_CALL } from '../../shared/asesores';
+import { CapSedesService } from '../../services/cap-sedes.service';
+import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA } from '../../shared/asesores';
+import { AsesoresPorTienda } from '../../shared/asesores-por-tienda';
 import { esSedeRealzza, tiendaDeSedeRealzza } from '../../shared/canal-usuario';
 
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
@@ -19,7 +21,10 @@ type Canal = 'CALL' | TiendaRealzza;
 interface FilaBono {
   codigo: string;       // CC/RZ (Call) o el nombre tal cual (Realzza) — clave para agrupar
   asesor: string;        // nombre completo a mostrar
-  neto: number;
+  ventaPropia: number;   // venta de ESTA sede (Call: toda su venta; Realzza: solo lo vendido en su tienda "dueña")
+  otrasSedes: { tienda: string; monto: number }[];   // venta que hizo en OTRA tienda Realzza, nombrada
+  totalOtrasSedes: number;
+  neto: number;          // ventaPropia + totalOtrasSedes — lo que se usa para proyectar/calcular el bono
   proyeccion: number;
   bonoCalculado: number;
   manuales: BonoManual[];
@@ -52,9 +57,13 @@ const CANAL_LABEL: Record<Canal, string> = {
  * cree) para casos puntuales — monto fijo que se ingresa cada mes, no se calcula
  * ni se repite solo. Exportable a Excel (una hoja por canal).
  *
- * NO incluye el crédito cruzado entre tiendas Realzza (un vendedor que vendió en
- * otra tienda Realzza distinta a la suya) que sí tiene Ventas Campo — cada sede
- * acá solo refleja sus propias ventas. Si hace falta, se agrega después.
+ * Realzza: igual que Ventas Campo — las 6 asesoras de Call Center que a veces
+ * cierran venta en tienda (Patricia/Dexy/Karen/Maria/Judy/Juana) se agrupan como
+ * una sola fila "CALL CENTER" por tienda (no por su nombre individual: su bono
+ * real ya sale de la sección CALL). El resto de vendedores usa su tienda "dueña"
+ * según el CAP; si vendió en otra tienda Realzza, esa venta se muestra aparte
+ * (columna "Venta otra sede") pero SÍ cuenta para su proyección/bono — mismo
+ * crédito cruzado que ya tiene Ventas Campo.
  */
 @Component({
   selector: 'app-pago-bonos',
@@ -67,6 +76,7 @@ export class PagoBonosComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
   private bonosSrv = inject(BonosManualesService);
   private auth = inject(AuthService);
+  private cap = inject(CapSedesService);
 
   form: UntypedFormGroup;
   readonly anios = [2025, 2026];
@@ -148,17 +158,17 @@ export class PagoBonosComponent implements OnInit {
     this.isLoading = true; this.error = '';
     const { anio, mes } = this.form.value;
     try {
+      const tiendas = new AsesoresPorTienda(this.cap);
       const [manuales, ventasCall, ventasRealzza] = await Promise.all([
         lastValueFrom(this.bonosSrv.listar(anio, mes).pipe(catchError(() => of([] as BonoManual[])))),
         lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio }).pipe(catchError(() => of([] as any[])))),
         lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio).pipe(catchError(() => of([] as any[])))),
+        tiendas.cargar(),
       ]);
       this.bonosManuales = manuales || [];
       this.secciones = [
         this.armarSeccionCall(ventasCall || [], anio, mes),
-        this.armarSeccionRealzza('REALZZA', ventasRealzza || [], anio, mes),
-        this.armarSeccionRealzza('REALZZA PIURA', ventasRealzza || [], anio, mes),
-        this.armarSeccionRealzza('REALZZA LIMA', ventasRealzza || [], anio, mes),
+        ...this.armarSeccionesRealzza(ventasRealzza || [], anio, mes, tiendas),
       ];
       this.totalGeneralPagar = this.secciones.reduce((s, sec) => s + sec.totalPagar, 0);
     } catch (e) {
@@ -191,11 +201,18 @@ export class PagoBonosComponent implements OnInit {
     return (s ?? '').toString().trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   }
 
-  private armarFila(canal: Canal, codigo: string, asesor: string, neto: number, anio: number, mes: number, bonoCalculado: number): FilaBono {
+  private armarFila(canal: Canal, codigo: string, asesor: string, ventaPropia: number,
+                     otrasSedes: { tienda: string; monto: number }[], anio: number, mes: number, bonoCalculado: number): FilaBono {
     const manuales = this.manualesDe(canal, asesor);
     const totalManual = manuales.reduce((s, b) => s + (Number(b.monto) || 0), 0);
+    const totalOtrasSedes = otrasSedes.reduce((s, o) => s + o.monto, 0);
+    const neto = ventaPropia + totalOtrasSedes;
     return {
-      codigo, asesor, neto: Math.round(neto),
+      codigo, asesor,
+      ventaPropia: Math.round(ventaPropia),
+      otrasSedes: otrasSedes.map(o => ({ tienda: o.tienda, monto: Math.round(o.monto) })),
+      totalOtrasSedes: Math.round(totalOtrasSedes),
+      neto: Math.round(neto),
       proyeccion: this.proyectar(neto, anio, mes),
       bonoCalculado, manuales, totalManual,
       totalPagar: bonoCalculado + totalManual,
@@ -222,48 +239,92 @@ export class PagoBonosComponent implements OnInit {
       .map(([codigo, neto]) => {
         const asesor = ASESORES_CALL.find(a => a.value === codigo)?.nombre ?? codigo;
         const proyeccion = this.proyectar(neto, anio, mes);
-        return this.armarFila('CALL', codigo, asesor, neto, anio, mes, this.calcularBonoCall(proyeccion));
+        return this.armarFila('CALL', codigo, asesor, neto, [], anio, mes, this.calcularBonoCall(proyeccion));
       })
       .sort((a, b) => b.neto - a.neto);
     return this.totalizarSeccion({ canal: 'CALL', titulo: 'CALL CENTER', icono: 'call', color: '#1A5FAD', filas, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
   }
 
-  /** REALZZA (×3 tiendas): mismo filtro que Ventas Realzza — venta cuenta en su mes de
-   *  VENTA a valor pleno (incl. estados NC, para no borrarla de su mes); la NC resta
-   *  en su propio mes de AFECTACIÓN. Agrupa por `vendedor` (ya es el nombre completo). */
-  private armarSeccionRealzza(tienda: TiendaRealzza, rows: any[], anio: number, mes: number): SeccionBono {
+  private readonly infoTienda: Record<TiendaRealzza, { titulo: string; icono: string; color: string }> = {
+    REALZZA: { titulo: 'REALZZA CHICLAYO', icono: 'storefront', color: '#2E7D32' },
+    'REALZZA PIURA': { titulo: 'REALZZA PIURA', icono: 'store', color: '#6A1B9A' },
+    'REALZZA LIMA': { titulo: 'REALZZA LIMA', icono: 'local_mall', color: '#E65100' },
+  };
+
+  /** REALZZA (×3 tiendas a la vez — hace falta ver TODAS juntas para el crédito
+   *  cruzado): venta cuenta en su mes de VENTA a valor pleno (incl. estados NC, para
+   *  no borrarla de su mes); la NC resta en su propio mes de AFECTACIÓN.
+   *
+   *  Primera pasada: neto (bruto − NC) por (vendedor, tienda FÍSICA donde se hizo la
+   *  venta) — sin resolver todavía a qué tienda pertenece cada quien.
+   *  Segunda pasada: las 6 asesoras de Call Center se agrupan en una fila "CALL
+   *  CENTER" por tienda física (no tienen tienda "dueña" en el CAP de Realzza — su
+   *  bono real ya sale de la sección CALL). El resto usa su tienda del CAP (o, si no
+   *  está, la tienda donde más vendió) como tienda "dueña"; lo vendido en otra tienda
+   *  Realzza se guarda aparte (columna "Venta otra sede") pero SÍ suma al neto que se
+   *  usa para proyectar/calcular su bono — mismo crédito cruzado de Ventas Campo. */
+  private armarSeccionesRealzza(rows: any[], anio: number, mes: number, tiendas: AsesoresPorTienda): SeccionBono[] {
     const esReductora = (estado: string) => {
       const e = (estado || '').toString().trim().toUpperCase();
       return e === 'NOTA DE CRÉDITO' || e === 'NOTA DE CREDITO' || e.includes('INCAUTAC');
     };
-    const mapNeto = new Map<string, number>();
+    const netoPorVendedorTienda = new Map<string, Map<TiendaRealzza, number>>();
+    const sumar = (vendedor: string, tienda: TiendaRealzza, delta: number) => {
+      let m = netoPorVendedorTienda.get(vendedor);
+      if (!m) { m = new Map(); netoPorVendedorTienda.set(vendedor, m); }
+      m.set(tienda, (m.get(tienda) || 0) + delta);
+    };
     for (const r of rows) {
       const sede = (r.sede || '').toString().trim();
-      if (!esSedeRealzza(sede) || tiendaDeSedeRealzza(sede) !== tienda) continue;
+      if (!esSedeRealzza(sede)) continue;
+      const tiendaFisica = tiendaDeSedeRealzza(sede);
       const asesor = (r.vendedor || '').toString().trim().toUpperCase();
       if (!asesor) continue;
       const monto = Number(r.monto_consolidado) || 0;
       if (monto <= 0) continue;
-      if (+r.mes_cv === mes && +r.anio_cv === anio) {
-        mapNeto.set(asesor, (mapNeto.get(asesor) || 0) + monto);
-      }
-      if (esReductora(r.estado_venta) && +r.mes_af === mes && +r.anio_af === anio) {
-        mapNeto.set(asesor, (mapNeto.get(asesor) || 0) - monto);
-      }
+      if (+r.mes_cv === mes && +r.anio_cv === anio) sumar(asesor, tiendaFisica, monto);
+      if (esReductora(r.estado_venta) && +r.mes_af === mes && +r.anio_af === anio) sumar(asesor, tiendaFisica, -monto);
     }
-    const filas = Array.from(mapNeto.entries())
-      .filter(([, neto]) => neto !== 0)
-      .map(([asesor, neto]) => {
-        const proyeccion = this.proyectar(neto, anio, mes);
-        return this.armarFila(tienda, asesor, asesor, neto, anio, mes, this.calcularBonoRealzza(tienda, proyeccion));
-      })
-      .sort((a, b) => b.neto - a.neto);
-    const info: Record<TiendaRealzza, { titulo: string; icono: string; color: string }> = {
-      REALZZA: { titulo: 'REALZZA CHICLAYO', icono: 'storefront', color: '#2E7D32' },
-      'REALZZA PIURA': { titulo: 'REALZZA PIURA', icono: 'store', color: '#6A1B9A' },
-      'REALZZA LIMA': { titulo: 'REALZZA LIMA', icono: 'local_mall', color: '#E65100' },
-    };
-    return this.totalizarSeccion({ canal: tienda, ...info[tienda], filas, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
+
+    const porTienda: Record<TiendaRealzza, Map<string, FilaBono>> = { REALZZA: new Map(), 'REALZZA PIURA': new Map(), 'REALZZA LIMA': new Map() };
+    const callCenterPorTienda: Record<TiendaRealzza, number> = { REALZZA: 0, 'REALZZA PIURA': 0, 'REALZZA LIMA': 0 };
+
+    netoPorVendedorTienda.forEach((porTiendaFisica, vendedor) => {
+      if (ASESORES_CALL_CENTER_CARTERA.has(vendedor)) {
+        porTiendaFisica.forEach((monto, tienda) => { callCenterPorTienda[tienda] += monto; });
+        return;
+      }
+      // Tienda "dueña" (CAP); si no está en el CAP de ninguna tienda Realzza, se usa
+      // como respaldo la tienda donde tiene el mayor monto (no hay otra forma de saberlo).
+      let fallback: TiendaRealzza = 'REALZZA';
+      let max = -Infinity;
+      porTiendaFisica.forEach((monto, tienda) => { if (monto > max) { max = monto; fallback = tienda; } });
+      const home = tiendas.tiendaDeVendedor(vendedor, fallback) as TiendaRealzza;
+
+      let ventaPropia = 0;
+      const otrasSedes: { tienda: string; monto: number }[] = [];
+      porTiendaFisica.forEach((monto, tienda) => {
+        if (tienda === home) ventaPropia += monto;
+        else otrasSedes.push({ tienda: this.infoTienda[tienda].titulo, monto });
+      });
+      if (ventaPropia === 0 && !otrasSedes.length) return;
+
+      const neto = ventaPropia + otrasSedes.reduce((s, o) => s + o.monto, 0);
+      const proyeccion = this.proyectar(neto, anio, mes);
+      const fila = this.armarFila(home, vendedor, vendedor, ventaPropia, otrasSedes, anio, mes, this.calcularBonoRealzza(home, proyeccion));
+      porTienda[home].set(vendedor, fila);
+    });
+
+    return (['REALZZA', 'REALZZA PIURA', 'REALZZA LIMA'] as TiendaRealzza[]).map(tienda => {
+      const filas = Array.from(porTienda[tienda].values());
+      const netoCallCenter = callCenterPorTienda[tienda];
+      if (netoCallCenter !== 0) {
+        const proyeccion = this.proyectar(netoCallCenter, anio, mes);
+        filas.push(this.armarFila(tienda, 'CALL CENTER', 'CALL CENTER', netoCallCenter, [], anio, mes, this.calcularBonoRealzza(tienda, proyeccion)));
+      }
+      filas.sort((a, b) => b.neto - a.neto);
+      return this.totalizarSeccion({ canal: tienda, ...this.infoTienda[tienda], filas, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
+    });
   }
 
   private totalizarSeccion(sec: SeccionBono): SeccionBono {
@@ -358,16 +419,18 @@ export class PagoBonosComponent implements OnInit {
 
     for (const sec of this.secciones) {
       const ws = wb.addWorksheet(sec.titulo.substring(0, 31));
-      ws.addRow(['ASESOR', 'VENTA NETA DEL MES', 'PROYECCIÓN', 'BONO CALCULADO', 'BONOS MANUALES (detalle)', 'TOTAL MANUAL', 'TOTAL A PAGAR']).font = { bold: true };
+      ws.addRow(['ASESOR', 'VENTA', 'VENTA OTRA SEDE (detalle)', 'VENTA NETA', 'PROYECCIÓN', 'BONO CALCULADO', 'BONOS MANUALES (detalle)', 'TOTAL MANUAL', 'TOTAL A PAGAR']).font = { bold: true };
       for (const f of sec.filas) {
         ws.addRow([
-          f.asesor, f.neto, f.proyeccion, f.bonoCalculado,
+          f.asesor, f.ventaPropia,
+          f.otrasSedes.map(o => `${o.tienda}: S/ ${o.monto}`).join(' · '),
+          f.neto, f.proyeccion, f.bonoCalculado,
           f.manuales.map(b => `${b.tipo}: S/ ${b.monto}`).join(' · '),
           f.totalManual, f.totalPagar,
         ]);
       }
-      ws.addRow(['TOTAL', '', '', sec.totalCalculado, '', sec.totalManual, sec.totalPagar]).font = { bold: true };
-      ws.columns.forEach((c, i) => c.width = i === 4 ? 50 : 20);
+      ws.addRow(['TOTAL', '', '', '', '', sec.totalCalculado, '', sec.totalManual, sec.totalPagar]).font = { bold: true };
+      ws.columns.forEach((c, i) => c.width = i === 2 || i === 6 ? 46 : 18);
     }
 
     const buffer = await wb.xlsx.writeBuffer();
