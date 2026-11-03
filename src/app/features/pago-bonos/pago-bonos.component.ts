@@ -37,6 +37,10 @@ interface SeccionBono {
   icono: string;
   color: string;
   filas: FilaBono[];
+  totalVentaPropia: number;
+  totalOtrasSedes: number;
+  totalNeto: number;
+  totalProyeccion: number;
   totalCalculado: number;
   totalManual: number;
   totalPagar: number;
@@ -242,7 +246,7 @@ export class PagoBonosComponent implements OnInit {
         return this.armarFila('CALL', codigo, asesor, neto, [], anio, mes, this.calcularBonoCall(proyeccion));
       })
       .sort((a, b) => b.neto - a.neto);
-    return this.totalizarSeccion({ canal: 'CALL', titulo: 'CALL CENTER', icono: 'call', color: '#1A5FAD', filas, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
+    return this.totalizarSeccion({ canal: 'CALL', titulo: 'CALL CENTER', icono: 'call', color: '#1A5FAD', filas, totalVentaPropia: 0, totalOtrasSedes: 0, totalNeto: 0, totalProyeccion: 0, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
   }
 
   private readonly infoTienda: Record<TiendaRealzza, { titulo: string; icono: string; color: string }> = {
@@ -323,11 +327,15 @@ export class PagoBonosComponent implements OnInit {
         filas.push(this.armarFila(tienda, 'CALL CENTER', 'CALL CENTER', netoCallCenter, [], anio, mes, this.calcularBonoRealzza(tienda, proyeccion)));
       }
       filas.sort((a, b) => b.neto - a.neto);
-      return this.totalizarSeccion({ canal: tienda, ...this.infoTienda[tienda], filas, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
+      return this.totalizarSeccion({ canal: tienda, ...this.infoTienda[tienda], filas, totalVentaPropia: 0, totalOtrasSedes: 0, totalNeto: 0, totalProyeccion: 0, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
     });
   }
 
   private totalizarSeccion(sec: SeccionBono): SeccionBono {
+    sec.totalVentaPropia = sec.filas.reduce((s, f) => s + f.ventaPropia, 0);
+    sec.totalOtrasSedes = sec.filas.reduce((s, f) => s + f.totalOtrasSedes, 0);
+    sec.totalNeto = sec.filas.reduce((s, f) => s + f.neto, 0);
+    sec.totalProyeccion = sec.filas.reduce((s, f) => s + f.proyeccion, 0);
     sec.totalCalculado = sec.filas.reduce((s, f) => s + f.bonoCalculado, 0);
     sec.totalManual = sec.filas.reduce((s, f) => s + f.totalManual, 0);
     sec.totalPagar = sec.filas.reduce((s, f) => s + f.totalPagar, 0);

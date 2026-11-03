@@ -50,7 +50,7 @@
             <tr>
               <th class="pb-th-asesor">ASESOR</th>
               <th>VENTA</th>
-              <th class="pb-th-manuales">VENTA OTRA SEDE</th>
+              <th class="pb-th-otrasede" *ngIf="sec.canal !== 'CALL'">VENTA OTRA SEDE</th>
               <th>VENTA NETA</th>
               <th>PROYECCIÓN</th>
               <th>BONO CALC.</th>
@@ -62,7 +62,7 @@
             <tr *ngFor="let f of sec.filas" [class.pb-fila-call-center]="f.asesor === 'CALL CENTER'">
               <td class="pb-td-asesor">{{ f.asesor }}</td>
               <td class="pb-num">S/ {{ f.ventaPropia | number }}</td>
-              <td class="pb-manuales">
+              <td class="pb-td-otrasede" *ngIf="sec.canal !== 'CALL'">
                 <span class="pb-chip pb-chip-otrasede" *ngFor="let o of f.otrasSedes">{{ o.tienda }}: S/ {{ o.monto | number }}</span>
                 <span class="pb-sin-dato" *ngIf="!f.otrasSedes.length">—</span>
               </td>
@@ -84,6 +84,18 @@
               <td class="pb-num pb-total-fila">S/ {{ f.totalPagar | number }}</td>
             </tr>
           </tbody>
+          <tfoot>
+            <tr class="pb-fila-total">
+              <td class="pb-td-asesor">TOTAL</td>
+              <td class="pb-num">S/ {{ sec.totalVentaPropia | number }}</td>
+              <td class="pb-td-otrasede" *ngIf="sec.canal !== 'CALL'">S/ {{ sec.totalOtrasSedes | number }}</td>
+              <td class="pb-num">S/ {{ sec.totalNeto | number }}</td>
+              <td class="pb-num">S/ {{ sec.totalProyeccion | number }}</td>
+              <td class="pb-num pb-bono-calc">S/ {{ sec.totalCalculado | number }}</td>
+              <td class="pb-td-manuales-total">S/ {{ sec.totalManual | number }}</td>
+              <td class="pb-num pb-total-fila">S/ {{ sec.totalPagar | number }}</td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <ng-template #sinDatos>

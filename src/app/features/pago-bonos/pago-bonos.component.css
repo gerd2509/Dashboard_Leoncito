@@ -51,13 +51,21 @@
   text-transform: uppercase; letter-spacing: .03em; border-bottom: 2px solid #EFEEEA; white-space: nowrap;
 }
 .pb-th-asesor, .pb-th-manuales { text-align: left !important; }
-.pb-tabla tbody td { padding: 9px 14px; border-bottom: 1px solid #F2F1EC; vertical-align: middle; }
+.pb-th-otrasede { text-align: center !important; }
+.pb-tabla tbody td, .pb-tabla tfoot td { padding: 9px 14px; border-bottom: 1px solid #F2F1EC; vertical-align: middle; }
 .pb-tabla tbody tr:hover { background: #FAFAF8; }
 .pb-td-asesor { text-align: left; font-weight: 600; color: #0B0B0B; white-space: nowrap; }
+.pb-td-otrasede { text-align: center; }
 .pb-fila-call-center { background: #FAFAF8; }
 .pb-fila-call-center .pb-td-asesor { font-style: italic; color: #52514E; }
 .pb-sin-dato { color: #C3C2B7; font-size: 12px; }
 .pb-chip-otrasede { background: #EAF1FB; color: #1A5FAD; cursor: default; }
+
+.pb-td-manuales-total { text-align: left; font-variant-numeric: tabular-nums; }
+
+.pb-fila-total { background: var(--sec-color); background: color-mix(in srgb, var(--sec-color) 10%, #fff); }
+.pb-fila-total td { border-top: 2px solid var(--sec-color); border-bottom: none !important; font-weight: 700; color: #0B0B0B; }
+.pb-fila-total .pb-td-asesor { color: var(--sec-color); }
 .pb-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pb-bono-calc { color: var(--sec-color); font-weight: 700; }
 .pb-total-fila { font-weight: 700; color: #0B0B0B; background: #FAFAF8; }
