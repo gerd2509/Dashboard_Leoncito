@@ -51,19 +51,20 @@
     <mat-icon>warning</mat-icon>
     <span>
         {{ afiliacionesDetalleIncorrectasMes.length }} afiliación(es) del mes de la fecha elegida con DIRECCIÓN y/o TELÉFONO inválido.
-        <button mat-stroked-button type="button" (click)="verIncorrectas = !verIncorrectas">
-            <mat-icon>{{ verIncorrectas ? 'visibility_off' : 'visibility' }}</mat-icon>
-            {{ verIncorrectas ? 'Ocultar detalle' : 'Ver detalle' }}
+        <button mat-stroked-button type="button" (click)="verIncorrectas = true">
+            <mat-icon>visibility</mat-icon> Ver detalle
         </button>
     </span>
 </div>
 
-<!-- Detalle en pantalla de afiliaciones con DIRECCIÓN/TELÉFONO inválido (del mes elegido) -->
-<div class="afi-detalle-incorrectas" *ngIf="verIncorrectas && afiliacionesDetalleIncorrectasMes.length">
+<!-- Popup con el detalle de afiliaciones con DIRECCIÓN/TELÉFONO inválido (del mes elegido) -->
+<dx-popup [(visible)]="verIncorrectas" [showTitle]="true" title="Afiliaciones con DIRECCIÓN/TELÉFONO inválido"
+    [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
     <dx-data-grid [dataSource]="afiliacionesDetalleIncorrectasMes" [showBorders]="true" [rowAlternationEnabled]="true"
-        [hoverStateEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="true">
+        [hoverStateEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="true" height="100%">
         <dxo-filter-row [visible]="true"></dxo-filter-row>
-        <dxo-paging [pageSize]="20"></dxo-paging>
+        <dxo-paging [enabled]="false"></dxo-paging>
+        <dxo-scrolling mode="virtual"></dxo-scrolling>
         <dxo-sorting mode="multiple"></dxo-sorting>
         <dxo-grouping [autoExpandAll]="true"></dxo-grouping>
         <dxo-group-panel [visible]="false"></dxo-group-panel>
@@ -76,7 +77,7 @@
         <dxo-summary><dxi-total-item alignment="right" column="asesor" summaryType="count" displayFormat="Total: {0}"></dxi-total-item></dxo-summary>
         <div *dxTemplate="let c of 'motivoTpl'">{{ c.value.join(' · ') }}</div>
     </dx-data-grid>
-</div>
+</dx-popup>
 
 <div class="grid-container">
 
