@@ -370,24 +370,17 @@ export class ListadoKommoRealzzaComponent implements OnInit {
    *  Realzza del mes elegido arriba y abre el popup con todo junto, listo para exportar
    *  (PDF, imagen o Excel) desde el mismo popup. */
   async abrirReporteGeneral(): Promise<void> {
-    console.log('[RK] 1/6 click recibido');
     const { anio, mes } = this.form.value;
-    console.log('[RK] 2/6 anio=', anio, 'mes=', mes, 'verTodo=', this.verTodo);
     if (this.verTodo || !anio || !mes) {
-      console.log('[RK] cortado por validación (verTodo/anio/mes)');
       this.error = 'Elige un mes puntual (no "Ver todo") para generar el reporte general.';
       return;
     }
     this.generandoReporte = true; this.error = '';
     try {
       const tiendas: TiendaRealzza[] = ['REALZZA', 'REALZZA PIURA', 'REALZZA LIMA'];
-      console.log('[RK] 3/6 pidiendo datos de las 3 tiendas…');
       const resultados = await Promise.all(tiendas.map(t => this.datosReporteTiendaSeguro(t, anio, mes)));
-      console.log('[RK] 4/6 resultados crudos:', resultados);
       const datos = resultados.filter((d): d is DatosReporteTienda => d !== null);
-      console.log('[RK] 5/6 datos filtrados (no-null):', datos.length, datos);
       if (!datos.length) {
-        console.log('[RK] cortado: 0 tiendas con datos');
         this.error = 'No se pudo traer el reporte de ninguna tienda. Abre la consola (F12 → Console) y busca "[Reporte Kommo]" para ver el detalle.';
         return;
       }
@@ -398,18 +391,11 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       this.reporteGeneralGeneradoEn = new Date().toLocaleString('es-PE');
       this.exportMenuAbierto = false;
       this.mostrandoReporteGeneral = true;
-      setTimeout(() => {
-        console.log('[RK] AUTOCHECK (100ms despues) — ¿esta el div rojo en el DOM?:', document.body.innerHTML.includes('RK-DEBUG-MINIMO'));
-        console.log('[RK] AUTOCHECK — cantidad con z-index 99999:', document.querySelectorAll('[style*="99999"]').length);
-        console.log('[RK] AUTOCHECK — cantidad .lk-wrap:', document.querySelectorAll('.lk-wrap').length);
-      }, 100);
-      console.log('[RK] 6/6 mostrandoReporteGeneral =', this.mostrandoReporteGeneral);
       if (datos.length < tiendas.length) {
         const faltantes = tiendas.length - datos.length;
         this.error = `El reporte se abrió, pero ${faltantes === 1 ? 'a 1 tienda le' : `a ${faltantes} tiendas les`} falló la carga (revisa la consola, busca "[Reporte Kommo]").`;
       }
     } catch (e) {
-      console.log('[RK] EXCEPCIÓN en el try principal:', e);
       console.error('[Reporte Kommo] Error general:', this.detalleError(e), e);
       this.error = `No se pudo generar el reporte general: ${this.detalleError(e)}`;
     } finally {

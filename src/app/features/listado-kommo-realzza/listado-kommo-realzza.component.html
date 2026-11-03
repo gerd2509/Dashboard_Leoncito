@@ -47,9 +47,6 @@
           <mat-icon>{{ generandoReporte ? 'hourglass_empty' : 'summarize' }}</mat-icon>
           {{ generandoReporte ? 'Generando…' : 'Reporte' }}
         </button>
-        <span style="background:yellow;color:#000;font-weight:800;padding:4px 10px;border-radius:6px;">
-          RK-DEBUG mostrando={{ mostrandoReporteGeneral }} datos={{ reporteGeneralDatos.length }}
-        </span>
       </ng-container>
     </form>
 
@@ -420,10 +417,10 @@
   </div>
 
   <!-- ═══════════════ Popup: Reporte general (3 tiendas en un solo documento) ═══════════════ -->
-  <div style="position:fixed;inset:0;z-index:99999;background:red;color:#fff;font-size:30px;display:flex;align-items:center;justify-content:center;" *ngIf="mostrandoReporteGeneral">
-    RK-DEBUG-MINIMO visible
-  </div>
-  <div class="rk-overlay" *ngIf="false" (click)="cerrarReporteGeneral()">
+  <!-- Siempre en el DOM; se muestra/oculta con [style.display] (en vez de *ngIf) para no
+       depender de que Angular cree/destruya la vista — más robusto ante cambios de estado
+       disparados desde un async/await. -->
+  <div class="rk-overlay" [style.display]="mostrandoReporteGeneral ? 'flex' : 'none'" (click)="cerrarReporteGeneral()">
     <div class="rk-modal" #reporteModal (click)="$event.stopPropagation()">
 
       <div class="rk-head">
