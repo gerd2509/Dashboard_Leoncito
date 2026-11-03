@@ -1,4 +1,6 @@
-.pb-wrap { padding: 4px 2px 32px; font-family: inherit; }
+/* position:relative: que el spinner de carga y el popup (container=".pb-wrap") se
+   acoten a este contenido, no a toda la pantalla (sidebar/topbar incluidos). */
+.pb-wrap { position: relative; padding: 4px 2px 32px; font-family: inherit; min-height: 300px; }
 
 /* ── Encabezado ── */
 .pb-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
@@ -87,6 +89,10 @@
 /* ── Popup agregar/editar ── */
 .pb-popup { display: flex; flex-direction: column; gap: 16px; padding: 4px 2px; }
 .pb-popup-asesor { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #1E3A5F; font-size: 14px; }
+.pb-popup-error {
+  display: flex; align-items: center; gap: 8px; background: #FBE2E1; color: #9C1C1C;
+  border-radius: 8px; padding: 9px 12px; font-size: 12.5px;
+}
 .pb-popup-botones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
 
 @media (max-width: 720px) {

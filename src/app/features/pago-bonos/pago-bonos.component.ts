@@ -361,11 +361,13 @@ export class PagoBonosComponent implements OnInit {
 
   abrirAgregar(canal: Canal, asesor: string): void {
     this.editando = null;
+    this.error = '';
     this.modeloPopup = { canal, asesor, tipo: '', monto: 0, comentario: '' };
     this.popupVisible = true;
   }
   abrirEditar(canal: Canal, asesor: string, bono: BonoManual): void {
     this.editando = bono;
+    this.error = '';
     this.modeloPopup = { canal, asesor, tipo: bono.tipo, monto: bono.monto, comentario: bono.comentario || '' };
     this.popupVisible = true;
   }

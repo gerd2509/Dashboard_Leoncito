@@ -105,13 +105,15 @@
   </div>
 </div>
 
-<!-- Popup: agregar/editar bono manual -->
+<!-- Popup: agregar/editar bono manual — acotado al contenido (container), no a toda la pantalla -->
 <dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="editando ? 'Editar bono manual' : 'Agregar bono manual'"
-    [width]="420" [height]="'auto'" [dragEnabled]="false" [hideOnOutsideClick]="true" (onHidden)="cerrarPopup()">
+    [width]="420" [height]="'auto'" [dragEnabled]="false" [hideOnOutsideClick]="true" [container]="'.pb-wrap'" (onHidden)="cerrarPopup()">
   <div class="pb-popup">
     <div class="pb-popup-asesor"><mat-icon>person</mat-icon> {{ modeloPopup.asesor }}</div>
 
-    <dx-select-box [dataSource]="tiposSugeridos" [(value)]="modeloPopup.tipo" [acceptCustomValue]="true"
+    <div class="pb-popup-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+
+    <dx-select-box [dataSource]="tiposSugeridos" [value]="modeloPopup.tipo" (valueChange)="modeloPopup.tipo = $event" [acceptCustomValue]="true"
       label="Tipo de bono (o escribe uno nuevo)" labelMode="floating" stylingMode="outlined" [searchEnabled]="true"
       placeholder="Ej. Bono Logístico"></dx-select-box>
 
