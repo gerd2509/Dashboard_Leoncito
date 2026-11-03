@@ -211,18 +211,19 @@ export class EmbudosGestionComponent {
   }
 
   /** Sedes (Ferreñafe/Lambayeque): arma SOLO el embudo MARKET PLACE del mes elegido,
-   *  cruzando la derivación (gestion_sedes_deriv) con las ventas de la sede. */
+   *  cruzando la gestión REAL de la sede (gestion_call_sedes — misma fuente que
+   *  "Evolución de Registros"/Control Call Sedes) con las ventas de la sede. */
   async cargarEmbudoSedes(): Promise<void> {
     this.reiniciar();
     this.procesando = true;
     try {
       const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
       const desde = new Date(anio, mes, 1), hasta = new Date(anio, mes + 1, 0);
-      const [deriv, ventas] = await Promise.all([
-        lastValueFrom(this.sheets.getDerivacionesDB({ desde, hasta }, undefined, this.sedeDeriv)),
+      const [gestionSede, ventas] = await Promise.all([
+        lastValueFrom(this.sheets.getCallSedesDB({ desde, hasta })),
         lastValueFrom(this.ventasSrv.listarAtribucionSede(this.sedeDeriv, anio, mes + 1)),
       ]);
-      this.embudos = [this.armarEmbudoSedesMarketPlace(mes, anio, deriv || [], ventas || [], this.paleta[0])];
+      this.embudos = [this.armarEmbudoSedesMarketPlace(mes, anio, gestionSede || [], ventas || [], this.paleta[0])];
       this.nombreArchivo = `${this.sedeDeriv} (Market Place) — ${this.fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}`;
       this.listo = true;
     } catch (err: any) {
@@ -234,21 +235,28 @@ export class EmbudosGestionComponent {
 
   /**
    * Arma el embudo MARKET PLACE de una sede (Ferreñafe/Lambayeque):
-   *  GESTIONADOS = derivaciones del mes (gestion_sedes_deriv, por fecha de REGISTRO)
-   *  con TipoBase = MARKET PLACE;
-   *  INTERESADOS = de esas, RESULTADO DE GESTIÓN = INTERESADO (NO todas lo son — a
-   *  diferencia de Call/Realzza, acá puede haber derivaciones sin interés real);
-   *  TOTAL VENTAS = ventas de la sede del mes (ya cruzadas con su fuente generadora)
-   *  marcadas MARKET PLACE, netas de NC/incautación — mismo criterio que el resto de
-   *  este módulo, aunque acá solo se resta la NC del MISMO mes de venta (el cruce de
-   *  Sedes no trae ventas de otros meses para poder restar una NC "arrastrada").
+   *  GESTIONADOS = gestiones REALES de la sede en el mes (tabla gestion_call_sedes,
+   *  1 por DNI — misma definición que "Evolución de Registros"/Control Call Sedes,
+   *  NO solo lo marcado Market Place: es el total de registros reales del mes);
+   *  INTERESADOS = de esas, RESULTADO DE GESTIÓN = INTERESADO;
+   *  TOTAL VENTAS = aparte, ventas de la sede del mes (ya cruzadas con su fuente
+   *  generadora) marcadas MARKET PLACE, netas de NC/incautación del mismo mes de
+   *  venta (el cruce de Sedes no trae ventas de otros meses para restar una NC
+   *  "arrastrada").
    */
-  private armarEmbudoSedesMarketPlace(mes: number, anio: number, deriv: any[], ventas: any[], color: string): Embudo {
-    const esMarketPlace = (v: any) => this.norm(v.tipo_base) === 'marketplace';
-    const mpDeriv = (deriv || []).filter(esMarketPlace);
-    const gestionados = mpDeriv.length;
-    const interesados = mpDeriv.filter(r => this.norm(r.resultado_gestion) === 'interesado').length;
+  private armarEmbudoSedesMarketPlace(mes: number, anio: number, gestionSede: any[], ventas: any[], color: string): Embudo {
+    const filasSede = (gestionSede || []).filter(r => this.norm(r['SEDE']) === this.norm(this.sedeDeriv));
+    const porCliente = new Map<string, boolean>();   // dni/fila → ¿interesado en alguna gestión?
+    filasSede.forEach((r, i) => {
+      const dni = (r['DNI CLIENTE'] ?? '').toString().replace(/\D/g, '');
+      const clave = dni ? `dni:${dni}` : `fila:${i}`;
+      const interesado = (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO';
+      porCliente.set(clave, (porCliente.get(clave) ?? false) || interesado);
+    });
+    const gestionados = porCliente.size;
+    const interesados = [...porCliente.values()].filter(Boolean).length;
 
+    const esMarketPlace = (v: any) => this.norm(v.fuente) === 'marketplace';
     const mpVentas = (ventas || []).filter(esMarketPlace);
     const nc = mpVentas.filter(v => this.esVentaReductora(v) && +v.mes_af === mes + 1 && +v.anio_af === anio).length;
     const totalVentas = mpVentas.length - nc;
