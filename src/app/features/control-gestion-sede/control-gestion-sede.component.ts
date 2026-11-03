@@ -403,7 +403,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         const incorrectas = incorrectasPorSede.get(key) ?? 0;
         return { sedeKey: key, sede: info.nombre, total: info.total, incorrectas, pct: info.total > 0 ? Math.round((incorrectas / info.total) * 100) : 0 };
       })
-      .sort((a, b) => b.total - a.total);
+      .sort((a, b) => b.pct - a.pct);   // de peor a mejor (tarjetas por sede)
 
     const incorrectasGeneral = this.afiliacionesDetalleIncorrectasMes.length;
     this.afiliacionesResumenMes = {
@@ -414,9 +414,19 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
 
   /** Semáforo para un % de afiliaciones INCORRECTAS: a diferencia de `colorPct`
-   *  (donde más alto es mejor), aquí más alto es peor. */
+   *  (donde más alto es mejor), aquí más alto es peor. 4 niveles: 0% bueno, ≤15%
+   *  atención, ≤50% serio, >50% crítico. */
   colorPctIncorrectas(pct: number): string {
-    return pct === 0 ? '#3D9B2F' : pct <= 5 ? '#F07420' : '#DC2626';
+    return pct === 0 ? '#0ca30c' : pct <= 15 ? '#c98500' : pct <= 50 ? '#ec835a' : '#d03b3b';
+  }
+
+  /** Badge de estado (ícono + texto) para la tarjeta de una sede, mismos 4 niveles
+   *  que `colorPctIncorrectas`. */
+  estadoPctIncorrectas(pct: number): { label: string; bg: string; fg: string } {
+    if (pct === 0) return { label: 'BUENO', bg: '#e8f6e8', fg: '#0c5f0c' };
+    if (pct <= 15) return { label: 'ATENCIÓN', bg: '#fdf2e3', fg: '#704700' };
+    if (pct <= 50) return { label: 'SERIO', bg: '#fdede7', fg: '#8a3a1f' };
+    return { label: 'CRÍTICO', bg: '#fbeceb', fg: '#8a241f' };
   }
 
   private calcular() {
