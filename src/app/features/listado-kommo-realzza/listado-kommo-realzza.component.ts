@@ -7,10 +7,12 @@ import { Workbook } from 'exceljs';
 import * as FileSaver from 'file-saver';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { ExcelExportService } from '../../services/excel/excel.service';
+import { SheetsService } from '../../services/service-google.service';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 import { AuditoriaKommoService, LoteAuditoria, LeadAuditoria, ResultadoAuditoria } from '../../services/auditoria-kommo.service';
+import { tiendaDeSedeRealzza } from '../../shared/canal-usuario';
 
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
 
@@ -26,6 +28,11 @@ interface ResumenEmbudo {
 interface ColDia { key: string; dia: number; }
 interface FilaPivotEmbudo { embudo: string; valores: Record<string, number>; total: number; }
 interface PivotLeadsDia { cols: ColDia[]; filas: FilaPivotEmbudo[]; totales: Record<string, number>; totalGeneral: number; }
+
+// Mismo formato que el embudo de "Embudos de Gestión" (ASIGNADOS → CONTACTADOS →
+// GESTIONADOS → INTERESADOS → DERIVADOS → TOTAL VENTAS), para mostrarlo acá también.
+interface EtapaFunnel { nombre: string; op: number; ratio: number; codigo: string; }
+interface EmbudoKommo { titulo: string; etapas: EtapaFunnel[]; }
 
 /**
  * "Listado Kommo Realzza": trae los leads del mes directo de la API de Kommo (botón
@@ -44,6 +51,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   private ventasSrv = inject(CargaVentasService);
   private excelSrv = inject(ExcelExportService);
   private auditSrv = inject(AuditoriaKommoService);
+  private sheets = inject(SheetsService);
 
   @ViewChild('grid', { static: false }) grid!: DxDataGridComponent;
 
@@ -116,6 +124,91 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     } finally {
       this.isLoading = false;
     }
+    await this.cargarEmbudoKommo();
+  }
+
+  // ═══════════════════ Embudo KOMMO (LEADS) — mismo formato que Embudos de Gestión ═══════════════════
+  cargandoEmbudo = false;
+  embudoKommo: EmbudoKommo | null = null;
+
+  /** Arma el mismo embudo KOMMO (LEADS) que "Embudos de Gestión", para esta tienda/mes:
+   *  ASIGNADOS/CONTACTADOS salen de los leads ya cargados (this.filas, sin el filtro de
+   *  la grilla); GESTIONADOS/INTERESADOS de la gestión Kommo del mes; TOTAL VENTAS de las
+   *  ventas Realzza con TipoBase=KOMMO, netas de NC en su mes de afectación (mismo
+   *  criterio que el resto del dashboard). No aplica en "Ver todo" (no hay un solo mes). */
+  private async cargarEmbudoKommo(): Promise<void> {
+    this.embudoKommo = null;
+    if (this.verTodo) return;
+    const { anio, mes } = this.form.value;
+    if (!anio || !mes) return;
+    this.cargandoEmbudo = true;
+    try {
+      const [dataVentas, dataKommo] = await Promise.all([
+        lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio)),
+        lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes, leadAnio: anio, canal: 'REALZZA', sede: this.tienda })),
+      ]);
+      const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda);
+      this.embudoKommo = this.armarEmbudoKommo(mes, anio, ventasTienda, dataKommo || []);
+    } catch (e) {
+      console.error('Error al cargar el embudo KOMMO:', e);
+      this.embudoKommo = null;
+    } finally {
+      this.cargandoEmbudo = false;
+    }
+  }
+
+  private armarEmbudoKommo(mes: number, anio: number, dataVentas: any[], dataKommo: any[]): EmbudoKommo {
+    const esVentaKommo = (v: any) =>
+      this.normTxt(v.tipo_base) === 'kommo' && (Number(v.monto_consolidado) || 0) > 0;
+    const bruto = (dataVentas || []).filter(v => esVentaKommo(v) && +v.mes_cv === mes && +v.anio_cv === anio).length;
+    const nc = (dataVentas || []).filter(v =>
+      esVentaKommo(v) && this.esVentaReductora(v) && +v.mes_af === mes && +v.anio_af === anio).length;
+    const ventasKommo = bruto - nc;
+
+    const kommoMes = (dataKommo || [])
+      .filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio))
+      .filter(r => this.normTxt(r['MARKET PLACE R']) !== 'si');
+
+    const asignados = this.filas.length;
+    const contactados = this.filas.filter(f => (f.modificado_por ?? '').toString().trim() !== '').length;
+    const gestionados = kommoMes.length;
+    const interesados = kommoMes.filter(r => (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO').length;
+
+    const ratio = (n: number) => (asignados > 0 ? Math.round((n / asignados) * 1000) / 10 : 0);
+    const etapas: EtapaFunnel[] = [
+      { nombre: 'ASIGNADOS', op: asignados, ratio: 100, codigo: '' },
+      { nombre: 'CONTACTADOS', op: contactados, ratio: ratio(contactados), codigo: 'RCT/A' },
+      { nombre: 'GESTIONADOS', op: gestionados, ratio: ratio(gestionados), codigo: 'RG/A' },
+      { nombre: 'INTERESADOS', op: interesados, ratio: ratio(interesados), codigo: 'RI/A' },
+      { nombre: 'DERIVADOS', op: ventasKommo, ratio: ratio(ventasKommo), codigo: 'RD/A' },
+      { nombre: 'TOTAL VENTAS', op: ventasKommo, ratio: ratio(ventasKommo), codigo: 'RV/A' },
+    ];
+    return { titulo: 'KOMMO (LEADS)', etapas };
+  }
+
+  /** ¿Es una venta NOTA DE CRÉDITO/INCAUTACIÓN (resta en su mes de AFECTACIÓN, no en el
+   *  de venta)? Mismo criterio que el resto del dashboard (Ventas Campo / Embudos). */
+  private esVentaReductora(v: any): boolean {
+    const est = (v.estado_venta || '').toString().toUpperCase();
+    return est.includes('NOTA DE') || est.includes('INCAUTAC');
+  }
+  private normTxt(s: any): string {
+    return (s ?? '').toString().toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  }
+  /** ¿La fecha (d/m/yyyy | d.m.yyyy | yyyy-m-d) cae en el mes/año dados (ambos 1-based)? */
+  private fechaEnMes(valor: any, mes: number, anio: number): boolean {
+    if (!valor) return false;
+    const s = valor.toString().trim().split(' ')[0];
+    const p = s.split(/[\/.\-]/).map((x: string) => x.trim());
+    if (p.length < 3) return false;
+    let m: number, y: number;
+    if (p[0].length === 4) { y = +p[0]; m = +p[1]; } else { m = +p[1]; y = +p[2]; }
+    if (isNaN(m) || isNaN(y)) return false;
+    return m === mes && y === anio;
+  }
+
+  anchoBarra(e: EtapaFunnel): number {
+    return Math.min(100, Math.max(e.ratio, 4));
   }
 
   async sincronizar(): Promise<void> {
