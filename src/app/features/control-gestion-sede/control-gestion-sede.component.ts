@@ -35,6 +35,11 @@ interface AfiliacionIncorrecta {
   direccion: string; telefono: string; motivos: string[];
 }
 
+interface AfiliacionSedeResumen { sedeKey: string; sede: string; total: number; incorrectas: number; pct: number; }
+interface AfiliacionesResumenMes {
+  totalGeneral: number; incorrectasGeneral: number; pctGeneral: number; porSede: AfiliacionSedeResumen[];
+}
+
 interface EvoPunto { fecha: string; llamadas: number; cartas: number; afiliaciones: number; }
 interface EvoPivotFila { sedeKey: string; sede: string; valores: number[]; total: number; }
 interface EvoPivot { metrica: 'llamadas' | 'cartas' | 'afiliaciones'; label: string; color: string; filas: EvoPivotFila[]; totales: number[]; totalGeneral: number; valoresConDato: number[]; }
@@ -150,6 +155,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   // elegido (no del día puntual) — se recalcula en `calcular()`. Es lo que se
   // muestra en pantalla y lo que se exporta a Excel.
   afiliacionesDetalleIncorrectasMes: AfiliacionIncorrecta[] = [];
+  // KPIs del mes (total, incorrectas, % y desglose por sede) — se recalcula junto
+  // con `afiliacionesDetalleIncorrectasMes`, en el mismo lugar.
+  afiliacionesResumenMes: AfiliacionesResumenMes = { totalGeneral: 0, incorrectasGeneral: 0, pctGeneral: 0, porSede: [] };
   // Si el Excel importado no tenía columna DIRECCIÓN/TELÉFONO, no se pudo validar.
   afiliacionesSinColumnas: { direccion: boolean; telefono: boolean } = { direccion: true, telefono: true };
   // normNombre → sede, tomado de la columna "SEDE" del propio Excel (si la trae) —
@@ -369,6 +377,46 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
     const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
     this.afiliacionesDetalleIncorrectasMes = this.afiliacionesDetalleIncorrectas.filter(d => d.fecha.startsWith(prefijoMes));
+
+    // Total de afiliaciones del mes por sede (misma fuente de sede que el detalle:
+    // columna SEDE del Excel si la trajo, si no el roster del CAP).
+    const sedePorAsesor = this.afiliacionesSedePorNombre.size ? this.afiliacionesSedePorNombre : this.construirMapaSedeAsesor();
+    const totalPorSede = new Map<string, { nombre: string; total: number }>();
+    let totalGeneral = 0;
+    for (const [nombre, porDia] of this.afiliacionesData) {
+      const total = Object.entries(porDia).filter(([clave]) => clave.startsWith(prefijoMes)).reduce((s, [, n]) => s + n, 0);
+      if (!total) continue;
+      totalGeneral += total;
+      const sede = sedePorAsesor.get(nombre);
+      const key = sede?.key ?? 'sin-sede';
+      const nombreSede = sede?.nombre ?? 'SIN SEDE (nombre no reconocido)';
+      const actual = totalPorSede.get(key) ?? { nombre: nombreSede, total: 0 };
+      actual.total += total;
+      totalPorSede.set(key, actual);
+    }
+    const incorrectasPorSede = new Map<string, number>();
+    for (const d of this.afiliacionesDetalleIncorrectasMes) {
+      incorrectasPorSede.set(d.sedeKey, (incorrectasPorSede.get(d.sedeKey) ?? 0) + 1);
+    }
+    const porSede: AfiliacionSedeResumen[] = Array.from(totalPorSede.entries())
+      .map(([key, info]) => {
+        const incorrectas = incorrectasPorSede.get(key) ?? 0;
+        return { sedeKey: key, sede: info.nombre, total: info.total, incorrectas, pct: info.total > 0 ? Math.round((incorrectas / info.total) * 100) : 0 };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    const incorrectasGeneral = this.afiliacionesDetalleIncorrectasMes.length;
+    this.afiliacionesResumenMes = {
+      totalGeneral, incorrectasGeneral,
+      pctGeneral: totalGeneral > 0 ? Math.round((incorrectasGeneral / totalGeneral) * 100) : 0,
+      porSede,
+    };
+  }
+
+  /** Semáforo para un % de afiliaciones INCORRECTAS: a diferencia de `colorPct`
+   *  (donde más alto es mejor), aquí más alto es peor. */
+  colorPctIncorrectas(pct: number): string {
+    return pct === 0 ? '#3D9B2F' : pct <= 5 ? '#F07420' : '#DC2626';
   }
 
   private calcular() {
@@ -881,28 +929,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
    *  pantalla, no solo el día puntual). */
   async exportarAfiliacionesExcel(): Promise<void> {
     const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
-    const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
     const mesLabel = fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
-    // Sede por asesor: prioriza la columna SEDE del propio Excel; si no la trajo, el
-    // roster del CAP (igual que al importar).
-    const sedePorAsesor = this.afiliacionesSedePorNombre.size ? this.afiliacionesSedePorNombre : this.construirMapaSedeAsesor();
-
-    const totalPorSede = new Map<string, { nombre: string; total: number }>();
-    for (const [nombre, porDia] of this.afiliacionesData) {
-      const total = Object.entries(porDia).filter(([clave]) => clave.startsWith(prefijoMes)).reduce((s, [, n]) => s + n, 0);
-      if (!total) continue;
-      const sede = sedePorAsesor.get(nombre);
-      const key = sede?.key ?? 'sin-sede';
-      const nombreSede = sede?.nombre ?? 'SIN SEDE (nombre no reconocido)';
-      const actual = totalPorSede.get(key) ?? { nombre: nombreSede, total: 0 };
-      actual.total += total;
-      totalPorSede.set(key, actual);
-    }
+    const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    const resumen = this.afiliacionesResumenMes;
     const incorrectasMes = this.afiliacionesDetalleIncorrectasMes;
-    const incorrectasPorSede = new Map<string, number>();
-    for (const d of incorrectasMes) {
-      incorrectasPorSede.set(d.sedeKey, (incorrectasPorSede.get(d.sedeKey) ?? 0) + 1);
-    }
 
     const wb = new Workbook();
 
@@ -910,15 +940,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     wsResumen.addRow([`AFILIACIONES — ${mesLabel.toUpperCase()}  |  ${this.afiliacionesInfo?.archivo ?? ''}`]);
     wsResumen.addRow([]);
     wsResumen.addRow(['SEDE', 'TOTAL AFILIACIONES', 'INCORRECTAS (DIRECCIÓN/TELÉFONO)', '% INCORRECTAS']);
-    const filasResumen = Array.from(totalPorSede.entries()).sort((a, b) => b[1].total - a[1].total);
-    for (const [key, info] of filasResumen) {
-      const incorrectas = incorrectasPorSede.get(key) ?? 0;
-      wsResumen.addRow([info.nombre, info.total, incorrectas, info.total > 0 ? Math.round((incorrectas / info.total) * 100) + '%' : '0%']);
+    for (const s of resumen.porSede) {
+      wsResumen.addRow([s.sede, s.total, s.incorrectas, s.pct + '%']);
     }
-    const totalGeneral = filasResumen.reduce((s, [, i]) => s + i.total, 0);
-    const incorrectasGeneral = incorrectasMes.length;
     wsResumen.addRow([]);
-    wsResumen.addRow(['TOTAL', totalGeneral, incorrectasGeneral, totalGeneral > 0 ? Math.round((incorrectasGeneral / totalGeneral) * 100) + '%' : '0%']);
+    wsResumen.addRow(['TOTAL', resumen.totalGeneral, resumen.incorrectasGeneral, resumen.pctGeneral + '%']);
     const headerResumen = wsResumen.getRow(3);
     headerResumen.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };

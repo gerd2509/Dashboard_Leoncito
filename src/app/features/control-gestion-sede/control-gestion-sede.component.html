@@ -60,6 +60,46 @@
 <!-- Popup con el detalle de afiliaciones con DIRECCIÓN/TELÉFONO inválido (del mes elegido) -->
 <dx-popup [(visible)]="verIncorrectas" [showTitle]="true" title="Afiliaciones con DIRECCIÓN/TELÉFONO inválido"
     [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+  <div style="display:flex; flex-direction:column; height:100%;">
+
+    <!-- KPIs del mes -->
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; flex:none;">
+        <div style="flex:1; min-width:160px; background:#F4F7FB; border-radius:10px; padding:10px 16px; border-left:5px solid #1A5FAD;">
+            <div style="font-size:12px; color:#5A6B7D; font-weight:600; text-transform:uppercase;">Total afiliaciones (mes)</div>
+            <div style="font-size:24px; font-weight:700; color:#1A2E44;">{{ afiliacionesResumenMes.totalGeneral }}</div>
+        </div>
+        <div style="flex:1; min-width:160px; background:#F4F7FB; border-radius:10px; padding:10px 16px; border-left:5px solid #DC2626;">
+            <div style="font-size:12px; color:#5A6B7D; font-weight:600; text-transform:uppercase;">Incorrectas</div>
+            <div style="font-size:24px; font-weight:700; color:#1A2E44;">{{ afiliacionesResumenMes.incorrectasGeneral }}</div>
+        </div>
+        <div style="flex:1; min-width:160px; background:#F4F7FB; border-radius:10px; padding:10px 16px;"
+             [style.border-left]="'5px solid ' + colorPctIncorrectas(afiliacionesResumenMes.pctGeneral)">
+            <div style="font-size:12px; color:#5A6B7D; font-weight:600; text-transform:uppercase;">% Incorrectas</div>
+            <div style="font-size:24px; font-weight:700;" [style.color]="colorPctIncorrectas(afiliacionesResumenMes.pctGeneral)">{{ afiliacionesResumenMes.pctGeneral }}%</div>
+        </div>
+    </div>
+
+    <!-- Desglose por sede -->
+    <table style="width:100%; border-collapse:collapse; margin-bottom:12px; font-size:13px; flex:none;" *ngIf="afiliacionesResumenMes.porSede.length">
+        <thead>
+            <tr style="background:#1A5FAD; color:#fff;">
+                <th style="padding:6px 10px; text-align:left;">SEDE</th>
+                <th style="padding:6px 10px; text-align:center;">TOTAL</th>
+                <th style="padding:6px 10px; text-align:center;">INCORRECTAS</th>
+                <th style="padding:6px 10px; text-align:center;">% INCORRECTAS</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr *ngFor="let s of afiliacionesResumenMes.porSede" style="border-bottom:1px solid #E3E8EF;">
+                <td style="padding:6px 10px;">{{ s.sede }}</td>
+                <td style="padding:6px 10px; text-align:center;">{{ s.total }}</td>
+                <td style="padding:6px 10px; text-align:center;">{{ s.incorrectas }}</td>
+                <td style="padding:6px 10px; text-align:center; font-weight:700; color:#fff;" [style.background]="colorPctIncorrectas(s.pct)">{{ s.pct }}%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="flex:1; min-height:0;">
     <dx-data-grid [dataSource]="afiliacionesDetalleIncorrectasMes" [showBorders]="true" [rowAlternationEnabled]="true"
         [hoverStateEnabled]="true" [columnAutoWidth]="true" [wordWrapEnabled]="true" height="100%">
         <dxo-filter-row [visible]="true"></dxo-filter-row>
@@ -77,6 +117,9 @@
         <dxo-summary><dxi-total-item alignment="right" column="asesor" summaryType="count" displayFormat="Total: {0}"></dxi-total-item></dxo-summary>
         <div *dxTemplate="let c of 'motivoTpl'">{{ c.value.join(' · ') }}</div>
     </dx-data-grid>
+    </div>
+
+  </div>
 </dx-popup>
 
 <div class="grid-container">
