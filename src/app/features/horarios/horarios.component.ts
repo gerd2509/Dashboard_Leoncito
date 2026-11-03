@@ -215,9 +215,15 @@ export class HorariosComponent implements OnInit {
     const domRef = this.domingoDeLaSemana(dia);
     return this.slots.some(s => s.asesores.includes(asesor) && s.domingos.includes(domRef));
   }
+  // A partir de la semana que cierra el domingo 15-nov-2026 el descanso de entre semana
+  // pasa de [martes, miércoles, jueves] a [miércoles, jueves, viernes]. La semana que
+  // cierra el domingo 8-nov-2026 (la que ya estaba en curso al pedir el cambio) se deja
+  // tal como estaba, sin tocar retroactivamente.
   private diaRotacion(grupo: number, domRef: number): number {
     const semana = Math.round((domRef - 8) / 7);
-    const orden = [2, 3, 4];
+    const fechaDom = new Date(this.anio, this.mes - 1, domRef);
+    const corte = new Date(2026, 10, 15);
+    const orden = fechaDom >= corte ? [3, 4, 5] : [2, 3, 4];
     return orden[((grupo + semana) % 3 + 3) % 3];
   }
 
