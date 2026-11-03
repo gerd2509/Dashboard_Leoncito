@@ -158,29 +158,63 @@ export class PagoBonosComponent implements OnInit {
     return this.form.value.anio === hoy.getFullYear() && this.form.value.mes === hoy.getMonth() + 1;
   }
 
+  // Ventas (Call/Realzza) y roster CAP del período ya cargado — pesado de traer, así
+  // que se cachea acá. Agregar/editar/eliminar un bono manual NO necesita volver a
+  // traer esto: solo cambia `bonosManuales` y se reconstruyen las secciones con lo
+  // que ya está en memoria (ver `recargarBonosManuales`).
+  private ventasCallCache: any[] = [];
+  private ventasRealzzaCache: any[] = [];
+  private tiendasCache: AsesoresPorTienda | null = null;
+
+  /** Carga TODO (ventas de ambos canales + roster CAP + bonos manuales) — mes/año
+   *  elegido, al entrar al módulo o al cambiar de período. Muestra el spinner grande. */
   async cargar(): Promise<void> {
     this.isLoading = true; this.error = '';
-    const { anio, mes } = this.form.value;
+    const { anio } = this.form.value;
     try {
       const tiendas = new AsesoresPorTienda(this.cap);
       const [manuales, ventasCall, ventasRealzza] = await Promise.all([
-        lastValueFrom(this.bonosSrv.listar(anio, mes).pipe(catchError(() => of([] as BonoManual[])))),
+        lastValueFrom(this.bonosSrv.listar(this.form.value.anio, this.form.value.mes).pipe(catchError(() => of([] as BonoManual[])))),
         lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio }).pipe(catchError(() => of([] as any[])))),
         lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio).pipe(catchError(() => of([] as any[])))),
         tiendas.cargar(),
       ]);
       this.bonosManuales = manuales || [];
-      this.secciones = [
-        this.armarSeccionCall(ventasCall || [], anio, mes),
-        ...this.armarSeccionesRealzza(ventasRealzza || [], anio, mes, tiendas),
-      ];
-      this.totalGeneralPagar = this.secciones.reduce((s, sec) => s + sec.totalPagar, 0);
+      this.ventasCallCache = ventasCall || [];
+      this.ventasRealzzaCache = ventasRealzza || [];
+      this.tiendasCache = tiendas;
+      this.reconstruirSecciones();
     } catch (e) {
       console.error('Error al cargar Pago de Bonos:', e);
       this.error = 'No se pudo cargar la información (revisa la conexión al servidor).';
       this.secciones = [];
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  /** Arma `secciones` con lo que YA está en caché (ventas/CAP) — no pega al servidor.
+   *  Se llama tras `cargar()` y tras `recargarBonosManuales()`. */
+  private reconstruirSecciones(): void {
+    const { anio, mes } = this.form.value;
+    this.secciones = [
+      this.armarSeccionCall(this.ventasCallCache, anio, mes),
+      ...(this.tiendasCache ? this.armarSeccionesRealzza(this.ventasRealzzaCache, anio, mes, this.tiendasCache) : []),
+    ];
+    this.totalGeneralPagar = this.secciones.reduce((s, sec) => s + sec.totalPagar, 0);
+  }
+
+  /** Solo vuelve a traer los BONOS MANUALES del período (tras agregar/editar/eliminar
+   *  uno) y reconstruye las secciones con la venta ya cacheada — sin el spinner
+   *  grande ni volver a pedir ventas/CAP, que no cambiaron. */
+  private async recargarBonosManuales(): Promise<void> {
+    const { anio, mes } = this.form.value;
+    try {
+      this.bonosManuales = await lastValueFrom(this.bonosSrv.listar(anio, mes).pipe(catchError(() => of([] as BonoManual[]))));
+      this.reconstruirSecciones();
+    } catch (e) {
+      console.error('Error al refrescar los bonos manuales:', e);
+      this.error = 'No se pudo refrescar la lista de bonos manuales.';
     }
   }
 
@@ -395,7 +429,7 @@ export class PagoBonosComponent implements OnInit {
         }));
       }
       this.cerrarPopup();
-      await this.cargar();
+      await this.recargarBonosManuales();
     } catch (e) {
       console.error('Error al guardar el bono manual:', e);
       this.error = 'No se pudo guardar el bono manual.';
@@ -408,7 +442,7 @@ export class PagoBonosComponent implements OnInit {
     ev.stopPropagation();
     try {
       await lastValueFrom(this.bonosSrv.eliminar(bono.id));
-      await this.cargar();
+      await this.recargarBonosManuales();
     } catch (e) { console.error('Error al eliminar el bono manual:', e); }
   }
 
