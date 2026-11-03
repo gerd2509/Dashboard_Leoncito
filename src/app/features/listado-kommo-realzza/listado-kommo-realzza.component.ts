@@ -347,6 +347,25 @@ export class ListadoKommoRealzzaComponent implements OnInit {
   exportMenuAbierto = false;
   exportandoImagen = false;
 
+  /** Texto legible de un error HTTP/Angular — para que el mensaje en pantalla y en consola
+   *  diga algo concreto (status, mensaje del backend) en vez de "[object Object]". */
+  private detalleError(e: any): string {
+    if (e?.status != null) return `HTTP ${e.status} ${e.statusText || ''} — ${e?.error?.message || e?.message || ''}`.trim();
+    return e?.message || String(e);
+  }
+
+  /** Igual que datosReporteTienda, pero nunca rechaza: si esa tienda falla, lo deja en
+   *  consola con su nombre y detalle, y devuelve null — así una tienda caída no tumba el
+   *  reporte completo de las otras 2. */
+  private async datosReporteTiendaSeguro(tienda: TiendaRealzza, anio: number, mes: number): Promise<DatosReporteTienda | null> {
+    try {
+      return await this.datosReporteTienda(tienda, anio, mes);
+    } catch (e) {
+      console.error(`[Reporte Kommo] Falló ${this.NOMBRE_TIENDA[tienda]}: ${this.detalleError(e)}`, e);
+      return null;
+    }
+  }
+
   /** Botón "Reporte": trae el detalle (día × embudo) y el embudo KOMMO de las 3 tiendas de
    *  Realzza del mes elegido arriba y abre el popup con todo junto, listo para exportar
    *  (PDF, imagen o Excel) desde el mismo popup. */
@@ -359,16 +378,26 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     this.generandoReporte = true; this.error = '';
     try {
       const tiendas: TiendaRealzza[] = ['REALZZA', 'REALZZA PIURA', 'REALZZA LIMA'];
-      this.reporteGeneralDatos = await Promise.all(tiendas.map(t => this.datosReporteTienda(t, anio, mes)));
+      const resultados = await Promise.all(tiendas.map(t => this.datosReporteTiendaSeguro(t, anio, mes)));
+      const datos = resultados.filter((d): d is DatosReporteTienda => d !== null);
+      if (!datos.length) {
+        this.error = 'No se pudo traer el reporte de ninguna tienda. Abre la consola (F12 → Console) y busca "[Reporte Kommo]" para ver el detalle.';
+        return;
+      }
+      this.reporteGeneralDatos = datos;
       this.reporteGeneralAnio = anio;
       this.reporteGeneralMes = mes;
       this.reporteGeneralPeriodo = `${this.meses.find(m => m.v === mes)?.t || mes} ${anio}`;
       this.reporteGeneralGeneradoEn = new Date().toLocaleString('es-PE');
       this.exportMenuAbierto = false;
       this.mostrandoReporteGeneral = true;
+      if (datos.length < tiendas.length) {
+        const faltantes = tiendas.length - datos.length;
+        this.error = `El reporte se abrió, pero ${faltantes === 1 ? 'a 1 tienda le' : `a ${faltantes} tiendas les`} falló la carga (revisa la consola, busca "[Reporte Kommo]").`;
+      }
     } catch (e) {
-      console.error('Error al generar el reporte general:', e);
-      this.error = 'No se pudo generar el reporte general.';
+      console.error('[Reporte Kommo] Error general:', this.detalleError(e), e);
+      this.error = `No se pudo generar el reporte general: ${this.detalleError(e)}`;
     } finally {
       this.generandoReporte = false;
     }
