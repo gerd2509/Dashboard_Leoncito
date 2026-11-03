@@ -6,7 +6,7 @@
     <div class="pb-head-ico"><mat-icon>military_tech</mat-icon></div>
     <div class="pb-head-txt">
       <h2>Pago de Bonos</h2>
-      <p>Bono calculado (Call / Realzza Chiclayo / Piura / Lima) + bonos manuales (Logístico, Efectiva, Global Supervisor, u otro).</p>
+      <p>Bono comisión (Call / Realzza Chiclayo / Piura / Lima) + otros bonos (Logístico, Efectiva, Global Supervisor, u otro).</p>
     </div>
   </div>
 
@@ -38,8 +38,6 @@
           <span>{{ sec.titulo }}</span>
         </div>
         <div class="pb-sec-kpis">
-          <span>Calculado <b>S/ {{ sec.totalCalculado | number }}</b></span>
-          <span>Manual <b>S/ {{ sec.totalManual | number }}</b></span>
           <span class="pb-kpi-total">Total <b>S/ {{ sec.totalPagar | number }}</b></span>
         </div>
       </div>
@@ -52,19 +50,18 @@
               <th>VENTA</th>
               <th class="pb-th-otrasede" *ngIf="sec.canal !== 'CALL'">VENTA OTRA SEDE</th>
               <th>VENTA NETA</th>
-              <th>PROYECCIÓN</th>
-              <th>BONO CALC.</th>
-              <th class="pb-th-manuales">BONOS MANUALES</th>
+              <th>BONO COMISIÓN</th>
+              <th class="pb-th-manuales">OTROS BONOS</th>
               <th>TOTAL A PAGAR</th>
             </tr>
           </thead>
           <tbody>
             <ng-container *ngFor="let f of sec.filas">
               <tr class="pb-fila-separador" *ngIf="f.esPrimerSupervisor">
-                <td [attr.colspan]="sec.canal === 'CALL' ? 7 : 8">SUPERVISORES</td>
+                <td [attr.colspan]="sec.canal === 'CALL' ? 6 : 7">SUPERVISORES</td>
               </tr>
               <tr class="pb-fila-separador" *ngIf="f.esPrimerLogistico">
-                <td [attr.colspan]="sec.canal === 'CALL' ? 7 : 8">LOGÍSTICA</td>
+                <td [attr.colspan]="sec.canal === 'CALL' ? 6 : 7">LOGÍSTICA</td>
               </tr>
               <tr [class.pb-fila-call-center]="f.asesor === 'CALL CENTER'">
                 <td class="pb-td-asesor">
@@ -78,7 +75,6 @@
                   <span class="pb-sin-dato" *ngIf="!f.otrasSedes.length">—</span>
                 </td>
                 <td class="pb-num">S/ {{ f.neto | number }}</td>
-                <td class="pb-num">S/ {{ f.proyeccion | number }}</td>
                 <td class="pb-num pb-bono-calc">S/ {{ f.bonoCalculado | number }}</td>
                 <td class="pb-manuales">
                   <span class="pb-chip" *ngFor="let b of f.manuales" [title]="b.comentario || ''"
@@ -102,7 +98,6 @@
               <td class="pb-num">S/ {{ sec.totalVentaPropia | number }}</td>
               <td class="pb-td-otrasede" *ngIf="sec.canal !== 'CALL'">S/ {{ sec.totalOtrasSedes | number }}</td>
               <td class="pb-num">S/ {{ sec.totalNeto | number }}</td>
-              <td class="pb-num">S/ {{ sec.totalProyeccion | number }}</td>
               <td class="pb-num pb-bono-calc">S/ {{ sec.totalCalculado | number }}</td>
               <td class="pb-td-manuales-total">S/ {{ sec.totalManual | number }}</td>
               <td class="pb-num pb-total-fila">S/ {{ sec.totalPagar | number }}</td>

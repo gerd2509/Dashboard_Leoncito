@@ -517,36 +517,77 @@ export class PagoBonosComponent implements OnInit {
     } catch (e) { console.error('Error al eliminar el bono manual:', e); }
   }
 
-  // ── Export a Excel: una hoja por canal + resumen ──
+  // Tinte claro de cabecera de columnas por canal (mismo acento que `sec.color`, para
+  // que cada tabla se distinga de las demás de un vistazo dentro de la misma hoja).
+  private readonly TINT_COLUMNAS: Record<Canal, string> = {
+    CALL: 'FFDCE8F7',
+    REALZZA: 'FFDFF2E1',
+    'REALZZA PIURA': 'FFEDE1F5',
+    'REALZZA LIMA': 'FFFCE4D1',
+  };
+  private argb(hex: string): string { return 'FF' + hex.replace('#', '').toUpperCase(); }
+
+  // ── Export a Excel: UNA sola hoja, una tabla por canal (sin hoja de resumen aparte),
+  // cada una con el color/formato de su sección para distinguirlas entre sí. ──
   async exportar(): Promise<void> {
     if (!this.secciones.length) return;
     const wb = new Workbook();
     const { anio, mes } = this.form.value;
     const periodo = `${this.meses.find(m => m.v === mes)?.t} ${anio}`;
+    const ws = wb.addWorksheet('Pago de Bonos');
 
-    const wsResumen = wb.addWorksheet('Resumen');
-    wsResumen.addRow([`PAGO DE BONOS — ${periodo}`]).font = { bold: true, size: 13 };
-    wsResumen.addRow([]);
-    wsResumen.addRow(['CANAL', 'BONO CALCULADO', 'BONOS MANUALES', 'TOTAL A PAGAR']).font = { bold: true };
-    for (const sec of this.secciones) wsResumen.addRow([sec.titulo, sec.totalCalculado, sec.totalManual, sec.totalPagar]);
-    wsResumen.addRow(['TOTAL GENERAL', '', '', this.totalGeneralPagar]).font = { bold: true };
-    wsResumen.columns.forEach(c => c.width = 22);
+    ws.addRow([`PAGO DE BONOS — ${periodo}`]).font = { bold: true, size: 14 };
+    ws.addRow([`TOTAL A PAGAR (TODOS LOS CANALES): S/ ${this.totalGeneralPagar}`]).font = { bold: true, size: 11, color: { argb: 'FF1E3A5F' } };
+    ws.addRow([]);
 
     for (const sec of this.secciones) {
-      const ws = wb.addWorksheet(sec.titulo.substring(0, 31));
-      ws.addRow(['ASESOR', 'VENTA', 'VENTA OTRA SEDE (detalle)', 'VENTA NETA', 'PROYECCIÓN', 'BONO CALCULADO', 'BONOS MANUALES (detalle)', 'TOTAL MANUAL', 'TOTAL A PAGAR']).font = { bold: true };
+      const esCall = sec.canal === 'CALL';
+      const nCols = esCall ? 6 : 7;
+      const colorTitulo = this.argb(sec.color);
+      const colorHeader = this.TINT_COLUMNAS[sec.canal];
+
+      // Barra de título de la sección (coloreada, fusionada en todo el ancho de su tabla).
+      const filaTitulo = ws.addRow([`${sec.titulo}  —  TOTAL: S/ ${sec.totalPagar}`]);
+      ws.mergeCells(filaTitulo.number, 1, filaTitulo.number, nCols);
+      filaTitulo.eachCell(cell => {
+        cell.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorTitulo } };
+        cell.alignment = { vertical: 'middle' };
+      });
+
+      // Cabecera de columnas (propia de este canal — Call no trae "Venta otra sede").
+      const encabezados = esCall
+        ? ['ASESOR', 'VENTA', 'VENTA NETA', 'BONO COMISIÓN', 'OTROS BONOS (detalle)', 'TOTAL A PAGAR']
+        : ['ASESOR', 'VENTA', 'VENTA OTRA SEDE (detalle)', 'VENTA NETA', 'BONO COMISIÓN', 'OTROS BONOS (detalle)', 'TOTAL A PAGAR'];
+      const filaHeader = ws.addRow(encabezados);
+      filaHeader.eachCell(cell => {
+        cell.font = { bold: true, size: 10.5, color: { argb: 'FF1E3A5F' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorHeader } };
+      });
+
       for (const f of sec.filas) {
-        ws.addRow([
-          f.asesor, f.ventaPropia,
-          f.otrasSedes.map(o => `${o.tienda}: S/ ${o.monto}`).join(' · '),
-          f.neto, f.proyeccion, f.bonoCalculado,
-          f.manuales.map(b => `${b.tipo}: S/ ${b.monto}`).join(' · '),
-          f.totalManual, f.totalPagar,
-        ]);
+        const nombre = f.esSupervisor ? `${f.asesor} (SUPERVISOR)` : f.esLogistico ? `${f.asesor} (LOGÍSTICA)` : f.asesor;
+        const otrosBonos = f.manuales.map(b => `${b.tipo}: S/ ${b.monto}`).join(' · ');
+        ws.addRow(esCall
+          ? [nombre, f.ventaPropia, f.neto, f.bonoCalculado, otrosBonos, f.totalPagar]
+          : [nombre, f.ventaPropia, f.otrasSedes.map(o => `${o.tienda}: S/ ${o.monto}`).join(' · '), f.neto, f.bonoCalculado, otrosBonos, f.totalPagar]);
       }
-      ws.addRow(['TOTAL', '', '', '', '', sec.totalCalculado, '', sec.totalManual, sec.totalPagar]).font = { bold: true };
-      ws.columns.forEach((c, i) => c.width = i === 2 || i === 6 ? 46 : 18);
+
+      const filaTotal = ws.addRow(esCall
+        ? ['TOTAL', '', '', sec.totalCalculado, '', sec.totalPagar]
+        : ['TOTAL', '', '', '', sec.totalCalculado, '', sec.totalPagar]);
+      filaTotal.font = { bold: true };
+      filaTotal.eachCell(cell => { cell.border = { top: { style: 'medium', color: { argb: colorTitulo } } }; });
+
+      ws.addRow([]);   // separador entre tablas
     }
+
+    // Columna 3 = "VENTA OTRA SEDE" en Realzza; columna 5 = "OTROS BONOS" en Call (sin
+    // esa columna, todo se corre uno a la izquierda) — ambas llevan texto largo (chips).
+    ws.getColumn(1).width = 32;
+    for (let i = 2; i <= 7; i++) ws.getColumn(i).width = 22;
+    ws.getColumn(3).width = 42;
+    ws.getColumn(5).width = 42;
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
