@@ -155,6 +155,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   // elegido (no del día puntual) — se recalcula en `calcular()`. Es lo que se
   // muestra en pantalla y lo que se exporta a Excel.
   afiliacionesDetalleIncorrectasMes: AfiliacionIncorrecta[] = [];
+  // Filtro por sede del detalle (al hacer clic en una tarjeta de "por sede"): null =
+  // todas. `afiliacionesDetalleFiltrado` es lo que se liga de verdad al data-grid.
+  sedeDetalleSeleccionada: string | null = null;
+  sedeDetalleSeleccionadaNombre = '';
+  afiliacionesDetalleFiltrado: AfiliacionIncorrecta[] = [];
   // KPIs del mes (total, incorrectas, % y desglose por sede) — se recalcula junto
   // con `afiliacionesDetalleIncorrectasMes`, en el mismo lugar.
   afiliacionesResumenMes: AfiliacionesResumenMes = { totalGeneral: 0, incorrectasGeneral: 0, pctGeneral: 0, porSede: [] };
@@ -377,6 +382,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
     const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
     this.afiliacionesDetalleIncorrectasMes = this.afiliacionesDetalleIncorrectas.filter(d => d.fecha.startsWith(prefijoMes));
+    // El mes cambió: la sede marcada ya no necesariamente tiene sentido → se limpia.
+    this.sedeDetalleSeleccionada = null;
+    this.sedeDetalleSeleccionadaNombre = '';
+    this.afiliacionesDetalleFiltrado = this.afiliacionesDetalleIncorrectasMes;
 
     // Total de afiliaciones del mes por sede (misma fuente de sede que el detalle:
     // columna SEDE del Excel si la trajo, si no el roster del CAP).
@@ -413,20 +422,34 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     };
   }
 
+  /** Filtra el detalle de abajo a una sola sede (clic en su tarjeta) — o, con null,
+   *  lo vuelve a mostrar completo (botón "Ver todas"). */
+  filtrarDetallePorSede(sedeKey: string | null): void {
+    this.sedeDetalleSeleccionada = sedeKey;
+    this.sedeDetalleSeleccionadaNombre = sedeKey
+      ? (this.afiliacionesResumenMes.porSede.find(s => s.sedeKey === sedeKey)?.sede ?? '')
+      : '';
+    this.afiliacionesDetalleFiltrado = sedeKey
+      ? this.afiliacionesDetalleIncorrectasMes.filter(d => d.sedeKey === sedeKey)
+      : this.afiliacionesDetalleIncorrectasMes;
+  }
+
   /** Semáforo para un % de afiliaciones INCORRECTAS: a diferencia de `colorPct`
    *  (donde más alto es mejor), aquí más alto es peor. 4 niveles: 0% bueno, ≤15%
-   *  atención, ≤50% serio, >50% crítico. */
+   *  atención, ≤50% serio, >50% crítico — cada uno con un TONO distinto (verde →
+   *  ámbar → naranja → rojo), no solo distinta intensidad del mismo rojo, para que
+   *  se puedan diferenciar de un vistazo. */
   colorPctIncorrectas(pct: number): string {
-    return pct === 0 ? '#0ca30c' : pct <= 15 ? '#c98500' : pct <= 50 ? '#ec835a' : '#d03b3b';
+    return pct === 0 ? '#16a34a' : pct <= 15 ? '#d97706' : pct <= 50 ? '#ea580c' : '#dc2626';
   }
 
   /** Badge de estado (ícono + texto) para la tarjeta de una sede, mismos 4 niveles
    *  que `colorPctIncorrectas`. */
   estadoPctIncorrectas(pct: number): { label: string; bg: string; fg: string } {
-    if (pct === 0) return { label: 'BUENO', bg: '#e8f6e8', fg: '#0c5f0c' };
-    if (pct <= 15) return { label: 'ATENCIÓN', bg: '#fdf2e3', fg: '#704700' };
-    if (pct <= 50) return { label: 'SERIO', bg: '#fdede7', fg: '#8a3a1f' };
-    return { label: 'CRÍTICO', bg: '#fbeceb', fg: '#8a241f' };
+    if (pct === 0) return { label: 'BUENO', bg: '#e7f6ec', fg: '#0d6b33' };
+    if (pct <= 15) return { label: 'ATENCIÓN', bg: '#fdf0da', fg: '#8a5a00' };
+    if (pct <= 50) return { label: 'SERIO', bg: '#fde6d8', fg: '#9a3c00' };
+    return { label: 'CRÍTICO', bg: '#fbe2e1', fg: '#9c1c1c' };
   }
 
   private calcular() {
@@ -891,6 +914,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.afiliacionesError = '';
     this.afiliacionesDetalleIncorrectas = [];
     this.afiliacionesDetalleIncorrectasMes = [];
+    this.sedeDetalleSeleccionada = null;
+    this.sedeDetalleSeleccionadaNombre = '';
+    this.afiliacionesDetalleFiltrado = [];
     this.afiliacionesSinColumnas = { direccion: true, telefono: true };
     this.afiliacionesSedePorNombre.clear();
     localStorage.removeItem(this.AFI_KEY);
