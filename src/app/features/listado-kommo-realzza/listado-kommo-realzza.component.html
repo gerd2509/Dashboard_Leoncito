@@ -42,6 +42,11 @@
         <button mat-stroked-button type="button" (click)="exportarPorEmbudo()" *ngIf="filas.length" title="Un archivo con una hoja por asesor/embudo">
           <mat-icon>group_work</mat-icon> Exportar por Asesor
         </button>
+        <button mat-flat-button color="primary" type="button" class="lk-btn-reporte" (click)="abrirReporteGeneral()"
+          [disabled]="generandoReporte || verTodo" title="Un solo reporte con el detalle y el embudo de Chiclayo, Piura y Lima — listo para imprimir o guardar como PDF">
+          <mat-icon>{{ generandoReporte ? 'hourglass_empty' : 'summarize' }}</mat-icon>
+          {{ generandoReporte ? 'Generando…' : 'Reporte' }}
+        </button>
       </ng-container>
     </form>
 

@@ -34,6 +34,11 @@ interface PivotLeadsDia { cols: ColDia[]; filas: FilaPivotEmbudo[]; totales: Rec
 interface EtapaFunnel { nombre: string; op: number; ratio: number; codigo: string; }
 interface EmbudoKommo { titulo: string; etapas: EtapaFunnel[]; }
 
+interface DatosReporteTienda {
+  tienda: TiendaRealzza; nombre: string; totalLeads: number; sinResponder: number;
+  embudo: EmbudoKommo | null; pivot: PivotLeadsDia | null;
+}
+
 /**
  * "Listado Kommo Realzza": trae los leads del mes directo de la API de Kommo (botón
  * Sincronizar) y los lista con su embudo/estado/fechas/quién los modificó — para ver
@@ -148,7 +153,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
         lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes, leadAnio: anio, canal: 'REALZZA', sede: this.tienda })),
       ]);
       const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda);
-      this.embudoKommo = this.armarEmbudoKommo(mes, anio, ventasTienda, dataKommo || []);
+      this.embudoKommo = this.armarEmbudoKommo(this.filas, mes, anio, ventasTienda, dataKommo || []);
     } catch (e) {
       console.error('Error al cargar el embudo KOMMO:', e);
       this.embudoKommo = null;
@@ -157,7 +162,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     }
   }
 
-  private armarEmbudoKommo(mes: number, anio: number, dataVentas: any[], dataKommo: any[]): EmbudoKommo {
+  private armarEmbudoKommo(filas: FilaLead[], mes: number, anio: number, dataVentas: any[], dataKommo: any[]): EmbudoKommo {
     const esVentaKommo = (v: any) =>
       this.normTxt(v.tipo_base) === 'kommo' && (Number(v.monto_consolidado) || 0) > 0;
     const bruto = (dataVentas || []).filter(v => esVentaKommo(v) && +v.mes_cv === mes && +v.anio_cv === anio).length;
@@ -169,8 +174,8 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       .filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio))
       .filter(r => this.normTxt(r['MARKET PLACE R']) !== 'si');
 
-    const asignados = this.filas.length;
-    const contactados = this.filas.filter(f => (f.modificado_por ?? '').toString().trim() !== '').length;
+    const asignados = filas.length;
+    const contactados = filas.filter(f => (f.modificado_por ?? '').toString().trim() !== '').length;
     const gestionados = kommoMes.length;
     const interesados = kommoMes.filter(r => (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO').length;
 
@@ -305,6 +310,128 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     return final;
   }
 
+  // ═══════════════════ Reporte general (3 tiendas en un solo documento) ═══════════════════
+  generandoReporte = false;
+  private readonly NOMBRE_TIENDA: Record<TiendaRealzza, string> = {
+    'REALZZA': 'Realzza Chiclayo', 'REALZZA PIURA': 'Realzza Piura', 'REALZZA LIMA': 'Realzza Lima',
+  };
+
+  /** Trae leads + ventas + gestión Kommo de UNA tienda/mes y arma su embudo y su pivot de
+   *  día × embudo, sin tocar el estado del componente (this.filas/this.tienda) — así se
+   *  pueden pedir las 3 tiendas en paralelo para el reporte general. */
+  private async datosReporteTienda(tienda: TiendaRealzza, anio: number, mes: number): Promise<DatosReporteTienda> {
+    const [filasRaw, dataVentas, dataKommo] = await Promise.all([
+      lastValueFrom(this.ventasSrv.obtenerListadoLeadsKommo(anio, mes, tienda)),
+      lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio)),
+      lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes, leadAnio: anio, canal: 'REALZZA', sede: tienda })),
+    ]);
+    const filas = (filasRaw || []).filter(f => !this.EMBUDOS_EXCLUIDOS.has((f.embudo || '').toString().trim().toUpperCase()));
+    const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === tienda);
+    return {
+      tienda, nombre: this.NOMBRE_TIENDA[tienda], totalLeads: filas.length,
+      sinResponder: filas.filter(f => !f.respondido).length,
+      embudo: this.armarEmbudoKommo(filas, mes, anio, ventasTienda, dataKommo || []),
+      pivot: this.construirPivotPorDia(filas, anio, mes),
+    };
+  }
+
+  /** Botón "Reporte": trae el detalle (día × embudo) y el embudo KOMMO de las 3 tiendas de
+   *  Realzza del mes elegido arriba, y arma un solo documento imprimible (mismo truco que
+   *  el reporte de Auditoría: ventana nueva + "Guardar como PDF" del navegador). */
+  async abrirReporteGeneral(): Promise<void> {
+    const { anio, mes } = this.form.value;
+    if (this.verTodo || !anio || !mes) {
+      this.error = 'Elige un mes puntual (no "Ver todo") para generar el reporte general.';
+      return;
+    }
+    this.generandoReporte = true; this.error = '';
+    try {
+      const tiendas: TiendaRealzza[] = ['REALZZA', 'REALZZA PIURA', 'REALZZA LIMA'];
+      const datos = await Promise.all(tiendas.map(t => this.datosReporteTienda(t, anio, mes)));
+      this.imprimirReporteGeneral(anio, mes, datos);
+    } catch (e) {
+      console.error('Error al generar el reporte general:', e);
+      this.error = 'No se pudo generar el reporte general.';
+    } finally {
+      this.generandoReporte = false;
+    }
+  }
+
+  private imprimirReporteGeneral(anio: number, mes: number, datos: DatosReporteTienda[]): void {
+    const periodo = `${this.meses.find(m => m.v === mes)?.t || mes} ${anio}`;
+    const esc = (s: any) => (s ?? '').toString()
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const seccionTienda = (d: DatosReporteTienda): string => {
+      const pctSinResponder = d.totalLeads ? Math.round((d.sinResponder / d.totalLeads) * 1000) / 10 : 0;
+      const filasEmbudo = d.embudo ? d.embudo.etapas.map((e, i) => `
+        <div class="etapa">
+          <span class="etapa-nombre">${esc(e.nombre)}</span>
+          <div class="etapa-barra-wrap"><div class="etapa-barra" style="width:${this.anchoBarra(e)}%;background:${this.colorEtapa(i)}"></div></div>
+          <span class="etapa-valor"><b>${e.op}</b> · ${e.nombre === 'ASIGNADOS' ? '100%' : e.ratio + '%'}</span>
+        </div>`).join('') : '<p class="vacio">Sin datos de embudo para este mes.</p>';
+
+      const pivot = d.pivot;
+      const tablaPivot = pivot ? `
+        <table class="pivot">
+          <thead><tr><th>Embudo</th>${pivot.cols.map(c => `<th class="num">${c.dia}</th>`).join('')}<th class="num">Total</th></tr></thead>
+          <tbody>
+            ${pivot.filas.map(f => `<tr><td>${esc(f.embudo)}</td>${pivot.cols.map(c => `<td class="num">${f.valores[c.key] || ''}</td>`).join('')}<td class="num"><b>${f.total}</b></td></tr>`).join('')}
+          </tbody>
+          <tfoot><tr><td>Total</td>${pivot.cols.map(c => `<td class="num">${pivot.totales[c.key] || ''}</td>`).join('')}<td class="num">${pivot.totalGeneral}</td></tr></tfoot>
+        </table>` : '<p class="vacio">Sin días transcurridos de este mes todavía.</p>';
+
+      return `
+        <section class="sede">
+          <h2>${esc(d.nombre)}</h2>
+          <div class="kpis"><span>Leads del mes: <b>${d.totalLeads}</b></span><span class="${d.sinResponder ? 'bad' : ''}">Sin responder: <b>${d.sinResponder}</b> (${pctSinResponder}%)</span></div>
+          <h3>Embudo KOMMO (LEADS)</h3>
+          <div class="embudo">${filasEmbudo}</div>
+          <h3>Leads por embudo y día</h3>
+          ${tablaPivot}
+        </section>`;
+    };
+
+    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>Reporte Kommo Realzza — ${esc(periodo)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1f2a44; margin: 24px; }
+  h1 { font-size: 20px; color: #1E3A5F; margin: 0 0 2px; }
+  .meta { color: #5b7188; font-size: 13px; margin-bottom: 20px; }
+  section.sede { margin-bottom: 30px; page-break-inside: avoid; }
+  section.sede h2 { font-size: 16px; color: #fff; background: #1A5FAD; padding: 7px 12px; border-radius: 6px; margin: 0 0 8px; }
+  h3 { font-size: 12.5px; color: #1E3A5F; border-left: 4px solid #1A5FAD; padding-left: 8px; margin: 14px 0 8px; }
+  .kpis { display: flex; gap: 22px; font-size: 12.5px; color: #44536a; margin-bottom: 4px; }
+  .kpis .bad { color: #c62828; font-weight: 700; }
+  .embudo { display: flex; flex-direction: column; gap: 6px; max-width: 620px; }
+  .etapa { display: flex; align-items: center; gap: 10px; }
+  .etapa-nombre { width: 100px; flex: none; font-size: 10.5px; font-weight: 700; color: #52514E; }
+  .etapa-barra-wrap { flex: 1; background: #F0EFEA; border-radius: 4px; height: 16px; }
+  .etapa-barra { height: 100%; border-radius: 4px; }
+  .etapa-valor { width: 110px; flex: none; font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+  table.pivot { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 6px; }
+  table.pivot th { background: #293964; color: #fff; padding: 3px 4px; text-align: center; font-weight: 700; }
+  table.pivot td { border: 1px solid #dde5f0; padding: 2px 4px; text-align: center; }
+  table.pivot th:first-child, table.pivot td:first-child { text-align: left; }
+  table.pivot tfoot td { font-weight: 700; background: #F4F6FA; }
+  .vacio { font-size: 11.5px; color: #8a9bb0; font-style: italic; }
+  footer { margin-top: 20px; font-size: 10.5px; color: #8a9bb0; text-align: center; }
+  @media print { body { margin: 10mm; } section.sede { page-break-after: always; } section.sede:last-of-type { page-break-after: auto; } }
+</style></head><body onload="window.print()">
+  <h1>Reporte Kommo — Realzza</h1>
+  <div class="meta"><b>Período:</b> ${esc(periodo)} &nbsp;·&nbsp; <b>Generado:</b> ${esc(new Date().toLocaleString('es-PE'))}</div>
+  ${datos.map(seccionTienda).join('')}
+  <footer>Dashboard Leoncito · Listado Kommo Realzza — documento generado automáticamente</footer>
+</body></html>`;
+
+    const w = window.open('', '_blank');
+    if (!w) { this.error = 'Habilita las ventanas emergentes para generar el reporte.'; return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }
+
   get totalLeads(): number { return this.filas.length; }
   get totalSinResponder(): number { return this.filas.filter(f => !f.respondido).length; }
   get pctSinResponder(): number { return this.totalLeads ? (this.totalSinResponder / this.totalLeads) * 100 : 0; }
@@ -349,16 +476,24 @@ export class ListadoKommoRealzzaComponent implements OnInit {
 
     // Leads por día (columnas) × embudo (filas) del mes seleccionado — solo tiene sentido
     // con un mes puntual elegido (en "Ver Todo" se mezclarían leads de distintos meses en
-    // el mismo número de día). Solo columnas de días YA TRANSCURRIDOS: si es el mes en
-    // curso, hasta hoy; si es un mes pasado, todos sus días; si fuera un mes futuro, ninguna.
+    // el mismo número de día).
     const { anio, mes } = this.form.value;
-    if (this.verTodo || !anio || !mes) { this.pivotLeadsPorDia = null; return; }
+    this.pivotLeadsPorDia = this.verTodo ? null : this.construirPivotPorDia(datos, anio, mes);
+  }
+
+  /** Arma el pivot "leads por embudo × día" a partir de una lista de leads ya cargada (sin
+   *  depender de la grilla/estado del componente) — reusado por el resumen en pantalla y
+   *  por el reporte general (una tienda a la vez). Solo columnas de días YA TRANSCURRIDOS:
+   *  si es el mes en curso, hasta hoy; si es un mes pasado, todos sus días; si fuera un mes
+   *  futuro, ninguna. */
+  private construirPivotPorDia(datos: FilaLead[], anio: number, mes: number): PivotLeadsDia | null {
+    if (!anio || !mes) return null;
     const hoy = new Date();
     const esMesActual = hoy.getFullYear() === anio && hoy.getMonth() + 1 === mes;
     const esMesFuturo = anio > hoy.getFullYear() || (anio === hoy.getFullYear() && mes > hoy.getMonth() + 1);
     const diasMes = new Date(anio, mes, 0).getDate();
     const diasTranscurridos = esMesFuturo ? 0 : (esMesActual ? hoy.getDate() : diasMes);
-    if (!diasTranscurridos) { this.pivotLeadsPorDia = null; return; }
+    if (!diasTranscurridos) return null;
 
     const cols: ColDia[] = Array.from({ length: diasTranscurridos }, (_, i) => ({ key: String(i + 1), dia: i + 1 }));
     const porEmbudoDia = new Map<string, Record<string, number>>();
@@ -377,7 +512,7 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       .map(([embudo, valores]) => ({ embudo, valores, total: Object.values(valores).reduce((s, v) => s + v, 0) }))
       .sort((a, b) => b.total - a.total);
     const totalGeneral = filas.reduce((s, f) => s + f.total, 0);
-    this.pivotLeadsPorDia = { cols, filas, totales, totalGeneral };
+    return { cols, filas, totales, totalGeneral };
   }
 
   get resumenTotal(): { total: number; respondidos: number; noRespondidos: number } {
