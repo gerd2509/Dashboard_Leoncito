@@ -403,11 +403,6 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     }
   }
 
-  cerrarReporteGeneral(): void {
-    this.mostrandoReporteGeneral = false;
-    this.exportMenuAbierto = false;
-  }
-
   toggleExportMenu(): void { this.exportMenuAbierto = !this.exportMenuAbierto; }
 
   /** Lleva el scroll del popup a la sección de esa tienda (las 3 están siempre ahí, una

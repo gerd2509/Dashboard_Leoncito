@@ -417,45 +417,34 @@
   </div>
 
   <!-- ═══════════════ Popup: Reporte general (3 tiendas en un solo documento) ═══════════════ -->
-  <!-- Siempre en el DOM; se muestra/oculta con [style.display] (en vez de *ngIf) para no
-       depender de que Angular cree/destruya la vista — más robusto ante cambios de estado
-       disparados desde un async/await. -->
-  <div class="rk-overlay" [style.display]="mostrandoReporteGeneral ? 'flex' : 'none'" (click)="cerrarReporteGeneral()">
-    <div class="rk-modal" #reporteModal (click)="$event.stopPropagation()">
+  <!-- dx-popup: mismo componente que ya usa "Control Gestión Sede → Ver detalle" (probado,
+       funciona) — en vez del overlay/div propio que no llegaba a pintarse. -->
+  <dx-popup [(visible)]="mostrandoReporteGeneral" [showTitle]="true" title="Reporte Kommo — Realzza"
+      [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true" (onHidden)="exportMenuAbierto = false">
+    <div class="rk-pop" #reporteModal>
 
-      <div class="rk-head">
-        <div class="rk-head-ico"><mat-icon>bar_chart</mat-icon></div>
-        <div class="rk-head-titles">
-          <h1>Reporte Kommo — Realzza</h1>
-          <div class="rk-meta">
-            <span><b>Período</b> {{ reporteGeneralPeriodo }}</span>
-            <span><b>Generado</b> {{ reporteGeneralGeneradoEn }}</span>
-            <span><b>Sedes</b> Chiclayo · Piura · Lima</span>
-          </div>
+      <div class="rk-pop-head">
+        <div class="rk-meta">
+          <span><b>Período</b> {{ reporteGeneralPeriodo }}</span>
+          <span><b>Generado</b> {{ reporteGeneralGeneradoEn }}</span>
         </div>
-        <div class="rk-actions">
-          <div class="rk-export-group">
-            <button type="button" class="rk-btn rk-btn-ghost" (click)="toggleExportMenu()" [disabled]="exportandoImagen">
-              <mat-icon>{{ exportandoImagen ? 'hourglass_empty' : 'file_download' }}</mat-icon>
-              {{ exportandoImagen ? 'Exportando…' : 'Exportar' }}
-              <mat-icon class="rk-caret">arrow_drop_down</mat-icon>
-            </button>
-            <div class="rk-export-menu" *ngIf="exportMenuAbierto">
-              <button type="button" (click)="exportarReporteGeneralPdf()"><mat-icon>picture_as_pdf</mat-icon> Guardar como PDF</button>
-              <button type="button" (click)="exportarReporteGeneralImagen()"><mat-icon>image</mat-icon> Guardar como Imagen</button>
-              <button type="button" (click)="exportarReporteGeneralExcel()"><mat-icon>table_chart</mat-icon> Exportar a Excel</button>
-            </div>
-          </div>
-          <button type="button" class="rk-btn rk-btn-close" (click)="cerrarReporteGeneral()" title="Cerrar">
-            <mat-icon>close</mat-icon>
+        <div class="rk-tabs">
+          <button type="button" *ngFor="let d of reporteGeneralDatos" (click)="irASedeReporte(d.tienda)">
+            {{ d.nombre.replace('Realzza ', '') }} <span class="rk-tag">{{ d.totalLeads }}</span>
           </button>
         </div>
-      </div>
-
-      <div class="rk-tabs">
-        <button type="button" *ngFor="let d of reporteGeneralDatos" (click)="irASedeReporte(d.tienda)">
-          {{ d.nombre.replace('Realzza ', '') }} <span class="rk-tag">{{ d.totalLeads }}</span>
-        </button>
+        <div class="rk-export-group">
+          <button type="button" class="rk-btn rk-btn-ghost" (click)="toggleExportMenu()" [disabled]="exportandoImagen">
+            <mat-icon>{{ exportandoImagen ? 'hourglass_empty' : 'file_download' }}</mat-icon>
+            {{ exportandoImagen ? 'Exportando…' : 'Exportar' }}
+            <mat-icon class="rk-caret">arrow_drop_down</mat-icon>
+          </button>
+          <div class="rk-export-menu" *ngIf="exportMenuAbierto">
+            <button type="button" (click)="exportarReporteGeneralPdf()"><mat-icon>picture_as_pdf</mat-icon> Guardar como PDF</button>
+            <button type="button" (click)="exportarReporteGeneralImagen()"><mat-icon>image</mat-icon> Guardar como Imagen</button>
+            <button type="button" (click)="exportarReporteGeneralExcel()"><mat-icon>table_chart</mat-icon> Exportar a Excel</button>
+          </div>
+        </div>
       </div>
 
       <div class="rk-body">
@@ -508,5 +497,5 @@
 
       <div class="rk-foot">Dashboard Leoncito · Listado Kommo Realzza — documento generado automáticamente</div>
     </div>
-  </div>
+  </dx-popup>
 </div>

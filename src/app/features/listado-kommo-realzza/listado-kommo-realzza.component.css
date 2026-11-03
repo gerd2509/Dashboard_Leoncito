@@ -250,29 +250,27 @@
 }
 
 /* ═══════════════ Popup: Reporte general (3 tiendas en un solo documento) ═══════════════ */
-.rk-overlay {
-  position: fixed; inset: 0; z-index: 1100; align-items: center; justify-content: center;
-  background: rgba(10,20,38,.55); backdrop-filter: blur(2px); padding: 24px;
-}
-.rk-modal {
-  width: min(1060px, 100%); max-height: min(920px, 92vh); background: #fff; border-radius: 16px;
-  box-shadow: 0 24px 60px -16px rgba(14,42,77,.35); display: flex; flex-direction: column;
-  overflow: hidden; border: 1px solid rgba(14,42,77,.06); font-family: 'Segoe UI', Arial, sans-serif;
-}
+/* Contenido del dx-popup (que ya pone su propio overlay/título/cerrar — mismo patrón que
+   "Control Gestión Sede → Ver detalle"): ocupa el 100% de alto que le da el popup. */
+.rk-pop { display: flex; flex-direction: column; height: 100%; font-family: inherit; }
 
-.rk-head {
-  flex: none; background: linear-gradient(135deg, #1E3A5F, #0e2a4d); color: #fff;
-  padding: 18px 24px 16px; display: flex; align-items: flex-start; gap: 14px;
+.rk-pop-head {
+  flex: none; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid #dde5f0;
 }
-.rk-head-ico {
-  width: 42px; height: 42px; border-radius: 11px; flex: none; background: rgba(255,255,255,.14);
-  display: flex; align-items: center; justify-content: center;
+.rk-meta { font-size: 12px; color: #5b7188; display: flex; gap: 14px; flex-wrap: wrap; flex: none; }
+.rk-meta b { color: #1E3A5F; font-weight: 700; }
+
+.rk-tabs { display: flex; gap: 14px; flex-wrap: wrap; flex: 1; }
+.rk-tabs button {
+  appearance: none; border: 1px solid #dde5f0; background: #F4F7FC; cursor: pointer; font-weight: 700; font-size: 12px;
+  color: #1E3A5F; padding: 6px 12px; border-radius: 999px;
 }
-.rk-head-titles { flex: 1; min-width: 0; }
-.rk-head h1 { margin: 0; font-weight: 800; font-size: 17.5px; }
-.rk-meta { margin-top: 5px; font-size: 12px; color: rgba(255,255,255,.78); display: flex; gap: 14px; flex-wrap: wrap; }
-.rk-meta b { color: #fff; font-weight: 700; }
-.rk-actions { display: flex; gap: 8px; flex: none; align-items: flex-start; }
+.rk-tabs button:hover { background: #e7f0fc; border-color: #1A5FAD; }
+.rk-tag {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px; background: #fff; color: #5b7188; font-size: 10.5px; margin-left: 5px; font-variant-numeric: tabular-nums;
+}
 
 .rk-btn {
   appearance: none; border: 0; cursor: pointer; font-family: inherit; font-weight: 700; font-size: 12.5px;
@@ -280,15 +278,11 @@
 }
 .rk-btn mat-icon { font-size: 17px; width: 17px; height: 17px; }
 .rk-btn:disabled { opacity: .6; cursor: default; }
-.rk-btn-ghost { background: rgba(255,255,255,.14); color: #fff; }
-.rk-btn-ghost:hover { background: rgba(255,255,255,.22); }
+.rk-btn-ghost { background: #1A5FAD; color: #fff; }
+.rk-btn-ghost:hover { background: #154d94; }
 .rk-caret { font-size: 18px !important; width: 18px !important; height: 18px !important; margin-left: -4px; }
-.rk-btn-close {
-  width: 34px; height: 34px; padding: 0; justify-content: center; background: rgba(255,255,255,.1); color: #fff; border-radius: 9px;
-}
-.rk-btn-close:hover { background: rgba(255,255,255,.2); }
 
-.rk-export-group { position: relative; }
+.rk-export-group { position: relative; flex: none; }
 .rk-export-menu {
   position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border-radius: 10px;
   box-shadow: 0 14px 34px -10px rgba(14,42,77,.4); border: 1px solid #dde5f0; padding: 6px;
@@ -301,18 +295,7 @@
 .rk-export-menu button:hover { background: #F4F7FC; }
 .rk-export-menu button mat-icon { font-size: 16px; width: 16px; height: 16px; color: #1A5FAD; }
 
-.rk-tabs { flex: none; display: flex; gap: 18px; padding: 12px 24px 0; background: #fff; border-bottom: 1px solid #dde5f0; }
-.rk-tabs button {
-  appearance: none; border: 0; background: none; cursor: pointer; font-weight: 700; font-size: 12.5px;
-  color: #5b7188; padding: 9px 0 11px;
-}
-.rk-tabs button:hover { color: #1A5FAD; }
-.rk-tag {
-  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px;
-  border-radius: 999px; background: #F4F7FC; color: #5b7188; font-size: 10.5px; margin-left: 5px; font-variant-numeric: tabular-nums;
-}
-
-.rk-body { flex: 1; overflow-y: auto; padding: 20px 24px 24px; background: #eef2f8; }
+.rk-body { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 4px 10px; background: #eef2f8; border-radius: 10px; }
 
 .rk-sede { background: #fff; border-radius: 14px; border: 1px solid #dde5f0; padding: 18px 20px 20px; margin-bottom: 16px; scroll-margin-top: 10px; }
 .rk-sede-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
@@ -355,6 +338,6 @@ table.rk-pivot tfoot td { font-weight: 800; background: #F4F7FC; border-top: 2px
 .rk-foot { flex: none; padding: 9px 24px; border-top: 1px solid #dde5f0; background: #fff; font-size: 10.5px; color: #8a9bb0; text-align: center; }
 
 @media (max-width: 720px) {
-  .rk-head { flex-wrap: wrap; }
-  .rk-tabs { overflow-x: auto; }
+  .rk-pop-head { flex-direction: column; align-items: flex-start; }
+  .rk-export-group { align-self: flex-end; }
 }
