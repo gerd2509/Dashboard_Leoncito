@@ -264,23 +264,34 @@ export class EmbudosGestionComponent {
       ? (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda)
       : (dataVentas || []);
 
-    // 2) Ventas EFECTIVAS del mes (excluye notas de crédito/incautaciones, monto>0).
-    //    ventasSet = DNIs con venta (para cruzar contra las carteras); ventasBbddKommo
+    // 2) Ventas NETAS del mes: una venta cuenta en su mes de VENTA (mes_cv) a valor
+    //    pleno; si luego se vuelve NOTA DE CRÉDITO/INCAUTACIÓN, resta en su mes de
+    //    AFECTACIÓN (mes_af) — mismo criterio que Ventas Campo / Reporte Global (si la
+    //    NC es del mismo mes, se anula; si es de un mes posterior, "arrastra" y resta
+    //    ese mes, sin tocar el mes original de la venta). Antes se excluían las NC por
+    //    completo según su estado ACTUAL, lo que borraba la venta también de su propio
+    //    mes de venta cuando la NC llegaba después — ya no.
+    //    ventasSet = DNIs con venta NETA (para cruzar contra las carteras); ventasBbddKommo
     //    = solo lo que usa la "cartera kommo" de Realzza (ventas con TipoBase=BBDD KOMMO).
-    const ventasSet = new Set<string>();
-    let ventasBbddKommo = 0;
-    dataVentasTienda
-      .filter(v => {
-        if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
-        const est = (v.estado_venta || '').toString().toUpperCase();
-        if (est.includes('NOTA DE') || est.includes('INCAUTAC')) return false;
-        return (Number(v.monto_consolidado) || 0) > 0;
-      })
-      .forEach(v => {
-        const dni = this.dig(v.doc_identidad);
-        if (dni) ventasSet.add(dni);
-        if (this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto) === 'bbddkommo') ventasBbddKommo++;
-      });
+    const dniBruto = new Set<string>();
+    const dniNC = new Set<string>();
+    let brutoBbddKommo = 0, ncBbddKommo = 0;
+    for (const v of dataVentasTienda) {
+      if ((Number(v.monto_consolidado) || 0) <= 0) continue;
+      const dni = this.dig(v.doc_identidad);
+      if (!dni) continue;
+      const esBbddKommo = this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto) === 'bbddkommo';
+      if (+v.mes_cv === mes + 1 && +v.anio_cv === anio) {
+        dniBruto.add(dni);
+        if (esBbddKommo) brutoBbddKommo++;
+      }
+      if (this.esVentaReductora(v) && +v.mes_af === mes + 1 && +v.anio_af === anio) {
+        dniNC.add(dni);
+        if (esBbddKommo) ncBbddKommo++;
+      }
+    }
+    const ventasSet = new Set([...dniBruto].filter(d => !dniNC.has(d)));
+    const ventasBbddKommo = brutoBbddKommo - ncBbddKommo;
 
     // TODAS las carteras (incluida "cartera kommo") cruzan contra la gestión del modo
     // (Call Center en modo Call / Realzza en modo Realzza). La gestión Kommo solo se
@@ -336,16 +347,25 @@ export class EmbudosGestionComponent {
     this.embudos = embudos;
   }
 
-  /** ¿Ventas efectivas del mes (sin NC/incautaciones, monto>0) de un tipo (kommo /
-   *  marketplace), según su propia columna: Call = "contacto"; Realzza = "tipo_base". */
-  private contarVentasPorTipo(dataVentas: any[], mes: number, tipo: 'kommo' | 'marketplace'): number {
-    return (dataVentas || []).filter(v => {
-      if (this.modo === 'realzza' && +v.mes_cv !== mes + 1) return false;
-      const est = (v.estado_venta || '').toString().toUpperCase();
-      if (est.includes('NOTA DE') || est.includes('INCAUTAC')) return false;
-      if ((Number(v.monto_consolidado) || 0) <= 0) return false;
-      return this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto) === tipo;
-    }).length;
+  /** Ventas NETAS del mes de un tipo (kommo/marketplace), según su propia columna
+   *  (Call = "contacto"; Realzza = "tipo_base"): cuenta en su mes de VENTA (mes_cv) a
+   *  valor pleno; si se volvió NOTA DE CRÉDITO/INCAUTACIÓN, resta en su mes de
+   *  AFECTACIÓN (mes_af) — mismo criterio que el resto del embudo. */
+  private contarVentasPorTipo(dataVentas: any[], mes: number, anio: number, tipo: 'kommo' | 'marketplace'): number {
+    let bruto = 0, nc = 0;
+    for (const v of (dataVentas || [])) {
+      if ((Number(v.monto_consolidado) || 0) <= 0) continue;
+      if (this.norm(this.modo === 'realzza' ? v.tipo_base : v.contacto) !== tipo) continue;
+      if (+v.mes_cv === mes + 1 && +v.anio_cv === anio) bruto++;
+      if (this.esVentaReductora(v) && +v.mes_af === mes + 1 && +v.anio_af === anio) nc++;
+    }
+    return bruto - nc;
+  }
+  /** ¿Es una venta NOTA DE CRÉDITO/INCAUTACIÓN (resta en su mes de AFECTACIÓN, no en
+   *  el de venta)? Mismo criterio que `esVentaReductora` en Ventas Campo. */
+  private esVentaReductora(v: any): boolean {
+    const est = (v.estado_venta || '').toString().toUpperCase();
+    return est.includes('NOTA DE') || est.includes('INCAUTAC');
   }
   private esInteresado(r: any): boolean {
     return (r['RESULTADO DE GESTIÓN'] || '').toString().trim().toUpperCase() === 'INTERESADO';
@@ -365,7 +385,7 @@ export class EmbudosGestionComponent {
    *  embudo aparte, no se mezcla acá).
    */
   private armarEmbudoKommo(mes: number, anio: number, dataVentas: any[], dataKommo: any[], leadsDetalle: any[], color: string): Embudo {
-    const ventasKommo = this.contarVentasPorTipo(dataVentas, mes, 'kommo');
+    const ventasKommo = this.contarVentasPorTipo(dataVentas, mes, anio, 'kommo');
     const kommoMes = (dataKommo || [])
       .filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio))
       .filter(r => this.norm(r[this.campoMarketPlace]) !== 'si');
@@ -385,7 +405,7 @@ export class EmbudosGestionComponent {
    *  TOTAL VENTAS = ventas reales con esa etiqueta.
    */
   private armarEmbudoMarketPlace(mes: number, anio: number, dataVentas: any[], dataKommo: any[], color: string): Embudo {
-    const ventasMarket = this.contarVentasPorTipo(dataVentas, mes, 'marketplace');
+    const ventasMarket = this.contarVentasPorTipo(dataVentas, mes, anio, 'marketplace');
     const mpMes = (dataKommo || []).filter(r =>
       this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio) && this.norm(r[this.campoMarketPlace]) === 'si');
     const gestionados = mpMes.length;
