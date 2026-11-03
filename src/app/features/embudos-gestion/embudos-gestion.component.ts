@@ -9,8 +9,9 @@ import { SheetsService } from '../../services/service-google.service';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { tiendaDeSedeRealzza } from '../../shared/canal-usuario';
 
-type Modo = 'call' | 'realzza';
+type Modo = 'call' | 'realzza' | 'sedes';
 type TiendaRealzza = 'REALZZA' | 'REALZZA PIURA' | 'REALZZA LIMA';
+type SedeDeriv = 'Ferreñafe' | 'Lambayeque';
 
 // Candidatos de cabecera DNI en las hojas de cartera / ventas (la columna puede
 // venir como DNI, Dni, dni, DocIdentidad, Documento, etc.). La normalización iguala
@@ -83,6 +84,9 @@ export class EmbudosGestionComponent {
   modo: Modo | null = null;
   // Tienda dentro de Realzza (Chiclayo/Piura/Lima). Solo importa cuando modo==='realzza'.
   tienda: TiendaRealzza = 'REALZZA';
+  // Sede dentro de Sedes (Ferreñafe/Lambayeque, las únicas con derivación Market
+  // Place hoy). Solo importa cuando modo==='sedes'.
+  sedeDeriv: SedeDeriv = 'Ferreñafe';
   arrastrando = false;
   procesando = false;
   error = '';
@@ -104,18 +108,22 @@ export class EmbudosGestionComponent {
 
   private readonly paleta = ['#2E5DAA', '#3E8E41', '#E0701A', '#6A1B9A', '#00838F', '#AD1457', '#37474F'];
 
-  get nombreModo(): string { return this.modo === 'realzza' ? 'Realzza' : 'Call'; }
+  get nombreModo(): string { return this.modo === 'realzza' ? 'Realzza' : this.modo === 'sedes' ? 'Sedes' : 'Call'; }
   /** Piura/Lima: por ahora SOLO se arma el embudo KOMMO (LEADS) + Market Place, sin
    *  subir Excel de carteras (esas tiendas aún no tienen ese flujo armado). */
   get soloKommo(): boolean { return this.modo === 'realzza' && this.tienda !== 'REALZZA'; }
+  /** Sedes (Ferreñafe/Lambayeque): no hay carteras Excel ni roster de asesores acá —
+   *  solo el embudo MARKET PLACE cruzando la derivación con las ventas de la sede. */
+  get soloSedes(): boolean { return this.modo === 'sedes'; }
   /** El botón "Ver KOMMO/Market Place" (sin subir Excel) está disponible en TODO
    *  Realzza, incluido Chiclayo — ahí además se puede subir el Excel de carteras
    *  aparte (las dos vías conviven; en Piura/Lima la cartera no existe todavía). */
   get mostrarVerRapido(): boolean { return this.modo === 'realzza'; }
 
-  seleccionarModo(m: Modo): void { this.modo = m; this.tienda = 'REALZZA'; this.reiniciar(); }
+  seleccionarModo(m: Modo): void { this.modo = m; this.tienda = 'REALZZA'; this.sedeDeriv = 'Ferreñafe'; this.reiniciar(); }
   seleccionarTienda(t: TiendaRealzza): void { if (this.tienda === t) return; this.tienda = t; this.reiniciar(); }
-  volverModos(): void { this.modo = null; this.tienda = 'REALZZA'; this.reiniciar(); }
+  seleccionarSedeDeriv(s: SedeDeriv): void { if (this.sedeDeriv === s) return; this.sedeDeriv = s; this.reiniciar(); }
+  volverModos(): void { this.modo = null; this.tienda = 'REALZZA'; this.sedeDeriv = 'Ferreñafe'; this.reiniciar(); }
 
   onDragOver(e: DragEvent): void { e.preventDefault(); this.arrastrando = true; }
   onDragLeave(e: DragEvent): void { e.preventDefault(); this.arrastrando = false; }
@@ -202,6 +210,58 @@ export class EmbudosGestionComponent {
     }
   }
 
+  /** Sedes (Ferreñafe/Lambayeque): arma SOLO el embudo MARKET PLACE del mes elegido,
+   *  cruzando la derivación (gestion_sedes_deriv) con las ventas de la sede. */
+  async cargarEmbudoSedes(): Promise<void> {
+    this.reiniciar();
+    this.procesando = true;
+    try {
+      const mes = this.fecha.getMonth(), anio = this.fecha.getFullYear();
+      const desde = new Date(anio, mes, 1), hasta = new Date(anio, mes + 1, 0);
+      const [deriv, ventas] = await Promise.all([
+        lastValueFrom(this.sheets.getDerivacionesDB({ desde, hasta }, undefined, this.sedeDeriv)),
+        lastValueFrom(this.ventasSrv.listarAtribucionSede(this.sedeDeriv, anio, mes + 1)),
+      ]);
+      this.embudos = [this.armarEmbudoSedesMarketPlace(mes, anio, deriv || [], ventas || [], this.paleta[0])];
+      this.nombreArchivo = `${this.sedeDeriv} (Market Place) — ${this.fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}`;
+      this.listo = true;
+    } catch (err: any) {
+      this.error = err?.message ?? 'No se pudo cargar el embudo de Sedes (revisa la conexión al servidor).';
+    } finally {
+      this.procesando = false;
+    }
+  }
+
+  /**
+   * Arma el embudo MARKET PLACE de una sede (Ferreñafe/Lambayeque):
+   *  GESTIONADOS = derivaciones del mes (gestion_sedes_deriv, por fecha de REGISTRO)
+   *  con TipoBase = MARKET PLACE;
+   *  INTERESADOS = de esas, RESULTADO DE GESTIÓN = INTERESADO (NO todas lo son — a
+   *  diferencia de Call/Realzza, acá puede haber derivaciones sin interés real);
+   *  TOTAL VENTAS = ventas de la sede del mes (ya cruzadas con su fuente generadora)
+   *  marcadas MARKET PLACE, netas de NC/incautación — mismo criterio que el resto de
+   *  este módulo, aunque acá solo se resta la NC del MISMO mes de venta (el cruce de
+   *  Sedes no trae ventas de otros meses para poder restar una NC "arrastrada").
+   */
+  private armarEmbudoSedesMarketPlace(mes: number, anio: number, deriv: any[], ventas: any[], color: string): Embudo {
+    const esMarketPlace = (v: any) => this.norm(v.tipo_base) === 'marketplace';
+    const mpDeriv = (deriv || []).filter(esMarketPlace);
+    const gestionados = mpDeriv.length;
+    const interesados = mpDeriv.filter(r => this.norm(r.resultado_gestion) === 'interesado').length;
+
+    const mpVentas = (ventas || []).filter(esMarketPlace);
+    const nc = mpVentas.filter(v => this.esVentaReductora(v) && +v.mes_af === mes + 1 && +v.anio_af === anio).length;
+    const totalVentas = mpVentas.length - nc;
+
+    const r = (n: number) => (gestionados > 0 ? Math.round((n / gestionados) * 1000) / 10 : 0);
+    const etapas: Etapa[] = [
+      { nombre: 'GESTIONADOS', op: gestionados, ratio: 100, codigo: 'RG' },
+      { nombre: 'INTERESADOS', op: interesados, ratio: r(interesados), codigo: 'RI/G' },
+      { nombre: 'TOTAL VENTAS', op: totalVentas, ratio: r(totalVentas), codigo: 'RV/G' },
+    ];
+    return { titulo: `MARKET PLACE — ${this.sedeDeriv.toUpperCase()}`, color, kommoLeads: false, asignados: gestionados, etapas };
+  }
+
   private procesarArchivo(file: File): void {
     this.reiniciar();
     this.nombreArchivo = file.name;
@@ -252,7 +312,8 @@ export class EmbudosGestionComponent {
         lastValueFrom(this.modo === 'realzza'
           ? this.ventasSrv.obtenerVentasRealzzaModulo(anio)                        // se filtra por tienda/mes abajo
           : this.ventasSrv.obtenerVentasCanal('call', { anio, mes: mes + 1 })),
-        lastValueFrom(this.ventasSrv.obtenerLeadsDetalle(this.modo!, anio, mes + 1, this.modo === 'realzza' ? this.tienda : undefined)),
+        // Esta ruta (subir Excel de carteras) nunca corre en modo 'sedes' (sin Excel, ver soloSedes).
+        lastValueFrom(this.ventasSrv.obtenerLeadsDetalle(this.modo as 'call' | 'realzza', anio, mes + 1, this.modo === 'realzza' ? this.tienda : undefined)),
       ]);
     } catch {
       throw new Error('No se pudo cargar la gestión/ventas (revisa la conexión al servidor).');

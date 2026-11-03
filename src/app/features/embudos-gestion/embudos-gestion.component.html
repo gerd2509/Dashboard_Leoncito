@@ -6,8 +6,9 @@
     <div>
       <h2>Embudos de Gestión</h2>
       <p *ngIf="!modo">Elige la base y sube tu Excel de carteras: cruza cada cartera con la gestión y muestra el embudo.</p>
-      <p *ngIf="modo && !soloKommo">Base <b>{{ nombreModo }}</b> — cada hoja del Excel es un embudo; gestión, ventas y KOMMO se cruzan en vivo con la base de datos.</p>
+      <p *ngIf="modo && !soloKommo && !soloSedes">Base <b>{{ nombreModo }}</b> — cada hoja del Excel es un embudo; gestión, ventas y KOMMO se cruzan en vivo con la base de datos.</p>
       <p *ngIf="soloKommo">Base <b>Realzza {{ tienda === 'REALZZA PIURA' ? 'Piura' : 'Lima' }}</b> — KOMMO (LEADS) y Market Place se cruzan en vivo con la base de datos.</p>
+      <p *ngIf="soloSedes">Base <b>Sedes — {{ sedeDeriv }}</b> — el embudo Market Place se cruza en vivo con la base de datos.</p>
     </div>
     <button *ngIf="modo" class="btn-secundario volver" (click)="volverModos()">
       <mat-icon>arrow_back</mat-icon> Cambiar base
@@ -26,6 +27,11 @@
       <h3>Embudos Realzza</h3>
       <p>Cruza las carteras contra la gestión de <b>Realzza</b> (+ Kommo).</p>
     </button>
+    <button class="modo-card" (click)="seleccionarModo('sedes')">
+      <div class="modo-ico realzza"><mat-icon>location_city</mat-icon></div>
+      <h3>Embudos Sedes</h3>
+      <p>Embudo Market Place de <b>Ferreñafe / Lambayeque</b> (derivación + ventas).</p>
+    </button>
   </div>
 
   <ng-container *ngIf="modo">
@@ -36,6 +42,12 @@
       <button [class.active]="tienda === 'REALZZA LIMA'" (click)="seleccionarTienda('REALZZA LIMA')">Lima</button>
     </div>
 
+    <!-- Sede (solo Sedes): Ferreñafe / Lambayeque -->
+    <div class="tienda-tabs" *ngIf="soloSedes && !listo">
+      <button [class.active]="sedeDeriv === 'Ferreñafe'" (click)="seleccionarSedeDeriv('Ferreñafe')">Ferreñafe</button>
+      <button [class.active]="sedeDeriv === 'Lambayeque'" (click)="seleccionarSedeDeriv('Lambayeque')">Lambayeque</button>
+    </div>
+
     <!-- Mes + carga -->
     <div class="barra" *ngIf="!listo">
       <div class="campo">
@@ -43,8 +55,9 @@
         <dx-date-box [(value)]="fecha" type="date" displayFormat="MMMM yyyy"
           [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="190"></dx-date-box>
       </div>
-      <span class="barra-nota" *ngIf="!soloKommo"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Gestión, ventas y KOMMO se cruzan solos con la BD del mes elegido.</span>
+      <span class="barra-nota" *ngIf="!soloKommo && !soloSedes"><mat-icon>info</mat-icon> Cada hoja = un embudo (título = nombre de la hoja). Gestión, ventas y KOMMO se cruzan solos con la BD del mes elegido.</span>
       <span class="barra-nota" *ngIf="soloKommo"><mat-icon>info</mat-icon> Por ahora {{ tienda === 'REALZZA PIURA' ? 'Piura' : 'Lima' }} solo mide KOMMO (LEADS) y Market Place — sin carteras Excel todavía.</span>
+      <span class="barra-nota" *ngIf="soloSedes"><mat-icon>info</mat-icon> {{ sedeDeriv }} mide el embudo Market Place (derivación → ventas) — sin carteras Excel.</span>
     </div>
 
     <!-- Ver rápido KOMMO + Market Place sin subir Excel (toda Realzza, incluido Chiclayo) -->
@@ -60,9 +73,22 @@
       </ng-template>
     </div>
 
+    <!-- Ver rápido Market Place de Sedes -->
+    <div *ngIf="!listo && soloSedes" class="dropzone dropzone-simple">
+      <ng-container *ngIf="!procesando; else cargandoSedes">
+        <mat-icon class="dz-icon">hub</mat-icon>
+        <p class="dz-titulo">Ver Market Place de {{ sedeDeriv }} del mes</p>
+        <button class="btn-cargar" type="button" (click)="cargarEmbudoSedes()"><mat-icon>search</mat-icon> Ver</button>
+      </ng-container>
+      <ng-template #cargandoSedes>
+        <app-loading-overlay [inline]="true" [visible]="procesando" icon="filter_alt"
+          mensaje="Procesando Market Place…" submensaje="Cruzando derivación y ventas del mes…"></app-loading-overlay>
+      </ng-template>
+    </div>
+
     <p class="o-separador" *ngIf="!listo && mostrarVerRapido && !soloKommo">— o si quieres los embudos por cartera, sube el Excel —</p>
 
-    <div *ngIf="!listo && !soloKommo" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
+    <div *ngIf="!listo && !soloKommo && !soloSedes" class="dropzone" [class.dragging]="arrastrando" [class.procesando]="procesando"
          (dragover)="onDragOver($event)" (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
       <ng-container *ngIf="!procesando; else cargando">
         <mat-icon class="dz-icon">cloud_upload</mat-icon>
