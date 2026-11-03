@@ -9,6 +9,8 @@ import { AuthService } from '../../services/auth.service';
 import { SedeConfigService } from '../../services/sede-config.service';
 import { CapSedesService } from '../../services/cap-sedes.service';
 import * as XLSX from 'xlsx';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
 
 interface AsesorRow {
   asesor: string;
@@ -23,6 +25,14 @@ interface AsesorRow {
   total: number;
   porcentaje: number;
   afiliaciones: number;   // del Excel importado (cruce por nombre)
+}
+
+/** Fila del Excel de afiliaciones cuya DIRECCIÓN y/o TELÉFONO no pasó la validación
+ *  (ver `validarDireccion`/`validarTelefono`) — se junta con la sede del asesor
+ *  (vía el roster del CAP) para poder mostrarla agrupada por sede en el export. */
+interface AfiliacionIncorrecta {
+  sedeKey: string; sede: string; asesor: string; fecha: string;
+  direccion: string; telefono: string; motivos: string[];
 }
 
 interface EvoPunto { fecha: string; llamadas: number; cartas: number; afiliaciones: number; }
@@ -132,6 +142,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   // probable typo/tilde/nombre distinto — se muestran para poder corregirlas a mano.
   afiliacionesSinMatch: { nombre: string; cantidad: number }[] = [];
   private readonly AFI_KEY = 'cgs_afiliaciones_v2';
+  // Detalle de filas del Excel importado cuya DIRECCIÓN y/o TELÉFONO quedó mal
+  // (vacío, con letras, menos de 9 dígitos, número repetido/falso, etc.) — se
+  // guarda junto con el resto del Excel para poder exportarlo agrupado por sede.
+  afiliacionesDetalleIncorrectas: AfiliacionIncorrecta[] = [];
+  // Si el Excel importado no tenía columna DIRECCIÓN/TELÉFONO, no se pudo validar.
+  afiliacionesSinColumnas: { direccion: boolean; telefono: boolean } = { direccion: true, telefono: true };
   // Metas diarias POR ASESOR/VENDEDOR (la de la sede = nº asesores AJUSTADO × esto).
   private readonly META_LLAMADAS_ASESOR = 40;
   private readonly META_CARTAS_ASESOR = 5;
@@ -655,6 +671,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       const data = JSON.parse(raw);
       this.afiliacionesData = new Map(Object.entries(data.porNombre || {}).map(([k, v]) => [k, v as Record<string, number>]));
       this.afiliacionesInfo = { archivo: data.archivo || '', fecha: data.fecha || '', total: data.total || 0, sinFecha: data.sinFecha || 0 };
+      this.afiliacionesDetalleIncorrectas = data.detalleIncorrectas || [];
+      this.afiliacionesSinColumnas = data.sinColumnas || { direccion: true, telefono: true };
     } catch { /* localStorage corrupto: se ignora */ }
   }
 
@@ -682,22 +700,52 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         const colFecha = headers.find(h => this.normNombre(h) === this.normNombre('FECHO REGISTRO'))
           ?? headers.find(h => this.normNombre(h).includes('fecho') || this.normNombre(h).includes('fecha'));
         if (!colFecha) throw new Error('No se encontró la columna de fecha ("FECHO REGISTRO") para contar por día.');
+        // Columnas de DIRECCIÓN y TELÉFONO: opcionales — si no están, simplemente no se
+        // puede validar la calidad de la afiliación (el conteo por sede/día sigue igual).
+        const colDireccion = headers.find(h => this.normNombre(h).includes('direccion'));
+        const colTelefono = headers.find(h => this.normNombre(h).includes('telefono') || this.normNombre(h).includes('celular'));
+        this.afiliacionesSinColumnas = { direccion: !colDireccion, telefono: !colTelefono };
+
+        // Roster CAP (vendedor normalizado → sede) para poder agrupar el detalle de
+        // afiliaciones incorrectas por sede en el export.
+        const sedePorAsesor = this.construirMapaSedeAsesor();
 
         const porNombre: Record<string, Record<string, number>> = {};
+        const detalleIncorrectas: AfiliacionIncorrecta[] = [];
         let total = 0, sinFecha = 0;
         for (const r of filas) {
-          const nombre = this.normNombre(r[colAsesor]);
+          const nombreCrudo = (r[colAsesor] ?? '').toString().trim();
+          const nombre = this.normNombre(nombreCrudo);
           if (!nombre) continue;
           const clave = this.claveFecha(r[colFecha]);
           if (!clave) { sinFecha++; continue; }   // sin fecha válida → no se puede atribuir a un día
           total++;
           (porNombre[nombre] ??= {});
           porNombre[nombre][clave] = (porNombre[nombre][clave] || 0) + 1;
+
+          if (colDireccion || colTelefono) {
+            const direccion = (r[colDireccion ?? ''] ?? '').toString().trim();
+            const telefono = (r[colTelefono ?? ''] ?? '').toString().trim();
+            const motivos = [
+              ...(colDireccion ? this.validarDireccion(direccion) : []),
+              ...(colTelefono ? this.validarTelefono(telefono) : []),
+            ];
+            if (motivos.length) {
+              const sede = sedePorAsesor.get(nombre);
+              detalleIncorrectas.push({
+                sedeKey: sede?.key ?? 'sin-sede', sede: sede?.nombre ?? 'SIN SEDE (nombre no reconocido)',
+                asesor: nombreCrudo, fecha: clave, direccion, telefono, motivos,
+              });
+            }
+          }
         }
 
         this.afiliacionesData = new Map(Object.entries(porNombre));
         this.afiliacionesInfo = { archivo: file.name, fecha: new Date().toLocaleString('es-PE'), total, sinFecha };
-        localStorage.setItem(this.AFI_KEY, JSON.stringify({ ...this.afiliacionesInfo, porNombre }));
+        this.afiliacionesDetalleIncorrectas = detalleIncorrectas;
+        localStorage.setItem(this.AFI_KEY, JSON.stringify({
+          ...this.afiliacionesInfo, porNombre, detalleIncorrectas, sinColumnas: this.afiliacionesSinColumnas,
+        }));
 
         if (this.listData.length) this.calcular();   // refresca las tablas con las afiliaciones
       } catch (err: any) {
@@ -735,8 +783,110 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.afiliacionesData.clear();
     this.afiliacionesInfo = null;
     this.afiliacionesError = '';
+    this.afiliacionesDetalleIncorrectas = [];
+    this.afiliacionesSinColumnas = { direccion: true, telefono: true };
     localStorage.removeItem(this.AFI_KEY);
     if (this.listData.length) this.calcular();
+  }
+
+  /** Vendedor normalizado → sede, a partir del roster ACTIVO del CAP (todas las
+   *  sedes del ámbito). Usado para agrupar por sede el detalle de afiliaciones
+   *  incorrectas del Excel importado. */
+  private construirMapaSedeAsesor(): Map<string, { key: string; nombre: string }> {
+    const mapa = new Map<string, { key: string; nombre: string }>();
+    for (const [key, lista] of this.capPorSede) {
+      const sede = this.sedesObjetivo.find(s => s.key === key);
+      for (const v of lista) mapa.set(this.normNombre(v), { key, nombre: sede?.nombre ?? key });
+    }
+    return mapa;
+  }
+
+  /** Valida la DIRECCIÓN de una afiliación: vacía, o sin ninguna letra (indicio de
+   *  que en realidad se puso un número de teléfono en ese campo). */
+  private validarDireccion(direccion: string): string[] {
+    const s = (direccion ?? '').toString().trim();
+    if (!s) return ['Dirección vacía'];
+    const motivos: string[] = [];
+    if (!/[a-zA-Z]/.test(s)) motivos.push('Dirección sin texto (parece un número de teléfono)');
+    else if (s.length < 5) motivos.push('Dirección muy corta/sospechosa');
+    return motivos;
+  }
+
+  /** Valida el TELÉFONO de una afiliación: vacío, con letras, sin 9 dígitos, o un
+   *  número evidentemente falso (todo el mismo dígito, o secuencial). */
+  private validarTelefono(telefono: string): string[] {
+    const s = (telefono ?? '').toString().trim();
+    if (!s) return ['Teléfono vacío'];
+    const limpio = s.replace(/[\s\-().]/g, '').replace(/^\+?51/, '');
+    if (/[^0-9]/.test(limpio)) return ['Teléfono con letras u otros caracteres'];
+    if (limpio.length !== 9) return [`Teléfono no tiene 9 dígitos (tiene ${limpio.length})`];
+    if (/^(\d)\1{8}$/.test(limpio)) return ['Teléfono inválido (dígito repetido, ej. 999999999)'];
+    if (limpio === '123456789' || limpio === '987654321') return ['Teléfono inválido (número secuencial)'];
+    return [];
+  }
+
+  /** Export a Excel: recuento de afiliaciones por sede + detalle de las que tienen
+   *  DIRECCIÓN/TELÉFONO inválido, agrupadas por sede. */
+  async exportarAfiliacionesExcel(): Promise<void> {
+    const sedePorAsesor = this.construirMapaSedeAsesor();
+    const totalPorSede = new Map<string, { nombre: string; total: number }>();
+    for (const [nombre, porDia] of this.afiliacionesData) {
+      const total = Object.values(porDia).reduce((s, n) => s + n, 0);
+      const sede = sedePorAsesor.get(nombre);
+      const key = sede?.key ?? 'sin-sede';
+      const nombreSede = sede?.nombre ?? 'SIN SEDE (nombre no reconocido)';
+      const actual = totalPorSede.get(key) ?? { nombre: nombreSede, total: 0 };
+      actual.total += total;
+      totalPorSede.set(key, actual);
+    }
+    const incorrectasPorSede = new Map<string, number>();
+    for (const d of this.afiliacionesDetalleIncorrectas) {
+      incorrectasPorSede.set(d.sedeKey, (incorrectasPorSede.get(d.sedeKey) ?? 0) + 1);
+    }
+
+    const wb = new Workbook();
+
+    const wsResumen = wb.addWorksheet('Recuento por Sede');
+    wsResumen.addRow([`AFILIACIONES — ${this.afiliacionesInfo?.archivo ?? ''}  |  ${this.afiliacionesInfo?.fecha ?? ''}`]);
+    wsResumen.addRow([]);
+    wsResumen.addRow(['SEDE', 'TOTAL AFILIACIONES', 'INCORRECTAS (DIRECCIÓN/TELÉFONO)', '% INCORRECTAS']);
+    const filasResumen = Array.from(totalPorSede.entries()).sort((a, b) => b[1].total - a[1].total);
+    for (const [key, info] of filasResumen) {
+      const incorrectas = incorrectasPorSede.get(key) ?? 0;
+      wsResumen.addRow([info.nombre, info.total, incorrectas, info.total > 0 ? Math.round((incorrectas / info.total) * 100) + '%' : '0%']);
+    }
+    const totalGeneral = filasResumen.reduce((s, [, i]) => s + i.total, 0);
+    const incorrectasGeneral = this.afiliacionesDetalleIncorrectas.length;
+    wsResumen.addRow([]);
+    wsResumen.addRow(['TOTAL', totalGeneral, incorrectasGeneral, totalGeneral > 0 ? Math.round((incorrectasGeneral / totalGeneral) * 100) + '%' : '0%']);
+    const headerResumen = wsResumen.getRow(3);
+    headerResumen.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
+    });
+    wsResumen.columns.forEach(col => { col.width = 30; });
+
+    const wsDetalle = wb.addWorksheet('Detalle Incorrectas');
+    if (this.afiliacionesSinColumnas.direccion && this.afiliacionesSinColumnas.telefono) {
+      wsDetalle.addRow(['El Excel importado no tenía columnas de DIRECCIÓN ni TELÉFONO — no se pudo validar.']);
+    } else {
+      wsDetalle.addRow(['SEDE', 'ASESOR', 'FECHA', 'DIRECCIÓN', 'TELÉFONO', 'MOTIVO']);
+      const detalleOrdenado = [...this.afiliacionesDetalleIncorrectas].sort((a, b) => a.sede.localeCompare(b.sede));
+      for (const d of detalleOrdenado) {
+        wsDetalle.addRow([d.sede, d.asesor, d.fecha, d.direccion, d.telefono, d.motivos.join(' · ')]);
+      }
+      const headerDetalle = wsDetalle.getRow(1);
+      headerDetalle.eachCell(cell => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
+      });
+      wsDetalle.views = [{ state: 'frozen', ySplit: 1 }];
+      wsDetalle.columns.forEach((col, i) => { col.width = i === 0 || i === 1 ? 28 : i === 5 ? 45 : 18; });
+    }
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    FileSaver.saveAs(blob, `Afiliaciones_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
