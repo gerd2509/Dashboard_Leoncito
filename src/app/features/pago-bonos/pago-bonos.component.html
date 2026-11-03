@@ -1,0 +1,111 @@
+<app-loading-overlay [visible]="isLoading" mensaje="Cargando bonos…" icon="military_tech"></app-loading-overlay>
+
+<div class="pb-wrap">
+
+  <div class="pb-head">
+    <div class="pb-head-ico"><mat-icon>military_tech</mat-icon></div>
+    <div class="pb-head-txt">
+      <h2>Pago de Bonos</h2>
+      <p>Bono calculado (Call / Realzza Chiclayo / Piura / Lima) + bonos manuales (Logístico, Efectiva, Global Supervisor, u otro).</p>
+    </div>
+  </div>
+
+  <form class="pb-barra" [formGroup]="form">
+    <dx-select-box [dataSource]="anios" formControlName="anio" (onValueChanged)="cargar()"
+      label="Año" labelMode="floating" stylingMode="outlined" width="110"></dx-select-box>
+    <dx-select-box [dataSource]="meses" displayExpr="t" valueExpr="v" formControlName="mes" (onValueChanged)="cargar()"
+      label="Mes" labelMode="floating" stylingMode="outlined" width="160"></dx-select-box>
+    <button mat-stroked-button type="button" (click)="cargar()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon> Actualizar
+    </button>
+    <button mat-stroked-button type="button" (click)="exportar()" [disabled]="!secciones.length">
+      <mat-icon>file_download</mat-icon> Exportar Excel
+    </button>
+
+    <div class="pb-total-general" *ngIf="!isLoading && secciones.length">
+      <span>TOTAL A PAGAR (TODOS LOS CANALES)</span>
+      <b>S/ {{ totalGeneralPagar | number }}</b>
+    </div>
+  </form>
+
+  <div class="pb-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+
+  <div class="pb-secciones" *ngIf="!isLoading">
+    <div class="pb-seccion" *ngFor="let sec of secciones" [style.--sec-color]="sec.color">
+      <div class="pb-sec-head">
+        <div class="pb-sec-head-left">
+          <mat-icon>{{ sec.icono }}</mat-icon>
+          <span>{{ sec.titulo }}</span>
+        </div>
+        <div class="pb-sec-kpis">
+          <span>Calculado <b>S/ {{ sec.totalCalculado | number }}</b></span>
+          <span>Manual <b>S/ {{ sec.totalManual | number }}</b></span>
+          <span class="pb-kpi-total">Total <b>S/ {{ sec.totalPagar | number }}</b></span>
+        </div>
+      </div>
+
+      <div class="pb-sec-body" *ngIf="sec.filas.length; else sinDatos">
+        <table class="pb-tabla">
+          <thead>
+            <tr>
+              <th class="pb-th-asesor">ASESOR</th>
+              <th>VENTA NETA</th>
+              <th>PROYECCIÓN</th>
+              <th>BONO CALC.</th>
+              <th class="pb-th-manuales">BONOS MANUALES</th>
+              <th>TOTAL A PAGAR</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of sec.filas">
+              <td class="pb-td-asesor">{{ f.asesor }}</td>
+              <td class="pb-num">S/ {{ f.neto | number }}</td>
+              <td class="pb-num">S/ {{ f.proyeccion | number }}</td>
+              <td class="pb-num pb-bono-calc">S/ {{ f.bonoCalculado | number }}</td>
+              <td class="pb-manuales">
+                <span class="pb-chip" *ngFor="let b of f.manuales" [title]="b.comentario || ''"
+                      (click)="puedeGestionar && abrirEditar(sec.canal, f.asesor, b)">
+                  {{ b.tipo }}: S/ {{ b.monto | number }}
+                  <button *ngIf="puedeGestionar" mat-icon-button class="pb-chip-x" (click)="eliminarManual(b, $event)" [attr.aria-label]="'Quitar ' + b.tipo">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </span>
+                <button *ngIf="puedeGestionar" mat-stroked-button class="pb-btn-agregar" type="button" (click)="abrirAgregar(sec.canal, f.asesor)">
+                  <mat-icon>add</mat-icon> Agregar
+                </button>
+              </td>
+              <td class="pb-num pb-total-fila">S/ {{ f.totalPagar | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #sinDatos>
+        <div class="pb-vacio"><mat-icon>inbox</mat-icon> Sin ventas en {{ meses[form.value.mes - 1].t }} {{ form.value.anio }}.</div>
+      </ng-template>
+    </div>
+  </div>
+</div>
+
+<!-- Popup: agregar/editar bono manual -->
+<dx-popup [(visible)]="popupVisible" [showTitle]="true" [title]="editando ? 'Editar bono manual' : 'Agregar bono manual'"
+    [width]="420" [height]="'auto'" [dragEnabled]="false" [hideOnOutsideClick]="true" (onHidden)="cerrarPopup()">
+  <div class="pb-popup">
+    <div class="pb-popup-asesor"><mat-icon>person</mat-icon> {{ modeloPopup.asesor }}</div>
+
+    <dx-select-box [dataSource]="tiposSugeridos" [(value)]="modeloPopup.tipo" [acceptCustomValue]="true"
+      label="Tipo de bono (o escribe uno nuevo)" labelMode="floating" stylingMode="outlined" [searchEnabled]="true"
+      placeholder="Ej. Bono Logístico"></dx-select-box>
+
+    <dx-number-box [(value)]="modeloPopup.monto" label="Monto (S/)" labelMode="floating" stylingMode="outlined"
+      [min]="0" [showSpinButtons]="false" format="#,##0.##"></dx-number-box>
+
+    <dx-text-area [(value)]="modeloPopup.comentario" label="Comentario (opcional)" labelMode="floating" stylingMode="outlined" [height]="70"></dx-text-area>
+
+    <div class="pb-popup-botones">
+      <button mat-stroked-button type="button" (click)="cerrarPopup()">Cancelar</button>
+      <button mat-flat-button color="primary" type="button" (click)="guardarPopup()" [disabled]="!popupValido || guardando">
+        <mat-icon>{{ guardando ? 'hourglass_empty' : 'save' }}</mat-icon> {{ guardando ? 'Guardando…' : 'Guardar' }}
+      </button>
+    </div>
+  </div>
+</dx-popup>

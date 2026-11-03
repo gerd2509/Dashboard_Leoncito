@@ -8,6 +8,7 @@ import { VentasComponent } from "../features/ventas/ventas.component";
 import { ConvertidorExcelCsvComponent } from "../features/convertidor-excel-csv/convertidor-excel-csv.component";
 import { VentaXPlazoAvComponent } from "../features/venta-x-plazo-av/venta-x-plazo-av.component";
 import { VentasCampoComponent } from "../features/ventas-campo/ventas-campo.component";
+import { PagoBonosComponent } from "../features/pago-bonos/pago-bonos.component";
 import { VentasSedesComponent } from "../features/ventas-sedes/ventas-sedes.component";
 import { GestionCampoRealzzaComponent } from "../features/Gestion/gestion-campo-realzza/gestion-campo-realzza.component";
 import { AgendamientosCampoComponent } from "../features/agendamientos/agendamientos-campo/agendamientos-campo.component";
@@ -88,6 +89,7 @@ interface MenuItem {
     ConvertidorExcelCsvComponent,
     VentaXPlazoAvComponent,
     VentasCampoComponent,
+    PagoBonosComponent,
     VentasSedesComponent,
     GestionCampoRealzzaComponent,
     AgendamientosCampoComponent,
@@ -197,6 +199,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'CALL CENTER',  icon: 'call',      modulo: 'ventas' },
         { label: 'ATRIBUCIÓN', icon: 'how_to_reg', modulo: 'atribucion-call' },
         { label: 'REALZZA',      icon: 'storefront', modulo: 'ventas-campo' },
+        { label: 'PAGO DE BONOS', icon: 'military_tech', modulo: 'pago-bonos' },
         { label: 'SEDES',        icon: 'location_city', modulo: 'ventas-sedes' },
         { label: 'COMPARATIVO',  icon: 'balance',    modulo: 'ventas-comparativo' },
         { label: 'EVOLUTIVO',    icon: 'balance',    modulo: 'evolucion-tipo-cliente' },
