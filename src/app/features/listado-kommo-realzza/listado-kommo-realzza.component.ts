@@ -398,6 +398,11 @@ export class ListadoKommoRealzzaComponent implements OnInit {
       this.reporteGeneralGeneradoEn = new Date().toLocaleString('es-PE');
       this.exportMenuAbierto = false;
       this.mostrandoReporteGeneral = true;
+      setTimeout(() => {
+        console.log('[RK] AUTOCHECK (100ms despues) — ¿esta el div rojo en el DOM?:', document.body.innerHTML.includes('RK-DEBUG-MINIMO'));
+        console.log('[RK] AUTOCHECK — cantidad con z-index 99999:', document.querySelectorAll('[style*="99999"]').length);
+        console.log('[RK] AUTOCHECK — cantidad .lk-wrap:', document.querySelectorAll('.lk-wrap').length);
+      }, 100);
       console.log('[RK] 6/6 mostrandoReporteGeneral =', this.mostrandoReporteGeneral);
       if (datos.length < tiendas.length) {
         const faltantes = tiendas.length - datos.length;
