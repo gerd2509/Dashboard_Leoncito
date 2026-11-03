@@ -146,8 +146,19 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   // (vacío, con letras, menos de 9 dígitos, número repetido/falso, etc.) — se
   // guarda junto con el resto del Excel para poder exportarlo agrupado por sede.
   afiliacionesDetalleIncorrectas: AfiliacionIncorrecta[] = [];
+  // Subconjunto de `afiliacionesDetalleIncorrectas` del MES del `fechaGestion`
+  // elegido (no del día puntual) — se recalcula en `calcular()`. Es lo que se
+  // muestra en pantalla y lo que se exporta a Excel.
+  afiliacionesDetalleIncorrectasMes: AfiliacionIncorrecta[] = [];
   // Si el Excel importado no tenía columna DIRECCIÓN/TELÉFONO, no se pudo validar.
   afiliacionesSinColumnas: { direccion: boolean; telefono: boolean } = { direccion: true, telefono: true };
+  // normNombre → sede, tomado de la columna "SEDE" del propio Excel (si la trae) —
+  // más confiable que cruzar por nombre contra el roster del CAP. Se usa tanto para
+  // el detalle de incorrectas como para el recuento por sede del export, así ambos
+  // quedan consistentes entre sí.
+  private afiliacionesSedePorNombre = new Map<string, { key: string; nombre: string }>();
+  // Toggle de la grilla de incorrectas en pantalla (no solo en el Excel exportado).
+  verIncorrectas = false;
   // Metas diarias POR ASESOR/VENDEDOR (la de la sede = nº asesores AJUSTADO × esto).
   private readonly META_LLAMADAS_ASESOR = 40;
   private readonly META_CARTAS_ASESOR = 5;
@@ -350,6 +361,16 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Afiliaciones incorrectas del MES completo de la fecha elegida en el formulario
+   *  (no solo el día puntual) — es lo que se muestra en pantalla y lo que se exporta
+   *  a Excel. Se llama tras cualquier cambio de `afiliacionesDetalleIncorrectas` o
+   *  de `fechaGestion`. */
+  private recomputarAfiliacionesIncorrectasMes(): void {
+    const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
+    const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    this.afiliacionesDetalleIncorrectasMes = this.afiliacionesDetalleIncorrectas.filter(d => d.fecha.startsWith(prefijoMes));
+  }
+
   private calcular() {
     const fecha = this.formCtrl.value.fechaGestion as Date;
     const claveFechaSel = this.claveFecha(fecha);   // afiliaciones del día seleccionado
@@ -358,6 +379,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     // Días del mes seleccionado → meta diaria = meta mensual / días del mes
     this.diasDelMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+
+    this.recomputarAfiliacionesIncorrectasMes();
 
     const cubiertosGlobal = new Set<string>();
     this.sedesBloques = this.sedesObjetivo.map(sede => {
@@ -673,6 +696,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       this.afiliacionesInfo = { archivo: data.archivo || '', fecha: data.fecha || '', total: data.total || 0, sinFecha: data.sinFecha || 0 };
       this.afiliacionesDetalleIncorrectas = data.detalleIncorrectas || [];
       this.afiliacionesSinColumnas = data.sinColumnas || { direccion: true, telefono: true };
+      this.afiliacionesSedePorNombre = new Map(Object.entries(data.sedePorNombre || {}));
+      this.recomputarAfiliacionesIncorrectasMes();
     } catch { /* localStorage corrupto: se ignora */ }
   }
 
@@ -702,16 +727,24 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         if (!colFecha) throw new Error('No se encontró la columna de fecha ("FECHO REGISTRO") para contar por día.');
         // Columnas de DIRECCIÓN y TELÉFONO: opcionales — si no están, simplemente no se
         // puede validar la calidad de la afiliación (el conteo por sede/día sigue igual).
-        const colDireccion = headers.find(h => this.normNombre(h).includes('direccion'));
-        const colTelefono = headers.find(h => this.normNombre(h).includes('telefono') || this.normNombre(h).includes('celular'));
+        const colDireccion = headers.find(h => this.normNombre(h) === this.normNombre('DIRECCIÓN'))
+          ?? headers.find(h => this.normNombre(h).includes('direccion'));
+        const colTelefono = headers.find(h => this.normNombre(h) === this.normNombre('TELEFONO'))
+          ?? headers.find(h => this.normNombre(h).includes('telefono') || this.normNombre(h).includes('celular'));
         this.afiliacionesSinColumnas = { direccion: !colDireccion, telefono: !colTelefono };
+        // Columna "SEDE": si el propio Excel la trae (como en este caso), es más
+        // confiable que cruzar el nombre del asesor contra el roster del CAP.
+        const colSede = headers.find(h => this.normNombre(h) === this.normNombre('SEDE'));
 
-        // Roster CAP (vendedor normalizado → sede) para poder agrupar el detalle de
-        // afiliaciones incorrectas por sede en el export.
-        const sedePorAsesor = this.construirMapaSedeAsesor();
+        // Roster CAP (vendedor normalizado → sede), de respaldo solo si el Excel NO
+        // trae su propia columna SEDE, para agrupar el detalle de incorrectas.
+        const sedePorAsesor = colSede ? null : this.construirMapaSedeAsesor();
 
         const porNombre: Record<string, Record<string, number>> = {};
         const detalleIncorrectas: AfiliacionIncorrecta[] = [];
+        // Sede de cada asesor según el propio Excel (columna SEDE) — se guarda para
+        // que el recuento del export use la MISMA fuente que el detalle de incorrectas.
+        const sedePorNombreArchivo = new Map<string, { key: string; nombre: string }>();
         let total = 0, sinFecha = 0;
         for (const r of filas) {
           const nombreCrudo = (r[colAsesor] ?? '').toString().trim();
@@ -723,6 +756,19 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           (porNombre[nombre] ??= {});
           porNombre[nombre][clave] = (porNombre[nombre][clave] || 0) + 1;
 
+          let sedeKey = 'sin-sede', sedeNombre = 'SIN SEDE (nombre no reconocido)';
+          if (colSede) {
+            const crudo = (r[colSede] ?? '').toString().trim();
+            if (crudo) {
+              sedeKey = this.sedeConfig.normalizar(crudo);
+              sedeNombre = this.sedeConfig.getConfig(sedeKey)?.nombre ?? crudo.toUpperCase();
+            }
+          } else {
+            const sede = sedePorAsesor!.get(nombre);
+            if (sede) { sedeKey = sede.key; sedeNombre = sede.nombre; }
+          }
+          if (sedeKey !== 'sin-sede') sedePorNombreArchivo.set(nombre, { key: sedeKey, nombre: sedeNombre });
+
           if (colDireccion || colTelefono) {
             const direccion = (r[colDireccion ?? ''] ?? '').toString().trim();
             const telefono = (r[colTelefono ?? ''] ?? '').toString().trim();
@@ -731,9 +777,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
               ...(colTelefono ? this.validarTelefono(telefono) : []),
             ];
             if (motivos.length) {
-              const sede = sedePorAsesor.get(nombre);
               detalleIncorrectas.push({
-                sedeKey: sede?.key ?? 'sin-sede', sede: sede?.nombre ?? 'SIN SEDE (nombre no reconocido)',
+                sedeKey, sede: sedeNombre,
                 asesor: nombreCrudo, fecha: clave, direccion, telefono, motivos,
               });
             }
@@ -743,8 +788,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         this.afiliacionesData = new Map(Object.entries(porNombre));
         this.afiliacionesInfo = { archivo: file.name, fecha: new Date().toLocaleString('es-PE'), total, sinFecha };
         this.afiliacionesDetalleIncorrectas = detalleIncorrectas;
+        this.afiliacionesSedePorNombre = sedePorNombreArchivo;
+        this.recomputarAfiliacionesIncorrectasMes();
         localStorage.setItem(this.AFI_KEY, JSON.stringify({
           ...this.afiliacionesInfo, porNombre, detalleIncorrectas, sinColumnas: this.afiliacionesSinColumnas,
+          sedePorNombre: Object.fromEntries(sedePorNombreArchivo),
         }));
 
         if (this.listData.length) this.calcular();   // refresca las tablas con las afiliaciones
@@ -784,7 +832,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.afiliacionesInfo = null;
     this.afiliacionesError = '';
     this.afiliacionesDetalleIncorrectas = [];
+    this.afiliacionesDetalleIncorrectasMes = [];
     this.afiliacionesSinColumnas = { direccion: true, telefono: true };
+    this.afiliacionesSedePorNombre.clear();
     localStorage.removeItem(this.AFI_KEY);
     if (this.listData.length) this.calcular();
   }
@@ -826,12 +876,21 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   }
 
   /** Export a Excel: recuento de afiliaciones por sede + detalle de las que tienen
-   *  DIRECCIÓN/TELÉFONO inválido, agrupadas por sede. */
+   *  DIRECCIÓN/TELÉFONO inválido, agrupadas por sede — ambas hojas, del MES
+   *  completo de la fecha elegida en el formulario (igual que lo que se ve en
+   *  pantalla, no solo el día puntual). */
   async exportarAfiliacionesExcel(): Promise<void> {
-    const sedePorAsesor = this.construirMapaSedeAsesor();
+    const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
+    const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    const mesLabel = fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
+    // Sede por asesor: prioriza la columna SEDE del propio Excel; si no la trajo, el
+    // roster del CAP (igual que al importar).
+    const sedePorAsesor = this.afiliacionesSedePorNombre.size ? this.afiliacionesSedePorNombre : this.construirMapaSedeAsesor();
+
     const totalPorSede = new Map<string, { nombre: string; total: number }>();
     for (const [nombre, porDia] of this.afiliacionesData) {
-      const total = Object.values(porDia).reduce((s, n) => s + n, 0);
+      const total = Object.entries(porDia).filter(([clave]) => clave.startsWith(prefijoMes)).reduce((s, [, n]) => s + n, 0);
+      if (!total) continue;
       const sede = sedePorAsesor.get(nombre);
       const key = sede?.key ?? 'sin-sede';
       const nombreSede = sede?.nombre ?? 'SIN SEDE (nombre no reconocido)';
@@ -839,15 +898,16 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       actual.total += total;
       totalPorSede.set(key, actual);
     }
+    const incorrectasMes = this.afiliacionesDetalleIncorrectasMes;
     const incorrectasPorSede = new Map<string, number>();
-    for (const d of this.afiliacionesDetalleIncorrectas) {
+    for (const d of incorrectasMes) {
       incorrectasPorSede.set(d.sedeKey, (incorrectasPorSede.get(d.sedeKey) ?? 0) + 1);
     }
 
     const wb = new Workbook();
 
     const wsResumen = wb.addWorksheet('Recuento por Sede');
-    wsResumen.addRow([`AFILIACIONES — ${this.afiliacionesInfo?.archivo ?? ''}  |  ${this.afiliacionesInfo?.fecha ?? ''}`]);
+    wsResumen.addRow([`AFILIACIONES — ${mesLabel.toUpperCase()}  |  ${this.afiliacionesInfo?.archivo ?? ''}`]);
     wsResumen.addRow([]);
     wsResumen.addRow(['SEDE', 'TOTAL AFILIACIONES', 'INCORRECTAS (DIRECCIÓN/TELÉFONO)', '% INCORRECTAS']);
     const filasResumen = Array.from(totalPorSede.entries()).sort((a, b) => b[1].total - a[1].total);
@@ -856,7 +916,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       wsResumen.addRow([info.nombre, info.total, incorrectas, info.total > 0 ? Math.round((incorrectas / info.total) * 100) + '%' : '0%']);
     }
     const totalGeneral = filasResumen.reduce((s, [, i]) => s + i.total, 0);
-    const incorrectasGeneral = this.afiliacionesDetalleIncorrectas.length;
+    const incorrectasGeneral = incorrectasMes.length;
     wsResumen.addRow([]);
     wsResumen.addRow(['TOTAL', totalGeneral, incorrectasGeneral, totalGeneral > 0 ? Math.round((incorrectasGeneral / totalGeneral) * 100) + '%' : '0%']);
     const headerResumen = wsResumen.getRow(3);
@@ -871,7 +931,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       wsDetalle.addRow(['El Excel importado no tenía columnas de DIRECCIÓN ni TELÉFONO — no se pudo validar.']);
     } else {
       wsDetalle.addRow(['SEDE', 'ASESOR', 'FECHA', 'DIRECCIÓN', 'TELÉFONO', 'MOTIVO']);
-      const detalleOrdenado = [...this.afiliacionesDetalleIncorrectas].sort((a, b) => a.sede.localeCompare(b.sede));
+      const detalleOrdenado = [...incorrectasMes].sort((a, b) => a.sede.localeCompare(b.sede));
       for (const d of detalleOrdenado) {
         wsDetalle.addRow([d.sede, d.asesor, d.fecha, d.direccion, d.telefono, d.motivos.join(' · ')]);
       }
@@ -886,7 +946,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    FileSaver.saveAs(blob, `Afiliaciones_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    FileSaver.saveAs(blob, `Afiliaciones_${prefijoMes}.xlsx`);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
