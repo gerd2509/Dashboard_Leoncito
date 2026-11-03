@@ -283,13 +283,16 @@ export class PagoBonosComponent implements OnInit {
   popupVisible = false;
   guardando = false;
   editando: BonoManual | null = null;
-  modeloPopup: { canal: Canal; asesor: string; tipo: string; monto: number | null; comentario: string } =
-    { canal: 'CALL', asesor: '', tipo: '', monto: null, comentario: '' };
+  // dx-number-box tiene tipos asimétricos ([value]: number, valueChange: number|null) —
+  // por eso en el template va [value]+(valueChange) por separado (no [(value)] de dos
+  // vías) y acá el modelo se queda en `number` a secas (el handler cubre el null).
+  modeloPopup: { canal: Canal; asesor: string; tipo: string; monto: number; comentario: string } =
+    { canal: 'CALL', asesor: '', tipo: '', monto: 0, comentario: '' };
   readonly tiposSugeridos = ['Bono Logístico', 'Bono Efectiva', 'Bono Global Supervisor'];
 
   abrirAgregar(canal: Canal, asesor: string): void {
     this.editando = null;
-    this.modeloPopup = { canal, asesor, tipo: '', monto: null, comentario: '' };
+    this.modeloPopup = { canal, asesor, tipo: '', monto: 0, comentario: '' };
     this.popupVisible = true;
   }
   abrirEditar(canal: Canal, asesor: string, bono: BonoManual): void {
@@ -300,7 +303,7 @@ export class PagoBonosComponent implements OnInit {
   cerrarPopup(): void { this.popupVisible = false; this.editando = null; }
 
   get popupValido(): boolean {
-    return !!this.modeloPopup.tipo?.trim() && this.modeloPopup.monto !== null && this.modeloPopup.monto! >= 0;
+    return !!this.modeloPopup.tipo?.trim() && this.modeloPopup.monto >= 0;
   }
 
   async guardarPopup(): Promise<void> {

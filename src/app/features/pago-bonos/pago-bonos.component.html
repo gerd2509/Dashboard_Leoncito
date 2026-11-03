@@ -96,8 +96,8 @@
       label="Tipo de bono (o escribe uno nuevo)" labelMode="floating" stylingMode="outlined" [searchEnabled]="true"
       placeholder="Ej. Bono Logístico"></dx-select-box>
 
-    <dx-number-box [(value)]="modeloPopup.monto" label="Monto (S/)" labelMode="floating" stylingMode="outlined"
-      [min]="0" [showSpinButtons]="false" format="#,##0.##"></dx-number-box>
+    <dx-number-box [value]="modeloPopup.monto" (valueChange)="modeloPopup.monto = $event" label="Monto (S/)"
+      labelMode="floating" stylingMode="outlined" [min]="0" [showSpinButtons]="false" format="#,##0.##"></dx-number-box>
 
     <dx-text-area [(value)]="modeloPopup.comentario" label="Comentario (opcional)" labelMode="floating" stylingMode="outlined" [height]="70"></dx-text-area>
 
