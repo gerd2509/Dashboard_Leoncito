@@ -60,6 +60,11 @@
 .pb-td-otrasede { text-align: center; }
 .pb-fila-call-center { background: #FAFAF8; }
 .pb-fila-call-center .pb-td-asesor { font-style: italic; color: #52514E; }
+.pb-badge-supervisor {
+  display: inline-block; margin-left: 6px; background: var(--sec-color); color: #fff;
+  border-radius: 5px; padding: 1px 6px; font-size: 9.5px; font-weight: 700; letter-spacing: .03em;
+  vertical-align: middle;
+}
 .pb-sin-dato { color: #C3C2B7; font-size: 12px; }
 .pb-chip-otrasede { background: #EAF1FB; color: #1A5FAD; cursor: default; }
 

@@ -30,6 +30,7 @@ interface FilaBono {
   manuales: BonoManual[];
   totalManual: number;
   totalPagar: number;
+  esSupervisor?: boolean;   // fila agregada desde el CAP (supervisor sin venta propia) — no vendedor
 }
 interface SeccionBono {
   canal: Canal;
@@ -165,24 +166,28 @@ export class PagoBonosComponent implements OnInit {
   private ventasCallCache: any[] = [];
   private ventasRealzzaCache: any[] = [];
   private tiendasCache: AsesoresPorTienda | null = null;
+  private supervisoresCache: Record<TiendaRealzza, Set<string>> | null = null;
 
-  /** Carga TODO (ventas de ambos canales + roster CAP + bonos manuales) — mes/año
-   *  elegido, al entrar al módulo o al cambiar de período. Muestra el spinner grande. */
+  /** Carga TODO (ventas de ambos canales + roster CAP + supervisores + bonos
+   *  manuales) — mes/año elegido, al entrar al módulo o al cambiar de período.
+   *  Muestra el spinner grande. */
   async cargar(): Promise<void> {
     this.isLoading = true; this.error = '';
     const { anio } = this.form.value;
     try {
       const tiendas = new AsesoresPorTienda(this.cap);
-      const [manuales, ventasCall, ventasRealzza] = await Promise.all([
+      const [manuales, ventasCall, ventasRealzza, , supervisores] = await Promise.all([
         lastValueFrom(this.bonosSrv.listar(this.form.value.anio, this.form.value.mes).pipe(catchError(() => of([] as BonoManual[])))),
         lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio }).pipe(catchError(() => of([] as any[])))),
         lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio).pipe(catchError(() => of([] as any[])))),
         tiendas.cargar(),
+        this.cargarSupervisoresRealzza(),
       ]);
       this.bonosManuales = manuales || [];
       this.ventasCallCache = ventasCall || [];
       this.ventasRealzzaCache = ventasRealzza || [];
       this.tiendasCache = tiendas;
+      this.supervisoresCache = supervisores;
       this.reconstruirSecciones();
     } catch (e) {
       console.error('Error al cargar Pago de Bonos:', e);
@@ -199,7 +204,9 @@ export class PagoBonosComponent implements OnInit {
     const { anio, mes } = this.form.value;
     this.secciones = [
       this.armarSeccionCall(this.ventasCallCache, anio, mes),
-      ...(this.tiendasCache ? this.armarSeccionesRealzza(this.ventasRealzzaCache, anio, mes, this.tiendasCache) : []),
+      ...(this.tiendasCache && this.supervisoresCache
+        ? this.armarSeccionesRealzza(this.ventasRealzzaCache, anio, mes, this.tiendasCache, this.supervisoresCache)
+        : []),
     ];
     this.totalGeneralPagar = this.secciones.reduce((s, sec) => s + sec.totalPagar, 0);
   }
@@ -240,7 +247,8 @@ export class PagoBonosComponent implements OnInit {
   }
 
   private armarFila(canal: Canal, codigo: string, asesor: string, ventaPropia: number,
-                     otrasSedes: { tienda: string; monto: number }[], anio: number, mes: number, bonoCalculado: number): FilaBono {
+                     otrasSedes: { tienda: string; monto: number }[], anio: number, mes: number, bonoCalculado: number,
+                     esSupervisor = false): FilaBono {
     const manuales = this.manualesDe(canal, asesor);
     const totalManual = manuales.reduce((s, b) => s + (Number(b.monto) || 0), 0);
     const totalOtrasSedes = otrasSedes.reduce((s, o) => s + o.monto, 0);
@@ -254,6 +262,7 @@ export class PagoBonosComponent implements OnInit {
       proyeccion: this.proyectar(neto, anio, mes),
       bonoCalculado, manuales, totalManual,
       totalPagar: bonoCalculado + totalManual,
+      esSupervisor,
     };
   }
 
@@ -300,8 +309,14 @@ export class PagoBonosComponent implements OnInit {
    *  bono real ya sale de la sección CALL). El resto usa su tienda del CAP (o, si no
    *  está, la tienda donde más vendió) como tienda "dueña"; lo vendido en otra tienda
    *  Realzza se guarda aparte (columna "Venta otra sede") pero SÍ suma al neto que se
-   *  usa para proyectar/calcular su bono — mismo crédito cruzado de Ventas Campo. */
-  private armarSeccionesRealzza(rows: any[], anio: number, mes: number, tiendas: AsesoresPorTienda): SeccionBono[] {
+   *  usa para proyectar/calcular su bono — mismo crédito cruzado de Ventas Campo.
+   *
+   *  `supervisores`: nombres de los SUPERVISORES del CAP de cada tienda (no tienen
+   *  venta propia — no son "vendedor" en el CAP, son el campo `supervisor` de sus
+   *  vendedores) — se agregan como fila en 0 si no tuvieron venta este mes, para
+   *  poder asignarles un bono manual (p. ej. "Bono Global Supervisor"). */
+  private armarSeccionesRealzza(rows: any[], anio: number, mes: number, tiendas: AsesoresPorTienda,
+                                 supervisores: Record<TiendaRealzza, Set<string>>): SeccionBono[] {
     const esReductora = (estado: string) => {
       const e = (estado || '').toString().trim().toUpperCase();
       return e === 'NOTA DE CRÉDITO' || e === 'NOTA DE CREDITO' || e.includes('INCAUTAC');
@@ -360,9 +375,32 @@ export class PagoBonosComponent implements OnInit {
         const proyeccion = this.proyectar(netoCallCenter, anio, mes);
         filas.push(this.armarFila(tienda, 'CALL CENTER', 'CALL CENTER', netoCallCenter, [], anio, mes, this.calcularBonoRealzza(tienda, proyeccion)));
       }
+      // Supervisores del CAP de esta tienda que no tuvieron venta este mes (no están
+      // ya en `filas`): se agregan en 0 para poder asignarles un bono manual.
+      for (const nombre of supervisores[tienda]) {
+        if (porTienda[tienda].has(nombre)) continue;
+        filas.push(this.armarFila(tienda, nombre, nombre, 0, [], anio, mes, 0, true));
+      }
       filas.sort((a, b) => b.neto - a.neto);
       return this.totalizarSeccion({ canal: tienda, ...this.infoTienda[tienda], filas, totalVentaPropia: 0, totalOtrasSedes: 0, totalNeto: 0, totalProyeccion: 0, totalCalculado: 0, totalManual: 0, totalPagar: 0 });
     });
+  }
+
+  private readonly SEDE_CAP_DE_TIENDA: Record<TiendaRealzza, string> = {
+    REALZZA: 'REALZZA CHICLAYO', 'REALZZA PIURA': 'REALZZA PIURA', 'REALZZA LIMA': 'REALZZA LIMA',
+  };
+
+  /** Nombres de los SUPERVISORES (no vendedores) del CAP de cada tienda Realzza —
+   *  son el campo `supervisor` de los vendedores de esa sede, no tienen su propia
+   *  fila de "vendedor" ahí. */
+  private async cargarSupervisoresRealzza(): Promise<Record<TiendaRealzza, Set<string>>> {
+    const tiendas: TiendaRealzza[] = ['REALZZA', 'REALZZA PIURA', 'REALZZA LIMA'];
+    const entradas = await Promise.all(tiendas.map(async t => {
+      const mapa = await this.cap.supervisoresPorVendedor(this.SEDE_CAP_DE_TIENDA[t]);
+      const nombres = new Set(Array.from(mapa.values()).map(n => (n || '').trim().toUpperCase()).filter(n => n && n !== 'SIN SUPERVISOR'));
+      return [t, nombres] as const;
+    }));
+    return Object.fromEntries(entradas) as Record<TiendaRealzza, Set<string>>;
   }
 
   private totalizarSeccion(sec: SeccionBono): SeccionBono {
@@ -389,20 +427,26 @@ export class PagoBonosComponent implements OnInit {
   // dx-number-box tiene tipos asimétricos ([value]: number, valueChange: number|null) —
   // por eso en el template va [value]+(valueChange) por separado (no [(value)] de dos
   // vías) y acá el modelo se queda en `number` a secas (el handler cubre el null).
-  modeloPopup: { canal: Canal; asesor: string; tipo: string; monto: number; comentario: string } =
-    { canal: 'CALL', asesor: '', tipo: '', monto: 0, comentario: '' };
+  modeloPopup: { canal: Canal; asesor: string; esSupervisor: boolean; tipo: string; monto: number; comentario: string } =
+    { canal: 'CALL', asesor: '', esSupervisor: false, tipo: '', monto: 0, comentario: '' };
   readonly tiposSugeridos = ['Bono Logístico', 'Bono Efectiva', 'Bono Global Supervisor'];
+  // "Bono por Moto" es SOLO para los supervisores (fila esSupervisor=true) — no debe
+  // aparecer como sugerencia en la fila de un vendedor normal.
+  readonly tiposSugeridosSupervisor = [...this.tiposSugeridos, 'Bono por Moto'];
+  get tiposDisponibles(): string[] {
+    return this.modeloPopup.esSupervisor ? this.tiposSugeridosSupervisor : this.tiposSugeridos;
+  }
 
-  abrirAgregar(canal: Canal, asesor: string): void {
+  abrirAgregar(canal: Canal, asesor: string, esSupervisor = false): void {
     this.editando = null;
     this.error = '';
-    this.modeloPopup = { canal, asesor, tipo: '', monto: 0, comentario: '' };
+    this.modeloPopup = { canal, asesor, esSupervisor, tipo: '', monto: 0, comentario: '' };
     this.popupVisible = true;
   }
-  abrirEditar(canal: Canal, asesor: string, bono: BonoManual): void {
+  abrirEditar(canal: Canal, asesor: string, bono: BonoManual, esSupervisor = false): void {
     this.editando = bono;
     this.error = '';
-    this.modeloPopup = { canal, asesor, tipo: bono.tipo, monto: bono.monto, comentario: bono.comentario || '' };
+    this.modeloPopup = { canal, asesor, esSupervisor, tipo: bono.tipo, monto: bono.monto, comentario: bono.comentario || '' };
     this.popupVisible = true;
   }
   cerrarPopup(): void { this.popupVisible = false; this.editando = null; }

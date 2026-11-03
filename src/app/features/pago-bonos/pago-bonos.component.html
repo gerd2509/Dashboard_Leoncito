@@ -60,7 +60,10 @@
           </thead>
           <tbody>
             <tr *ngFor="let f of sec.filas" [class.pb-fila-call-center]="f.asesor === 'CALL CENTER'">
-              <td class="pb-td-asesor">{{ f.asesor }}</td>
+              <td class="pb-td-asesor">
+                {{ f.asesor }}
+                <span class="pb-badge-supervisor" *ngIf="f.esSupervisor">SUPERVISOR</span>
+              </td>
               <td class="pb-num">S/ {{ f.ventaPropia | number }}</td>
               <td class="pb-td-otrasede" *ngIf="sec.canal !== 'CALL'">
                 <span class="pb-chip pb-chip-otrasede" *ngFor="let o of f.otrasSedes">{{ o.tienda }}: S/ {{ o.monto | number }}</span>
@@ -71,13 +74,13 @@
               <td class="pb-num pb-bono-calc">S/ {{ f.bonoCalculado | number }}</td>
               <td class="pb-manuales">
                 <span class="pb-chip" *ngFor="let b of f.manuales" [title]="b.comentario || ''"
-                      (click)="puedeGestionar && abrirEditar(sec.canal, f.asesor, b)">
+                      (click)="puedeGestionar && abrirEditar(sec.canal, f.asesor, b, f.esSupervisor)">
                   {{ b.tipo }}: S/ {{ b.monto | number }}
                   <button *ngIf="puedeGestionar" type="button" class="pb-chip-x" (click)="eliminarManual(b, $event)" [attr.aria-label]="'Quitar ' + b.tipo">
                     <mat-icon>close</mat-icon>
                   </button>
                 </span>
-                <button *ngIf="puedeGestionar" mat-stroked-button class="pb-btn-agregar" type="button" (click)="abrirAgregar(sec.canal, f.asesor)">
+                <button *ngIf="puedeGestionar" mat-stroked-button class="pb-btn-agregar" type="button" (click)="abrirAgregar(sec.canal, f.asesor, f.esSupervisor)">
                   <mat-icon>add</mat-icon> Agregar
                 </button>
               </td>
@@ -113,7 +116,7 @@
 
     <div class="pb-popup-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
 
-    <dx-select-box [dataSource]="tiposSugeridos" [value]="modeloPopup.tipo" (valueChange)="modeloPopup.tipo = $event" [acceptCustomValue]="true"
+    <dx-select-box [dataSource]="tiposDisponibles" [value]="modeloPopup.tipo" (valueChange)="modeloPopup.tipo = $event" [acceptCustomValue]="true"
       label="Tipo de bono (o escribe uno nuevo)" labelMode="floating" stylingMode="outlined" [searchEnabled]="true"
       placeholder="Ej. Bono Logístico"></dx-select-box>
 
