@@ -10,10 +10,10 @@ import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-ov
 const SEDE = 'REALZZA CHICLAYO';
 
 // Asesores que SÍ están en el CAP pero no entran a esta rotación (decisión puntual, no un dato del CAP).
+// Esmeralda (TORRES ALVARADO JUDY ESMERALDA) renovó contrato → vuelve a la rotación.
 const EXCLUIDOS_ROTACION = new Set([
   'LLONTOP DAVILA DENNIS CHRISTIAN',
   'CHANAME SOTO ANITA NOEMI',
-  'TORRES ALVARADO JUDY ESMERALDA',
   'MORALES ÑIQUE MARIA CANDELARIA',
   'MORETO DELGADO PATRICIA ESTEFANY',
 ]);
@@ -33,9 +33,10 @@ const NOMBRES_CORTOS: Record<string, string> = {
   'CHANAME SOTO ANITA NOEMI': 'Anita',
   'VALDERA PISCOYA DEXY ROSARIO': 'Dexy',
   'QUISPE FONSECA KAREN AIMEE': 'Karen Quispe',
-  'TORRES ALVARADO JUDY ESMERALDA': 'Judy',
+  'TORRES ALVARADO JUDY ESMERALDA': 'Esmeralda',
   'MORALES ÑIQUE MARIA CANDELARIA': 'Maria',
   'MORETO DELGADO PATRICIA ESTEFANY': 'Patricia',
+  'BELEN CARRASCO MARYORI JAHAIRA': 'Maryori',
 };
 
 // Asesoras mencionadas para pasar a esta rotación que aún no existen en el CAP (se avisa en UI).
