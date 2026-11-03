@@ -211,6 +211,13 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     return Math.min(100, Math.max(e.ratio, 4));
   }
 
+  // Rampa ordinal de un solo tono (azul, claro→oscuro) para las 6 etapas del embudo:
+  // además del largo, el color se va oscureciendo a medida que el embudo se angosta.
+  private readonly RAMPA_ETAPAS = ['#86b6ef', '#6da7ec', '#5598e7', '#2a78d6', '#256abf', '#184f95'];
+  colorEtapa(i: number): string {
+    return this.RAMPA_ETAPAS[i] ?? this.RAMPA_ETAPAS[this.RAMPA_ETAPAS.length - 1];
+  }
+
   async sincronizar(): Promise<void> {
     this.sincronizando = true; this.error = ''; this.mensajeSync = '';
     try {
