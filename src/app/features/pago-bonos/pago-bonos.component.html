@@ -73,7 +73,7 @@
                 <span class="pb-chip" *ngFor="let b of f.manuales" [title]="b.comentario || ''"
                       (click)="puedeGestionar && abrirEditar(sec.canal, f.asesor, b)">
                   {{ b.tipo }}: S/ {{ b.monto | number }}
-                  <button *ngIf="puedeGestionar" mat-icon-button class="pb-chip-x" (click)="eliminarManual(b, $event)" [attr.aria-label]="'Quitar ' + b.tipo">
+                  <button *ngIf="puedeGestionar" type="button" class="pb-chip-x" (click)="eliminarManual(b, $event)" [attr.aria-label]="'Quitar ' + b.tipo">
                     <mat-icon>close</mat-icon>
                   </button>
                 </span>
