@@ -313,8 +313,9 @@ export class CargaVentasService {
    * cuenta de Kommo conectada) y los guarda en leads_kommo_realzza, reemplazando la
    * subida manual del Excel.
    */
-  sincronizarLeadsKommo(anio: number, mes: number): Observable<{ success: boolean; filas: number; insertados: number; actualizados: number }> {
-    const params = new HttpParams().set('anio', anio).set('mes', mes);
+  sincronizarLeadsKommo(anio: number, mes: number, completo = false): Observable<{ success: boolean; filas: number; insertados: number; actualizados: number }> {
+    let params = new HttpParams().set('anio', anio).set('mes', mes);
+    if (completo) params = params.set('completo', '1');
     return this.http.post<any>(`${this.root}/leads-kommo-realzza/sync-kommo`, {}, { params });
   }
 

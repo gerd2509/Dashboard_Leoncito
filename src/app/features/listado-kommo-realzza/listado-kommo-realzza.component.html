@@ -36,7 +36,8 @@
           <mat-icon>{{ verTodo ? 'event' : 'all_inclusive' }}</mat-icon>
           {{ verTodo ? 'Ver por mes' : 'Ver todo' }}
         </button>
-        <button mat-flat-button color="primary" type="button" (click)="sincronizar()" [disabled]="sincronizando">
+        <button mat-flat-button color="primary" type="button" (click)="sincronizar()" [disabled]="sincronizando"
+          title="Trae la cuenta completa de Kommo y actualiza todo lo que haya cambiado">
           <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
           {{ sincronizando ? 'Sincronizando…' : 'Sincronizar con Kommo' }}
         </button>

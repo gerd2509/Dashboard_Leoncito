@@ -232,11 +232,15 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     return this.RAMPA_ETAPAS[i] ?? this.RAMPA_ETAPAS[this.RAMPA_ETAPAS.length - 1];
   }
 
+  /** SIEMPRE trae la cuenta completa de Kommo (ignora el cursor incremental): así
+   *  cualquier lead que un sync anterior haya dejado desactualizado (p.ej. por un
+   *  corte de red a mitad de una corrida) se reconcilia solo, en cada sincronización,
+   *  sin depender de un segundo botón aparte. */
   async sincronizar(): Promise<void> {
     this.sincronizando = true; this.error = ''; this.mensajeSync = '';
     try {
       const { anio, mes } = this.form.value;
-      const r = await lastValueFrom(this.ventasSrv.sincronizarLeadsKommo(anio, mes));
+      const r = await lastValueFrom(this.ventasSrv.sincronizarLeadsKommo(anio, mes, true));
       this.mensajeSync = `Listo: ${r.filas} leads de Kommo (${r.insertados} nuevos, ${r.actualizados} actualizados).`;
       await this.cargar();
     } catch (e: any) {
