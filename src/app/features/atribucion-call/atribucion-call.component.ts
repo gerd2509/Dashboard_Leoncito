@@ -152,6 +152,18 @@ export class AtribucionCallComponent implements OnInit {
     if (e.rowType === 'data' && e.data?.sin_derivacion) e.rowElement.classList.add('row-sinderiv');
   };
 
+  /** Igual que en Ventas Call/Pago de Bonos: asesoras que pasaron de Call Center a Realzza
+   *  dejan de contar en Call desde el mes del cambio en adelante (meses anteriores quedan
+   *  igual). Solo aplica al canal Call — en Realzza/Sedes los códigos no coinciden. */
+  private estaExcluidoCall(r: any): boolean {
+    if (this.canal !== 'call') return false;
+    const codigo = (r.vendedor || '').toString().trim().toUpperCase();
+    const anio = +r.anio_cv, mes = +r.mes_cv;
+    if (codigo === 'CC12' && (anio > 2026 || (anio === 2026 && mes >= 9))) return true;   // Brenda → Realzza desde sep-2026
+    if ((codigo === 'CC2' || codigo === 'CC5' || codigo === 'CC15') && (anio > 2026 || (anio === 2026 && mes >= 11))) return true; // Dexy/Karen/Esmeralda → Realzza desde nov-2026
+    return false;
+  }
+
   cargar(): void {
     this.cargando = true;
     const obs = this.esSedes
@@ -159,7 +171,7 @@ export class AtribucionCallComponent implements OnInit {
       : this.svc.listarAtribucion(this.canal as 'call' | 'realzza', this.anio || undefined, this.mes || undefined, this.esRealzza ? this.tiendaRz : undefined);
     obs.subscribe({
       // Solo ventas con MontoConsolidado > 0 (misma regla que el módulo de ventas).
-      next: rows => { this.ventas = (rows || []).filter(r => (+r.monto_consolidado || 0) > 0).map(this.mapRow); this.refrescarFilas(); this.cargando = false; },
+      next: rows => { this.ventas = (rows || []).filter(r => (+r.monto_consolidado || 0) > 0 && !this.estaExcluidoCall(r)).map(this.mapRow); this.refrescarFilas(); this.cargando = false; },
       error: () => { this.cargando = false; this.ventas = []; this.refrescarFilas(); this.toast('❌ No se pudo cargar la lista.', true); },
     });
   }
