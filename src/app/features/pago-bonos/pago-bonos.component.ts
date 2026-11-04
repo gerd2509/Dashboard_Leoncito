@@ -270,7 +270,8 @@ export class PagoBonosComponent implements OnInit {
   }
 
   /** CALL: mismo filtro que Ventas Call (excluye NC, NAS, montos <=0; Brenda CC12 solo
-   *  hasta ago-2026 porque pasó a Realzza). Agrupa por AsesorVenta (código CC). */
+   *  hasta ago-2026, Dexy/Karen/Esmeralda (CC2/CC5/CC15) solo hasta oct-2026, porque
+   *  pasaron a Realzza). Agrupa por AsesorVenta (código CC). */
   private armarSeccionCall(rows: any[], anio: number, mes: number): SeccionBono {
     const mapVentas = new Map<string, number>();
     for (const r of rows) {
@@ -279,6 +280,8 @@ export class PagoBonosComponent implements OnInit {
       const codigo = (r.vendedor || '').toString().trim().toUpperCase();
       if (!codigo || codigo === 'NAS') continue;
       if (codigo === 'CC12' && (anio > 2026 || (anio === 2026 && mes >= 9))) continue;   // Brenda → Realzza desde sep-2026
+      // Dexy (CC2), Karen (CC5) y Esmeralda (CC15) → Realzza desde nov-2026. Patricia (CC1) se queda.
+      if ((codigo === 'CC2' || codigo === 'CC5' || codigo === 'CC15') && (anio > 2026 || (anio === 2026 && mes >= 11))) continue;
       const estado = (r.estado_venta || '').toString().trim().toUpperCase();
       if (estado === 'NOTA DE CRÉDITO' || estado === 'NOTA DE CREDITO') continue;
       const monto = Number(r.monto_consolidado) || 0;
