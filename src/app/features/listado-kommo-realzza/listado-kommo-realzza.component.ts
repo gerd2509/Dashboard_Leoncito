@@ -172,9 +172,12 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
       esVentaKommo(v) && this.esVentaReductora(v) && +v.mes_af === mes && +v.anio_af === anio).length;
     const ventasKommo = bruto - nc;
 
+    // GESTIONADOS = TODOS los registros de gestión Kommo de esa tienda/mes (incluye
+    // Market Place: una tienda como Lima gestiona casi todo por ahí, y excluirlo
+    // dejaba su embudo entero en cero). INTERESADOS = de esos, los que en RESULTADO
+    // DE GESTIÓN quedaron como "INTERESADO".
     const kommoMes = (dataKommo || [])
-      .filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio))
-      .filter(r => this.normTxt(r['MARKET PLACE R']) !== 'si');
+      .filter(r => this.fechaEnMes(r['FECHA DE LEAD ASIGNADO'], mes, anio));
 
     const asignados = filas.length;
     const contactados = filas.filter(f => (f.modificado_por ?? '').toString().trim() !== '').length;
