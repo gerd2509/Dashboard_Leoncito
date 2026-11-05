@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { lastValueFrom } from 'rxjs';
 import { DxDataGridComponent } from 'devextreme-angular';
@@ -53,7 +53,7 @@ interface DatosReporteTienda {
   templateUrl: './listado-kommo-realzza.component.html',
   styleUrl: './listado-kommo-realzza.component.css',
 })
-export class ListadoKommoRealzzaComponent implements OnInit {
+export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
   private ventasSrv = inject(CargaVentasService);
   private excelSrv = inject(ExcelExportService);
   private auditSrv = inject(AuditoriaKommoService);
@@ -232,19 +232,51 @@ export class ListadoKommoRealzzaComponent implements OnInit {
     return this.RAMPA_ETAPAS[i] ?? this.RAMPA_ETAPAS[this.RAMPA_ETAPAS.length - 1];
   }
 
+  private pollSyncTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  ngOnDestroy(): void {
+    if (this.pollSyncTimeoutId) clearTimeout(this.pollSyncTimeoutId);
+  }
+
+  /** La sincronización corre en segundo plano en el servidor (una cuenta grande
+   *  puede tardar varios minutos — demasiado para que la esperemos colgados de una
+   *  sola petición HTTP). Acá solo la disparamos y luego consultamos su avance cada
+   *  pocos segundos hasta que termine, sin bloquear la pantalla mientras tanto. */
   async sincronizar(): Promise<void> {
-    this.sincronizando = true; this.error = ''; this.mensajeSync = '';
+    this.sincronizando = true; this.error = ''; this.mensajeSync = 'Sincronización iniciada en segundo plano…';
     try {
       const { anio, mes } = this.form.value;
-      const r = await lastValueFrom(this.ventasSrv.sincronizarLeadsKommo(anio, mes));
-      this.mensajeSync = `Listo: ${r.filas} leads de Kommo (${r.insertados} nuevos, ${r.actualizados} actualizados).`;
-      await this.cargar();
+      await lastValueFrom(this.ventasSrv.sincronizarLeadsKommo(anio, mes));
+      this.consultarAvanceSync();
     } catch (e: any) {
-      console.error('Error al sincronizar con Kommo:', e);
-      this.error = e?.error?.message || 'No se pudo sincronizar con Kommo.';
-    } finally {
+      console.error('Error al iniciar la sincronización con Kommo:', e);
+      this.error = e?.error?.message || 'No se pudo iniciar la sincronización con Kommo.';
       this.sincronizando = false;
     }
+  }
+
+  private consultarAvanceSync(): void {
+    this.ventasSrv.estadoSyncLeadsKommo().subscribe({
+      next: async (st) => {
+        if (st.enProgreso) {
+          this.pollSyncTimeoutId = setTimeout(() => this.consultarAvanceSync(), 4000);
+          return;
+        }
+        this.sincronizando = false;
+        if (st.error) {
+          this.error = st.error;
+        } else if (st.resultado) {
+          const r = st.resultado;
+          this.mensajeSync = `Listo: ${r.filas} leads de Kommo (${r.insertados} nuevos, ${r.actualizados} actualizados).`;
+        }
+        await this.cargar();
+      },
+      error: (e) => {
+        console.error('Error al consultar el avance de la sincronización:', e);
+        this.sincronizando = false;
+        this.error = 'No se pudo consultar el avance de la sincronización.';
+      },
+    });
   }
 
   /** Nombre base del archivo: tienda + (mes/año o "Todo"). */

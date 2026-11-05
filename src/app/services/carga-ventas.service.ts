@@ -309,13 +309,23 @@ export class CargaVentasService {
   }
 
   /**
-   * Trae los leads de ese mes DIRECTO de la API de Kommo (solo Realzza — esa es la
-   * cuenta de Kommo conectada) y los guarda en leads_kommo_realzza, reemplazando la
-   * subida manual del Excel.
+   * Dispara la sincronización de leads de Kommo (solo Realzza — esa es la cuenta de
+   * Kommo conectada) en segundo plano y responde de inmediato: una cuenta grande
+   * puede tardar varios minutos y una sola petición HTTP no aguanta tanto. Hay que
+   * consultar el avance con estadoSyncLeadsKommo() en vez de esperar esta respuesta.
    */
-  sincronizarLeadsKommo(anio: number, mes: number): Observable<{ success: boolean; filas: number; insertados: number; actualizados: number }> {
+  sincronizarLeadsKommo(anio: number, mes: number): Observable<{ success: boolean; iniciado: boolean; message: string }> {
     const params = new HttpParams().set('anio', anio).set('mes', mes);
     return this.http.post<any>(`${this.root}/leads-kommo-realzza/sync-kommo`, {}, { params });
+  }
+
+  /** Avance de la sincronización en segundo plano disparada por sincronizarLeadsKommo(). */
+  estadoSyncLeadsKommo(): Observable<{
+    success: boolean; enProgreso: boolean; inicio: string | null;
+    resultado: { filas: number; insertados: number; actualizados: number; incremental: boolean } | null;
+    error: string | null;
+  }> {
+    return this.http.get<any>(`${this.root}/leads-kommo-realzza/sync-kommo/estado`);
   }
 
   /**
