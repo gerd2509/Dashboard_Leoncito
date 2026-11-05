@@ -52,7 +52,7 @@ export class RegistroKommoComponent implements OnInit {
 
   // Opciones (valores reales de la data KOMMO).
   readonly estados = ['CONTACTO', 'NO CONTACTO'];
-  readonly resultados = ['INTERESADO', 'NO INTERESADO', 'NO ATENDIBLE', 'ENVIARÁ CATALOGO'];
+  readonly resultados = ['INTERESADO', 'NO INTERESADO', 'NO ATENDIBLE'];
   readonly tiposCliente = ['NUEVO', 'DORMIDO', 'VIGENTE', 'NO VIGENTE', 'AFILIACIONES', 'REENGANCHE'];
   readonly siNo = ['SI', 'NO'];
   readonly productos = ['REFRIGERADORA', 'VISICOOLER', 'COCINA', 'LAVADORA', 'CONGELADORA', 'TELEVISOR',
