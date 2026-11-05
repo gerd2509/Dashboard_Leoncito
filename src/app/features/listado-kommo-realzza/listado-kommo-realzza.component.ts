@@ -259,6 +259,12 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     this.ventasSrv.estadoSyncLeadsKommo().subscribe({
       next: async (st) => {
         if (st.enProgreso) {
+          // El servidor guarda por páginas (lo más reciente primero), así que esto
+          // va subiendo en vivo aunque falten minutos para terminar la cuenta entera.
+          if (st.resultado) {
+            const r = st.resultado;
+            this.mensajeSync = `Trayendo de Kommo… ${r.filas} leads vistos (${r.insertados} nuevos, ${r.actualizados} actualizados) — puede tardar varios minutos.`;
+          }
           this.pollSyncTimeoutId = setTimeout(() => this.consultarAvanceSync(), 4000);
           return;
         }

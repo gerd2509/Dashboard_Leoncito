@@ -65,7 +65,7 @@
   <ng-container *ngIf="!mostrarAuditoria">
     <p class="lk-hint" *ngIf="verTodo"><mat-icon>info</mat-icon> Mostrando todos los meses. Para sincronizar un mes puntual, vuelve a "Ver por mes".</p>
 
-    <div class="lk-mensaje" *ngIf="mensajeSync"><mat-icon>check_circle</mat-icon> {{ mensajeSync }}</div>
+    <div class="lk-mensaje" *ngIf="mensajeSync"><mat-icon>{{ sincronizando ? 'sync' : 'check_circle' }}</mat-icon> {{ mensajeSync }}</div>
     <div class="lk-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
   </ng-container>
 
