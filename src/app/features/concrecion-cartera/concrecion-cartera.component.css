@@ -155,9 +155,12 @@
 .cc-chip-info { margin-left: 4px; }
 
 /* ── Gráfico ampliado (popup) ── */
-.cc-chart-popup-wrap { display: flex; flex-direction: column; gap: 10px; height: 100%; }
-.cc-chart-tools-popup { display: flex; justify-content: center; gap: 8px; }
-.cc-chart-popup { flex: 1; min-height: 0; }
+.cc-chart-popup-wrap { display: flex; flex-direction: column; gap: 14px; height: 100%; }
+.cc-chart-tools-popup { display: flex; justify-content: center; gap: 8px; flex: 0 0 auto; }
+/* Alto fijo en vh (no flex:1): devextreme calcula el tamaño del chart al
+   crearlo, y un alto por flexbox puede quedar en 0 en ese momento — con vh
+   siempre tiene un alto real desde el primer render. */
+.cc-chart-popup { height: 74vh; }
 
 .cc-info-popup { font-size: 13.5px; color: #33445f; line-height: 1.55; }
 .cc-info-popup p { margin: 0 0 10px; }

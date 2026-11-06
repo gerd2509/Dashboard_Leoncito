@@ -127,8 +127,8 @@
     </dx-popup>
 
     <!-- Popup: gráfico ampliado -->
-    <dx-popup [(visible)]="popupChartVisible" [showTitle]="true" title="Evolución de la concreción"
-      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" height="88%">
+    <dx-popup [(visible)]="popupChartVisible" [showTitle]="true" title="EVOLUCIÓN DE LA CONCRECIÓN"
+      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="94%" height="94%">
       <div *dxTemplate="let d of 'content'" class="cc-chart-popup-wrap">
         <div class="cc-chart-tools cc-chart-tools-popup">
           <button class="cc-chip" *ngFor="let t of tiposChart" [class.cc-chip-on]="chartTipo === t.value"
