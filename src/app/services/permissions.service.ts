@@ -98,6 +98,7 @@ export const ALL_MODULES: ModuleConfig[] = [
   { key: 'embudos-gestion',              label: 'Embudos de Gestión',           grupo: 'Análisis' },
   { key: 'seguimiento-135',              label: 'Seguimiento 1-3-5-7',          grupo: 'Análisis' },
   { key: 'comparativo-cartera-ventas',   label: 'Comparativo Cartera Ventas Piso', grupo: 'Análisis' },
+  { key: 'concrecion-cartera',           label: 'Concreción de Cartera por Sede', grupo: 'Análisis' },
   { key: 'post-venta',                   label: 'Post Venta — Análisis',        grupo: 'Análisis' },
   { key: 'maduracion-leads',             label: 'Maduración de Leads',          grupo: 'Análisis' },
   { key: 'aula-virtual',                 label: 'Aula Virtual',                 grupo: 'Capacitación' },
@@ -119,11 +120,12 @@ export const CALL_MODULES = [
   'agendamientos-sedes', 'gestion-sede', 'gestion-derivaciones-sede', 'control-gestion-sede', 'cierre-gestion-sedes', 'gestion-call-sedes', 'control-call-sedes',
   'evolucion-registros',
   'ventas-sedes', 'pizarra-metas', 'avance-cartera', 'embudos-gestion', 'registro-gestion',
-  'comparativo-cartera-ventas', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
+  'comparativo-cartera-ventas', 'concrecion-cartera', 'maduracion-leads', 'registro-kommo', 'gestion-kommo', 'atribucion-call',
   'avance-metas', 'reporte-global', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor',
 ];
 export const REALZZA_MODULES = [
   'agendamientos-campo', 'gestion-campo', 'ventas-campo', 'cierre', 'avance-cartera', 'embudos-gestion',
+  'concrecion-cartera',
   'registro-supervisor', 'control-supervisor', 'gestion-supervisor', 'actividad-realzza', 'maduracion-leads',
   'registro-kommo', 'gestion-kommo', 'seguimiento-135', 'ventas-linea', 'evolutivo-asesor', 'listado-kommo-realzza',
   'registro-asistencia', 'horarios',

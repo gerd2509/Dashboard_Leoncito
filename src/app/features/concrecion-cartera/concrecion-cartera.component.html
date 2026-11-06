@@ -1,0 +1,130 @@
+<div class="cc-page vd-shell">
+<div class="vd-fixed">
+
+  <!-- Carga de la base asignada de un mes -->
+  <div class="cc-panel cc-toolbar">
+    <form class="cc-form" [formGroup]="form">
+      <dx-date-box formControlName="mesCarga" type="date" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" label="Mes de la base a subir" labelMode="floating"
+        stylingMode="filled" width="190" [openOnFieldClick]="true"></dx-date-box>
+
+      <label class="cc-btn cc-btn-dark">
+        <input type="file" accept=".xlsx,.xls" (change)="importar($event)" hidden />
+        <mat-icon>upload_file</mat-icon> Subir base asignada del mes
+      </label>
+
+      <span class="cc-archivo" *ngIf="nombreArchivo"><mat-icon>description</mat-icon>{{ nombreArchivo }}</span>
+    </form>
+    <div class="cc-meses-base" *ngIf="mesesConBase.length">
+      <mat-icon>event_available</mat-icon>
+      <span>Meses con base cargada:</span>
+      <span class="cc-mes-chip" *ngFor="let m of mesesConBase">{{ m }}</span>
+    </div>
+  </div>
+
+  <!-- Rango a mostrar -->
+  <div class="cc-panel cc-toolbar">
+    <form class="cc-form" [formGroup]="form">
+      <dx-date-box formControlName="desde" type="date" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" label="Desde" labelMode="floating"
+        stylingMode="filled" width="150" [openOnFieldClick]="true"></dx-date-box>
+      <dx-date-box formControlName="hasta" type="date" displayFormat="MMMM yyyy"
+        [calendarOptions]="{ maxZoomLevel: 'year' }" label="Hasta" labelMode="floating"
+        stylingMode="filled" width="150" [openOnFieldClick]="true"></dx-date-box>
+
+      <dx-select-box *ngIf="sedeOptions.length" formControlName="sede" [dataSource]="sedeOptions"
+        label="Sede" labelMode="floating" stylingMode="filled" width="220" (onValueChanged)="aplicarSede()"></dx-select-box>
+
+      <button class="cc-btn cc-btn-primary" (click)="actualizar()" [disabled]="isLoading">
+        <mat-icon>insights</mat-icon> Calcular evolución
+      </button>
+    </form>
+  </div>
+</div><!-- /vd-fixed -->
+
+<div class="vd-scroll">
+  <div *ngIf="aviso" class="cc-aviso">{{ aviso }}</div>
+
+  <!-- Estado inicial -->
+  <div class="cc-panel cc-grid-wrap" *ngIf="!yaCalculado">
+    <div class="grid-overlay" *ngIf="isLoading"><app-loading-overlay [inline]="true" [visible]="isLoading" mensaje="Calculando evolución…" icon="insights"></app-loading-overlay></div>
+    <div *ngIf="!isLoading" class="cc-empty">
+      <mat-icon>insights</mat-icon>
+      <p>Sube la <b>base asignada</b> de cada mes y elige un rango para ver cómo evoluciona la concreción por sede.</p>
+      <small>Concreción = ventas netas de esa cartera / cartera asignada ese mes · los meses pasados quedan congelados.</small>
+    </div>
+  </div>
+
+  <div *ngIf="yaCalculado">
+    <!-- Gráfico de evolución -->
+    <div class="cc-panel cc-chart-wrap" *ngIf="puntos.length && seriesActivas.length">
+      <div class="cc-sec-head">
+        <div>
+          <h3>Evolución de la concreción</h3>
+          <span>% de la cartera asignada que se vendió, mes a mes</span>
+        </div>
+      </div>
+      <dx-chart [dataSource]="puntos" [redrawOnResize]="true" class="cc-chart">
+        <dxo-common-series-settings argumentField="mesLabel" type="line">
+          <dxo-point [visible]="true" [size]="6"></dxo-point>
+          <dxo-label [visible]="true"><dxo-font [size]="11"></dxo-font></dxo-label>
+        </dxo-common-series-settings>
+        <dxi-series *ngFor="let s of seriesActivas" [valueField]="s.key" [name]="s.nombre" [color]="s.color"></dxi-series>
+        <dxo-argument-axis>
+          <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
+        </dxo-argument-axis>
+        <dxo-value-axis [allowDecimals]="false">
+          <dxo-title text="Conversión %"></dxo-title>
+        </dxo-value-axis>
+        <dxo-tooltip [enabled]="true"></dxo-tooltip>
+        <dxo-legend [visible]="seriesActivas.length > 1" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+      </dx-chart>
+    </div>
+
+    <!-- Tabla mes × sede -->
+    <div class="cc-panel cc-resumen">
+      <div class="cc-sec-head">
+        <div>
+          <h3>Detalle por mes y sede</h3>
+          <span>🔒 = mes congelado (no se mueve con NC/incautaciones posteriores) · el mes en curso siempre es en vivo</span>
+        </div>
+      </div>
+      <div class="cc-table-scroll">
+        <table class="cc-table" *ngIf="filasVista.length">
+          <thead>
+            <tr>
+              <th class="l">Mes</th>
+              <th class="l">Sede</th>
+              <th>Cartera asignada</th>
+              <th>Ventas de cartera</th>
+              <th class="w-conv">Conversión</th>
+              <th class="r">Monto S/</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let f of filasVista">
+              <td class="l">{{ f.mesLabel }}</td>
+              <td class="l td-sede"><mat-icon>store</mat-icon>{{ f.sede }}</td>
+              <td>{{ f.asignados | number }}</td>
+              <td class="td-vend">{{ f.vendidos | number }}</td>
+              <td>
+                <div class="conv-cell">
+                  <div class="bar"><div class="bar-fill" [ngClass]="barClase(f.conversion)" [style.width.%]="barPct(f.conversion)"></div></div>
+                  <span class="conv-txt">{{ formatPct(f.conversion) }}</span>
+                </div>
+              </td>
+              <td class="r td-monto">{{ formatSoles(f.monto) }}</td>
+              <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="!filasVista.length" class="cc-empty">
+          <mat-icon>search_off</mat-icon>
+          <p>No hay base de cartera cargada en este rango{{ (form.value.sede && form.value.sede !== 'TODAS') ? (' para ' + form.value.sede) : '' }}.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /vd-scroll -->
+</div>

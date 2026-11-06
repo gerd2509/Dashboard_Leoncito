@@ -468,6 +468,30 @@ export class CargaVentasService {
   guardarFuenteSede(codigo: number, fuente: string): Observable<any> {
     return this.http.put(`${this.root}/ventas-sedes/${codigo}`, { fuente });
   }
+  // ── Concreción de Cartera por Sede (módulo nuevo) ──
+  /** Meses que ya tienen base asignada cargada (para el selector del módulo). */
+  obtenerMesesCarteraMensual(): Observable<{ anio: number; mes: number }[]> {
+    return this.http.get<{ anio: number; mes: number }[]>(`${this.root}/cartera-mensual/meses`);
+  }
+  /** Filas de la base asignada de ese mes (para cruzarlas con las ventas en el navegador). */
+  obtenerCarteraMensual(anio: number, mes: number): Observable<{ dni: string; vendedor: string; tipoBase: string; tipoCliente: string; sede: string }[]> {
+    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/cartera-mensual`, { params });
+  }
+  /** Sube (reemplaza) la base asignada de un mes. */
+  importarCarteraMensual(anio: number, mes: number, filas: { dni: string; vendedor: string; tipoBase: string; tipoCliente: string; sede: string }[]): Observable<{ success: boolean; filas: number }> {
+    return this.http.post<{ success: boolean; filas: number }>(`${this.root}/cartera-mensual/import`, { anio, mes, filas });
+  }
+  /** Resultado congelado de un mes (vacío si ese mes todavía no se congeló). */
+  obtenerSnapshotCarteraMensual(anio: number, mes: number): Observable<{ sede: string; asignados: number; vendidos: number; monto: number }[]> {
+    const params = new HttpParams().set('anio', anio).set('mes', mes);
+    return this.http.get<any[]>(`${this.root}/cartera-mensual/snapshot`, { params });
+  }
+  /** Congela el resultado ya calculado de un mes que quedó en el pasado. */
+  guardarSnapshotCarteraMensual(anio: number, mes: number, filas: { sede: string; asignados: number; vendidos: number; monto: number }[]): Observable<any> {
+    return this.http.post(`${this.root}/cartera-mensual/snapshot`, { anio, mes, filas });
+  }
+
   /**
    * Sincroniza la tabla gestion_sedes_deriv con las respuestas ACTUALES del formulario
    * (POST a sheets-api). Tras esto, "Cargar lista" cruza contra la derivación al día.

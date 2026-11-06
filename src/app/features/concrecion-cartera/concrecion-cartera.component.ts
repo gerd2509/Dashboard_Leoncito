@@ -1,0 +1,426 @@
+import { Component, OnInit, inject } from '@angular/core';
+import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
+import { DX_COMMON_MODULES } from '../dx_common_modules';
+import * as XLSX from 'xlsx';
+import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { lastValueFrom } from 'rxjs';
+import { CargaVentasService } from '../../services/carga-ventas.service';
+import { SedeConfigService } from '../../services/sede-config.service';
+import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA, ASESORES_CALL_EN_CARTERA_PISO } from '../../shared/asesores';
+import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+
+const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+
+interface FilaEvolucion {
+  anio: number;
+  mes: number;
+  mesLabel: string;
+  sede: string;
+  asignados: number;
+  vendidos: number;
+  monto: number;
+  conversion: number;
+  congelado: boolean;
+}
+
+interface SerieSede { key: string; nombre: string; color: string; }
+
+/** Resumen de un mes (sin DNI, sin detalle): sede → { asignados, vendidos, monto }. */
+type ResumenMes = Map<string, { nombre: string; asignados: number; vendidos: number; monto: number }>;
+
+/**
+ * Concreción de Cartera por Sede — evolución mensual de "cartera vendida / cartera
+ * asignada" por sede, a partir de varias bases de Excel subidas MES A MES (persistidas
+ * en BD, no solo en memoria como Comparativo Cartera vs Ventas). El cruce con las
+ * ventas es el mismo criterio que ese módulo (y que Avance de Cartera): por DNI, sede
+ * de CIERRE de la venta, solo estados de venta real (sin NC/incautación).
+ *
+ * Un mes que ya quedó en el pasado se CONGELA la primera vez que se calcula (snapshot
+ * en `cartera_mensual_snapshot`): una Nota de Crédito o incautación posterior a ese
+ * cierre no le vuelve a mover el número. El mes en curso siempre se calcula en vivo.
+ */
+@Component({
+  selector: 'app-concrecion-cartera',
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
+  templateUrl: './concrecion-cartera.component.html',
+  styleUrl: './concrecion-cartera.component.css',
+})
+export class ConcrecionCarteraComponent implements OnInit {
+  private ventasSrv = inject(CargaVentasService);
+  private sedeCfg = inject(SedeConfigService);
+  private snack = inject(MatSnackBar);
+
+  form: UntypedFormGroup;
+  isLoading = false;
+  yaCalculado = false;
+  nombreArchivo = '';
+  aviso = '';
+
+  filas: FilaEvolucion[] = [];
+  sedesDisponibles: string[] = [];
+  sedeOptions: string[] = [];
+  puntos: any[] = [];
+  seriesActivas: SerieSede[] = [];
+  mesesConBase: string[] = [];   // etiquetas de los meses que ya tienen base cargada
+
+  // Color fijo por sede (mismo orden siempre que haya los mismos datos).
+  private readonly PALETA = ['#1A5FAD', '#E65100', '#2E7D32', '#6A1B9A', '#C62828', '#00838F', '#F9A825', '#5D4037'];
+
+  // Ventas de Call atribuidas a cada asesora de Call Center (mismo criterio que
+  // Comparativo Cartera vs Ventas): "Call Center" solo cruza con lo que ELLAS vendieron.
+  private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
+
+  constructor(private fb: UntypedFormBuilder) {
+    const hoy = new Date();
+    const desde = new Date(hoy.getFullYear(), hoy.getMonth() - 5, 1);   // últimos 6 meses
+    this.form = this.fb.group({ desde, hasta: hoy, sede: 'TODAS', mesCarga: hoy });
+  }
+
+  async ngOnInit(): Promise<void> {
+    await this.cargarMesesConBase();
+    await this.actualizar();
+  }
+
+  private async cargarMesesConBase(): Promise<void> {
+    try {
+      const meses = await lastValueFrom(this.ventasSrv.obtenerMesesCarteraMensual());
+      this.mesesConBase = (meses || []).map(m => `${MESES_CORTOS[m.mes - 1]} ${m.anio}`);
+    } catch { this.mesesConBase = []; }
+  }
+
+  // ── Utilidades (mismo criterio que Comparativo Cartera vs Ventas / Avance de Cartera) ──
+  private norm(s: any): string {
+    return (s ?? '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toUpperCase();
+  }
+  private soloDigitos(v: any): string {
+    return (v ?? '').toString().replace(/\D/g, '').replace(/^0+/, '');
+  }
+  private sinTildes(v: any): string {
+    return (v ?? '').toString().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  }
+  private sedeKeyVenta(raw: any): string {
+    return this.sedeCfg.normalizar((raw ?? '').toString()).replace(/^sederelenor/, '');
+  }
+  private sedeReconocida(sede: any): boolean {
+    return !!this.sedeCfg.getConfig(this.sedeKeyVenta(sede))?.nombre;
+  }
+  private estadoExcluido(estado: any): boolean {
+    const s = this.sinTildes(estado);
+    return /NOTA DE/.test(s) || /INCAUTAC/.test(s);
+  }
+  private detectar(headers: string[], exactos: string[], fragmentos: string[]): string | null {
+    const H = headers.map(h => ({ raw: h, n: this.norm(h).replace(/\s+/g, '') }));
+    for (const e of exactos) {
+      const t = this.norm(e).replace(/\s+/g, '');
+      const f = H.find(h => h.n === t);
+      if (f) return f.raw;
+    }
+    for (const fr of fragmentos) {
+      const t = this.norm(fr).replace(/\s+/g, '');
+      const f = H.find(h => h.n.includes(t));
+      if (f) return f.raw;
+    }
+    return null;
+  }
+  private sedeSlug(nombre: string): string {
+    return (nombre || 'sede').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'sede';
+  }
+
+  // ── Importar Excel de la base asignada de UN mes (se guarda en BD, reemplaza ese mes) ──
+  importar(event: any): void {
+    const file = event.target.files[0];
+    if (!file) return;
+    this.nombreArchivo = file.name;
+    const mesCarga: Date = this.form.value.mesCarga || new Date();
+    const anio = mesCarga.getFullYear();
+    const mes = mesCarga.getMonth() + 1;
+    const reader = new FileReader();
+    reader.onload = async (e: any) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }) as any[];
+        if (!rows.length) { this.toast('El Excel de la base está vacío.', true); return; }
+
+        const headers = Object.keys(rows[0]);
+        const cDni  = this.detectar(headers, ['DNI', 'DNI CLIENTE', 'DOC IDENTIDAD', 'DOCIDENTIDAD', 'DOCUMENTO'], ['DNI', 'DOCIDENTIDAD', 'DOCUMENTO']);
+        const cVend = this.detectar(headers, ['AsignacionFinal', 'AsesorFinal', 'ASIGNACION FINAL', 'ASESOR FINAL', 'VENDEDOR', 'ASESOR', 'ASIGNACION'], ['ASIGNACION', 'ASESOR', 'VENDEDOR', 'EJECUTIVO', 'PROMOTOR', 'GESTOR']);
+        const cBase = this.detectar(headers, ['TIPO DE BASE', 'TIPOBASE', 'TIPO BASE'], ['TIPODEBASE', 'TIPOBASE']);
+        const cCli  = this.detectar(headers, ['TIPO DE CLIENTE', 'TIPOCLIENTE', 'TIPO CLIENTE'], ['TIPODECLIENTE', 'TIPOCLIENTE']);
+        const cSede = this.detectar(headers, ['ZONA', 'ZONAS', 'SEDE', 'TIENDA'], ['ZONA', 'SEDE', 'TIENDA']);
+
+        const faltan: string[] = [];
+        if (!cDni)  faltan.push('DNI');
+        if (!cVend) faltan.push('vendedor (AsignacionFinal)');
+        if (!cBase) faltan.push('tipo de base');
+        if (!cCli)  faltan.push('tipo de cliente');
+        this.aviso = faltan.length
+          ? `⚠️ No se detectaron estas columnas en el Excel: ${faltan.join(', ')}. Se agruparán como "SIN DATO".`
+          : '';
+
+        const filas = rows.map(r => ({
+          dni:         cDni  ? String(r[cDni]) : '',
+          vendedor:    (cVend ? String(r[cVend]) : '').trim().toUpperCase() || 'SIN VENDEDOR',
+          tipoBase:    (cBase ? String(r[cBase]) : '').trim().toUpperCase() || 'SIN BASE',
+          tipoCliente: (cCli  ? String(r[cCli])  : '').trim().toUpperCase() || 'SIN TIPO',
+          sede:        (cSede ? String(r[cSede]) : '').trim().toUpperCase(),
+        })).filter(f => this.soloDigitos(f.dni));
+
+        if (!filas.length) { this.toast('No se encontró ninguna fila con DNI válido.', true); return; }
+
+        this.isLoading = true;
+        const resp = await lastValueFrom(this.ventasSrv.importarCarteraMensual(anio, mes, filas));
+        this.toast(`Base de ${MESES_CORTOS[mes - 1]} ${anio} guardada: ${resp.filas} filas.`, false);
+        await this.cargarMesesConBase();
+        await this.actualizar();
+      } catch (err) {
+        console.error('❌ importar cartera mensual:', err);
+        this.toast('No se pudo leer o guardar el Excel de la base.', true);
+      } finally {
+        this.isLoading = false;
+        event.target.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  /** Ventas de Call (ventas_call) del mes, atribuidas por nombre de asesora — mismo
+   *  criterio que Comparativo Cartera vs Ventas (1 vez por código de venta). */
+  private async cargarVentasCall(anio: number, mes: number): Promise<void> {
+    this.ventasCallPorAsesor = new Map();
+    try {
+      const rows = await lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio, mes }));
+      const vistosCv = new Set<string>();
+      for (const r of (rows || [])) {
+        if (this.estadoExcluido(r.estado_venta)) continue;
+        const monto = Number(r.monto_consolidado) || 0;
+        if (monto <= 0) continue;
+        const cv = String(r.codigo_cv ?? '');
+        if (cv && vistosCv.has(cv)) continue;
+        if (cv) vistosCv.add(cv);
+        const dni = this.soloDigitos(r.doc_identidad);
+        if (!dni) continue;
+        const vend = String(r.vendedor ?? '').trim().toUpperCase();
+        const nombre = ASESORES_CALL.find(a => a.value === vend || a.nombre === vend)?.nombre;
+        if (!nombre) continue;
+        const porDni = this.ventasCallPorAsesor.get(nombre) ?? new Map<string, { ops: number; monto: number }>();
+        const cur = porDni.get(dni) ?? { ops: 0, monto: 0 };
+        cur.ops += 1; cur.monto += monto;
+        porDni.set(dni, cur);
+        this.ventasCallPorAsesor.set(nombre, porDni);
+      }
+    } catch { /* sin ventas de Call → Call Center muestra 0 */ }
+  }
+
+  /** Cruza la base asignada de UN mes con las ventas reales de ese mes → resumen por
+   *  sede (asignados/vendidos/monto). Vacío si no hay base cargada para ese mes. */
+  private async cruzarMes(anio: number, mes: number): Promise<ResumenMes> {
+    const filasCartera = await lastValueFrom(this.ventasSrv.obtenerCarteraMensual(anio, mes));
+    if (!filasCartera.length) return new Map();
+
+    const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
+    await this.cargarVentasCall(anio, mes);
+
+    const ventasPorDniSede = new Map<string, Map<string, { ops: number; monto: number }>>();
+    (ventas || []).forEach(v => {
+      if (!this.sedeReconocida(v.sede)) return;
+      if (this.estadoExcluido(v.estado_venta)) return;
+      const monto = Number(v.monto_consolidado) || 0;
+      if (monto <= 0) return;
+      const dni = this.soloDigitos(v.doc_identidad);
+      if (!dni) return;
+      const sedeKey = this.sedeKeyVenta(v.sede);
+      const porSede = ventasPorDniSede.get(dni) ?? new Map<string, { ops: number; monto: number }>();
+      const cur = porSede.get(sedeKey) ?? { ops: 0, monto: 0 };
+      cur.ops += 1; cur.monto += monto;
+      porSede.set(sedeKey, cur);
+      ventasPorDniSede.set(dni, porSede);
+    });
+
+    const vistos = new Set<string>();
+    const infoPorDni = new Map<string, { vendedor: string }>();
+    const baseSedeKeyPorDni = new Map<string, string>();
+    const asignadosPorSedeKey = new Map<string, { nombre: string; asignados: number }>();
+
+    for (const r of filasCartera) {
+      const dni = this.soloDigitos(r.dni);
+      if (!dni || vistos.has(dni)) continue;
+      vistos.add(dni);
+      const vendedor = (r.vendedor || '').toString().trim().toUpperCase();
+      infoPorDni.set(dni, { vendedor });
+
+      if (ASESORES_CALL_EN_CARTERA_PISO.has(vendedor)) {
+        if (!ASESORES_CALL_CENTER_CARTERA.has(vendedor)) continue;   // no gestiona cartera de piso
+        baseSedeKeyPorDni.set(dni, 'call-center');
+        const g = asignadosPorSedeKey.get('call-center') ?? { nombre: 'Call Center', asignados: 0 };
+        g.asignados++; asignadosPorSedeKey.set('call-center', g);
+        continue;
+      }
+
+      const key = this.sedeCfg.normalizar(r.sede || '') || 'sin-sede';
+      const nombre = this.sedeCfg.getConfig(key)?.nombre ?? (r.sede || 'SIN SEDE');
+      baseSedeKeyPorDni.set(dni, key);
+      const g = asignadosPorSedeKey.get(key) ?? { nombre, asignados: 0 };
+      g.asignados++; asignadosPorSedeKey.set(key, g);
+    }
+
+    const vendidosPorSedeKey = new Map<string, { nombre: string; vendidos: number; monto: number }>();
+    for (const [dni, key] of baseSedeKeyPorDni) {
+      if (key === 'call-center') {
+        const info = infoPorDni.get(dni)!;
+        const hitCC = this.ventasCallPorAsesor.get(info.vendedor)?.get(dni);
+        if (!hitCC) continue;
+        const g = vendidosPorSedeKey.get('call-center') ?? { nombre: 'Call Center', vendidos: 0, monto: 0 };
+        g.vendidos += hitCC.ops; g.monto += hitCC.monto;
+        vendidosPorSedeKey.set('call-center', g);
+        continue;
+      }
+      const porSede = ventasPorDniSede.get(dni);
+      if (!porSede) continue;
+      for (const [sedeKeyVenta, agg] of porSede) {
+        const nombreVenta = this.sedeCfg.getConfig(sedeKeyVenta)?.nombre;
+        if (!nombreVenta) continue;   // ya filtrado arriba, por seguridad
+        const g = vendidosPorSedeKey.get(sedeKeyVenta) ?? { nombre: nombreVenta, vendidos: 0, monto: 0 };
+        g.vendidos += agg.ops; g.monto += agg.monto;
+        vendidosPorSedeKey.set(sedeKeyVenta, g);
+      }
+    }
+
+    const claves = new Set<string>([...asignadosPorSedeKey.keys(), ...vendidosPorSedeKey.keys()]);
+    const resumen: ResumenMes = new Map();
+    for (const key of claves) {
+      const a = asignadosPorSedeKey.get(key);
+      const v = vendidosPorSedeKey.get(key);
+      resumen.set(key, {
+        nombre: a?.nombre ?? v?.nombre ?? key,
+        asignados: a?.asignados ?? 0,
+        vendidos: v?.vendidos ?? 0,
+        monto: Math.round(v?.monto ?? 0),
+      });
+    }
+    return resumen;
+  }
+
+  // ── Evolución del rango de meses elegido ────────────────────────────────────
+  async actualizar(): Promise<void> {
+    const desde: Date = this.form.value.desde;
+    const hasta: Date = this.form.value.hasta;
+    if (!desde || !hasta) return;
+    this.isLoading = true;
+    try {
+      const hoy = new Date();
+      const mesActualTotal = hoy.getFullYear() * 12 + hoy.getMonth();
+      const tDesde = desde.getFullYear() * 12 + desde.getMonth();
+      const tHasta = hasta.getFullYear() * 12 + hasta.getMonth();
+
+      const meses: { anio: number; mes: number; label: string }[] = [];
+      for (let t = tDesde; t <= tHasta && meses.length < 36; t++) {
+        const anio = Math.floor(t / 12), mes = (t % 12) + 1;
+        meses.push({ anio, mes, label: `${MESES_CORTOS[mes - 1]} ${anio}` });
+      }
+
+      const filas: FilaEvolucion[] = [];
+      const sedesSet = new Set<string>();
+
+      for (const { anio, mes, label } of meses) {
+        const esPasado = (anio * 12 + (mes - 1)) < mesActualTotal;
+        let resumen: ResumenMes | null = null;
+        let congelado = false;
+
+        if (esPasado) {
+          const snap = await lastValueFrom(this.ventasSrv.obtenerSnapshotCarteraMensual(anio, mes));
+          if (snap.length) {
+            resumen = new Map(snap.map(s => [s.sede, { nombre: s.sede, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }]));
+            congelado = true;
+          }
+        }
+        if (!resumen) {
+          resumen = await this.cruzarMes(anio, mes);
+          if (esPasado && resumen.size) {
+            // Primera vez que se calcula este mes (ya pasado): se congela. Una NC o
+            // incautación que llegue después ya no le va a mover el número a este mes.
+            const filasSnap = Array.from(resumen.values()).map(r => ({ sede: r.nombre, asignados: r.asignados, vendidos: r.vendidos, monto: r.monto }));
+            this.ventasSrv.guardarSnapshotCarteraMensual(anio, mes, filasSnap).subscribe({ error: () => {} });
+            congelado = true;
+          }
+        }
+
+        for (const r of resumen.values()) {
+          sedesSet.add(r.nombre);
+          filas.push({
+            anio, mes, mesLabel: label, sede: r.nombre,
+            asignados: r.asignados, vendidos: r.vendidos, monto: r.monto,
+            conversion: r.asignados ? r.vendidos / r.asignados : 0,
+            congelado,
+          });
+        }
+      }
+
+      this.filas = filas;
+      this.mesesOrden = meses;
+      this.sedesDisponibles = Array.from(sedesSet).sort();
+      this.sedeOptions = ['TODAS', ...this.sedesDisponibles];
+      this.construirChart();
+
+      this.yaCalculado = true;
+      if (!filas.length) this.toast('No hay ninguna base de cartera cargada en ese rango de meses.', false);
+    } catch (e) {
+      console.error('❌ actualizar concreción de cartera:', e);
+      this.toast('No se pudo calcular la evolución (revisa la conexión).', true);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  /** Filas de la tabla, filtradas por la sede elegida (o todas). */
+  get filasVista(): FilaEvolucion[] {
+    const sede = (this.form.value.sede || 'TODAS') as string;
+    const vista = sede === 'TODAS' ? this.filas : this.filas.filter(f => f.sede === sede);
+    return [...vista].sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
+  }
+
+  /** Reconstruye solo el gráfico (sin volver a pedir datos) cuando cambia la sede elegida. */
+  aplicarSede(): void {
+    this.construirChart();
+  }
+
+  private mesesOrden: { anio: number; mes: number; label: string }[] = [];
+
+  /** Chart en formato ancho (una fila por mes, una columna por sede) a partir de `this.filas`. */
+  private construirChart(): void {
+    const sedeSel = (this.form.value.sede || 'TODAS') as string;
+    const sedesChart = sedeSel === 'TODAS' ? this.sedesDisponibles : this.sedesDisponibles.filter(s => s === sedeSel);
+    const porMesSede = new Map<string, Map<string, number>>();
+    for (const f of this.filas) {
+      if (!porMesSede.has(f.mesLabel)) porMesSede.set(f.mesLabel, new Map());
+      porMesSede.get(f.mesLabel)!.set(this.sedeSlug(f.sede), Math.round(f.conversion * 1000) / 10);
+    }
+    this.puntos = this.mesesOrden.map(m => {
+      const row: any = { mesLabel: m.label };
+      for (const sede of sedesChart) row[this.sedeSlug(sede)] = porMesSede.get(m.label)?.get(this.sedeSlug(sede)) ?? null;
+      return row;
+    });
+    this.seriesActivas = sedesChart.map((s, i) => ({ key: this.sedeSlug(s), nombre: s, color: this.PALETA[i % this.PALETA.length] }));
+  }
+
+  get maxConversion(): number {
+    return this.filas.reduce((m, f) => Math.max(m, f.conversion), 0) || 1;
+  }
+  barPct(conv: number): number { return Math.round((conv / this.maxConversion) * 100); }
+  barClase(conv: number): string {
+    const r = conv / this.maxConversion;
+    return r >= 0.66 ? 'hi' : r >= 0.33 ? 'mid' : 'lo';
+  }
+
+  private toast(msg: string, error = false): void {
+    this.snack.open(msg, 'OK', {
+      duration: error ? 5000 : 3500,
+      horizontalPosition: 'end',
+      verticalPosition: 'top',
+      panelClass: error ? 'toast-error' : 'toast-ok',
+    });
+  }
+
+  formatPct(v: number): string { return `${(v * 100).toFixed(1)}%`; }
+  formatSoles(v: number): string { return `S/ ${Math.round(v).toLocaleString('es-PE')}`; }
+}

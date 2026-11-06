@@ -50,6 +50,7 @@ import { GestionSupervisorComponent } from "../features/control-supervisor/gesti
 import { ActividadRealzzaComponent } from "../features/actividad-realzza/actividad-realzza.component";
 import { HorariosComponent } from "../features/horarios/horarios.component";
 import { ComparativoCarteraVentasComponent } from "../features/comparativo-cartera-ventas/comparativo-cartera-ventas.component";
+import { ConcrecionCarteraComponent } from "../features/concrecion-cartera/concrecion-cartera.component";
 import { MaestroCapComponent } from "../features/maestro-cap/maestro-cap.component";
 import { MaestroMetasSedeComponent } from "../features/maestro-metas-sede/maestro-metas-sede.component";
 import { RegistroCobranzaComponent } from "../features/registro-cobranza/registro-cobranza.component";
@@ -131,6 +132,7 @@ interface MenuItem {
     ActividadRealzzaComponent,
     HorariosComponent,
     ComparativoCarteraVentasComponent,
+    ConcrecionCarteraComponent,
     MaestroCapComponent,
     MaestroMetasSedeComponent,
     RegistroCobranzaComponent,
@@ -239,6 +241,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         { label: 'Embudos de Gestión',    icon: 'filter_alt',     modulo: 'embudos-gestion' },
         { label: 'Seguimiento 1-3-5-7',   icon: 'repeat',         modulo: 'seguimiento-135' },
         { label: 'Comparativo Cartera Ventas Piso', icon: 'compare_arrows', modulo: 'comparativo-cartera-ventas' },
+        { label: 'Concreción de Cartera por Sede', icon: 'insights',        modulo: 'concrecion-cartera' },
         { label: 'Post Venta — Análisis', icon: 'post_add',       modulo: 'post-venta' },
         { label: 'Maduración de Leads',   icon: 'hub',            modulo: 'maduracion-leads' },
         { label: 'Listado Kommo — Realzza', icon: 'fact_check',   modulo: 'listado-kommo-realzza' }
