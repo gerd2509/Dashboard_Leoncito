@@ -175,9 +175,9 @@
               <th class="l">Sede</th>
               <th>Cartera asignada</th>
               <th>Ventas de cartera</th>
-              <th class="w-conv">Conversión</th>
-              <th class="r">Ticket promedio</th>
-              <th class="r">Monto S/</th>
+              <th class="w-conv">Concreción</th>
+              <th>Ticket promedio</th>
+              <th>Monto S/</th>
               <th></th>
             </tr>
           </thead>
@@ -192,8 +192,8 @@
                   <span class="conv-txt">{{ formatPct(f.conversion) }}</span>
                 </div>
               </td>
-              <td class="r">{{ formatSoles(f.ticketPromedio) }}</td>
-              <td class="r td-monto">{{ formatSoles(f.monto) }}</td>
+              <td>{{ formatSoles(f.ticketPromedio) }}</td>
+              <td class="td-monto">{{ formatSoles(f.monto) }}</td>
               <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
             </tr>
           </tbody>
