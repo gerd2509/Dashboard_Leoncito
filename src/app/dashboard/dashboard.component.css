@@ -15,8 +15,15 @@
    SIDEBAR — Leoncito Blue
    ===================================================== */
 .sidebar {
-  width: 260px;
+  /* Ancho automático: se ajusta al nombre más largo del menú (abierto o
+     cerrado — los submenús siguen en el DOM cuando están colapsados, solo
+     ocultos por altura/visibilidad, así que su ancho igual cuenta) en vez de
+     un ancho fijo que recortaba nombres largos como "Concreción de Cartera
+     por Sede". min/max-width evitan que quede demasiado angosto o ancho. */
+  width: max-content;
   min-width: 260px;
+  max-width: 360px;
+  flex-shrink: 0;
   background: #1A5FAD;
   border-right: none;
   display: flex;
