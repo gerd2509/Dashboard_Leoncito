@@ -78,7 +78,7 @@ export class VentasCampoComponent implements OnInit {
         this.acumularCruceRz(this.detEntranRz, c.tienda, c.vendedor, c.monto, c.esNC);
       } else {
         this.acumularCruceRz(this.detSalenRz, c.tienda, c.vendedor, c.monto, c.esNC);
-        this.acumularOtraTienda(this.resolverNombreVendedor(c.vendedor, c.tipoBase), c.monto, c.esNC);
+        this.acumularOtraTienda(this.resolverNombreVendedor(c.vendedor, c.tipoBase, c.fecha), c.monto, c.esNC);
       }
     });
   }
@@ -317,6 +317,13 @@ export class VentasCampoComponent implements OnInit {
     'ORUE LIZARRAGA JESUS AUGUSTO LIZANDRO': 'JESUS',
     'CHANAME SOTO ANITA NOEMI': 'ANITA',
     'CHANTA CAMPOS KELLY KARINTIA': 'KELLY',
+    // Desde noviembre-2026 salen con su propio nombre en vez de agruparse en "CALL"
+    // (ver resolverNombreVendedor) — necesitan nombre corto para no mostrarse enteras.
+    'VALDERA PISCOYA DEXY ROSARIO': 'DEXY',
+    'QUISPE FONSECA KAREN AIMEE': 'KAREN',
+    'MORALES ÑIQUE MARIA CANDELARIA': 'MARIA',
+    'TORRES ALVARADO JUDY ESMERALDA': 'ESMERALDA',
+    'BELEN CARRASCO MARYORI JAHAIRA': 'MARYORI',
   };
 
   @ViewChild('dataGrid', { static: false }) dataGrid!: DxDataGridComponent;
@@ -1053,18 +1060,25 @@ export class VentasCampoComponent implements OnInit {
         MontoConsolidado: Math.round(v.MontoConsolidado || 0),
         DocIdentidad:     v.DocIdentidad,
         Productos:        v.Productos,
-        Vendedor:         this.resolverNombreVendedor(v.Vendedor, v.TipoBase),
+        Vendedor:         this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA),
         TipoBase:         v.TipoBase,
         EstadoVenta:      v.EstadoVenta,
       }))
       .sort((a, b) => (b.MontoConsolidado || 0) - (a.MontoConsolidado || 0));
   }
 
-  private resolverNombreVendedor(vendedorOriginal: string, tipoBase: string = ''): string {
-    // Las 6 asesoras de Call Center (Patricia, Dexy, Karen, Maria, Judy, Juana) siguen
-    // siendo CALL en el CAP aunque cierren una venta en tienda (TipoBase='TIENDA' en vez
-    // de 'CALL') — toda su venta suma a la fila "CALL", nunca a su nombre individual.
-    if (ASESORES_CALL_CENTER_CARTERA.has((vendedorOriginal || '').toString().trim().toUpperCase())) return 'CALL';
+  private resolverNombreVendedor(vendedorOriginal: string, tipoBase: string = '', fecha?: Date): string {
+    const nombreUp = (vendedorOriginal || '').toString().trim().toUpperCase();
+    // Hasta octubre-2026, las 6 asesoras de Call Center (Patricia, Dexy, Karen, Maria,
+    // Judy/Esmeralda, Juana) seguían siendo CALL en el CAP aunque cerraran una venta en
+    // tienda (TipoBase='TIENDA' en vez de 'CALL') — toda su venta sumaba a la fila
+    // "CALL", nunca a su nombre individual. Desde noviembre-2026 SOLO Patricia se sigue
+    // agrupando así; el resto pasa a salir con su propio nombre (como cualquier otro
+    // vendedor de tienda). Sin fecha (algún caller antiguo que no la pase), se mantiene
+    // el criterio nuevo por seguridad.
+    const antesDelCorteCall = !!fecha && (fecha.getFullYear() < 2026 || (fecha.getFullYear() === 2026 && fecha.getMonth() + 1 < 11));
+    if (nombreUp === 'MORETO DELGADO PATRICIA ESTEFANY') return 'CALL';
+    if (antesDelCorteCall && ASESORES_CALL_CENTER_CARTERA.has(nombreUp)) return 'CALL';
     // Para el resto: la fila "CALL" agrupa SOLO las ventas cuyo TipoBase es CALL. Una
     // venta de un vendedor Realzza que traiga un código CC en AsesorVenta pero sin
     // TipoBase CALL es Realzza y suma a su asesor Realzza real (no se separa a "CALL").
@@ -1077,13 +1091,13 @@ export class VentasCampoComponent implements OnInit {
     const map = new Map<string, number>();
 
     this.filtroVentasAvance.forEach(v => {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA);
       map.set(nombre, (map.get(nombre) || 0) + (v.MontoConsolidado || 0));
     });
 
     // Neto por vendedor: filtroVentasAvance ya incluye toda venta del mes (congelada); solo
     // resta las NC/incautaciones de su propio mes de afectación (AF).
-    this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true)
+    this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true)
       .forEach((monto, nombre) => map.set(nombre, (map.get(nombre) || 0) - monto));
 
     this.chartData = Array.from(map, ([name, total]) => ({
@@ -1255,15 +1269,15 @@ export class VentasCampoComponent implements OnInit {
   generarResumenPorVendedor(): void {
     const mapVentas = new Map<string, { monto: number; ops: number }>();
     this.filtroVentasAvance.forEach(v => {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA);
       const cur = mapVentas.get(nombre) || { monto: 0, ops: 0 };
       mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
     // mapVentas ya viene de filtroVentasAvance, que incluye toda venta del mes (congelada).
     // Solo resta las NC/incautaciones de su propio mes de afectación.
-    const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
-    const mapNCOps = this.agruparNCTodasOps(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
+    const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true);
+    const mapNCOps = this.agruparNCTodasOps(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true);
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(nombre => {
@@ -1316,14 +1330,14 @@ export class VentasCampoComponent implements OnInit {
     };
     // Ventas (no-NC): 1 operación + su monto bruto.
     for (const v of this.filtroVentasAvance) {
-      sumar(fila(this.resolverNombreVendedor(v.Vendedor, v.TipoBase)), cuotaDe(v), 1, Number(v.MontoConsolidado) || 0);
+      sumar(fila(this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA)), cuotaDe(v), 1, Number(v.MontoConsolidado) || 0);
     }
     // filtroVentasAvance ya incluye toda venta del mes (congelada); las NC/incautaciones
     // (por avance, excluye orfandad) solo restan en su propio mes de afectación (AF).
     // No tocan el conteo de operaciones.
     for (const nc of this.filtroNotasCredito) {
       if (this.esVentaOrfana(nc)) continue;
-      const r = fila(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase));
+      const r = fila(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA));
       const cuota = cuotaDe(nc), m = nc.MontoConsolidado || 0;
       sumar(r, cuota, 0, -m);
     }
@@ -1526,13 +1540,13 @@ export class VentasCampoComponent implements OnInit {
       inner.set(tipo, (inner.get(tipo) || 0) + monto);
     };
     this.filtroVentasAvance.forEach(v => {
-      acum(this.resolverNombreVendedor(v.Vendedor, v.TipoBase), (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), v.MontoConsolidado || 0);
+      acum(this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA), (v.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), v.MontoConsolidado || 0);
     });
     this.filtroNotasCredito.forEach(nc => {
       // filtroVentasAvance ya incluye toda venta del mes (congelada, aunque luego se haya
       // anulado); la NC/incautación resta aparte en su propio mes de afectación.
       if (this.esVentaOrfana(nc)) return;
-      acum(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), -(nc.MontoConsolidado || 0));
+      acum(this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase(), -(nc.MontoConsolidado || 0));
     });
 
     const rows: any[] = [];
@@ -1716,7 +1730,7 @@ export class VentasCampoComponent implements OnInit {
       // Esta tabla cuenta TODAS las motos (incl. las no derivadas). La no-derivación solo
       // se descuenta del "monto de ventas por asesor" (avance/bonos), no de aquí.
       .forEach(v => {
-        const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
+        const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA);
         const tipo   = (v.TipoProducto || 'SIN TIPO').toString().trim().toUpperCase();
         tiposSet.add(tipo);
         if (!mapVendedor.has(nombre)) mapVendedor.set(nombre, new Map());
@@ -1950,14 +1964,14 @@ export class VentasCampoComponent implements OnInit {
 
     const mapVentas = new Map<string, { ventas: number; ops: number }>();
     this.filtroVentasAvance.forEach(v => {
-      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase);
+      const nombre = this.resolverNombreVendedor(v.Vendedor, v.TipoBase, v.FECHAVENTA);
       const cur = mapVentas.get(nombre) || { ventas: 0, ops: 0 };
       mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
 
     // filtroVentasAvance ya incluye toda venta del mes (congelada); la NC/incautación resta
     // aparte en su propio mes de afectación — mismo criterio que Reporte Global.
-    const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase), true);
+    const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true);
 
     // Unión con quienes SOLO tienen NC arrastrada (0 ventas en el rango) o solo vendieron
     // en otra tienda Realzza (0 ventas propias de ESTA tienda) — igual que
