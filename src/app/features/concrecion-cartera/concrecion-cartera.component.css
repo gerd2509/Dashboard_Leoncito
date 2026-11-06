@@ -44,6 +44,48 @@
 }
 .cc-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(255,107,107,.4); filter: none; }
 .cc-btn-ghost   { background: #eef2f9; color: #1E3A5F; }
+.cc-btn-disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
+
+/* ── Progreso real de subida de la base ── */
+.progreso {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+.barra-track {
+  height: 10px;
+  border-radius: 6px;
+  background: #e3edf6;
+  overflow: hidden;
+}
+.barra-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #FF6B6B, #ff9b9b);
+  transition: width .25s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 6px;
+}
+.barra-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  transform: translateX(-100%);
+  animation: barra-shimmer 1.1s ease-in-out infinite;
+}
+@keyframes barra-shimmer { to { transform: translateX(100%); } }
+.progreso-txt {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4A6A88;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.progreso-txt mat-icon { font-size: 16px; height: 16px; width: 16px; }
 
 .cc-archivo {
   display: inline-flex;
@@ -92,6 +134,43 @@
 /* ── Gráfico ── */
 .cc-chart-wrap { padding-bottom: 8px; }
 .cc-chart { height: 340px; padding: 4px 10px 10px; }
+.cc-chart-tools { display: flex; align-items: center; gap: 6px; }
+.cc-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 9px;
+  background: #eef2f9;
+  color: #5b6b86;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.cc-chip mat-icon { font-size: 19px; height: 19px; width: 19px; }
+.cc-chip:hover { background: #e2e9f5; }
+.cc-chip-on { background: #FF6B6B; color: #fff; }
+.cc-chip-on:hover { background: #ff5a5a; }
+.cc-chip-info { margin-left: 4px; }
+
+.cc-info-popup { font-size: 13.5px; color: #33445f; line-height: 1.55; }
+.cc-info-popup p { margin: 0 0 10px; }
+.cc-info-popup code {
+  background: #f0f3fa;
+  color: #1a3a6b;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 12.5px;
+}
+
+.cc-mes-head th {
+  background: #1E3A5F !important;
+  font-size: 13px;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+.cc-table + .cc-table { margin-top: 18px; }
 
 /* ── Resumen por sede/mes ── */
 .cc-sec-head {

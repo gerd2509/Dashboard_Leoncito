@@ -478,9 +478,13 @@ export class CargaVentasService {
     const params = new HttpParams().set('anio', anio).set('mes', mes);
     return this.http.get<any[]>(`${this.root}/cartera-mensual`, { params });
   }
-  /** Sube (reemplaza) la base asignada de un mes. */
-  importarCarteraMensual(anio: number, mes: number, filas: { dni: string; vendedor: string; tipoBase: string; tipoCliente: string; sede: string }[]): Observable<{ success: boolean; filas: number }> {
-    return this.http.post<{ success: boolean; filas: number }>(`${this.root}/cartera-mensual/import`, { anio, mes, filas });
+  /** Sube (reemplaza) la base asignada de un mes. Emite progreso real de subida
+   *  (reportProgress) — bases grandes (miles de filas) tardan en mandarse. */
+  importarCarteraMensual(anio: number, mes: number, filas: { dni: string; vendedor: string; tipoBase: string; tipoCliente: string; sede: string }[]): Observable<HttpEvent<{ success: boolean; filas: number }>> {
+    return this.http.post<{ success: boolean; filas: number }>(`${this.root}/cartera-mensual/import`, { anio, mes, filas }, {
+      reportProgress: true,
+      observe: 'events',
+    });
   }
   /** Resultado congelado de un mes (vacío si ese mes todavía no se congeló). */
   obtenerSnapshotCarteraMensual(anio: number, mes: number): Observable<{ sede: string; asignados: number; vendidos: number; monto: number }[]> {

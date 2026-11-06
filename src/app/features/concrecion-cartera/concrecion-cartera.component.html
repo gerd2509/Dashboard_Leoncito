@@ -8,13 +8,30 @@
         [calendarOptions]="{ maxZoomLevel: 'year' }" label="Mes de la base a subir" labelMode="floating"
         stylingMode="filled" width="190" [openOnFieldClick]="true"></dx-date-box>
 
-      <label class="cc-btn cc-btn-dark">
-        <input type="file" accept=".xlsx,.xls" (change)="importar($event)" hidden />
+      <label class="cc-btn cc-btn-dark" [class.cc-btn-disabled]="subiendoBase">
+        <input type="file" accept=".xlsx,.xls" (change)="importar($event)" [disabled]="subiendoBase" hidden />
         <mat-icon>upload_file</mat-icon> Subir base asignada del mes
       </label>
 
       <span class="cc-archivo" *ngIf="nombreArchivo"><mat-icon>description</mat-icon>{{ nombreArchivo }}</span>
     </form>
+
+    <!-- Progreso real de la subida -->
+    <div class="progreso" *ngIf="subiendoBase">
+      <ng-container *ngIf="!procesandoBase">
+        <div class="barra-track">
+          <div class="barra-fill" [style.width.%]="progresoBase"></div>
+        </div>
+        <span class="progreso-txt">Subiendo base… {{ progresoBase }}%</span>
+      </ng-container>
+      <ng-container *ngIf="procesandoBase">
+        <div class="barra-track">
+          <div class="barra-fill" [style.width.%]="100"></div>
+        </div>
+        <span class="progreso-txt"><mat-icon>cloud_upload</mat-icon> Guardando filas en el servidor…</span>
+      </ng-container>
+    </div>
+
     <div class="cc-meses-base" *ngIf="mesesConBase.length">
       <mat-icon>event_available</mat-icon>
       <span>Meses con base cargada:</span>
@@ -63,11 +80,20 @@
           <h3>Evolución de la concreción</h3>
           <span>% de la cartera asignada que se vendió, mes a mes</span>
         </div>
+        <div class="cc-chart-tools">
+          <button class="cc-chip" *ngFor="let t of tiposChart" [class.cc-chip-on]="chartTipo === t.value"
+            (click)="cambiarTipoChart(t.value)" [matTooltip]="t.label">
+            <mat-icon>{{ t.icon }}</mat-icon>
+          </button>
+          <button class="cc-chip cc-chip-info" (click)="mostrarInfoChart = true" matTooltip="¿Qué muestra este gráfico?">
+            <mat-icon>help_outline</mat-icon>
+          </button>
+        </div>
       </div>
       <dx-chart [dataSource]="puntos" [redrawOnResize]="true" class="cc-chart">
-        <dxo-common-series-settings argumentField="mesLabel" type="line">
+        <dxo-common-series-settings argumentField="mesLabel" [type]="chartTipo">
           <dxo-point [visible]="true" [size]="6"></dxo-point>
-          <dxo-label [visible]="true"><dxo-font [size]="11"></dxo-font></dxo-label>
+          <dxo-label [visible]="chartTipo !== 'bar'"><dxo-font [size]="11"></dxo-font></dxo-label>
         </dxo-common-series-settings>
         <dxi-series *ngFor="let s of seriesActivas" [valueField]="s.key" [name]="s.nombre" [color]="s.color"></dxi-series>
         <dxo-argument-axis>
@@ -81,7 +107,23 @@
       </dx-chart>
     </div>
 
-    <!-- Tabla mes × sede -->
+    <!-- Popup: qué muestra el gráfico -->
+    <dx-popup [(visible)]="mostrarInfoChart" [showTitle]="true" title="¿Qué muestra este gráfico?"
+      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="420" height="auto"
+      [maxHeight]="420">
+      <div *dxTemplate="let d of 'content'" class="cc-info-popup">
+        <p>Cada línea/barra es una <b>sede de piso</b> (no incluye Call Center). El valor es la
+          <b>conversión</b>: cuántas de las personas en la cartera asignada de ese mes terminaron comprando.</p>
+        <p><code>Conversión = Ventas de cartera ÷ Cartera asignada</code> del mismo mes y sede.</p>
+        <p>Un mes ya pasado se <b>congela</b> (🔒) la primera vez que se calcula: una Nota de
+          Crédito o incautación posterior a ese cierre ya no le mueve el número. El mes en
+          curso siempre se recalcula en vivo.</p>
+        <p>Usa los íconos de arriba para cambiar el tipo de gráfico (línea, suavizada, barras
+          o área) y ver la tendencia desde otra perspectiva.</p>
+      </div>
+    </dx-popup>
+
+    <!-- Tabla mes × sede, agrupada por mes -->
     <div class="cc-panel cc-resumen">
       <div class="cc-sec-head">
         <div>
@@ -89,22 +131,24 @@
           <span>🔒 = mes congelado (no se mueve con NC/incautaciones posteriores) · el mes en curso siempre es en vivo</span>
         </div>
       </div>
-      <div class="cc-table-scroll">
-        <table class="cc-table" *ngIf="filasVista.length">
+      <div class="cc-table-scroll" *ngIf="gruposVista.length">
+        <table class="cc-table" *ngFor="let g of gruposVista">
           <thead>
+            <tr class="cc-mes-head">
+              <th colspan="7" class="l">{{ g.mesLabel }}</th>
+            </tr>
             <tr>
-              <th class="l">Mes</th>
               <th class="l">Sede</th>
               <th>Cartera asignada</th>
               <th>Ventas de cartera</th>
               <th class="w-conv">Conversión</th>
               <th class="r">Monto S/</th>
+              <th class="r">Ticket promedio</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let f of filasVista">
-              <td class="l">{{ f.mesLabel }}</td>
+            <tr *ngFor="let f of g.filas">
               <td class="l td-sede"><mat-icon>store</mat-icon>{{ f.sede }}</td>
               <td>{{ f.asignados | number }}</td>
               <td class="td-vend">{{ f.vendidos | number }}</td>
@@ -115,14 +159,15 @@
                 </div>
               </td>
               <td class="r td-monto">{{ formatSoles(f.monto) }}</td>
+              <td class="r">{{ formatSoles(f.ticketPromedio) }}</td>
               <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
             </tr>
           </tbody>
         </table>
-        <div *ngIf="!filasVista.length" class="cc-empty">
-          <mat-icon>search_off</mat-icon>
-          <p>No hay base de cartera cargada en este rango{{ (form.value.sede && form.value.sede !== 'TODAS') ? (' para ' + form.value.sede) : '' }}.</p>
-        </div>
+      </div>
+      <div *ngIf="!gruposVista.length" class="cc-empty">
+        <mat-icon>search_off</mat-icon>
+        <p>No hay base de cartera cargada en este rango{{ (form.value.sede && form.value.sede !== 'TODAS') ? (' para ' + form.value.sede) : '' }}.</p>
       </div>
     </div>
   </div>

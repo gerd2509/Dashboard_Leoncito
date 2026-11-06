@@ -4,10 +4,11 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import * as XLSX from 'xlsx';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { HttpEventType } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { SedeConfigService } from '../../services/sede-config.service';
-import { ASESORES_CALL, ASESORES_CALL_CENTER_CARTERA, ASESORES_CALL_EN_CARTERA_PISO } from '../../shared/asesores';
+import { ASESORES_CALL_EN_CARTERA_PISO } from '../../shared/asesores';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
 const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
@@ -20,11 +21,15 @@ interface FilaEvolucion {
   asignados: number;
   vendidos: number;
   monto: number;
+  ticketPromedio: number;
   conversion: number;
   congelado: boolean;
 }
 
+interface GrupoMes { mesLabel: string; filas: FilaEvolucion[]; }
+
 interface SerieSede { key: string; nombre: string; color: string; }
+export type TipoChart = 'line' | 'bar' | 'area' | 'spline';
 
 /** Resumen de un mes (sin DNI, sin detalle): sede → { asignados, vendidos, monto }. */
 type ResumenMes = Map<string, { nombre: string; asignados: number; vendidos: number; monto: number }>;
@@ -57,6 +62,12 @@ export class ConcrecionCarteraComponent implements OnInit {
   nombreArchivo = '';
   aviso = '';
 
+  // Progreso real de la subida de la base (fase 1: bytes enviados; fase 2: el
+  // servidor guarda las filas — bases grandes pueden tardar un momento ahí).
+  subiendoBase = false;
+  progresoBase = 0;
+  procesandoBase = false;
+
   filas: FilaEvolucion[] = [];
   sedesDisponibles: string[] = [];
   sedeOptions: string[] = [];
@@ -64,12 +75,18 @@ export class ConcrecionCarteraComponent implements OnInit {
   seriesActivas: SerieSede[] = [];
   mesesConBase: string[] = [];   // etiquetas de los meses que ya tienen base cargada
 
+  // Tipo de gráfico elegido (línea/barras/área/suavizada) + popup de ayuda.
+  readonly tiposChart: { value: TipoChart; label: string; icon: string }[] = [
+    { value: 'line',   label: 'Línea',    icon: 'show_chart' },
+    { value: 'spline', label: 'Suavizada', icon: 'ssid_chart' },
+    { value: 'bar',    label: 'Barras',   icon: 'bar_chart' },
+    { value: 'area',   label: 'Área',     icon: 'area_chart' },
+  ];
+  chartTipo: TipoChart = 'line';
+  mostrarInfoChart = false;
+
   // Color fijo por sede (mismo orden siempre que haya los mismos datos).
   private readonly PALETA = ['#1A5FAD', '#E65100', '#2E7D32', '#6A1B9A', '#C62828', '#00838F', '#F9A825', '#5D4037'];
-
-  // Ventas de Call atribuidas a cada asesora de Call Center (mismo criterio que
-  // Comparativo Cartera vs Ventas): "Call Center" solo cruza con lo que ELLAS vendieron.
-  private ventasCallPorAsesor = new Map<string, Map<string, { ops: number; monto: number }>>();
 
   constructor(private fb: UntypedFormBuilder) {
     const hoy = new Date();
@@ -168,58 +185,67 @@ export class ConcrecionCarteraComponent implements OnInit {
 
         if (!filas.length) { this.toast('No se encontró ninguna fila con DNI válido.', true); return; }
 
-        this.isLoading = true;
-        const resp = await lastValueFrom(this.ventasSrv.importarCarteraMensual(anio, mes, filas));
-        this.toast(`Base de ${MESES_CORTOS[mes - 1]} ${anio} guardada: ${resp.filas} filas.`, false);
-        await this.cargarMesesConBase();
-        await this.actualizar();
+        this.subirBase(anio, mes, filas);
       } catch (err) {
         console.error('❌ importar cartera mensual:', err);
-        this.toast('No se pudo leer o guardar el Excel de la base.', true);
+        this.toast('No se pudo leer el Excel de la base.', true);
       } finally {
-        this.isLoading = false;
         event.target.value = '';
       }
     };
     reader.readAsArrayBuffer(file);
   }
 
-  /** Ventas de Call (ventas_call) del mes, atribuidas por nombre de asesora — mismo
-   *  criterio que Comparativo Cartera vs Ventas (1 vez por código de venta). */
-  private async cargarVentasCall(anio: number, mes: number): Promise<void> {
-    this.ventasCallPorAsesor = new Map();
-    try {
-      const rows = await lastValueFrom(this.ventasSrv.obtenerVentasCanal('call', { anio, mes }));
-      const vistosCv = new Set<string>();
-      for (const r of (rows || [])) {
-        if (this.estadoExcluido(r.estado_venta)) continue;
-        const monto = Number(r.monto_consolidado) || 0;
-        if (monto <= 0) continue;
-        const cv = String(r.codigo_cv ?? '');
-        if (cv && vistosCv.has(cv)) continue;
-        if (cv) vistosCv.add(cv);
-        const dni = this.soloDigitos(r.doc_identidad);
-        if (!dni) continue;
-        const vend = String(r.vendedor ?? '').trim().toUpperCase();
-        const nombre = ASESORES_CALL.find(a => a.value === vend || a.nombre === vend)?.nombre;
-        if (!nombre) continue;
-        const porDni = this.ventasCallPorAsesor.get(nombre) ?? new Map<string, { ops: number; monto: number }>();
-        const cur = porDni.get(dni) ?? { ops: 0, monto: 0 };
-        cur.ops += 1; cur.monto += monto;
-        porDni.set(dni, cur);
-        this.ventasCallPorAsesor.set(nombre, porDni);
-      }
-    } catch { /* sin ventas de Call → Call Center muestra 0 */ }
+  /** Sube la base ya parseada con progreso real (subida) + indicador de
+   *  procesamiento (guardado en BD) hasta que el servidor confirma. */
+  private subirBase(anio: number, mes: number, filas: { dni: string; vendedor: string; tipoBase: string; tipoCliente: string; sede: string }[]): void {
+    this.subiendoBase = true;
+    this.procesandoBase = false;
+    this.progresoBase = 0;
+
+    this.ventasSrv.importarCarteraMensual(anio, mes, filas).subscribe({
+      next: async (ev) => {
+        if (ev.type === HttpEventType.UploadProgress) {
+          if (ev.total) {
+            this.progresoBase = Math.round((ev.loaded / ev.total) * 100);
+            if (this.progresoBase >= 100) this.procesandoBase = true;
+          } else {
+            this.procesandoBase = true;
+          }
+        } else if (ev.type === HttpEventType.ResponseHeader || ev.type === HttpEventType.DownloadProgress) {
+          this.progresoBase = 100;
+          this.procesandoBase = true;
+        } else if (ev.type === HttpEventType.Response) {
+          this.subiendoBase = false;
+          this.procesandoBase = false;
+          const body = ev.body;
+          if (body?.success) {
+            this.toast(`Base de ${MESES_CORTOS[mes - 1]} ${anio} guardada: ${body.filas} filas.`, false);
+            await this.cargarMesesConBase();
+            await this.actualizar();
+          } else {
+            this.toast('No se pudo guardar la base en el servidor.', true);
+          }
+        }
+      },
+      error: (e) => {
+        console.error('❌ subir cartera mensual:', e);
+        this.subiendoBase = false;
+        this.procesandoBase = false;
+        this.toast('No se pudo guardar la base (revisa la conexión).', true);
+      },
+    });
   }
 
   /** Cruza la base asignada de UN mes con las ventas reales de ese mes → resumen por
-   *  sede (asignados/vendidos/monto). Vacío si no hay base cargada para ese mes. */
+   *  sede (asignados/vendidos/monto). Vacío si no hay base cargada para ese mes.
+   *  Solo sedes de piso: las asesoras de Call Center (ASESORES_CALL_EN_CARTERA_PISO)
+   *  no son sede física — se excluyen por completo, no se cuentan en ningún lado. */
   private async cruzarMes(anio: number, mes: number): Promise<ResumenMes> {
     const filasCartera = await lastValueFrom(this.ventasSrv.obtenerCarteraMensual(anio, mes));
     if (!filasCartera.length) return new Map();
 
     const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
-    await this.cargarVentasCall(anio, mes);
 
     const ventasPorDniSede = new Map<string, Map<string, { ops: number; monto: number }>>();
     (ventas || []).forEach(v => {
@@ -238,7 +264,6 @@ export class ConcrecionCarteraComponent implements OnInit {
     });
 
     const vistos = new Set<string>();
-    const infoPorDni = new Map<string, { vendedor: string }>();
     const baseSedeKeyPorDni = new Map<string, string>();
     const asignadosPorSedeKey = new Map<string, { nombre: string; asignados: number }>();
 
@@ -247,15 +272,8 @@ export class ConcrecionCarteraComponent implements OnInit {
       if (!dni || vistos.has(dni)) continue;
       vistos.add(dni);
       const vendedor = (r.vendedor || '').toString().trim().toUpperCase();
-      infoPorDni.set(dni, { vendedor });
 
-      if (ASESORES_CALL_EN_CARTERA_PISO.has(vendedor)) {
-        if (!ASESORES_CALL_CENTER_CARTERA.has(vendedor)) continue;   // no gestiona cartera de piso
-        baseSedeKeyPorDni.set(dni, 'call-center');
-        const g = asignadosPorSedeKey.get('call-center') ?? { nombre: 'Call Center', asignados: 0 };
-        g.asignados++; asignadosPorSedeKey.set('call-center', g);
-        continue;
-      }
+      if (ASESORES_CALL_EN_CARTERA_PISO.has(vendedor)) continue;   // no es sede física, se excluye
 
       const key = this.sedeCfg.normalizar(r.sede || '') || 'sin-sede';
       const nombre = this.sedeCfg.getConfig(key)?.nombre ?? (r.sede || 'SIN SEDE');
@@ -266,15 +284,6 @@ export class ConcrecionCarteraComponent implements OnInit {
 
     const vendidosPorSedeKey = new Map<string, { nombre: string; vendidos: number; monto: number }>();
     for (const [dni, key] of baseSedeKeyPorDni) {
-      if (key === 'call-center') {
-        const info = infoPorDni.get(dni)!;
-        const hitCC = this.ventasCallPorAsesor.get(info.vendedor)?.get(dni);
-        if (!hitCC) continue;
-        const g = vendidosPorSedeKey.get('call-center') ?? { nombre: 'Call Center', vendidos: 0, monto: 0 };
-        g.vendidos += hitCC.ops; g.monto += hitCC.monto;
-        vendidosPorSedeKey.set('call-center', g);
-        continue;
-      }
       const porSede = ventasPorDniSede.get(dni);
       if (!porSede) continue;
       for (const [sedeKeyVenta, agg] of porSede) {
@@ -350,6 +359,7 @@ export class ConcrecionCarteraComponent implements OnInit {
           filas.push({
             anio, mes, mesLabel: label, sede: r.nombre,
             asignados: r.asignados, vendidos: r.vendidos, monto: r.monto,
+            ticketPromedio: r.vendidos ? r.monto / r.vendidos : 0,
             conversion: r.asignados ? r.vendidos / r.asignados : 0,
             congelado,
           });
@@ -379,10 +389,25 @@ export class ConcrecionCarteraComponent implements OnInit {
     return [...vista].sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
   }
 
+  /** Lo mismo que `filasVista`, pero agrupado por mes (un bloque por mes, con sus
+   *  sedes adentro) — más ordenado que listar todo de golpe. */
+  get gruposVista(): GrupoMes[] {
+    const porMes = new Map<string, FilaEvolucion[]>();
+    for (const f of this.filasVista) {
+      if (!porMes.has(f.mesLabel)) porMes.set(f.mesLabel, []);
+      porMes.get(f.mesLabel)!.push(f);
+    }
+    return this.mesesOrden
+      .map(m => ({ mesLabel: m.label, filas: porMes.get(m.label) ?? [] }))
+      .filter(g => g.filas.length);
+  }
+
   /** Reconstruye solo el gráfico (sin volver a pedir datos) cuando cambia la sede elegida. */
   aplicarSede(): void {
     this.construirChart();
   }
+
+  cambiarTipoChart(t: TipoChart): void { this.chartTipo = t; }
 
   private mesesOrden: { anio: number; mes: number; label: string }[] = [];
 
