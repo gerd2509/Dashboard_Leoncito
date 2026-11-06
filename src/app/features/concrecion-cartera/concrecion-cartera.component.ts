@@ -28,7 +28,8 @@ interface FilaEvolucion {
   congelado: boolean;
 }
 
-interface GrupoMes { mesLabel: string; filas: FilaEvolucion[]; }
+interface TotalMes { asignados: number; vendidos: number; monto: number; ticketPromedio: number; conversion: number; }
+interface GrupoMes { mesLabel: string; filas: FilaEvolucion[]; total: TotalMes; }
 
 interface SerieSede { key: string; nombre: string; color: string; }
 export type TipoChart = 'line' | 'bar' | 'area' | 'spline';
@@ -404,8 +405,21 @@ export class ConcrecionCarteraComponent implements OnInit {
       porMes.get(f.mesLabel)!.push(f);
     }
     return this.mesesOrden
-      .map(m => ({ mesLabel: m.label, filas: porMes.get(m.label) ?? [] }))
+      .map(m => ({ mesLabel: m.label, filas: porMes.get(m.label) ?? [], total: this.totalDe(porMes.get(m.label) ?? []) }))
       .filter(g => g.filas.length);
+  }
+
+  /** Total de un mes (suma de todas sus sedes): conversión y ticket promedio
+   *  se recalculan sobre los totales, no se promedian las filas. */
+  private totalDe(filas: FilaEvolucion[]): TotalMes {
+    const asignados = filas.reduce((s, f) => s + f.asignados, 0);
+    const vendidos = filas.reduce((s, f) => s + f.vendidos, 0);
+    const monto = filas.reduce((s, f) => s + f.monto, 0);
+    return {
+      asignados, vendidos, monto,
+      ticketPromedio: vendidos ? monto / vendidos : 0,
+      conversion: asignados ? vendidos / asignados : 0,
+    };
   }
 
   /** Reconstruye solo el gráfico (sin volver a pedir datos) cuando cambia la sede elegida. */
@@ -464,7 +478,7 @@ export class ConcrecionCarteraComponent implements OnInit {
 
     const wb = new Workbook();
     const ws = wb.addWorksheet('Concreción de Cartera');
-    const headers = ['Sede', 'Cartera asignada', 'Ventas de cartera', 'Conversión %', 'Ticket promedio S/', 'Monto S/', 'Estado del mes'];
+    const headers = ['Sede', 'Cartera asignada', 'Ventas de cartera', 'Concreción %', 'Ticket promedio S/', 'Monto S/'];
     const COLS = headers.length;
 
     const hr = ws.addRow(headers);
@@ -473,6 +487,19 @@ export class ConcrecionCarteraComponent implements OnInit {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF293964' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
+
+    const pintarFilaDatos = (row: any, bold: boolean) => {
+      row.getCell(2).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(4).alignment = { horizontal: 'center' };
+      row.getCell(4).numFmt = '0.0"%"';
+      row.getCell(5).alignment = { horizontal: 'right' };
+      row.getCell(5).numFmt = '"S/" #,##0';
+      row.getCell(6).alignment = { horizontal: 'right' };
+      row.getCell(6).numFmt = '"S/" #,##0';
+      if (bold) row.eachCell((cell: any) => { cell.font = { ...(cell.font || {}), bold: true }; });
+      else row.getCell(6).font = { bold: true };
+    };
 
     for (const g of grupos) {
       const mesRow = ws.addRow([g.mesLabel]);
@@ -484,25 +511,21 @@ export class ConcrecionCarteraComponent implements OnInit {
 
       for (const f of g.filas) {
         const row = ws.addRow([
-          f.sede,
-          f.asignados,
-          f.vendidos,
+          f.sede, f.asignados, f.vendidos,
           Math.round(f.conversion * 1000) / 10,
-          Math.round(f.ticketPromedio),
-          Math.round(f.monto),
-          f.congelado ? '🔒 Congelado' : 'En curso (en vivo)',
+          Math.round(f.ticketPromedio), Math.round(f.monto),
         ]);
-        row.getCell(2).alignment = { horizontal: 'center' };
-        row.getCell(3).alignment = { horizontal: 'center' };
-        row.getCell(4).alignment = { horizontal: 'center' };
-        row.getCell(4).numFmt = '0.0"%"';
-        row.getCell(5).alignment = { horizontal: 'right' };
-        row.getCell(5).numFmt = '"S/" #,##0';
-        row.getCell(6).alignment = { horizontal: 'right' };
-        row.getCell(6).numFmt = '"S/" #,##0';
-        row.getCell(6).font = { bold: true };
-        row.getCell(7).alignment = { horizontal: 'center' };
+        pintarFilaDatos(row, false);
       }
+
+      const t = g.total;
+      const totalRow = ws.addRow([
+        'TOTAL', t.asignados, t.vendidos,
+        Math.round(t.conversion * 1000) / 10,
+        Math.round(t.ticketPromedio), Math.round(t.monto),
+      ]);
+      totalRow.eachCell((cell: any) => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF0FB' } }; });
+      pintarFilaDatos(totalRow, true);
     }
 
     ws.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 18; });

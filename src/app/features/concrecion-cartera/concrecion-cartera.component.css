@@ -179,6 +179,15 @@
   text-transform: uppercase;
 }
 .cc-table + .cc-table { margin-top: 18px; }
+.cc-table tfoot td {
+  padding: 11px 14px;
+  background: #eaf0fb;
+  font-weight: 800;
+  color: #1E3A5F;
+  text-align: center;
+  border-top: 2px solid #d7deec;
+}
+.cc-table tfoot td.l { text-align: left; }
 
 /* ── Resumen por sede/mes ── */
 .cc-sec-head {

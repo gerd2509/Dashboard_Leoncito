@@ -197,6 +197,17 @@
               <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
             </tr>
           </tbody>
+          <tfoot>
+            <tr>
+              <td class="l">TOTAL</td>
+              <td>{{ g.total.asignados | number }}</td>
+              <td>{{ g.total.vendidos | number }}</td>
+              <td>{{ formatPct(g.total.conversion) }}</td>
+              <td>{{ formatSoles(g.total.ticketPromedio) }}</td>
+              <td>{{ formatSoles(g.total.monto) }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
       <div *ngIf="!gruposVista.length" class="cc-empty">
