@@ -2,6 +2,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import * as XLSX from 'xlsx';
+import { Workbook } from 'exceljs';
+import * as FileSaver from 'file-saver';
 import { UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { HttpEventType } from '@angular/common/http';
@@ -84,6 +86,7 @@ export class ConcrecionCarteraComponent implements OnInit {
   ];
   chartTipo: TipoChart = 'line';
   mostrarInfoChart = false;
+  popupChartVisible = false;   // gráfico ampliado, como en Evolución de Registros
 
   // Color fijo por sede (mismo orden siempre que haya los mismos datos).
   private readonly PALETA = ['#1A5FAD', '#E65100', '#2E7D32', '#6A1B9A', '#C62828', '#00838F', '#F9A825', '#5D4037'];
@@ -338,8 +341,11 @@ export class ConcrecionCarteraComponent implements OnInit {
 
         if (esPasado) {
           const snap = await lastValueFrom(this.ventasSrv.obtenerSnapshotCarteraMensual(anio, mes));
-          if (snap.length) {
-            resumen = new Map(snap.map(s => [s.sede, { nombre: s.sede, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }]));
+          // Defensivo: snapshots congelados ANTES de quitar "Call Center" de este
+          // módulo pudieron guardar esa fila — se descarta si aparece.
+          const snapSedes = snap.filter(s => s.sede !== 'Call Center');
+          if (snapSedes.length) {
+            resumen = new Map(snapSedes.map(s => [s.sede, { nombre: s.sede, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }]));
             congelado = true;
           }
         }
@@ -448,4 +454,63 @@ export class ConcrecionCarteraComponent implements OnInit {
 
   formatPct(v: number): string { return `${(v * 100).toFixed(1)}%`; }
   formatSoles(v: number): string { return `S/ ${Math.round(v).toLocaleString('es-PE')}`; }
+
+  /** Exporta TODO el rango calculado (respeta el filtro de sede) a Excel, con
+   *  formato: una banda por mes (para que se note el corte entre meses) y las
+   *  columnas de conversión/ticket/monto con su propio formato numérico. */
+  async exportarExcel(): Promise<void> {
+    const grupos = this.gruposVista;
+    if (!grupos.length) { this.toast('No hay datos para exportar.', true); return; }
+
+    const wb = new Workbook();
+    const ws = wb.addWorksheet('Concreción de Cartera');
+    const headers = ['Sede', 'Cartera asignada', 'Ventas de cartera', 'Conversión %', 'Ticket promedio S/', 'Monto S/', 'Estado del mes'];
+    const COLS = headers.length;
+
+    const hr = ws.addRow(headers);
+    hr.eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF293964' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+
+    for (const g of grupos) {
+      const mesRow = ws.addRow([g.mesLabel]);
+      ws.mergeCells(mesRow.number, 1, mesRow.number, COLS);
+      const mesCell = mesRow.getCell(1);
+      mesCell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+      mesCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+      mesCell.alignment = { horizontal: 'left', vertical: 'middle' };
+
+      for (const f of g.filas) {
+        const row = ws.addRow([
+          f.sede,
+          f.asignados,
+          f.vendidos,
+          Math.round(f.conversion * 1000) / 10,
+          Math.round(f.ticketPromedio),
+          Math.round(f.monto),
+          f.congelado ? '🔒 Congelado' : 'En curso (en vivo)',
+        ]);
+        row.getCell(2).alignment = { horizontal: 'center' };
+        row.getCell(3).alignment = { horizontal: 'center' };
+        row.getCell(4).alignment = { horizontal: 'center' };
+        row.getCell(4).numFmt = '0.0"%"';
+        row.getCell(5).alignment = { horizontal: 'right' };
+        row.getCell(5).numFmt = '"S/" #,##0';
+        row.getCell(6).alignment = { horizontal: 'right' };
+        row.getCell(6).numFmt = '"S/" #,##0';
+        row.getCell(6).font = { bold: true };
+        row.getCell(7).alignment = { horizontal: 'center' };
+      }
+    }
+
+    ws.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 18; });
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const sedeSel = (this.form.value.sede && this.form.value.sede !== 'TODAS') ? `_${this.form.value.sede}` : '';
+    FileSaver.saveAs(blob, `ConcrecionCartera${sedeSel}.xlsx`.replace(/\s+/g, '_'));
+  }
 }

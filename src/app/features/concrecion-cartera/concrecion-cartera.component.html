@@ -88,6 +88,9 @@
           <button class="cc-chip cc-chip-info" (click)="mostrarInfoChart = true" matTooltip="¿Qué muestra este gráfico?">
             <mat-icon>help_outline</mat-icon>
           </button>
+          <button class="cc-chip" (click)="popupChartVisible = true" matTooltip="Ampliar">
+            <mat-icon>open_in_full</mat-icon>
+          </button>
         </div>
       </div>
       <dx-chart [dataSource]="puntos" [redrawOnResize]="true" class="cc-chart">
@@ -123,6 +126,34 @@
       </div>
     </dx-popup>
 
+    <!-- Popup: gráfico ampliado -->
+    <dx-popup [(visible)]="popupChartVisible" [showTitle]="true" title="Evolución de la concreción"
+      [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="92%" height="88%">
+      <div *dxTemplate="let d of 'content'" class="cc-chart-popup-wrap">
+        <div class="cc-chart-tools cc-chart-tools-popup">
+          <button class="cc-chip" *ngFor="let t of tiposChart" [class.cc-chip-on]="chartTipo === t.value"
+            (click)="cambiarTipoChart(t.value)" [matTooltip]="t.label">
+            <mat-icon>{{ t.icon }}</mat-icon>
+          </button>
+        </div>
+        <dx-chart [dataSource]="puntos" [redrawOnResize]="true" class="cc-chart-popup">
+          <dxo-common-series-settings argumentField="mesLabel" [type]="chartTipo">
+            <dxo-point [visible]="true" [size]="7"></dxo-point>
+            <dxo-label [visible]="chartTipo !== 'bar'"><dxo-font [size]="12"></dxo-font></dxo-label>
+          </dxo-common-series-settings>
+          <dxi-series *ngFor="let s of seriesActivas" [valueField]="s.key" [name]="s.nombre" [color]="s.color"></dxi-series>
+          <dxo-argument-axis>
+            <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-45"></dxo-label>
+          </dxo-argument-axis>
+          <dxo-value-axis [allowDecimals]="false">
+            <dxo-title text="Conversión %"></dxo-title>
+          </dxo-value-axis>
+          <dxo-tooltip [enabled]="true"></dxo-tooltip>
+          <dxo-legend [visible]="seriesActivas.length > 1" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+        </dx-chart>
+      </div>
+    </dx-popup>
+
     <!-- Tabla mes × sede, agrupada por mes -->
     <div class="cc-panel cc-resumen">
       <div class="cc-sec-head">
@@ -130,6 +161,9 @@
           <h3>Detalle por mes y sede</h3>
           <span>🔒 = mes congelado (no se mueve con NC/incautaciones posteriores) · el mes en curso siempre es en vivo</span>
         </div>
+        <button class="cc-btn cc-btn-ghost" (click)="exportarExcel()" [disabled]="!gruposVista.length">
+          <mat-icon>file_download</mat-icon> Exportar a Excel
+        </button>
       </div>
       <div class="cc-table-scroll" *ngIf="gruposVista.length">
         <table class="cc-table" *ngFor="let g of gruposVista">
@@ -142,8 +176,8 @@
               <th>Cartera asignada</th>
               <th>Ventas de cartera</th>
               <th class="w-conv">Conversión</th>
-              <th class="r">Monto S/</th>
               <th class="r">Ticket promedio</th>
+              <th class="r">Monto S/</th>
               <th></th>
             </tr>
           </thead>
@@ -158,8 +192,8 @@
                   <span class="conv-txt">{{ formatPct(f.conversion) }}</span>
                 </div>
               </td>
-              <td class="r td-monto">{{ formatSoles(f.monto) }}</td>
               <td class="r">{{ formatSoles(f.ticketPromedio) }}</td>
+              <td class="r td-monto">{{ formatSoles(f.monto) }}</td>
               <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
             </tr>
           </tbody>
