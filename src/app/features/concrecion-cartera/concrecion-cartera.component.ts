@@ -595,6 +595,28 @@ export class ConcrecionCarteraComponent implements OnInit {
     return this.modoVista === 'tipo' && sede === 'TODAS';
   }
 
+  /** Para fusionar (rowspan) la celda "Sede": `g.filas` ya viene ordenado por
+   *  sedeOrigen, así que alcanza con comparar con la fila anterior/contar las
+   *  siguientes iguales — el nombre de la sede sale una sola vez por grupo. */
+  esPrimeraDeSede(filas: FilaEvolucion[], i: number): boolean {
+    return i === 0 || filas[i].sedeOrigen !== filas[i - 1].sedeOrigen;
+  }
+  rowspanSede(filas: FilaEvolucion[], i: number): number {
+    let n = 1;
+    while (i + n < filas.length && filas[i + n].sedeOrigen === filas[i].sedeOrigen) n++;
+    return n;
+  }
+  /** true/false alternado por GRUPO de sede (no por fila) — así el fondo de las 3
+   *  filas de una misma sede queda parejo en todo el ancho, no solo en su celda. */
+  grupoSedePar(filas: FilaEvolucion[], i: number): boolean {
+    let n = 0;
+    let prev: string | undefined;
+    for (let j = 0; j <= i; j++) {
+      if (filas[j].sedeOrigen !== prev) { n++; prev = filas[j].sedeOrigen; }
+    }
+    return n % 2 === 0;
+  }
+
   private mesesOrden: { anio: number; mes: number; label: string }[] = [];
 
   /** Solo para el gráfico cuando modo = "tipo" y sede = "Todas": suma todas las

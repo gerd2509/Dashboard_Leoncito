@@ -241,6 +241,12 @@
 .cc-table td.r { text-align: right; }
 .td-sede { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #1E3A5F; }
 .td-sede mat-icon { font-size: 19px; height: 19px; width: 19px; color: #5b6b86; }
+/* Columna "Sede" fusionada (rowspan) delante del desglose por tipo de cliente. El
+   fondo va en la FILA completa (cc-fila-par), no solo en esta celda, para que quede
+   alineado con el resto de columnas de esa sede, no solo con el nombre. */
+.td-sede-grupo { border-right: 2px solid #e6edf5; }
+.cc-table tbody tr.cc-fila-par td { background: #f6f8fc; }
+.cc-table tbody tr.cc-sede-inicio td { border-top: 2px solid #e2e8f3; }
 .td-vend { font-weight: 700; color: #2E7D32; }
 .td-monto { font-weight: 800; color: #1a3a6b; white-space: nowrap; }
 .cc-lock { width: 30px; }

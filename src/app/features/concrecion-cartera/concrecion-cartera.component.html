@@ -200,8 +200,12 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let f of g.filas">
-              <td class="l td-sede" *ngIf="mostrarColSede"><mat-icon>store</mat-icon>{{ f.sedeOrigen }}</td>
+            <tr *ngFor="let f of g.filas; let i = index"
+              [class.cc-fila-par]="mostrarColSede && grupoSedePar(g.filas, i)"
+              [class.cc-sede-inicio]="mostrarColSede && esPrimeraDeSede(g.filas, i)">
+              <td class="l td-sede td-sede-grupo" *ngIf="mostrarColSede && esPrimeraDeSede(g.filas, i)" [attr.rowspan]="rowspanSede(g.filas, i)">
+                <mat-icon>store</mat-icon>{{ f.sedeOrigen }}
+              </td>
               <td class="l td-sede"><mat-icon>{{ modoVista === 'tipo' ? 'category' : 'store' }}</mat-icon>{{ f.sede }}</td>
               <td>{{ f.asignados | number }}</td>
               <td class="td-vend">{{ f.vendidos | number }}</td>
