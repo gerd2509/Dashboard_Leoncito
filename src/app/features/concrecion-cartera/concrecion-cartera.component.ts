@@ -589,32 +589,24 @@ export class ConcrecionCarteraComponent implements OnInit {
 
   cambiarTipoChart(t: TipoChart): void { this.chartTipo = t; }
 
-  /** true = la tabla necesita la columna extra "Sede" (modo tipo + "Todas"). */
-  get mostrarColSede(): boolean {
+  /** true = hay que agrupar la tabla por sede (modo tipo + "Todas"): cada sede sale
+   *  como una banda propia (igual que la del mes) con sus filas de tipo debajo — SIN
+   *  columna "Sede" aparte, para no mezclar una fila-etiqueta con una fila-dato. */
+  get agruparPorSede(): boolean {
     const sede = (this.form.value.sede || 'TODAS') as string;
     return this.modoVista === 'tipo' && sede === 'TODAS';
   }
 
-  /** Para fusionar (rowspan) la celda "Sede": `g.filas` ya viene ordenado por
-   *  sedeOrigen, así que alcanza con comparar con la fila anterior/contar las
-   *  siguientes iguales — el nombre de la sede sale una sola vez por grupo. */
-  esPrimeraDeSede(filas: FilaEvolucion[], i: number): boolean {
-    return i === 0 || filas[i].sedeOrigen !== filas[i - 1].sedeOrigen;
-  }
-  rowspanSede(filas: FilaEvolucion[], i: number): number {
-    let n = 1;
-    while (i + n < filas.length && filas[i + n].sedeOrigen === filas[i].sedeOrigen) n++;
-    return n;
-  }
-  /** true/false alternado por GRUPO de sede (no por fila) — así el fondo de las 3
-   *  filas de una misma sede queda parejo en todo el ancho, no solo en su celda. */
-  grupoSedePar(filas: FilaEvolucion[], i: number): boolean {
-    let n = 0;
-    let prev: string | undefined;
-    for (let j = 0; j <= i; j++) {
-      if (filas[j].sedeOrigen !== prev) { n++; prev = filas[j].sedeOrigen; }
+  /** Parte `filas` (ya vienen ordenadas por sedeOrigen) en bloques consecutivos por
+   *  sede, para renderizar una banda "Sede" + sus filas de tipo debajo. */
+  subgruposSede(filas: FilaEvolucion[]): { sede: string; filas: FilaEvolucion[] }[] {
+    const out: { sede: string; filas: FilaEvolucion[] }[] = [];
+    for (const f of filas) {
+      const actual = out[out.length - 1];
+      if (actual && actual.sede === f.sedeOrigen) actual.filas.push(f);
+      else out.push({ sede: f.sedeOrigen || '', filas: [f] });
     }
-    return n % 2 === 0;
+    return out;
   }
 
   private mesesOrden: { anio: number; mes: number; label: string }[] = [];
@@ -695,19 +687,17 @@ export class ConcrecionCarteraComponent implements OnInit {
   /** Exporta TODO el rango calculado (respeta el filtro de sede) a Excel, con
    *  formato: una banda por mes (para que se note el corte entre meses) y las
    *  columnas de conversión/ticket/monto con su propio formato numérico. En modo
-   *  "tipo de cliente" + "Todas" agrega una columna "Sede" al inicio (cada fila ya
-   *  es una sede + su grupo, ver `mostrarColSede`). */
+   *  "tipo de cliente" + "Todas" (`agruparPorSede`) agrega, dentro de cada mes, una
+   *  banda por sede — igual que en pantalla, sin columna "Sede" aparte. */
   async exportarExcel(): Promise<void> {
     const grupos = this.gruposVista;
     if (!grupos.length) { this.toast('No hay datos para exportar.', true); return; }
 
-    const conSede = this.mostrarColSede;
-    const off = conSede ? 1 : 0;   // desplaza las columnas numéricas si hay columna "Sede"
+    const agrupar = this.agruparPorSede;
 
     const wb = new Workbook();
     const ws = wb.addWorksheet('Concreción de Cartera');
     const headers = [
-      ...(conSede ? ['Sede'] : []),
       this.modoVista === 'tipo' ? 'Tipo de Cliente' : 'Sede',
       'Cartera asignada', 'Ventas de cartera', 'Concreción %', 'Ticket promedio S/', 'Monto S/',
     ];
@@ -721,16 +711,27 @@ export class ConcrecionCarteraComponent implements OnInit {
     });
 
     const pintarFilaDatos = (row: any, bold: boolean) => {
-      row.getCell(2 + off).alignment = { horizontal: 'center' };
-      row.getCell(3 + off).alignment = { horizontal: 'center' };
-      row.getCell(4 + off).alignment = { horizontal: 'center' };
-      row.getCell(4 + off).numFmt = '0.0"%"';
-      row.getCell(5 + off).alignment = { horizontal: 'right' };
-      row.getCell(5 + off).numFmt = '"S/" #,##0';
-      row.getCell(6 + off).alignment = { horizontal: 'right' };
-      row.getCell(6 + off).numFmt = '"S/" #,##0';
+      row.getCell(2).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(4).alignment = { horizontal: 'center' };
+      row.getCell(4).numFmt = '0.0"%"';
+      row.getCell(5).alignment = { horizontal: 'right' };
+      row.getCell(5).numFmt = '"S/" #,##0';
+      row.getCell(6).alignment = { horizontal: 'right' };
+      row.getCell(6).numFmt = '"S/" #,##0';
       if (bold) row.eachCell((cell: any) => { cell.font = { ...(cell.font || {}), bold: true }; });
-      else row.getCell(6 + off).font = { bold: true };
+      else row.getCell(6).font = { bold: true };
+    };
+
+    const pintarFilasDeGrupo = (filas: FilaEvolucion[]) => {
+      for (const f of filas) {
+        const row = ws.addRow([
+          f.sede, f.asignados, f.vendidos,
+          Math.round(f.conversion * 1000) / 10,
+          Math.round(f.ticketPromedio), Math.round(f.monto),
+        ]);
+        pintarFilaDatos(row, false);
+      }
     };
 
     for (const g of grupos) {
@@ -741,19 +742,22 @@ export class ConcrecionCarteraComponent implements OnInit {
       mesCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
       mesCell.alignment = { horizontal: 'left', vertical: 'middle' };
 
-      for (const f of g.filas) {
-        const row = ws.addRow([
-          ...(conSede ? [f.sedeOrigen || ''] : []),
-          f.sede, f.asignados, f.vendidos,
-          Math.round(f.conversion * 1000) / 10,
-          Math.round(f.ticketPromedio), Math.round(f.monto),
-        ]);
-        pintarFilaDatos(row, false);
+      if (agrupar) {
+        for (const sg of this.subgruposSede(g.filas)) {
+          const sedeRow = ws.addRow([`  ${sg.sede}`]);
+          ws.mergeCells(sedeRow.number, 1, sedeRow.number, COLS);
+          const sedeCell = sedeRow.getCell(1);
+          sedeCell.font = { bold: true, color: { argb: 'FF1E3A5F' } };
+          sedeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAF0FB' } };
+          sedeCell.alignment = { horizontal: 'left', vertical: 'middle' };
+          pintarFilasDeGrupo(sg.filas);
+        }
+      } else {
+        pintarFilasDeGrupo(g.filas);
       }
 
       const t = g.total;
       const totalRow = ws.addRow([
-        ...(conSede ? [''] : []),
         'TOTAL', t.asignados, t.vendidos,
         Math.round(t.conversion * 1000) / 10,
         Math.round(t.ticketPromedio), Math.round(t.monto),
@@ -762,7 +766,7 @@ export class ConcrecionCarteraComponent implements OnInit {
       pintarFilaDatos(totalRow, true);
     }
 
-    ws.columns.forEach((col, i) => { col.width = i <= off ? 22 : 18; });
+    ws.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 18; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
 
     const buffer = await wb.xlsx.writeBuffer();

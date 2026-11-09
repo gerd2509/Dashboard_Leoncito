@@ -186,10 +186,9 @@
         <table class="cc-table" *ngFor="let g of gruposVista">
           <thead>
             <tr class="cc-mes-head">
-              <th [attr.colspan]="mostrarColSede ? 8 : 7" class="l">{{ g.mesLabel }}</th>
+              <th colspan="7" class="l">{{ g.mesLabel }}</th>
             </tr>
             <tr>
-              <th class="l" *ngIf="mostrarColSede">Sede</th>
               <th class="l">{{ modoVista === 'tipo' ? 'Tipo de cliente' : 'Sede' }}</th>
               <th>Cartera asignada</th>
               <th>Ventas de cartera</th>
@@ -199,30 +198,52 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            <tr *ngFor="let f of g.filas; let i = index"
-              [class.cc-fila-par]="mostrarColSede && grupoSedePar(g.filas, i)"
-              [class.cc-sede-inicio]="mostrarColSede && esPrimeraDeSede(g.filas, i)">
-              <td class="l td-sede td-sede-grupo" *ngIf="mostrarColSede && esPrimeraDeSede(g.filas, i)" [attr.rowspan]="rowspanSede(g.filas, i)">
-                <mat-icon>store</mat-icon>{{ f.sedeOrigen }}
-              </td>
-              <td class="l td-sede"><mat-icon>{{ modoVista === 'tipo' ? 'category' : 'store' }}</mat-icon>{{ f.sede }}</td>
-              <td>{{ f.asignados | number }}</td>
-              <td class="td-vend">{{ f.vendidos | number }}</td>
-              <td>
-                <div class="conv-cell">
-                  <div class="bar"><div class="bar-fill" [ngClass]="barClase(f.conversion)" [style.width.%]="barPct(f.conversion)"></div></div>
-                  <span class="conv-txt">{{ formatPct(f.conversion) }}</span>
-                </div>
-              </td>
-              <td>{{ formatSoles(f.ticketPromedio) }}</td>
-              <td class="td-monto">{{ formatSoles(f.monto) }}</td>
-              <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
-            </tr>
-          </tbody>
+
+          <!-- "Ver por tipo de cliente" + Todas: una banda por sede (sin columna aparte) -->
+          <ng-container *ngIf="agruparPorSede; else sinAgrupar">
+            <tbody *ngFor="let sg of subgruposSede(g.filas)">
+              <tr class="cc-sede-sub-head">
+                <td colspan="7" class="l"><mat-icon>store</mat-icon>{{ sg.sede }}</td>
+              </tr>
+              <tr *ngFor="let f of sg.filas">
+                <td class="l td-sede"><mat-icon>category</mat-icon>{{ f.sede }}</td>
+                <td>{{ f.asignados | number }}</td>
+                <td class="td-vend">{{ f.vendidos | number }}</td>
+                <td>
+                  <div class="conv-cell">
+                    <div class="bar"><div class="bar-fill" [ngClass]="barClase(f.conversion)" [style.width.%]="barPct(f.conversion)"></div></div>
+                    <span class="conv-txt">{{ formatPct(f.conversion) }}</span>
+                  </div>
+                </td>
+                <td>{{ formatSoles(f.ticketPromedio) }}</td>
+                <td class="td-monto">{{ formatSoles(f.monto) }}</td>
+                <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
+              </tr>
+            </tbody>
+          </ng-container>
+
+          <!-- Por sede (filtro normal), o por tipo de cliente con una sede elegida -->
+          <ng-template #sinAgrupar>
+            <tbody>
+              <tr *ngFor="let f of g.filas">
+                <td class="l td-sede"><mat-icon>{{ modoVista === 'tipo' ? 'category' : 'store' }}</mat-icon>{{ f.sede }}</td>
+                <td>{{ f.asignados | number }}</td>
+                <td class="td-vend">{{ f.vendidos | number }}</td>
+                <td>
+                  <div class="conv-cell">
+                    <div class="bar"><div class="bar-fill" [ngClass]="barClase(f.conversion)" [style.width.%]="barPct(f.conversion)"></div></div>
+                    <span class="conv-txt">{{ formatPct(f.conversion) }}</span>
+                  </div>
+                </td>
+                <td>{{ formatSoles(f.ticketPromedio) }}</td>
+                <td class="td-monto">{{ formatSoles(f.monto) }}</td>
+                <td class="cc-lock"><mat-icon *ngIf="f.congelado" matTooltip="Mes congelado">lock</mat-icon></td>
+              </tr>
+            </tbody>
+          </ng-template>
+
           <tfoot>
             <tr>
-              <td class="l" *ngIf="mostrarColSede"></td>
               <td class="l">TOTAL</td>
               <td>{{ g.total.asignados | number }}</td>
               <td>{{ g.total.vendidos | number }}</td>
