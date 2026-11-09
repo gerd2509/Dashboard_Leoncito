@@ -34,8 +34,15 @@ interface GrupoMes { mesLabel: string; filas: FilaEvolucion[]; total: TotalMes; 
 interface SerieSede { key: string; nombre: string; color: string; }
 export type TipoChart = 'line' | 'bar' | 'area' | 'spline';
 
-/** Resumen de un mes (sin DNI, sin detalle): sede → { asignados, vendidos, monto }. */
+/** Resumen de un mes (sin DNI, sin detalle): sede (o grupo) → { asignados, vendidos, monto }. */
 type ResumenMes = Map<string, { nombre: string; asignados: number; vendidos: number; monto: number }>;
+
+/** Modo de vista: por sede de piso, o por tipo de cliente (Afiliaciones/Reenganche/Dormidos). */
+export type ModoVista = 'sede' | 'tipo';
+// Los snapshots de la dimensión "tipo de cliente" se guardan en la MISMA tabla que los
+// de sede (cartera_mensual_snapshot), con este prefijo en la columna `sede`, para no
+// necesitar una tabla/endpoint nuevo — se filtran por prefijo al leer.
+const PREFIJO_TIPO = 'TIPO::';
 
 /**
  * Concreción de Cartera por Sede — evolución mensual de "cartera vendida / cartera
@@ -72,11 +79,22 @@ export class ConcrecionCarteraComponent implements OnInit {
   procesandoBase = false;
 
   filas: FilaEvolucion[] = [];
+  filasTipo: FilaEvolucion[] = [];       // misma forma, pero "sede" guarda el grupo de tipo de cliente
   sedesDisponibles: string[] = [];
   sedeOptions: string[] = [];
+  tiposDisponibles: string[] = [];
   puntos: any[] = [];
   seriesActivas: SerieSede[] = [];
   mesesConBase: string[] = [];   // etiquetas de los meses que ya tienen base cargada
+
+  // Sede de piso (actual) vs Tipo de cliente (Afiliaciones/Reenganche/Dormidos, como
+  // en Avance de Cartera) — ambas dimensiones se calculan siempre juntas en
+  // `actualizar()`, así que cambiar de modo es instantáneo (no vuelve a pedir datos).
+  modoVista: ModoVista = 'sede';
+  readonly modosVista: { value: ModoVista; label: string; icon: string }[] = [
+    { value: 'sede', label: 'Por sede', icon: 'store' },
+    { value: 'tipo', label: 'Por tipo de cliente', icon: 'category' },
+  ];
 
   // Tipo de gráfico elegido (línea/barras/área/suavizada) + popup de ayuda.
   readonly tiposChart: { value: TipoChart; label: string; icon: string }[] = [
@@ -146,6 +164,18 @@ export class ConcrecionCarteraComponent implements OnInit {
   }
   private sedeSlug(nombre: string): string {
     return (nombre || 'sede').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'sede';
+  }
+  /** Agrupa el TIPO DE CLIENTE crudo del Excel en los mismos 3 cuadros que usa Avance
+   *  de Cartera: NUEVO/AFILIACION → Afiliaciones · Lover A/Reenganche/Cancelado →
+   *  Lover A · Lover B/Dormido/No Vigente → Lover B. Cualquier otro valor se muestra
+   *  tal cual (p.ej. si el Excel trae una categoría nueva que no está mapeada). */
+  private grupoTipo(tipo: string): string {
+    const t = (tipo || '').toString().toUpperCase();
+    if (!t || t === 'SIN TIPO') return 'SIN TIPO';
+    if (/NUEVO|AFILIAC/.test(t)) return 'AFILIACIONES (Nuevos)';
+    if (/LOVER\s*A|REENGANCHE|CANCELAD/.test(t)) return 'LOVER A — Reenganche / Cancelado';
+    if (/LOVER\s*B|DORMIDO|NO\s*VIGENTE/.test(t)) return 'LOVER B — Dormidos / No Vigentes';
+    return t;
   }
 
   // ── Importar Excel de la base asignada de UN mes (se guarda en BD, reemplaza ese mes) ──
@@ -242,12 +272,13 @@ export class ConcrecionCarteraComponent implements OnInit {
   }
 
   /** Cruza la base asignada de UN mes con las ventas reales de ese mes → resumen por
-   *  sede (asignados/vendidos/monto). Vacío si no hay base cargada para ese mes.
-   *  Solo sedes de piso: las asesoras de Call Center (ASESORES_CALL_EN_CARTERA_PISO)
-   *  no son sede física — se excluyen por completo, no se cuentan en ningún lado. */
-  private async cruzarMes(anio: number, mes: number): Promise<ResumenMes> {
+   *  SEDE y, en la misma pasada (sin pedir los datos dos veces), resumen por TIPO DE
+   *  CLIENTE (Afiliaciones/Lover A/Lover B, igual que Avance de Cartera). Vacíos si no
+   *  hay base cargada para ese mes. Solo sedes de piso: las asesoras de Call Center
+   *  (ASESORES_CALL_EN_CARTERA_PISO) no son sede física — se excluyen por completo. */
+  private async cruzarMes(anio: number, mes: number): Promise<{ porSede: ResumenMes; porTipo: ResumenMes }> {
     const filasCartera = await lastValueFrom(this.ventasSrv.obtenerCarteraMensual(anio, mes));
-    if (!filasCartera.length) return new Map();
+    if (!filasCartera.length) return { porSede: new Map(), porTipo: new Map() };
 
     const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
 
@@ -269,7 +300,9 @@ export class ConcrecionCarteraComponent implements OnInit {
 
     const vistos = new Set<string>();
     const baseSedeKeyPorDni = new Map<string, string>();
+    const tipoPorDni = new Map<string, string>();
     const asignadosPorSedeKey = new Map<string, { nombre: string; asignados: number }>();
+    const asignadosPorTipo = new Map<string, number>();
 
     for (const r of filasCartera) {
       const dni = this.soloDigitos(r.dni);
@@ -279,6 +312,10 @@ export class ConcrecionCarteraComponent implements OnInit {
 
       if (ASESORES_CALL_EN_CARTERA_PISO.has(vendedor)) continue;   // no es sede física, se excluye
 
+      const grupo = this.grupoTipo(r.tipoCliente);
+      tipoPorDni.set(dni, grupo);
+      asignadosPorTipo.set(grupo, (asignadosPorTipo.get(grupo) ?? 0) + 1);
+
       const key = this.sedeCfg.normalizar(r.sede || '') || 'sin-sede';
       const nombre = this.sedeCfg.getConfig(key)?.nombre ?? (r.sede || 'SIN SEDE');
       baseSedeKeyPorDni.set(dni, key);
@@ -287,31 +324,49 @@ export class ConcrecionCarteraComponent implements OnInit {
     }
 
     const vendidosPorSedeKey = new Map<string, { nombre: string; vendidos: number; monto: number }>();
+    const vendidosPorTipo = new Map<string, { vendidos: number; monto: number }>();
     for (const [dni, key] of baseSedeKeyPorDni) {
       const porSede = ventasPorDniSede.get(dni);
       if (!porSede) continue;
+      const grupo = tipoPorDni.get(dni) || 'SIN TIPO';
       for (const [sedeKeyVenta, agg] of porSede) {
         const nombreVenta = this.sedeCfg.getConfig(sedeKeyVenta)?.nombre;
         if (!nombreVenta) continue;   // ya filtrado arriba, por seguridad
         const g = vendidosPorSedeKey.get(sedeKeyVenta) ?? { nombre: nombreVenta, vendidos: 0, monto: 0 };
         g.vendidos += agg.ops; g.monto += agg.monto;
         vendidosPorSedeKey.set(sedeKeyVenta, g);
+
+        const gt = vendidosPorTipo.get(grupo) ?? { vendidos: 0, monto: 0 };
+        gt.vendidos += agg.ops; gt.monto += agg.monto;
+        vendidosPorTipo.set(grupo, gt);
       }
     }
 
     const claves = new Set<string>([...asignadosPorSedeKey.keys(), ...vendidosPorSedeKey.keys()]);
-    const resumen: ResumenMes = new Map();
+    const porSede: ResumenMes = new Map();
     for (const key of claves) {
       const a = asignadosPorSedeKey.get(key);
       const v = vendidosPorSedeKey.get(key);
-      resumen.set(key, {
+      porSede.set(key, {
         nombre: a?.nombre ?? v?.nombre ?? key,
         asignados: a?.asignados ?? 0,
         vendidos: v?.vendidos ?? 0,
         monto: Math.round(v?.monto ?? 0),
       });
     }
-    return resumen;
+
+    const clavesTipo = new Set<string>([...asignadosPorTipo.keys(), ...vendidosPorTipo.keys()]);
+    const porTipo: ResumenMes = new Map();
+    for (const t of clavesTipo) {
+      porTipo.set(t, {
+        nombre: t,
+        asignados: asignadosPorTipo.get(t) ?? 0,
+        vendidos: vendidosPorTipo.get(t)?.vendidos ?? 0,
+        monto: Math.round(vendidosPorTipo.get(t)?.monto ?? 0),
+      });
+    }
+
+    return { porSede, porTipo };
   }
 
   // ── Evolución del rango de meses elegido ────────────────────────────────────
@@ -333,54 +388,84 @@ export class ConcrecionCarteraComponent implements OnInit {
       }
 
       const filas: FilaEvolucion[] = [];
+      const filasTipo: FilaEvolucion[] = [];
       const sedesSet = new Set<string>();
+      const tiposSet = new Set<string>();
 
       for (const { anio, mes, label } of meses) {
         const esPasado = (anio * 12 + (mes - 1)) < mesActualTotal;
-        let resumen: ResumenMes | null = null;
-        let congelado = false;
+        let resumenSede: ResumenMes | null = null;
+        let resumenTipo: ResumenMes | null = null;
+        let congSede = false;
+        let congTipo = false;
 
         if (esPasado) {
           const snap = await lastValueFrom(this.ventasSrv.obtenerSnapshotCarteraMensual(anio, mes));
           // Defensivo: snapshots congelados ANTES de quitar "Call Center" de este
-          // módulo pudieron guardar esa fila — se descarta si aparece.
-          const snapSedes = snap.filter(s => s.sede !== 'Call Center');
-          if (snapSedes.length) {
-            resumen = new Map(snapSedes.map(s => [s.sede, { nombre: s.sede, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }]));
-            congelado = true;
+          // módulo pudieron guardar esa fila — se descarta si aparece. Las filas de
+          // la dimensión "tipo de cliente" viven en la misma tabla, con prefijo.
+          const snapSede = snap.filter(s => s.sede !== 'Call Center' && !s.sede.startsWith(PREFIJO_TIPO));
+          const snapTipo = snap.filter(s => s.sede.startsWith(PREFIJO_TIPO));
+          if (snapSede.length) {
+            resumenSede = new Map(snapSede.map(s => [s.sede, { nombre: s.sede, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }]));
+            congSede = true;
           }
-        }
-        if (!resumen) {
-          resumen = await this.cruzarMes(anio, mes);
-          if (esPasado && resumen.size) {
-            // Primera vez que se calcula este mes (ya pasado): se congela. Una NC o
-            // incautación que llegue después ya no le va a mover el número a este mes.
-            const filasSnap = Array.from(resumen.values()).map(r => ({ sede: r.nombre, asignados: r.asignados, vendidos: r.vendidos, monto: r.monto }));
-            this.ventasSrv.guardarSnapshotCarteraMensual(anio, mes, filasSnap).subscribe({ error: () => {} });
-            congelado = true;
+          if (snapTipo.length) {
+            resumenTipo = new Map(snapTipo.map(s => {
+              const nombre = s.sede.slice(PREFIJO_TIPO.length);
+              return [nombre, { nombre, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }];
+            }));
+            congTipo = true;
           }
         }
 
-        for (const r of resumen.values()) {
+        // Si falta cualquiera de las dos dimensiones (mes en curso, o un mes pasado
+        // que se congeló ANTES de que existiera el desglose por tipo), se calcula en
+        // vivo — en una sola pasada por `cruzarMes` para no pedir los datos 2 veces.
+        if (!resumenSede || !resumenTipo) {
+          const cruzado = await this.cruzarMes(anio, mes);
+          if (!resumenSede) {
+            resumenSede = cruzado.porSede;
+            if (esPasado && resumenSede.size) { this.congelarResumen(anio, mes, '', resumenSede); congSede = true; }
+          }
+          if (!resumenTipo) {
+            resumenTipo = cruzado.porTipo;
+            if (esPasado && resumenTipo.size) { this.congelarResumen(anio, mes, PREFIJO_TIPO, resumenTipo); congTipo = true; }
+          }
+        }
+
+        for (const r of resumenSede.values()) {
           sedesSet.add(r.nombre);
           filas.push({
             anio, mes, mesLabel: label, sede: r.nombre,
             asignados: r.asignados, vendidos: r.vendidos, monto: r.monto,
             ticketPromedio: r.vendidos ? r.monto / r.vendidos : 0,
             conversion: r.asignados ? r.vendidos / r.asignados : 0,
-            congelado,
+            congelado: congSede,
+          });
+        }
+        for (const r of resumenTipo.values()) {
+          tiposSet.add(r.nombre);
+          filasTipo.push({
+            anio, mes, mesLabel: label, sede: r.nombre,
+            asignados: r.asignados, vendidos: r.vendidos, monto: r.monto,
+            ticketPromedio: r.vendidos ? r.monto / r.vendidos : 0,
+            conversion: r.asignados ? r.vendidos / r.asignados : 0,
+            congelado: congTipo,
           });
         }
       }
 
       this.filas = filas;
+      this.filasTipo = filasTipo;
       this.mesesOrden = meses;
       this.sedesDisponibles = Array.from(sedesSet).sort();
       this.sedeOptions = ['TODAS', ...this.sedesDisponibles];
+      this.tiposDisponibles = Array.from(tiposSet).sort();
       this.construirChart();
 
       this.yaCalculado = true;
-      if (!filas.length) this.toast('No hay ninguna base de cartera cargada en ese rango de meses.', false);
+      if (!filas.length && !filasTipo.length) this.toast('No hay ninguna base de cartera cargada en ese rango de meses.', false);
     } catch (e) {
       console.error('❌ actualizar concreción de cartera:', e);
       this.toast('No se pudo calcular la evolución (revisa la conexión).', true);
@@ -389,10 +474,23 @@ export class ConcrecionCarteraComponent implements OnInit {
     }
   }
 
-  /** Filas de la tabla, filtradas por la sede elegida (o todas). */
+  /** Congela (snapshot) el resumen de un mes ya pasado. Nunca pisa un snapshot que
+   *  ya exista — ver POST /cartera-mensual/snapshot. `prefijo` distingue la
+   *  dimensión (vacío = sede, PREFIJO_TIPO = tipo de cliente) dentro de la misma tabla. */
+  private congelarResumen(anio: number, mes: number, prefijo: string, resumen: ResumenMes): void {
+    const filasSnap = Array.from(resumen.values()).map(r => ({ sede: prefijo + r.nombre, asignados: r.asignados, vendidos: r.vendidos, monto: r.monto }));
+    this.ventasSrv.guardarSnapshotCarteraMensual(anio, mes, filasSnap).subscribe({ error: () => {} });
+  }
+
+  /** Datos de la dimensión activa (sede o tipo de cliente). */
+  get filasActivas(): FilaEvolucion[] { return this.modoVista === 'tipo' ? this.filasTipo : this.filas; }
+
+  /** Filas de la tabla: en modo "sede" respeta el filtro de sede elegido; en modo
+   *  "tipo de cliente" siempre muestra las 3 (o más) categorías, sin filtro de sede. */
   get filasVista(): FilaEvolucion[] {
+    const base = this.filasActivas;
     const sede = (this.form.value.sede || 'TODAS') as string;
-    const vista = sede === 'TODAS' ? this.filas : this.filas.filter(f => f.sede === sede);
+    const vista = (this.modoVista === 'sede' && sede !== 'TODAS') ? base.filter(f => f.sede === sede) : base;
     return [...vista].sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
   }
 
@@ -427,29 +525,43 @@ export class ConcrecionCarteraComponent implements OnInit {
     this.construirChart();
   }
 
+  /** Cambia entre "por sede" y "por tipo de cliente" — ambas dimensiones ya están
+   *  calculadas desde `actualizar()`, así que el cambio es instantáneo. */
+  cambiarModoVista(m: ModoVista): void {
+    if (this.modoVista === m) return;
+    this.modoVista = m;
+    this.construirChart();
+  }
+
   cambiarTipoChart(t: TipoChart): void { this.chartTipo = t; }
 
   private mesesOrden: { anio: number; mes: number; label: string }[] = [];
 
-  /** Chart en formato ancho (una fila por mes, una columna por sede) a partir de `this.filas`. */
+  /** Chart en formato ancho (una fila por mes, una columna por sede/tipo) a partir
+   *  de la dimensión activa (`filasActivas`). */
   private construirChart(): void {
-    const sedeSel = (this.form.value.sede || 'TODAS') as string;
-    const sedesChart = sedeSel === 'TODAS' ? this.sedesDisponibles : this.sedesDisponibles.filter(s => s === sedeSel);
-    const porMesSede = new Map<string, Map<string, number>>();
-    for (const f of this.filas) {
-      if (!porMesSede.has(f.mesLabel)) porMesSede.set(f.mesLabel, new Map());
-      porMesSede.get(f.mesLabel)!.set(this.sedeSlug(f.sede), Math.round(f.conversion * 1000) / 10);
+    const etiquetas = this.modoVista === 'tipo'
+      ? this.tiposDisponibles
+      : (((this.form.value.sede || 'TODAS') as string) === 'TODAS'
+          ? this.sedesDisponibles
+          : this.sedesDisponibles.filter(s => s === this.form.value.sede));
+
+    const base = this.filasActivas;
+    const porMesEtiqueta = new Map<string, Map<string, number>>();
+    for (const f of base) {
+      if (!porMesEtiqueta.has(f.mesLabel)) porMesEtiqueta.set(f.mesLabel, new Map());
+      porMesEtiqueta.get(f.mesLabel)!.set(this.sedeSlug(f.sede), Math.round(f.conversion * 1000) / 10);
     }
     this.puntos = this.mesesOrden.map(m => {
       const row: any = { mesLabel: m.label };
-      for (const sede of sedesChart) row[this.sedeSlug(sede)] = porMesSede.get(m.label)?.get(this.sedeSlug(sede)) ?? null;
+      for (const et of etiquetas) row[this.sedeSlug(et)] = porMesEtiqueta.get(m.label)?.get(this.sedeSlug(et)) ?? null;
       return row;
     });
-    this.seriesActivas = sedesChart.map((s, i) => ({ key: this.sedeSlug(s), nombre: s, color: this.PALETA[i % this.PALETA.length] }));
+    this.seriesActivas = etiquetas.map((s, i) => ({ key: this.sedeSlug(s), nombre: s, color: this.PALETA[i % this.PALETA.length] }));
   }
 
   get maxConversion(): number {
-    return this.filas.reduce((m, f) => Math.max(m, f.conversion), 0) || 1;
+    return this.filasActivas.reduce((m, f) => Math.max(m, f.conversion), 0) || 1;
   }
   barPct(conv: number): number { return Math.round((conv / this.maxConversion) * 100); }
   barClase(conv: number): string {
@@ -478,7 +590,7 @@ export class ConcrecionCarteraComponent implements OnInit {
 
     const wb = new Workbook();
     const ws = wb.addWorksheet('Concreción de Cartera');
-    const headers = ['Sede', 'Cartera asignada', 'Ventas de cartera', 'Concreción %', 'Ticket promedio S/', 'Monto S/'];
+    const headers = [this.modoVista === 'tipo' ? 'Tipo de Cliente' : 'Sede', 'Cartera asignada', 'Ventas de cartera', 'Concreción %', 'Ticket promedio S/', 'Monto S/'];
     const COLS = headers.length;
 
     const hr = ws.addRow(headers);
@@ -533,7 +645,8 @@ export class ConcrecionCarteraComponent implements OnInit {
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const sedeSel = (this.form.value.sede && this.form.value.sede !== 'TODAS') ? `_${this.form.value.sede}` : '';
-    FileSaver.saveAs(blob, `ConcrecionCartera${sedeSel}.xlsx`.replace(/\s+/g, '_'));
+    const sufModo = this.modoVista === 'tipo' ? '_PorTipoCliente' : '';
+    const sedeSel = (this.modoVista === 'sede' && this.form.value.sede && this.form.value.sede !== 'TODAS') ? `_${this.form.value.sede}` : '';
+    FileSaver.saveAs(blob, `ConcrecionCartera${sufModo}${sedeSel}.xlsx`.replace(/\s+/g, '_'));
   }
 }
