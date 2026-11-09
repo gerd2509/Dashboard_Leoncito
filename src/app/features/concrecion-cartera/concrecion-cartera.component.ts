@@ -36,6 +36,17 @@ export type TipoChart = 'line' | 'bar' | 'area' | 'spline';
 
 /** Resumen de un mes (sin DNI, sin detalle): sede (o grupo) → { asignados, vendidos, monto }. */
 type ResumenMes = Map<string, { nombre: string; asignados: number; vendidos: number; monto: number }>;
+/** Resumen de un mes CRUZADO sede × tipo de cliente. Clave = `${sede}||${grupo}`. */
+type ResumenTipoSede = Map<string, { sede: string; grupo: string; asignados: number; vendidos: number; monto: number }>;
+
+/** Fila granular (mes, sede, grupo de tipo de cliente) — la base de la vista "por tipo
+ *  de cliente", que luego se filtra a una sede o se agrega entre todas ("Todas"). */
+interface FilaTipoGranular {
+  anio: number; mes: number; mesLabel: string;
+  sede: string; grupo: string;
+  asignados: number; vendidos: number; monto: number;
+  congelado: boolean;
+}
 
 /** Modo de vista: por sede de piso, o por tipo de cliente (Afiliaciones/Reenganche/Dormidos). */
 export type ModoVista = 'sede' | 'tipo';
@@ -79,7 +90,7 @@ export class ConcrecionCarteraComponent implements OnInit {
   procesandoBase = false;
 
   filas: FilaEvolucion[] = [];
-  filasTipo: FilaEvolucion[] = [];       // misma forma, pero "sede" guarda el grupo de tipo de cliente
+  filasTipoGranular: FilaTipoGranular[] = [];   // una fila por (mes, sede, grupo) — ver filasVistaTipo
   sedesDisponibles: string[] = [];
   sedeOptions: string[] = [];
   tiposDisponibles: string[] = [];
@@ -90,6 +101,8 @@ export class ConcrecionCarteraComponent implements OnInit {
   // Sede de piso (actual) vs Tipo de cliente (Afiliaciones/Reenganche/Dormidos, como
   // en Avance de Cartera) — ambas dimensiones se calculan siempre juntas en
   // `actualizar()`, así que cambiar de modo es instantáneo (no vuelve a pedir datos).
+  // El selector de sede aplica en LOS DOS modos: en "tipo de cliente", "Todas" suma
+  // todas las sedes por grupo y una sede específica muestra el desglose de ESA sede.
   modoVista: ModoVista = 'sede';
   readonly modosVista: { value: ModoVista; label: string; icon: string }[] = [
     { value: 'sede', label: 'Por sede', icon: 'store' },
@@ -272,13 +285,14 @@ export class ConcrecionCarteraComponent implements OnInit {
   }
 
   /** Cruza la base asignada de UN mes con las ventas reales de ese mes → resumen por
-   *  SEDE y, en la misma pasada (sin pedir los datos dos veces), resumen por TIPO DE
-   *  CLIENTE (Afiliaciones/Lover A/Lover B, igual que Avance de Cartera). Vacíos si no
-   *  hay base cargada para ese mes. Solo sedes de piso: las asesoras de Call Center
-   *  (ASESORES_CALL_EN_CARTERA_PISO) no son sede física — se excluyen por completo. */
-  private async cruzarMes(anio: number, mes: number): Promise<{ porSede: ResumenMes; porTipo: ResumenMes }> {
+   *  SEDE y, en la misma pasada (sin pedir los datos dos veces), resumen por SEDE +
+   *  TIPO DE CLIENTE (Afiliaciones/Lover A/Lover B, igual que Avance de Cartera — así
+   *  el desglose por tipo también se puede ver dentro de cada sede, no solo global).
+   *  Vacíos si no hay base cargada para ese mes. Solo sedes de piso: las asesoras de
+   *  Call Center (ASESORES_CALL_EN_CARTERA_PISO) no son sede física — se excluyen. */
+  private async cruzarMes(anio: number, mes: number): Promise<{ porSede: ResumenMes; porTipoSede: ResumenTipoSede }> {
     const filasCartera = await lastValueFrom(this.ventasSrv.obtenerCarteraMensual(anio, mes));
-    if (!filasCartera.length) return { porSede: new Map(), porTipo: new Map() };
+    if (!filasCartera.length) return { porSede: new Map(), porTipoSede: new Map() };
 
     const ventas = await lastValueFrom(this.ventasSrv.obtenerVentas(anio, { mes }));
 
@@ -302,7 +316,7 @@ export class ConcrecionCarteraComponent implements OnInit {
     const baseSedeKeyPorDni = new Map<string, string>();
     const tipoPorDni = new Map<string, string>();
     const asignadosPorSedeKey = new Map<string, { nombre: string; asignados: number }>();
-    const asignadosPorTipo = new Map<string, number>();
+    const asignadosPorSedeTipo = new Map<string, { sede: string; grupo: string; asignados: number }>();
 
     for (const r of filasCartera) {
       const dni = this.soloDigitos(r.dni);
@@ -314,17 +328,20 @@ export class ConcrecionCarteraComponent implements OnInit {
 
       const grupo = this.grupoTipo(r.tipoCliente);
       tipoPorDni.set(dni, grupo);
-      asignadosPorTipo.set(grupo, (asignadosPorTipo.get(grupo) ?? 0) + 1);
 
       const key = this.sedeCfg.normalizar(r.sede || '') || 'sin-sede';
       const nombre = this.sedeCfg.getConfig(key)?.nombre ?? (r.sede || 'SIN SEDE');
       baseSedeKeyPorDni.set(dni, key);
       const g = asignadosPorSedeKey.get(key) ?? { nombre, asignados: 0 };
       g.asignados++; asignadosPorSedeKey.set(key, g);
+
+      const kST = `${nombre}||${grupo}`;
+      const gST = asignadosPorSedeTipo.get(kST) ?? { sede: nombre, grupo, asignados: 0 };
+      gST.asignados++; asignadosPorSedeTipo.set(kST, gST);
     }
 
     const vendidosPorSedeKey = new Map<string, { nombre: string; vendidos: number; monto: number }>();
-    const vendidosPorTipo = new Map<string, { vendidos: number; monto: number }>();
+    const vendidosPorSedeTipo = new Map<string, { sede: string; grupo: string; vendidos: number; monto: number }>();
     for (const [dni, key] of baseSedeKeyPorDni) {
       const porSede = ventasPorDniSede.get(dni);
       if (!porSede) continue;
@@ -336,9 +353,10 @@ export class ConcrecionCarteraComponent implements OnInit {
         g.vendidos += agg.ops; g.monto += agg.monto;
         vendidosPorSedeKey.set(sedeKeyVenta, g);
 
-        const gt = vendidosPorTipo.get(grupo) ?? { vendidos: 0, monto: 0 };
-        gt.vendidos += agg.ops; gt.monto += agg.monto;
-        vendidosPorTipo.set(grupo, gt);
+        const kST = `${nombreVenta}||${grupo}`;
+        const gST = vendidosPorSedeTipo.get(kST) ?? { sede: nombreVenta, grupo, vendidos: 0, monto: 0 };
+        gST.vendidos += agg.ops; gST.monto += agg.monto;
+        vendidosPorSedeTipo.set(kST, gST);
       }
     }
 
@@ -355,18 +373,21 @@ export class ConcrecionCarteraComponent implements OnInit {
       });
     }
 
-    const clavesTipo = new Set<string>([...asignadosPorTipo.keys(), ...vendidosPorTipo.keys()]);
-    const porTipo: ResumenMes = new Map();
-    for (const t of clavesTipo) {
-      porTipo.set(t, {
-        nombre: t,
-        asignados: asignadosPorTipo.get(t) ?? 0,
-        vendidos: vendidosPorTipo.get(t)?.vendidos ?? 0,
-        monto: Math.round(vendidosPorTipo.get(t)?.monto ?? 0),
+    const clavesTipoSede = new Set<string>([...asignadosPorSedeTipo.keys(), ...vendidosPorSedeTipo.keys()]);
+    const porTipoSede: ResumenTipoSede = new Map();
+    for (const k of clavesTipoSede) {
+      const a = asignadosPorSedeTipo.get(k);
+      const v = vendidosPorSedeTipo.get(k);
+      porTipoSede.set(k, {
+        sede: a?.sede ?? v?.sede ?? k.split('||')[0],
+        grupo: a?.grupo ?? v?.grupo ?? k.split('||')[1],
+        asignados: a?.asignados ?? 0,
+        vendidos: v?.vendidos ?? 0,
+        monto: Math.round(v?.monto ?? 0),
       });
     }
 
-    return { porSede, porTipo };
+    return { porSede, porTipoSede };
   }
 
   // ── Evolución del rango de meses elegido ────────────────────────────────────
@@ -388,14 +409,14 @@ export class ConcrecionCarteraComponent implements OnInit {
       }
 
       const filas: FilaEvolucion[] = [];
-      const filasTipo: FilaEvolucion[] = [];
+      const filasTipoGranular: FilaTipoGranular[] = [];
       const sedesSet = new Set<string>();
       const tiposSet = new Set<string>();
 
       for (const { anio, mes, label } of meses) {
         const esPasado = (anio * 12 + (mes - 1)) < mesActualTotal;
         let resumenSede: ResumenMes | null = null;
-        let resumenTipo: ResumenMes | null = null;
+        let resumenTipoSede: ResumenTipoSede | null = null;
         let congSede = false;
         let congTipo = false;
 
@@ -403,7 +424,8 @@ export class ConcrecionCarteraComponent implements OnInit {
           const snap = await lastValueFrom(this.ventasSrv.obtenerSnapshotCarteraMensual(anio, mes));
           // Defensivo: snapshots congelados ANTES de quitar "Call Center" de este
           // módulo pudieron guardar esa fila — se descarta si aparece. Las filas de
-          // la dimensión "tipo de cliente" viven en la misma tabla, con prefijo.
+          // la dimensión "tipo de cliente" viven en la misma tabla, con prefijo
+          // "TIPO::<sede>::<grupo>" (sede + grupo juntos en la misma clave).
           const snapSede = snap.filter(s => s.sede !== 'Call Center' && !s.sede.startsWith(PREFIJO_TIPO));
           const snapTipo = snap.filter(s => s.sede.startsWith(PREFIJO_TIPO));
           if (snapSede.length) {
@@ -411,10 +433,14 @@ export class ConcrecionCarteraComponent implements OnInit {
             congSede = true;
           }
           if (snapTipo.length) {
-            resumenTipo = new Map(snapTipo.map(s => {
-              const nombre = s.sede.slice(PREFIJO_TIPO.length);
-              return [nombre, { nombre, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto }];
-            }));
+            resumenTipoSede = new Map();
+            for (const s of snapTipo) {
+              const resto = s.sede.slice(PREFIJO_TIPO.length);
+              const idx = resto.indexOf('::');
+              const sedeNombre = idx >= 0 ? resto.slice(0, idx) : resto;
+              const grupo = idx >= 0 ? resto.slice(idx + 2) : 'SIN TIPO';
+              resumenTipoSede.set(`${sedeNombre}||${grupo}`, { sede: sedeNombre, grupo, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto });
+            }
             congTipo = true;
           }
         }
@@ -422,15 +448,15 @@ export class ConcrecionCarteraComponent implements OnInit {
         // Si falta cualquiera de las dos dimensiones (mes en curso, o un mes pasado
         // que se congeló ANTES de que existiera el desglose por tipo), se calcula en
         // vivo — en una sola pasada por `cruzarMes` para no pedir los datos 2 veces.
-        if (!resumenSede || !resumenTipo) {
+        if (!resumenSede || !resumenTipoSede) {
           const cruzado = await this.cruzarMes(anio, mes);
           if (!resumenSede) {
             resumenSede = cruzado.porSede;
-            if (esPasado && resumenSede.size) { this.congelarResumen(anio, mes, '', resumenSede); congSede = true; }
+            if (esPasado && resumenSede.size) { this.congelarResumen(anio, mes, resumenSede); congSede = true; }
           }
-          if (!resumenTipo) {
-            resumenTipo = cruzado.porTipo;
-            if (esPasado && resumenTipo.size) { this.congelarResumen(anio, mes, PREFIJO_TIPO, resumenTipo); congTipo = true; }
+          if (!resumenTipoSede) {
+            resumenTipoSede = cruzado.porTipoSede;
+            if (esPasado && resumenTipoSede.size) { this.congelarResumenTipoSede(anio, mes, resumenTipoSede); congTipo = true; }
           }
         }
 
@@ -444,20 +470,18 @@ export class ConcrecionCarteraComponent implements OnInit {
             congelado: congSede,
           });
         }
-        for (const r of resumenTipo.values()) {
-          tiposSet.add(r.nombre);
-          filasTipo.push({
-            anio, mes, mesLabel: label, sede: r.nombre,
+        for (const r of resumenTipoSede.values()) {
+          tiposSet.add(r.grupo);
+          filasTipoGranular.push({
+            anio, mes, mesLabel: label, sede: r.sede, grupo: r.grupo,
             asignados: r.asignados, vendidos: r.vendidos, monto: r.monto,
-            ticketPromedio: r.vendidos ? r.monto / r.vendidos : 0,
-            conversion: r.asignados ? r.vendidos / r.asignados : 0,
             congelado: congTipo,
           });
         }
       }
 
       this.filas = filas;
-      this.filasTipo = filasTipo;
+      this.filasTipoGranular = filasTipoGranular;
       this.mesesOrden = meses;
       this.sedesDisponibles = Array.from(sedesSet).sort();
       this.sedeOptions = ['TODAS', ...this.sedesDisponibles];
@@ -465,7 +489,7 @@ export class ConcrecionCarteraComponent implements OnInit {
       this.construirChart();
 
       this.yaCalculado = true;
-      if (!filas.length && !filasTipo.length) this.toast('No hay ninguna base de cartera cargada en ese rango de meses.', false);
+      if (!filas.length && !filasTipoGranular.length) this.toast('No hay ninguna base de cartera cargada en ese rango de meses.', false);
     } catch (e) {
       console.error('❌ actualizar concreción de cartera:', e);
       this.toast('No se pudo calcular la evolución (revisa la conexión).', true);
@@ -474,23 +498,64 @@ export class ConcrecionCarteraComponent implements OnInit {
     }
   }
 
-  /** Congela (snapshot) el resumen de un mes ya pasado. Nunca pisa un snapshot que
-   *  ya exista — ver POST /cartera-mensual/snapshot. `prefijo` distingue la
-   *  dimensión (vacío = sede, PREFIJO_TIPO = tipo de cliente) dentro de la misma tabla. */
-  private congelarResumen(anio: number, mes: number, prefijo: string, resumen: ResumenMes): void {
-    const filasSnap = Array.from(resumen.values()).map(r => ({ sede: prefijo + r.nombre, asignados: r.asignados, vendidos: r.vendidos, monto: r.monto }));
+  /** Congela (snapshot) el resumen por SEDE de un mes ya pasado. Nunca pisa un
+   *  snapshot que ya exista — ver POST /cartera-mensual/snapshot. */
+  private congelarResumen(anio: number, mes: number, resumen: ResumenMes): void {
+    const filasSnap = Array.from(resumen.values()).map(r => ({ sede: r.nombre, asignados: r.asignados, vendidos: r.vendidos, monto: r.monto }));
     this.ventasSrv.guardarSnapshotCarteraMensual(anio, mes, filasSnap).subscribe({ error: () => {} });
   }
 
-  /** Datos de la dimensión activa (sede o tipo de cliente). */
-  get filasActivas(): FilaEvolucion[] { return this.modoVista === 'tipo' ? this.filasTipo : this.filas; }
+  /** Congela (snapshot) el resumen SEDE × TIPO DE CLIENTE de un mes ya pasado, en la
+   *  misma tabla que el de sede, con la clave `TIPO::<sede>::<grupo>`. */
+  private congelarResumenTipoSede(anio: number, mes: number, resumen: ResumenTipoSede): void {
+    const filasSnap = Array.from(resumen.values()).map(r => ({ sede: `${PREFIJO_TIPO}${r.sede}::${r.grupo}`, asignados: r.asignados, vendidos: r.vendidos, monto: r.monto }));
+    this.ventasSrv.guardarSnapshotCarteraMensual(anio, mes, filasSnap).subscribe({ error: () => {} });
+  }
+
+  /** Vista "por tipo de cliente": si hay una sede elegida, el desglose de ESA sede
+   *  (una fila por grupo); si es "Todas", suma todas las sedes por grupo. */
+  get filasVistaTipo(): FilaEvolucion[] {
+    const sede = (this.form.value.sede || 'TODAS') as string;
+    if (sede !== 'TODAS') {
+      return this.filasTipoGranular
+        .filter(f => f.sede === sede)
+        .map(f => ({
+          anio: f.anio, mes: f.mes, mesLabel: f.mesLabel, sede: f.grupo,
+          asignados: f.asignados, vendidos: f.vendidos, monto: f.monto,
+          ticketPromedio: f.vendidos ? f.monto / f.vendidos : 0,
+          conversion: f.asignados ? f.vendidos / f.asignados : 0,
+          congelado: f.congelado,
+        }))
+        .sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
+    }
+    const acc = new Map<string, FilaEvolucion>();
+    for (const f of this.filasTipoGranular) {
+      const k = `${f.mesLabel}||${f.grupo}`;
+      const cur = acc.get(k) ?? {
+        anio: f.anio, mes: f.mes, mesLabel: f.mesLabel, sede: f.grupo,
+        asignados: 0, vendidos: 0, monto: 0, ticketPromedio: 0, conversion: 0, congelado: true,
+      };
+      cur.asignados += f.asignados;
+      cur.vendidos += f.vendidos;
+      cur.monto += f.monto;
+      cur.congelado = cur.congelado && f.congelado;   // "Todas" solo se ve 🔒 si TODAS las sedes de ese mes ya congelaron
+      acc.set(k, cur);
+    }
+    const out = [...acc.values()];
+    for (const f of out) {
+      f.ticketPromedio = f.vendidos ? f.monto / f.vendidos : 0;
+      f.conversion = f.asignados ? f.vendidos / f.asignados : 0;
+    }
+    return out.sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
+  }
 
   /** Filas de la tabla: en modo "sede" respeta el filtro de sede elegido; en modo
-   *  "tipo de cliente" siempre muestra las 3 (o más) categorías, sin filtro de sede. */
+   *  "tipo de cliente" también — "Todas" suma todas las sedes, una sede específica
+   *  muestra solo su propio desglose por tipo. */
   get filasVista(): FilaEvolucion[] {
-    const base = this.filasActivas;
+    if (this.modoVista === 'tipo') return this.filasVistaTipo;
     const sede = (this.form.value.sede || 'TODAS') as string;
-    const vista = (this.modoVista === 'sede' && sede !== 'TODAS') ? base.filter(f => f.sede === sede) : base;
+    const vista = sede === 'TODAS' ? this.filas : this.filas.filter(f => f.sede === sede);
     return [...vista].sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
   }
 
@@ -537,16 +602,16 @@ export class ConcrecionCarteraComponent implements OnInit {
 
   private mesesOrden: { anio: number; mes: number; label: string }[] = [];
 
-  /** Chart en formato ancho (una fila por mes, una columna por sede/tipo) a partir
-   *  de la dimensión activa (`filasActivas`). */
+  /** Chart en formato ancho (una fila por mes, una columna por sede o por grupo de
+   *  tipo de cliente, según el modo y la sede elegida) a partir de `filasVista`. */
   private construirChart(): void {
+    const base = this.filasVista;
     const etiquetas = this.modoVista === 'tipo'
       ? this.tiposDisponibles
       : (((this.form.value.sede || 'TODAS') as string) === 'TODAS'
           ? this.sedesDisponibles
           : this.sedesDisponibles.filter(s => s === this.form.value.sede));
 
-    const base = this.filasActivas;
     const porMesEtiqueta = new Map<string, Map<string, number>>();
     for (const f of base) {
       if (!porMesEtiqueta.has(f.mesLabel)) porMesEtiqueta.set(f.mesLabel, new Map());
@@ -561,7 +626,10 @@ export class ConcrecionCarteraComponent implements OnInit {
   }
 
   get maxConversion(): number {
-    return this.filasActivas.reduce((m, f) => Math.max(m, f.conversion), 0) || 1;
+    const valores = this.modoVista === 'tipo'
+      ? this.filasTipoGranular.map(f => f.asignados ? f.vendidos / f.asignados : 0)
+      : this.filas.map(f => f.conversion);
+    return valores.reduce((m, v) => Math.max(m, v), 0) || 1;
   }
   barPct(conv: number): number { return Math.round((conv / this.maxConversion) * 100); }
   barClase(conv: number): string {
@@ -646,7 +714,7 @@ export class ConcrecionCarteraComponent implements OnInit {
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const sufModo = this.modoVista === 'tipo' ? '_PorTipoCliente' : '';
-    const sedeSel = (this.modoVista === 'sede' && this.form.value.sede && this.form.value.sede !== 'TODAS') ? `_${this.form.value.sede}` : '';
+    const sedeSel = (this.form.value.sede && this.form.value.sede !== 'TODAS') ? `_${this.form.value.sede}` : '';
     FileSaver.saveAs(blob, `ConcrecionCartera${sufModo}${sedeSel}.xlsx`.replace(/\s+/g, '_'));
   }
 }

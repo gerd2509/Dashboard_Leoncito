@@ -49,8 +49,9 @@
         [calendarOptions]="{ maxZoomLevel: 'year' }" label="Hasta" labelMode="floating"
         stylingMode="filled" width="150" [openOnFieldClick]="true"></dx-date-box>
 
-      <dx-select-box *ngIf="sedeOptions.length && modoVista === 'sede'" formControlName="sede" [dataSource]="sedeOptions"
-        label="Sede" labelMode="floating" stylingMode="filled" width="220" (onValueChanged)="aplicarSede()"></dx-select-box>
+      <dx-select-box *ngIf="sedeOptions.length" formControlName="sede" [dataSource]="sedeOptions"
+        [label]="modoVista === 'tipo' ? 'Sede (o Todas)' : 'Sede'" labelMode="floating" stylingMode="filled" width="220"
+        (onValueChanged)="aplicarSede()"></dx-select-box>
 
       <button class="cc-btn cc-btn-primary" (click)="actualizar()" [disabled]="isLoading">
         <mat-icon>insights</mat-icon> Calcular evolución
@@ -64,7 +65,8 @@
         (click)="cambiarModoVista(m.value)">
         <mat-icon>{{ m.icon }}</mat-icon> {{ m.label }}
       </button>
-      <small *ngIf="modoVista === 'tipo'">Desglose global (todas las sedes juntas) por tipo de cliente de la cartera.</small>
+      <small *ngIf="modoVista === 'tipo' && (!form.value.sede || form.value.sede === 'TODAS')">Mostrando la suma de todas las sedes por tipo de cliente — elige una sede arriba para ver su propio desglose.</small>
+      <small *ngIf="modoVista === 'tipo' && form.value.sede && form.value.sede !== 'TODAS'">Desglose por tipo de cliente de {{ form.value.sede }}.</small>
     </div>
   </div>
 </div><!-- /vd-fixed -->
@@ -127,8 +129,10 @@
       <div *dxTemplate="let d of 'content'" class="cc-info-popup">
         <p>Cada línea/barra es una <b>sede de piso</b> (no incluye Call Center) o, si cambias a
           "Ver por tipo de cliente", un grupo de la cartera (Afiliaciones, Reenganche/Cancelado,
-          Dormidos/No Vigentes — igual que en Avance de Cartera). El valor es la
-          <b>concreción</b>: cuántas de las personas en la cartera asignada de ese mes terminaron comprando.</p>
+          Dormidos/No Vigentes — igual que en Avance de Cartera). El selector de sede también
+          aplica en ese modo: elige una sede para ver SU desglose por tipo, o "Todas" para la
+          suma de todas. El valor es la <b>concreción</b>: cuántas de las personas en la cartera
+          asignada de ese mes terminaron comprando.</p>
         <p><code>Concreción = Ventas de cartera ÷ Cartera asignada</code> del mismo mes (y sede o tipo).</p>
         <p>Un mes ya pasado se <b>congela</b> (🔒) la primera vez que se calcula: una Nota de
           Crédito o incautación posterior a ese cierre ya no le mueve el número. El mes en
@@ -224,7 +228,7 @@
       </div>
       <div *ngIf="!gruposVista.length" class="cc-empty">
         <mat-icon>search_off</mat-icon>
-        <p>No hay base de cartera cargada en este rango{{ (modoVista === 'sede' && form.value.sede && form.value.sede !== 'TODAS') ? (' para ' + form.value.sede) : '' }}.</p>
+        <p>No hay base de cartera cargada en este rango{{ (form.value.sede && form.value.sede !== 'TODAS') ? (' para ' + form.value.sede) : '' }}.</p>
       </div>
     </div>
   </div>
