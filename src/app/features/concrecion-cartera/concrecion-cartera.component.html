@@ -65,7 +65,7 @@
         (click)="cambiarModoVista(m.value)">
         <mat-icon>{{ m.icon }}</mat-icon> {{ m.label }}
       </button>
-      <small *ngIf="modoVista === 'tipo' && (!form.value.sede || form.value.sede === 'TODAS')">Mostrando la suma de todas las sedes por tipo de cliente — elige una sede arriba para ver su propio desglose.</small>
+      <small *ngIf="modoVista === 'tipo' && (!form.value.sede || form.value.sede === 'TODAS')">Mostrando cada sede con su propio desglose (Afiliaciones/Lover A/Lover B) — el gráfico sí suma todas las sedes por grupo.</small>
       <small *ngIf="modoVista === 'tipo' && form.value.sede && form.value.sede !== 'TODAS'">Desglose por tipo de cliente de {{ form.value.sede }}.</small>
     </div>
   </div>
@@ -129,10 +129,11 @@
       <div *dxTemplate="let d of 'content'" class="cc-info-popup">
         <p>Cada línea/barra es una <b>sede de piso</b> (no incluye Call Center) o, si cambias a
           "Ver por tipo de cliente", un grupo de la cartera (Afiliaciones, Reenganche/Cancelado,
-          Dormidos/No Vigentes — igual que en Avance de Cartera). El selector de sede también
-          aplica en ese modo: elige una sede para ver SU desglose por tipo, o "Todas" para la
-          suma de todas. El valor es la <b>concreción</b>: cuántas de las personas en la cartera
-          asignada de ese mes terminaron comprando.</p>
+          Dormidos/No Vigentes — igual que en Avance de Cartera), sumando todas las sedes. En la
+          <b>tabla</b> de ese modo el selector de sede también aplica: con una sede elegida ves SU
+          desglose; con "Todas", se listan todas las sedes, cada una con sus 3 grupos. El valor es
+          la <b>concreción</b>: cuántas de las personas en la cartera asignada de ese mes
+          terminaron comprando.</p>
         <p><code>Concreción = Ventas de cartera ÷ Cartera asignada</code> del mismo mes (y sede o tipo).</p>
         <p>Un mes ya pasado se <b>congela</b> (🔒) la primera vez que se calcula: una Nota de
           Crédito o incautación posterior a ese cierre ya no le mueve el número. El mes en
@@ -185,9 +186,10 @@
         <table class="cc-table" *ngFor="let g of gruposVista">
           <thead>
             <tr class="cc-mes-head">
-              <th colspan="7" class="l">{{ g.mesLabel }}</th>
+              <th [attr.colspan]="mostrarColSede ? 8 : 7" class="l">{{ g.mesLabel }}</th>
             </tr>
             <tr>
+              <th class="l" *ngIf="mostrarColSede">Sede</th>
               <th class="l">{{ modoVista === 'tipo' ? 'Tipo de cliente' : 'Sede' }}</th>
               <th>Cartera asignada</th>
               <th>Ventas de cartera</th>
@@ -199,6 +201,7 @@
           </thead>
           <tbody>
             <tr *ngFor="let f of g.filas">
+              <td class="l td-sede" *ngIf="mostrarColSede"><mat-icon>store</mat-icon>{{ f.sedeOrigen }}</td>
               <td class="l td-sede"><mat-icon>{{ modoVista === 'tipo' ? 'category' : 'store' }}</mat-icon>{{ f.sede }}</td>
               <td>{{ f.asignados | number }}</td>
               <td class="td-vend">{{ f.vendidos | number }}</td>
@@ -215,6 +218,7 @@
           </tbody>
           <tfoot>
             <tr>
+              <td class="l" *ngIf="mostrarColSede"></td>
               <td class="l">TOTAL</td>
               <td>{{ g.total.asignados | number }}</td>
               <td>{{ g.total.vendidos | number }}</td>

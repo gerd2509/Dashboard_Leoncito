@@ -20,6 +20,9 @@ interface FilaEvolucion {
   mes: number;
   mesLabel: string;
   sede: string;
+  /** Solo en modo "tipo de cliente" con sede = "Todas": la sede real de esta fila
+   *  (ahí `sede` muestra el grupo — Afiliaciones/Lover A/Lover B — y esta es la sede). */
+  sedeOrigen?: string;
   asignados: number;
   vendidos: number;
   monto: number;
@@ -433,15 +436,18 @@ export class ConcrecionCarteraComponent implements OnInit {
             congSede = true;
           }
           if (snapTipo.length) {
-            resumenTipoSede = new Map();
+            const resumenTmp = new Map<string, { sede: string; grupo: string; asignados: number; vendidos: number; monto: number }>();
             for (const s of snapTipo) {
               const resto = s.sede.slice(PREFIJO_TIPO.length);
               const idx = resto.indexOf('::');
-              const sedeNombre = idx >= 0 ? resto.slice(0, idx) : resto;
-              const grupo = idx >= 0 ? resto.slice(idx + 2) : 'SIN TIPO';
-              resumenTipoSede.set(`${sedeNombre}||${grupo}`, { sede: sedeNombre, grupo, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto });
+              if (idx < 0) continue;   // formato viejo (global, sin sede) — se ignora, se recalcula en vivo
+              const sedeNombre = resto.slice(0, idx);
+              const grupo = resto.slice(idx + 2);
+              resumenTmp.set(`${sedeNombre}||${grupo}`, { sede: sedeNombre, grupo, asignados: s.asignados, vendidos: s.vendidos, monto: s.monto });
             }
-            congTipo = true;
+            // Solo se da por "congelado" si quedó al menos una fila válida con el
+            // formato nuevo — si todo era formato viejo, se recalcula y congela de nuevo.
+            if (resumenTmp.size) { resumenTipoSede = resumenTmp; congTipo = true; }
           }
         }
 
@@ -512,41 +518,24 @@ export class ConcrecionCarteraComponent implements OnInit {
     this.ventasSrv.guardarSnapshotCarteraMensual(anio, mes, filasSnap).subscribe({ error: () => {} });
   }
 
-  /** Vista "por tipo de cliente": si hay una sede elegida, el desglose de ESA sede
-   *  (una fila por grupo); si es "Todas", suma todas las sedes por grupo. */
+  /** Vista "por tipo de cliente": si hay una sede elegida, su desglose (una fila por
+   *  grupo, sin columna de sede — ya está implícita en el filtro). Con "Todas", UNA
+   *  FILA POR CADA (sede, grupo): se listan las sedes y, para cada una, sus 3
+   *  categorías — no se suman entre sedes (`sedeOrigen` alimenta la columna "Sede"). */
   get filasVistaTipo(): FilaEvolucion[] {
     const sede = (this.form.value.sede || 'TODAS') as string;
-    if (sede !== 'TODAS') {
-      return this.filasTipoGranular
-        .filter(f => f.sede === sede)
-        .map(f => ({
-          anio: f.anio, mes: f.mes, mesLabel: f.mesLabel, sede: f.grupo,
-          asignados: f.asignados, vendidos: f.vendidos, monto: f.monto,
-          ticketPromedio: f.vendidos ? f.monto / f.vendidos : 0,
-          conversion: f.asignados ? f.vendidos / f.asignados : 0,
-          congelado: f.congelado,
-        }))
-        .sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
-    }
-    const acc = new Map<string, FilaEvolucion>();
-    for (const f of this.filasTipoGranular) {
-      const k = `${f.mesLabel}||${f.grupo}`;
-      const cur = acc.get(k) ?? {
+    const base = sede === 'TODAS' ? this.filasTipoGranular : this.filasTipoGranular.filter(f => f.sede === sede);
+    return base
+      .map(f => ({
         anio: f.anio, mes: f.mes, mesLabel: f.mesLabel, sede: f.grupo,
-        asignados: 0, vendidos: 0, monto: 0, ticketPromedio: 0, conversion: 0, congelado: true,
-      };
-      cur.asignados += f.asignados;
-      cur.vendidos += f.vendidos;
-      cur.monto += f.monto;
-      cur.congelado = cur.congelado && f.congelado;   // "Todas" solo se ve 🔒 si TODAS las sedes de ese mes ya congelaron
-      acc.set(k, cur);
-    }
-    const out = [...acc.values()];
-    for (const f of out) {
-      f.ticketPromedio = f.vendidos ? f.monto / f.vendidos : 0;
-      f.conversion = f.asignados ? f.vendidos / f.asignados : 0;
-    }
-    return out.sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes) || a.sede.localeCompare(b.sede));
+        sedeOrigen: sede === 'TODAS' ? f.sede : undefined,
+        asignados: f.asignados, vendidos: f.vendidos, monto: f.monto,
+        ticketPromedio: f.vendidos ? f.monto / f.vendidos : 0,
+        conversion: f.asignados ? f.vendidos / f.asignados : 0,
+        congelado: f.congelado,
+      }))
+      .sort((a, b) => (a.anio * 12 + a.mes) - (b.anio * 12 + b.mes)
+        || (a.sedeOrigen || '').localeCompare(b.sedeOrigen || '') || a.sede.localeCompare(b.sede));
   }
 
   /** Filas de la tabla: en modo "sede" respeta el filtro de sede elegido; en modo
@@ -600,17 +589,49 @@ export class ConcrecionCarteraComponent implements OnInit {
 
   cambiarTipoChart(t: TipoChart): void { this.chartTipo = t; }
 
+  /** true = la tabla necesita la columna extra "Sede" (modo tipo + "Todas"). */
+  get mostrarColSede(): boolean {
+    const sede = (this.form.value.sede || 'TODAS') as string;
+    return this.modoVista === 'tipo' && sede === 'TODAS';
+  }
+
   private mesesOrden: { anio: number; mes: number; label: string }[] = [];
 
+  /** Solo para el gráfico cuando modo = "tipo" y sede = "Todas": suma todas las
+   *  sedes por (mes, grupo) — la TABLA sigue mostrando cada sede por separado. */
+  private agregarTipoPorGrupo(): FilaEvolucion[] {
+    const acc = new Map<string, FilaEvolucion>();
+    for (const f of this.filasTipoGranular) {
+      const k = `${f.mesLabel}||${f.grupo}`;
+      const cur = acc.get(k) ?? {
+        anio: f.anio, mes: f.mes, mesLabel: f.mesLabel, sede: f.grupo,
+        asignados: 0, vendidos: 0, monto: 0, ticketPromedio: 0, conversion: 0, congelado: true,
+      };
+      cur.asignados += f.asignados;
+      cur.vendidos += f.vendidos;
+      cur.monto += f.monto;
+      acc.set(k, cur);
+    }
+    const out = [...acc.values()];
+    for (const f of out) f.conversion = f.asignados ? f.vendidos / f.asignados : 0;
+    return out;
+  }
+
   /** Chart en formato ancho (una fila por mes, una columna por sede o por grupo de
-   *  tipo de cliente, según el modo y la sede elegida) a partir de `filasVista`. */
+   *  tipo de cliente, según el modo y la sede elegida). En modo "tipo" + "Todas", el
+   *  gráfico agrega (suma) las sedes por grupo — si no, con `filasVistaTipo` saldría
+   *  una serie "LOVER A" repetida por cada sede pisándose entre sí. */
   private construirChart(): void {
-    const base = this.filasVista;
-    const etiquetas = this.modoVista === 'tipo'
-      ? this.tiposDisponibles
-      : (((this.form.value.sede || 'TODAS') as string) === 'TODAS'
-          ? this.sedesDisponibles
-          : this.sedesDisponibles.filter(s => s === this.form.value.sede));
+    const sedeSel = (this.form.value.sede || 'TODAS') as string;
+    let etiquetas: string[];
+    let base: FilaEvolucion[];
+    if (this.modoVista === 'tipo') {
+      etiquetas = this.tiposDisponibles;
+      base = sedeSel === 'TODAS' ? this.agregarTipoPorGrupo() : this.filasVistaTipo;
+    } else {
+      etiquetas = sedeSel === 'TODAS' ? this.sedesDisponibles : this.sedesDisponibles.filter(s => s === sedeSel);
+      base = this.filas;
+    }
 
     const porMesEtiqueta = new Map<string, Map<string, number>>();
     for (const f of base) {
@@ -651,14 +672,23 @@ export class ConcrecionCarteraComponent implements OnInit {
 
   /** Exporta TODO el rango calculado (respeta el filtro de sede) a Excel, con
    *  formato: una banda por mes (para que se note el corte entre meses) y las
-   *  columnas de conversión/ticket/monto con su propio formato numérico. */
+   *  columnas de conversión/ticket/monto con su propio formato numérico. En modo
+   *  "tipo de cliente" + "Todas" agrega una columna "Sede" al inicio (cada fila ya
+   *  es una sede + su grupo, ver `mostrarColSede`). */
   async exportarExcel(): Promise<void> {
     const grupos = this.gruposVista;
     if (!grupos.length) { this.toast('No hay datos para exportar.', true); return; }
 
+    const conSede = this.mostrarColSede;
+    const off = conSede ? 1 : 0;   // desplaza las columnas numéricas si hay columna "Sede"
+
     const wb = new Workbook();
     const ws = wb.addWorksheet('Concreción de Cartera');
-    const headers = [this.modoVista === 'tipo' ? 'Tipo de Cliente' : 'Sede', 'Cartera asignada', 'Ventas de cartera', 'Concreción %', 'Ticket promedio S/', 'Monto S/'];
+    const headers = [
+      ...(conSede ? ['Sede'] : []),
+      this.modoVista === 'tipo' ? 'Tipo de Cliente' : 'Sede',
+      'Cartera asignada', 'Ventas de cartera', 'Concreción %', 'Ticket promedio S/', 'Monto S/',
+    ];
     const COLS = headers.length;
 
     const hr = ws.addRow(headers);
@@ -669,16 +699,16 @@ export class ConcrecionCarteraComponent implements OnInit {
     });
 
     const pintarFilaDatos = (row: any, bold: boolean) => {
-      row.getCell(2).alignment = { horizontal: 'center' };
-      row.getCell(3).alignment = { horizontal: 'center' };
-      row.getCell(4).alignment = { horizontal: 'center' };
-      row.getCell(4).numFmt = '0.0"%"';
-      row.getCell(5).alignment = { horizontal: 'right' };
-      row.getCell(5).numFmt = '"S/" #,##0';
-      row.getCell(6).alignment = { horizontal: 'right' };
-      row.getCell(6).numFmt = '"S/" #,##0';
+      row.getCell(2 + off).alignment = { horizontal: 'center' };
+      row.getCell(3 + off).alignment = { horizontal: 'center' };
+      row.getCell(4 + off).alignment = { horizontal: 'center' };
+      row.getCell(4 + off).numFmt = '0.0"%"';
+      row.getCell(5 + off).alignment = { horizontal: 'right' };
+      row.getCell(5 + off).numFmt = '"S/" #,##0';
+      row.getCell(6 + off).alignment = { horizontal: 'right' };
+      row.getCell(6 + off).numFmt = '"S/" #,##0';
       if (bold) row.eachCell((cell: any) => { cell.font = { ...(cell.font || {}), bold: true }; });
-      else row.getCell(6).font = { bold: true };
+      else row.getCell(6 + off).font = { bold: true };
     };
 
     for (const g of grupos) {
@@ -691,6 +721,7 @@ export class ConcrecionCarteraComponent implements OnInit {
 
       for (const f of g.filas) {
         const row = ws.addRow([
+          ...(conSede ? [f.sedeOrigen || ''] : []),
           f.sede, f.asignados, f.vendidos,
           Math.round(f.conversion * 1000) / 10,
           Math.round(f.ticketPromedio), Math.round(f.monto),
@@ -700,6 +731,7 @@ export class ConcrecionCarteraComponent implements OnInit {
 
       const t = g.total;
       const totalRow = ws.addRow([
+        ...(conSede ? [''] : []),
         'TOTAL', t.asignados, t.vendidos,
         Math.round(t.conversion * 1000) / 10,
         Math.round(t.ticketPromedio), Math.round(t.monto),
@@ -708,7 +740,7 @@ export class ConcrecionCarteraComponent implements OnInit {
       pintarFilaDatos(totalRow, true);
     }
 
-    ws.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 18; });
+    ws.columns.forEach((col, i) => { col.width = i <= off ? 22 : 18; });
     ws.views = [{ state: 'frozen', ySplit: 1 }];
 
     const buffer = await wb.xlsx.writeBuffer();
