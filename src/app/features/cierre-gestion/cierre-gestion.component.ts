@@ -653,14 +653,19 @@ export class CierreGestionComponent implements OnInit {
   }
 
   // LOGICA AGENDAMIENTOS
+  // Suma agendamientos de la gestión normal + gestión KOMMO + gestión Market Place
+  // (KOMMO y Market Place viven en la MISMA tabla dataKOMMO, separadas solo por la
+  // columna MARKET PLACE L/R — para agendamientos no importa esa distinción, cuentan ambas).
   calcularAgendamientosCall() {
-    const res = this.procesarAgendamientos(this.dataOriginal, this.asesoresCall, 'ASESOR CONTACT');
+    const fuente = [...this.dataOriginal, ...this.dataKOMMO];
+    const res = this.procesarAgendamientos(fuente, this.asesoresCall, 'ASESOR CONTACT');
     this.dataAgendamientosCall = res.data;
     this.porcentajeMetaCall = res.porcentajeMeta;
   }
 
   calcularAgendamientosRealzza() {
-    const res = this.procesarAgendamientos(this.dataRealzza, this.asesoresRealzza, 'ASESOR REALZZA');
+    const fuente = [...this.dataRealzza, ...this.dataKOMMO];
+    const res = this.procesarAgendamientos(fuente, this.asesoresRealzza, 'ASESOR REALZZA');
     this.dataAgendamientosRealzza = res.data;
     this.porcentajeMetaRealzza = res.porcentajeMeta;
   }
