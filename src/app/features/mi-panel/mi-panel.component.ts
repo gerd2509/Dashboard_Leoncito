@@ -279,6 +279,12 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   agendaPorOrigen: Record<string, number> = {};
   popupDetalle: '' | 'deriv' | 'agenda' = '';
   private readonly MOTIVO_AGENDA = 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)';
+  // Metas diarias por asesor de Realzza Chiclayo: gestión normal (llamadas), agendamientos
+  // (cuentan de CUALQUIER gestión normal, ya se calculan así arriba), KOMMO y Market Place.
+  private readonly META_RZ_LLAMADAS = 30;
+  private readonly META_RZ_AGENDA = 5;
+  private readonly META_RZ_KOMMO = 5;
+  private readonly META_RZ_MARKET = 5;
   // KOMMO del día
   kommoTotal = 0; kommoContacto = 0; kommoNoContacto = 0;
   // Market Place del día
@@ -351,6 +357,36 @@ export class MiPanelComponent implements OnInit, OnDestroy {
   /** ¿Es vendedor Call? / Realzza? (para mostrar sus análisis específicos). */
   get esCall(): boolean { return (this.canal || '').toLowerCase() === 'call'; }
   get esRealzza(): boolean { return (this.canal || '').toLowerCase() === 'realzza'; }
+  // Por ahora las metas de gestión (llamadas/agendamientos/KOMMO/Market Place) solo
+  // aplican a Realzza CHICLAYO — Piura/Lima usan su propia tienda fija, así que quedan
+  // fuera (sedeRealzzaDeUsuario devuelve 'REALZZA' solo para Chiclayo/cuentas globales).
+  get esRealzzaChiclayo(): boolean {
+    return this.esRealzza && sedeRealzzaDeUsuario(this.auth.getUsuario()) === 'REALZZA';
+  }
+
+  /** Meta del día vs. lo avanzado, por categoría — solo Realzza Chiclayo. */
+  get metaGestionDia(): { clave: string; icono: string; actual: number; meta: number; falta: number; pct: number }[] {
+    if (!this.esRealzzaChiclayo) return [];
+    const items = [
+      { clave: 'Llamadas', icono: 'call', actual: this.gestReales, meta: this.META_RZ_LLAMADAS },
+      { clave: 'Agendamientos', icono: 'event_available', actual: this.gestAgendamientos, meta: this.META_RZ_AGENDA },
+      { clave: 'KOMMO', icono: 'public', actual: this.kommoTotal, meta: this.META_RZ_KOMMO },
+      { clave: 'Market Place', icono: 'storefront', actual: this.mpTotal, meta: this.META_RZ_MARKET },
+    ];
+    return items.map(i => ({
+      ...i,
+      falta: Math.max(i.meta - i.actual, 0),
+      pct: i.meta > 0 ? Math.min(Math.round((i.actual / i.meta) * 100), 100) : 0,
+    }));
+  }
+  /** Solo las categorías donde todavía falta llegar a la meta (para la alerta). */
+  get metaGestionPendientes() {
+    return this.metaGestionDia.filter(i => i.falta > 0);
+  }
+  /** Meta de una categoría puntual (para pintarla bajo su mini-tarjeta de KPI). */
+  metaDeCategoria(clave: string) {
+    return this.metaGestionDia.find(m => m.clave === clave);
+  }
 
   // Casos híbridos: vendedores cuyas VENTAS son de un canal pero sus GESTIONES se
   // registran en otro. BRENDA vendía como Realzza pero gestionaba en Call (hasta

@@ -41,17 +41,21 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
   background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 16px 18px;
   box-shadow: 0 3px 12px rgba(20,49,79,.05);
 }
-.mp-kpi mat-icon { font-size: 34px; width: 34px; height: 34px; }
+.mp-kpi mat-icon {
+  font-size: 22px; width: 46px; height: 46px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 13px; background: #eef3fb; /* fallback; cada variante pinta la suya abajo */
+}
 .mp-kpi .v { display: block; font-size: 21px; font-weight: 800; color: #1E3A5F; }
 .mp-kpi .l { display: block; font-size: 12.5px; color: #6b8299; }
-.mp-kpi.k1 mat-icon { color: #2E7D32; }
-.mp-kpi.k2 mat-icon { color: #1A5FAD; }
-.mp-kpi.k3 mat-icon { color: #E65100; }
-.mp-kpi.k4 mat-icon { color: #6A1B9A; }
-.mp-kpi.g1 mat-icon { color: #1565C0; }
-.mp-kpi.g2 mat-icon { color: #2E7D32; }
-.mp-kpi.g3 mat-icon { color: #C62828; }
-.mp-kpi.g4 mat-icon { color: #6A1B9A; }
+.mp-kpi.k1 mat-icon { color: #2E7D32; background: rgba(46,125,50,.14); }
+.mp-kpi.k2 mat-icon { color: #1A5FAD; background: rgba(26,95,173,.14); }
+.mp-kpi.k3 mat-icon { color: #E65100; background: rgba(230,81,0,.14); }
+.mp-kpi.k4 mat-icon { color: #6A1B9A; background: rgba(106,27,154,.14); }
+.mp-kpi.g1 mat-icon { color: #1565C0; background: rgba(21,101,192,.14); }
+.mp-kpi.g2 mat-icon { color: #2E7D32; background: rgba(46,125,50,.14); }
+.mp-kpi.g3 mat-icon { color: #C62828; background: rgba(198,40,40,.14); }
+.mp-kpi.g4 mat-icon { color: #6A1B9A; background: rgba(106,27,154,.14); }
 
 /* ── Paneles colapsables (acordeón con efectos) ── */
 .mp-panel {
@@ -139,7 +143,12 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 }
 .mp-charts-2 .mp-card { margin-top: 0; }
 .mp-card-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 6px; text-transform: uppercase; }
-.mp-card-h mat-icon { color: #1A5FAD; }
+.mp-card-h mat-icon {
+  color: #1A5FAD;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 9px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
 .mp-count { background: #eef5fc; color: #1A5FAD; font-size: 12px; font-weight: 700; padding: 1px 10px; border-radius: 999px; }
 .mp-chart { height: 320px; width: 100%; }
 .mp-chart.tall { height: 400px; }
@@ -267,8 +276,8 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
   .mp-kpi mat-icon { font-size: 28px; width: 28px; height: 28px; }
 }
 /* KPIs Market Place / Derivaciones (sede) */
-.mp-kpi.g5 mat-icon { color: #E65100; }
-.mp-kpi.g6 mat-icon { color: #2E7D32; }
+.mp-kpi.g5 mat-icon { color: #E65100; background: rgba(230,81,0,.14); }
+.mp-kpi.g6 mat-icon { color: #2E7D32; background: rgba(46,125,50,.14); }
 
 /* Minicards clicables + chevron */
 .mp-mini.mm-click { cursor: pointer; transition: transform .1s, box-shadow .15s; }
@@ -317,6 +326,34 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mp-seg-tag { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #fff3e0; color: #b26a00; }
 .mp-seg-tag.venc { background: #fdecec; color: #C62828; }
 .mp-seg-dd { font-size: 11px; color: #8a97ab; }
+
+/* ── Meta de gestión del día (Realzza Chiclayo): llamadas/agendamientos/KOMMO/Market ── */
+.mp-meta-banner {
+  display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px;
+  background: linear-gradient(135deg, #FDECEC, #FAD4D4); color: #8a1f1f;
+  border: 1px solid #f3b7b7; border-radius: 12px; padding: 12px 14px; font-size: 13.5px;
+}
+.mp-meta-banner.ok {
+  background: linear-gradient(135deg, #E8F5E9, #C8E6C9); color: #1B5E20;
+  border-color: #a5d6a7; align-items: center; font-weight: 700;
+}
+.mp-meta-banner mat-icon { color: #C62828; flex: 0 0 auto; margin-top: 2px; }
+.mp-meta-banner.ok mat-icon { color: #2E7D32; margin-top: 0; }
+.mp-meta-txt { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.mp-meta-tit { font-weight: 800; }
+.mp-meta-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.mp-meta-chip {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700;
+  background: rgba(255,255,255,.6); color: #8a1f1f; border-radius: 999px; padding: 4px 10px;
+}
+.mp-meta-chip mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+/* Barra de meta bajo cada mini-tarjeta (Llamadas/KOMMO/Market/Agendamientos) */
+.mm-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+.mm-meta-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,.3); overflow: hidden; }
+.mm-meta-fill { height: 100%; border-radius: 99px; background: #fff; opacity: .65; transition: width .4s ease; }
+.mm-meta-fill.ok { opacity: 1; background: #C6FF00; }
+.mm-meta-txt { font-size: 10.5px; font-weight: 700; opacity: .9; }
 
 /* ── Modal bloqueante de seguimiento (centro de pantalla) ── */
 .mp-seg-modal-bg {

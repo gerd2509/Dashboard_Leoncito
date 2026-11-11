@@ -90,6 +90,23 @@
       </div>
     </section>
 
+    <!-- ══════════ META DE GESTIÓN DEL DÍA (Realzza Chiclayo): llamadas/agendamientos/KOMMO/Market Place ══════════ -->
+    <div class="mp-meta-banner" *ngIf="esRealzzaChiclayo && gestEsHoy && !gestCargando && metaGestionPendientes.length">
+      <mat-icon>flag</mat-icon>
+      <div class="mp-meta-txt">
+        <span class="mp-meta-tit">Aún no llegas a tu meta de gestión de hoy</span>
+        <div class="mp-meta-chips">
+          <span class="mp-meta-chip" *ngFor="let m of metaGestionPendientes">
+            <mat-icon>{{ m.icono }}</mat-icon> {{ m.clave }}: {{ m.actual }}/{{ m.meta }} · faltan {{ m.falta }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="mp-meta-banner ok" *ngIf="esRealzzaChiclayo && gestEsHoy && !gestCargando && metaGestionDia.length && !metaGestionPendientes.length">
+      <mat-icon>celebration</mat-icon>
+      <span>¡Meta de gestión del día cumplida en las 4 categorías! 🎉</span>
+    </div>
+
     <!-- ══════════ MI SUELDO (Call / Realzza) — primero, debajo del saludo ══════════ -->
     <!-- ══════════ SUELDO ESTIMADO — VENDEDOR DE SEDE ══════════ -->
     <section class="mp-panel sueldo" *ngIf="mostrarSueldoSede && esSedeVendedor && !error" [class.open]="abiertos['sueldo']">
@@ -323,16 +340,28 @@
                   <div class="mm-h"><mat-icon>call</mat-icon> Llamadas</div>
                   <div class="mm-big">{{ gestReales }}</div>
                   <div class="mm-sub"><span class="ok">{{ gestContacto }} contacto</span> · <span class="no">{{ gestNoContacto }} no contacto</span></div>
+                  <div class="mm-meta" *ngIf="metaDeCategoria('Llamadas') as m">
+                    <div class="mm-meta-bar"><div class="mm-meta-fill" [style.width.%]="m.pct" [class.ok]="!m.falta"></div></div>
+                    <span class="mm-meta-txt">Meta: {{ m.actual }}/{{ m.meta }}</span>
+                  </div>
                 </div>
                 <div class="mp-mini kommo">
                   <div class="mm-h"><mat-icon>public</mat-icon> KOMMO</div>
                   <div class="mm-big">{{ kommoTotal }}</div>
                   <div class="mm-sub"><span class="ok">{{ kommoContacto }} contacto</span> · <span class="no">{{ kommoNoContacto }} no contacto</span></div>
+                  <div class="mm-meta" *ngIf="metaDeCategoria('KOMMO') as m">
+                    <div class="mm-meta-bar"><div class="mm-meta-fill" [style.width.%]="m.pct" [class.ok]="!m.falta"></div></div>
+                    <span class="mm-meta-txt">Meta: {{ m.actual }}/{{ m.meta }}</span>
+                  </div>
                 </div>
                 <div class="mp-mini market">
                   <div class="mm-h"><mat-icon>storefront</mat-icon> Market Place</div>
                   <div class="mm-big">{{ mpTotal }}</div>
                   <div class="mm-sub"><span class="ok">{{ mpContacto }} contacto</span> · <span class="no">{{ mpNoContacto }} no contacto</span></div>
+                  <div class="mm-meta" *ngIf="metaDeCategoria('Market Place') as m">
+                    <div class="mm-meta-bar"><div class="mm-meta-fill" [style.width.%]="m.pct" [class.ok]="!m.falta"></div></div>
+                    <span class="mm-meta-txt">Meta: {{ m.actual }}/{{ m.meta }}</span>
+                  </div>
                 </div>
                 <div class="mp-mini deriv clickable" (click)="abrirDetalle('deriv')" title="Ver detalle">
                   <div class="mm-h"><mat-icon>call_split</mat-icon> Derivaciones</div>
@@ -345,6 +374,10 @@
                   <div class="mm-big">{{ gestAgendamientos }}</div>
                   <div class="mm-origen">{{ resumenOrigen(agendaPorOrigen) }}</div>
                   <div class="mm-sub"><span class="ver"><mat-icon>visibility</mat-icon> Ver detalle</span></div>
+                  <div class="mm-meta" *ngIf="metaDeCategoria('Agendamientos') as m">
+                    <div class="mm-meta-bar"><div class="mm-meta-fill" [style.width.%]="m.pct" [class.ok]="!m.falta"></div></div>
+                    <span class="mm-meta-txt">Meta: {{ m.actual }}/{{ m.meta }}</span>
+                  </div>
                 </div>
               </div>
             </ng-container>
