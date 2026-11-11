@@ -28,17 +28,42 @@
 
 .titulosGrillas {
     margin: 0;
-    background: #F0F6FF;
-    color: #1A5FAD;
-    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(255,107,107,.1), rgba(255,107,107,.03));
+    color: #C62828;
+    padding: 8px 16px;
     border-radius: 8px;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.8px;
     text-transform: uppercase;
-    border: 1px solid #CCDAEE;
-    border-left: 3px solid #1A5FAD;
+    border: 1px solid rgba(255,107,107,.3);
+    border-left: 3px solid #ff6b6b;
 }
+
+.tg-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    font-size: 14px;
+    background: linear-gradient(135deg, #e5484d, #ff6b6b);
+    box-shadow: 0 3px 10px rgba(255,107,107,.3);
+    flex-shrink: 0;
+}
+
+.cg-btn-actualizar {
+    background: linear-gradient(135deg, #e5484d, #ff6b6b) !important;
+    color: #fff !important;
+    box-shadow: 0 5px 16px rgba(255,107,107,.3);
+    transition: transform .15s, box-shadow .2s;
+}
+.cg-btn-actualizar:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 7px 20px rgba(255,107,107,.4); }
+.cg-btn-actualizar[disabled] { opacity: .5; box-shadow: none; }
 
 .contenedorPrincipal { display: flex; flex-direction: column; }
 .firstContainer      { display: flex; flex-direction: row; gap: 28px; }
@@ -237,24 +262,49 @@
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    padding: 6px 10px;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px;
 }
+
+/* ── Banda de sede (agrupa los asesores de esa tienda) ── */
+.kpi-detail-sede-head {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #EAF0FB;
+    color: #1E3A5F;
+    font-weight: 800;
+    font-size: 0.72rem;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 8px;
+    margin-top: 6px;
+}
+.kpi-detail-sede-head:first-child { margin-top: 0; }
 
 .kpi-detail-item {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 10px;
-    border-bottom: 1px solid #E8F0FA;
-    flex: 1 1 280px;
-    min-width: 240px;
+    flex-direction: column;
+    gap: 7px;
+    padding: 9px 12px;
+    border: 1px solid #E8F0FA;
+    border-radius: 10px;
+    background: #fff;
+    flex: 1 1 220px;
+    min-width: 200px;
+    transition: box-shadow .15s;
 }
-.kpi-detail-item:last-child { border-bottom: none; }
+.kpi-detail-item:hover { box-shadow: 0 2px 10px rgba(26,95,173,0.1); }
 
-.kpi-detail-asesor  { flex: 0 0 90px; font-size: 0.8rem; font-weight: 600; color: #1E3A5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kpi-detail-valor   { flex: 0 0 32px; text-align: center; font-size: 1.05rem; font-weight: 800; color: #1A5FAD; }
+.kpi-detail-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kpi-detail-asesor  { font-size: 0.8rem; font-weight: 600; color: #1E3A5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi-detail-valor   { flex: 0 0 auto; text-align: center; font-size: 1.05rem; font-weight: 800; color: #1A5FAD; }
 .kpi-detail-valor.valor-zero { color: #B0C8E8; }
-.kpi-detail-bar-wrap { flex: 1; }
+.kpi-detail-bar-wrap { display: flex; align-items: center; gap: 8px; }
+.kpi-detail-bar-wrap .kpi-detail-bar { flex: 1; }
 
 .kpi-detail-bar {
     background: #E8F0FF;
@@ -274,7 +324,21 @@
 .bar-warning { background: linear-gradient(90deg, #CC5A10, #F07420) !important; }
 .bar-danger  { background: linear-gradient(90deg, #991B1B, #DC2626) !important; }
 
-.kpi-detail-pct { flex: 0 0 38px; text-align: right; font-size: 0.78rem; font-weight: 700; color: #7A9BB8; }
+.kpi-detail-pct { flex: 0 0 34px; text-align: right; font-size: 0.78rem; font-weight: 700; color: #7A9BB8; }
+
+/* ── Desglose por origen: gestión normal / KOMMO / Market Place ── */
+.kpi-detail-origen { display: flex; flex-wrap: wrap; gap: 5px; }
+.origen-chip {
+    font-size: 0.64rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.origen-normal { background: #E8F0FF; color: #1A5FAD; }
+.origen-kommo  { background: #F3E8FF; color: #7B2FBF; }
+.origen-market { background: #FFF1E0; color: #CC5A10; }
+.origen-vacio  { background: #F1F3F7; color: #9AA7B8; }
 
 .focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }
 

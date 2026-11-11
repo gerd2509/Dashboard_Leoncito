@@ -655,51 +655,79 @@ export class CierreGestionComponent implements OnInit {
   // LOGICA AGENDAMIENTOS
   // Suma agendamientos de la gestión normal + gestión KOMMO + gestión Market Place
   // (KOMMO y Market Place viven en la MISMA tabla dataKOMMO, separadas solo por la
-  // columna MARKET PLACE L/R — para agendamientos no importa esa distinción, cuentan ambas).
+  // columna MARKET PLACE L/R), desglosando por origen y — en Realzza — por sede/tienda.
   calcularAgendamientosCall() {
-    const fuente = [...this.dataOriginal, ...this.dataKOMMO];
-    const res = this.procesarAgendamientos(fuente, this.asesoresCall, 'ASESOR CONTACT');
+    const res = this.procesarAgendamientos(
+      this.dataOriginal, this.dataKOMMO, this.asesoresCall,
+      'ASESOR CONTACT', 'MARKET PLACE L', 'CALL CENTER'
+    );
     this.dataAgendamientosCall = res.data;
     this.porcentajeMetaCall = res.porcentajeMeta;
   }
 
   calcularAgendamientosRealzza() {
-    const fuente = [...this.dataRealzza, ...this.dataKOMMO];
-    const res = this.procesarAgendamientos(fuente, this.asesoresRealzza, 'ASESOR REALZZA');
-    this.dataAgendamientosRealzza = res.data;
-    this.porcentajeMetaRealzza = res.porcentajeMeta;
+    const bloques: { sede: string; asesores: { value: string; viewValue: string }[] }[] = [
+      { sede: 'REALZZA CHICLAYO', asesores: this.asesoresRealzzaChiclayo },
+      { sede: 'REALZZA PIURA', asesores: this.asesoresDeTienda('REALZZA PIURA') },
+      { sede: 'REALZZA LIMA', asesores: this.asesoresDeTienda('REALZZA LIMA') },
+    ];
+    const data: any[] = [];
+    bloques.forEach(b => {
+      const r = this.procesarAgendamientos(
+        this.dataRealzza, this.dataKOMMO, b.asesores,
+        'ASESOR REALZZA', 'MARKET PLACE R', b.sede
+      );
+      data.push(...r.data);
+    });
+    this.dataAgendamientosRealzza = data;
+
+    const total = data.reduce((acc, item) => acc + (item.AGENDAMIENTO || 0), 0);
+    this.porcentajeMetaRealzza = this.metaAgendamientoEquipo > 0
+      ? Math.min(Math.round((total / this.metaAgendamientoEquipo) * 100), 100) : 0;
   }
 
-  private procesarAgendamientos(dataSource: any[], listaAsesores: any[], nombreColumnaAsesor: string): { data: any[], porcentajeMeta: number } {
+  private procesarAgendamientos(
+    dataSource: any[], dataKommo: any[], listaAsesores: any[],
+    nombreColumnaAsesor: string, columnaMarketPlace: string, sede: string
+  ): { data: any[], porcentajeMeta: number } {
     const fechaSeleccionada = this.obtenerFechaSeleccionada();
     if (!fechaSeleccionada) return { data: [], porcentajeMeta: 0 };
 
     const { dia, mes, anio } = fechaSeleccionada;
     const resultado: any[] = [];
 
-    listaAsesores.forEach(asesor => {
-      const registrosAsesor = dataSource.filter(item => {
-        return (
-          item[nombreColumnaAsesor]?.toUpperCase().trim() === asesor.viewValue.toUpperCase().trim() &&
-          this.esMismaFecha(item['Marca temporal'], dia, mes, anio) &&
-          item['MOTIVO INTERÉS']?.trim() === 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)'
-        );
-      });
+    const esAgendamiento = (item: any) =>
+      this.esMismaFecha(item['Marca temporal'], dia, mes, anio) &&
+      item['MOTIVO INTERÉS']?.trim() === 'CONSULTARÁ - AGENDAR PARA RESPUESTA (INTERNO)';
 
-      const totalAgendamientos = registrosAsesor.length;
+    listaAsesores.forEach(asesor => {
+      const nombre = asesor.viewValue.toUpperCase().trim();
+      const esDelAsesor = (item: any) => item[nombreColumnaAsesor]?.toUpperCase().trim() === nombre;
+
+      const normal = (dataSource ?? []).filter(item => esDelAsesor(item) && esAgendamiento(item)).length;
+      const deKommo = (dataKommo ?? []).filter(item => esDelAsesor(item) && esAgendamiento(item));
+      const kommo = deKommo.filter(item => !this.esMarketPlace(item, columnaMarketPlace)).length;
+      const market = deKommo.filter(item => this.esMarketPlace(item, columnaMarketPlace)).length;
+
+      const totalAgendamientos = normal + kommo + market;
       const porcentajeMeta = this.agendamientoIndividual > 0
         ? Math.min((totalAgendamientos / this.agendamientoIndividual), 1) : 0;
 
       resultado.push({
         'ASESOR ID': asesor.value,
         'ASESOR CONTACT': asesor.viewValue,
+        'SEDE': sede,
         'AGENDAMIENTO': totalAgendamientos,
+        'AGEND_NORMAL': normal,
+        'AGEND_KOMMO': kommo,
+        'AGEND_MARKET': market,
         'META': porcentajeMeta
       });
     });
 
     const total = resultado.reduce((acc, item) => acc + (item.AGENDAMIENTO || 0), 0);
-    const porcentajeMeta = Math.min(Math.round((total / this.metaAgendamientoEquipo) * 100), 100);
+    const porcentajeMeta = this.metaAgendamientoEquipo > 0
+      ? Math.min(Math.round((total / this.metaAgendamientoEquipo) * 100), 100) : 0;
 
     return { data: resultado, porcentajeMeta };
   }
@@ -1381,6 +1409,20 @@ export class CierreGestionComponent implements OnInit {
       case 'deriv-realzza': return this.dataDerivacionesRealzza;
       default: return [];
     }
+  }
+
+  // Agrupa el detalle del KPI por SEDE (si la fila la trae, p. ej. agend-realzza con
+  // Chiclayo/Piura/Lima); cuando no hay SEDE (derivaciones, agend-call) queda un solo
+  // grupo sin banner visible.
+  get detalleKpiActualPorSede(): { sede: string; filas: any[] }[] {
+    const grupos: { sede: string; filas: any[] }[] = [];
+    this.detalleKpiActual.forEach(item => {
+      const sede = item['SEDE'] || '';
+      let g = grupos.find(x => x.sede === sede);
+      if (!g) { g = { sede, filas: [] }; grupos.push(g); }
+      g.filas.push(item);
+    });
+    return grupos;
   }
 
   get campoValorKpi(): string {

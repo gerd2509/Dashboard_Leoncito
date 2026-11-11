@@ -12,7 +12,7 @@
     </dx-select-box>
     <span class="cs-tienda-fija" *ngIf="tiendaGestor"><mat-icon>storefront</mat-icon> {{ tiendaGestor }}</span>
 
-    <button mat-flat-button [disabled]="formCierreGestion.invalid" (click)="actualizar()">
+    <button class="cg-btn-actualizar" mat-flat-button [disabled]="formCierreGestion.invalid" (click)="actualizar()">
         <mat-icon>search</mat-icon>
         Actualizar
     </button>
@@ -140,23 +140,37 @@
                     <button class="kpi-detail-close" (click)="toggleKpi(kpiSeleccionado!)">✕ Cerrar</button>
                 </div>
                 <div class="kpi-detail-list">
-                    <div class="kpi-detail-item" *ngFor="let item of detalleKpiActual">
-                        <span class="kpi-detail-asesor">{{ getNombreParaVoz(item['ASESOR CONTACT']) }}</span>
-                        <span class="kpi-detail-valor" [class.valor-zero]="item[campoValorKpi] === 0">
-                            {{ item[campoValorKpi] }}
-                        </span>
-                        <div class="kpi-detail-bar-wrap">
-                            <div class="kpi-detail-bar">
-                                <div class="kpi-detail-bar-fill"
-                                    [style.width.%]="item['META'] * 100"
-                                    [class.bar-success]="item['META'] >= 0.85"
-                                    [class.bar-warning]="item['META'] >= 0.5 && item['META'] < 0.85"
-                                    [class.bar-danger]="item['META'] < 0.5">
+                    <ng-container *ngFor="let g of detalleKpiActualPorSede">
+                        <div class="kpi-detail-sede-head" *ngIf="g.sede && detalleKpiActualPorSede.length > 1">
+                            🏬 {{ g.sede }}
+                        </div>
+                        <div class="kpi-detail-item" *ngFor="let item of g.filas">
+                            <div class="kpi-detail-top">
+                                <span class="kpi-detail-asesor">{{ getNombreParaVoz(item['ASESOR CONTACT']) }}</span>
+                                <span class="kpi-detail-valor" [class.valor-zero]="item[campoValorKpi] === 0">
+                                    {{ item[campoValorKpi] }}
+                                </span>
+                            </div>
+                            <div class="kpi-detail-bar-wrap">
+                                <div class="kpi-detail-bar">
+                                    <div class="kpi-detail-bar-fill"
+                                        [style.width.%]="item['META'] * 100"
+                                        [class.bar-success]="item['META'] >= 0.85"
+                                        [class.bar-warning]="item['META'] >= 0.5 && item['META'] < 0.85"
+                                        [class.bar-danger]="item['META'] < 0.5">
+                                    </div>
                                 </div>
+                                <span class="kpi-detail-pct">{{ (item['META'] * 100) | number:'1.0-0' }}%</span>
+                            </div>
+                            <div class="kpi-detail-origen" *ngIf="item['AGEND_NORMAL'] !== undefined">
+                                <span class="origen-chip origen-normal" *ngIf="item['AGEND_NORMAL'] > 0">Normal {{ item['AGEND_NORMAL'] }}</span>
+                                <span class="origen-chip origen-kommo" *ngIf="item['AGEND_KOMMO'] > 0">KOMMO {{ item['AGEND_KOMMO'] }}</span>
+                                <span class="origen-chip origen-market" *ngIf="item['AGEND_MARKET'] > 0">Market {{ item['AGEND_MARKET'] }}</span>
+                                <span class="origen-chip origen-vacio"
+                                    *ngIf="!item['AGEND_NORMAL'] && !item['AGEND_KOMMO'] && !item['AGEND_MARKET']">Sin agendamientos</span>
                             </div>
                         </div>
-                        <span class="kpi-detail-pct">{{ (item['META'] * 100) | number:'1.0-0' }}%</span>
-                    </div>
+                    </ng-container>
                 </div>
             </div>
 
@@ -262,7 +276,7 @@
              ve solo una tienda o todas apiladas, una debajo de otra. -->
         <ng-container *ngFor="let b of bloquesVisibles">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <h3 class="titulosGrillas">{{ b.icono }} GESTIÓN — {{ b.nombre }}</h3>
+                <h3 class="titulosGrillas"><span class="tg-chip">{{ b.icono }}</span> GESTIÓN — {{ b.nombre }}</h3>
             </div>
 
             <div class="firstContainer mb-4">
