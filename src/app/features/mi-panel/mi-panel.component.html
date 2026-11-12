@@ -91,10 +91,12 @@
     </section>
 
     <!-- ══════════ META DE GESTIÓN DEL DÍA (Realzza Chiclayo): llamadas/agendamientos/KOMMO/Market Place ══════════ -->
-    <div class="mp-meta-banner" *ngIf="esRealzzaChiclayo && gestEsHoy && !gestCargando && metaGestionPendientes.length">
-      <mat-icon>flag</mat-icon>
+    <div class="mp-meta-banner falta" *ngIf="esRealzzaChiclayo && gestEsHoy && !gestCargando && metaGestionPendientes.length">
+      <div class="mp-meta-lion alerta">
+        <app-lion-icon variant="realzza" mood="alerta"></app-lion-icon>
+      </div>
       <div class="mp-meta-txt">
-        <span class="mp-meta-tit">Aún no llegas a tu meta de gestión de hoy</span>
+        <span class="mp-meta-tit">¡Rooonc! Aún te falta para tu meta de gestión de hoy</span>
         <div class="mp-meta-chips">
           <span class="mp-meta-chip" *ngFor="let m of metaGestionPendientes">
             <mat-icon>{{ m.icono }}</mat-icon> {{ m.clave }}: {{ m.actual }}/{{ m.meta }} · faltan {{ m.falta }}
@@ -103,8 +105,16 @@
       </div>
     </div>
     <div class="mp-meta-banner ok" *ngIf="esRealzzaChiclayo && gestEsHoy && !gestCargando && metaGestionDia.length && !metaGestionPendientes.length">
-      <mat-icon>celebration</mat-icon>
-      <span>¡Meta de gestión del día cumplida en las 4 categorías! 🎉</span>
+      <div class="mp-meta-lion feliz">
+        <app-lion-icon variant="realzza" mood="feliz"></app-lion-icon>
+        <span class="mp-meta-sparkle s1">✨</span>
+        <span class="mp-meta-sparkle s2">✨</span>
+        <span class="mp-meta-sparkle s3">✨</span>
+      </div>
+      <div class="mp-meta-txt">
+        <span class="mp-meta-tit">¡Rooooar! Meta de gestión del día cumplida 🎉</span>
+        <span class="mp-meta-sub">Llamadas, agendamientos, KOMMO y Market Place — las 4 al 100%. ¡Sigue así!</span>
+      </div>
     </div>
 
     <!-- ══════════ MI SUELDO (Call / Realzza) — primero, debajo del saludo ══════════ -->

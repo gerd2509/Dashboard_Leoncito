@@ -26,10 +26,11 @@ interface HistMes {
 }
 
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { LionIconComponent } from '../../shared/lion-icon/lion-icon.component';
 
 @Component({
   selector: 'app-mi-panel',
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent, LionIconComponent],
   templateUrl: './mi-panel.component.html',
   styleUrl: './mi-panel.component.css',
 })

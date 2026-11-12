@@ -327,26 +327,71 @@ mat-icon.girando { animation: mp-spin .8s linear infinite; }
 .mp-seg-tag.venc { background: #fdecec; color: #C62828; }
 .mp-seg-dd { font-size: 11px; color: #8a97ab; }
 
-/* ── Meta de gestión del día (Realzza Chiclayo): llamadas/agendamientos/KOMMO/Market ── */
+/* ── Meta de gestión del día (Realzza Chiclayo): llamadas/agendamientos/KOMMO/Market ──
+   Banner grande con el leoncito animado (feliz si cumplió, preocupado si le falta). */
 .mp-meta-banner {
-  display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px;
-  background: linear-gradient(135deg, #FDECEC, #FAD4D4); color: #8a1f1f;
-  border: 1px solid #f3b7b7; border-radius: 12px; padding: 12px 14px; font-size: 13.5px;
+  display: flex; align-items: center; gap: 16px; margin: 0 0 16px;
+  border-radius: 18px; padding: 16px 20px; font-size: 14px;
+  box-shadow: 0 8px 24px rgba(20,49,79,.12);
+  animation: mp-meta-in .35s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes mp-meta-in { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.mp-meta-banner.falta {
+  background: linear-gradient(135deg, #FFF3E0, #FFCDD2); color: #7a1f1f;
+  border: 2px solid #ef9a9a;
 }
 .mp-meta-banner.ok {
-  background: linear-gradient(135deg, #E8F5E9, #C8E6C9); color: #1B5E20;
-  border-color: #a5d6a7; align-items: center; font-weight: 700;
+  background: linear-gradient(135deg, #E8F5E9, #B9F6CA); color: #1B5E20;
+  border: 2px solid #81c784;
 }
-.mp-meta-banner mat-icon { color: #C62828; flex: 0 0 auto; margin-top: 2px; }
-.mp-meta-banner.ok mat-icon { color: #2E7D32; margin-top: 0; }
+
+.mp-meta-lion {
+  position: relative; flex: 0 0 auto;
+  width: 64px; height: 64px; font-size: 64px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mp-meta-lion.alerta { animation: mp-lion-shake 2.2s ease-in-out infinite; }
+.mp-meta-lion.feliz  { animation: mp-lion-bounce 1.4s ease-in-out infinite; }
+@keyframes mp-lion-shake {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-9deg); }
+  20% { transform: rotate(8deg); }
+  30% { transform: rotate(-6deg); }
+  40% { transform: rotate(4deg); }
+  50%, 100% { transform: rotate(0deg); }
+}
+@keyframes mp-lion-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-9px) scale(1.06); }
+  50% { transform: translateY(0) scale(1); }
+}
+.mp-meta-sparkle {
+  position: absolute; font-size: 16px; opacity: 0; pointer-events: none;
+  animation: mp-sparkle 1.6s ease-in-out infinite;
+}
+.mp-meta-sparkle.s1 { top: -4px; left: -10px; animation-delay: 0s; }
+.mp-meta-sparkle.s2 { top: 4px; right: -14px; animation-delay: .4s; }
+.mp-meta-sparkle.s3 { bottom: -6px; left: 8px; animation-delay: .8s; }
+@keyframes mp-sparkle {
+  0%, 100% { opacity: 0; transform: scale(.4) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.1) rotate(25deg); }
+}
+
 .mp-meta-txt { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-width: 0; }
-.mp-meta-tit { font-weight: 800; }
+.mp-meta-tit { font-weight: 800; font-size: 15.5px; }
+.mp-meta-sub { font-size: 12.5px; font-weight: 600; opacity: .85; }
 .mp-meta-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .mp-meta-chip {
   display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700;
-  background: rgba(255,255,255,.6); color: #8a1f1f; border-radius: 999px; padding: 4px 10px;
+  background: rgba(255,255,255,.7); color: #8a1f1f; border-radius: 999px; padding: 4px 10px;
 }
 .mp-meta-chip mat-icon { font-size: 15px; width: 15px; height: 15px; }
+
+@media (max-width: 520px) {
+  .mp-meta-banner { flex-direction: column; align-items: stretch; text-align: center; }
+  .mp-meta-lion { align-self: center; }
+}
 
 /* Barra de meta bajo cada mini-tarjeta (Llamadas/KOMMO/Market/Agendamientos) */
 .mm-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
