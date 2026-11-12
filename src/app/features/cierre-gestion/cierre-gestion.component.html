@@ -290,13 +290,13 @@
                         <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                         <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
-                        <dxi-column *ngIf="b.tieneMetaChiclayo" dataField="META_PCT" caption="% META KOMMO" [format]="{ type: 'percent', precision: 0 }" />
+                        <dxi-column *ngIf="b.tieneMetaChiclayo" dataField="META_PCT" caption="META" [format]="{ type: 'percent', precision: 0 }" />
                         <dxo-summary>
                             <dxi-total-item alignment="right" [column]="b.campoAsesor" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
-                            <dxi-total-item *ngIf="b.tieneMetaChiclayo" column="META_PCT" summaryType="avg" [valueFormat]="{ type: 'percent', precision: 0 }" displayFormat="META: {0}" />
+                            <dxi-total-item *ngIf="b.tieneMetaChiclayo" alignment="center" column="META_PCT" summaryType="avg" [valueFormat]="{ type: 'percent', precision: 0 }" displayFormat="{0}" />
                         </dxo-summary>
                     </dx-data-grid>
                 </div>
@@ -311,13 +311,13 @@
                         <dxi-column dataField="CONTACTO" caption="CONTACTO" />
                         <dxi-column dataField="NO CONTACTO" caption="NO CONTACTO" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
-                        <dxi-column *ngIf="b.tieneMetaChiclayo" dataField="META_PCT" caption="% META MARKET" [format]="{ type: 'percent', precision: 0 }" />
+                        <dxi-column *ngIf="b.tieneMetaChiclayo" dataField="META_PCT" caption="META" [format]="{ type: 'percent', precision: 0 }" />
                         <dxo-summary>
                             <dxi-total-item alignment="right" [column]="b.campoAsesor" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" displayFormat="{0}" />
-                            <dxi-total-item *ngIf="b.tieneMetaChiclayo" column="META_PCT" summaryType="avg" [valueFormat]="{ type: 'percent', precision: 0 }" displayFormat="META: {0}" />
+                            <dxi-total-item *ngIf="b.tieneMetaChiclayo" alignment="center" column="META_PCT" summaryType="avg" [valueFormat]="{ type: 'percent', precision: 0 }" displayFormat="{0}" />
                         </dxo-summary>
                     </dx-data-grid>
                 </div>
@@ -333,15 +333,15 @@
                         <dxi-column dataField="CORTA LLAMADA" caption="CORTA LLAMADA" />
                         <dxi-column dataField="TOTAL" caption="TOTAL" />
                         <dxi-column dataField="PORCENTAJE" caption="% CONTACTO" [format]="{ type: 'percent', precision: 0 }" />
-                        <dxi-column *ngIf="b.tieneMetaChiclayo" dataField="META_PCT" caption="% META LLAMADAS" [format]="{ type: 'percent', precision: 0 }" />
+                        <dxi-column *ngIf="b.tieneMetaChiclayo" dataField="META_PCT" caption="META" [format]="{ type: 'percent', precision: 0 }" />
                         <dxo-summary>
                             <dxi-total-item alignment="right" [column]="b.campoAsesor" [displayFormat]="'TOTAL'" />
                             <dxi-total-item alignment="center" column="CONTACTO" summaryType="sum" displayFormat="{0}" />
                             <dxi-total-item alignment="center" column="CORTA LLAMADA" summaryType="sum" [displayFormat]="'{0}'" />
                             <dxi-total-item alignment="center" column="NO CONTACTO" summaryType="sum" [displayFormat]="'{0}'" />
                             <dxi-total-item alignment="center" column="TOTAL" summaryType="sum" [displayFormat]="'{0}'" />
-                            <dxi-total-item column="PORCENTAJE" summaryType="count" [customizeText]="b.customizeTextoPct" />
-                            <dxi-total-item *ngIf="b.tieneMetaChiclayo" column="META_PCT" summaryType="avg" [valueFormat]="{ type: 'percent', precision: 0 }" displayFormat="META: {0}" />
+                            <dxi-total-item alignment="center" column="PORCENTAJE" summaryType="count" [customizeText]="b.customizeTextoPct" />
+                            <dxi-total-item *ngIf="b.tieneMetaChiclayo" alignment="center" column="META_PCT" summaryType="avg" [valueFormat]="{ type: 'percent', precision: 0 }" displayFormat="{0}" />
                         </dxo-summary>
                     </dx-data-grid>
                 </div>

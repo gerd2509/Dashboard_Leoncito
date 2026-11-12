@@ -513,6 +513,7 @@ export class CierreGestionComponent implements OnInit {
   private readonly META_RZ_LLAMADAS = 30;
   private readonly META_RZ_KOMMO = 5;
   private readonly META_RZ_MARKET = 5;
+  private readonly META_RZ_AGENDA = 5;
 
   /** Agrega META_PCT (TOTAL de la fila ÷ meta diaria) a cada fila, para pintarla en semáforo. */
   private conMetaPct(filas: any[], meta: number): any[] {
@@ -733,8 +734,12 @@ export class CierreGestionComponent implements OnInit {
       const market = deKommo.filter(item => this.esMarketPlace(item, columnaMarketPlace)).length;
 
       const totalAgendamientos = normal + kommo + market;
-      const porcentajeMeta = this.agendamientoIndividual > 0
-        ? Math.min((totalAgendamientos / this.agendamientoIndividual), 1) : 0;
+      // Realzza Chiclayo ya tiene su propia meta de agendamientos (5/día); el resto de
+      // sedes (Call, Piura, Lima) sigue con la meta individual genérica hasta que se
+      // les defina la suya.
+      const metaIndividual = sede === 'REALZZA CHICLAYO' ? this.META_RZ_AGENDA : this.agendamientoIndividual;
+      const porcentajeMeta = metaIndividual > 0
+        ? Math.min((totalAgendamientos / metaIndividual), 1) : 0;
 
       resultado.push({
         'ASESOR ID': asesor.value,
@@ -1367,6 +1372,15 @@ export class CierreGestionComponent implements OnInit {
   onMouseLeave(e?: MouseEvent) { this.scheduler.instance.hideAppointmentTooltip(); }
   onMouseEnter(e: any, model: any) { }
 
+  // El tema global (styles.css) pinta las celdas de grilla con `!important`
+  // (fondo blanco / F4F9FF en filas alternadas), así que un simple
+  // `style.backgroundColor = ...` nunca se ve: queda tapado por ese !important.
+  // Hay que fijar el color con la MISMA prioridad para que gane.
+  private pintarCelda(el: HTMLElement, bg: string, fg: string): void {
+    el.style.setProperty('background-color', bg, 'important');
+    el.style.setProperty('color', fg, 'important');
+  }
+
   onCellPrepared(e: any) {
     if (e.rowType === 'header') {
       e.cellElement.style.padding = '8px';
@@ -1384,16 +1398,16 @@ export class CierreGestionComponent implements OnInit {
       e.cellElement.style.fontWeight = 'bold';
       if (e.column?.dataField === 'PORCENTAJE') {
         const valor = e.value * 100
-        if (valor > 85) { e.cellElement.style.backgroundColor = '#4CAF50'; e.cellElement.style.color = 'black'; }
-        else if (valor >= 50 && valor <= 85) { e.cellElement.style.backgroundColor = '#FFEB3B'; e.cellElement.style.color = 'black'; }
-        else if (valor < 50) { e.cellElement.style.backgroundColor = '#d68e3bff'; e.cellElement.style.color = 'black'; }
+        if (valor > 85) { this.pintarCelda(e.cellElement, '#4CAF50', 'black'); }
+        else if (valor >= 50 && valor <= 85) { this.pintarCelda(e.cellElement, '#FFEB3B', 'black'); }
+        else if (valor < 50) { this.pintarCelda(e.cellElement, '#d68e3bff', 'black'); }
       }
       // Cumplimiento de meta diaria (Realzza Chiclayo): verde cumplido, naranja intermedio, rojo falta.
       if (e.column?.dataField === 'META_PCT') {
         const valor = (e.value ?? 0) * 100;
-        if (valor >= 100) { e.cellElement.style.backgroundColor = '#4CAF50'; e.cellElement.style.color = 'white'; }
-        else if (valor >= 50) { e.cellElement.style.backgroundColor = '#FFA726'; e.cellElement.style.color = 'black'; }
-        else { e.cellElement.style.backgroundColor = '#E53935'; e.cellElement.style.color = 'white'; }
+        if (valor >= 100) { this.pintarCelda(e.cellElement, '#4CAF50', 'white'); }
+        else if (valor >= 50) { this.pintarCelda(e.cellElement, '#FFA726', 'black'); }
+        else { this.pintarCelda(e.cellElement, '#E53935', 'white'); }
       }
     }
     // Mismo semáforo en la fila de TOTAL (promedio del equipo) de % META.
@@ -1403,10 +1417,9 @@ export class CierreGestionComponent implements OnInit {
       if (valor !== null) {
         e.cellElement.style.textAlign = 'center';
         e.cellElement.style.fontWeight = 'bold';
-        e.cellElement.style.borderRadius = '0';
-        if (valor >= 100) { e.cellElement.style.backgroundColor = '#4CAF50'; e.cellElement.style.color = 'white'; }
-        else if (valor >= 50) { e.cellElement.style.backgroundColor = '#FFA726'; e.cellElement.style.color = 'black'; }
-        else { e.cellElement.style.backgroundColor = '#E53935'; e.cellElement.style.color = 'white'; }
+        if (valor >= 100) { this.pintarCelda(e.cellElement, '#4CAF50', 'white'); }
+        else if (valor >= 50) { this.pintarCelda(e.cellElement, '#FFA726', 'black'); }
+        else { this.pintarCelda(e.cellElement, '#E53935', 'white'); }
       }
     }
     if (e.column?.dataField === 'META') {
