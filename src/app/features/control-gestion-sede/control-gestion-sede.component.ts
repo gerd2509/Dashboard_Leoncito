@@ -374,6 +374,14 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Excepción puntual: un tema de sistemas afectó el registro de afiliaciones en
+  // noviembre-2026 hasta el 9; desde el 10 corre normal. Para ese mes, tanto el
+  // detalle de incorrectas como los % se calculan SOLO desde esa fecha en adelante
+  // (antes del corte no es representativo). El resto de meses no se toca.
+  private readonly CORTE_AFILIACIONES: Record<string, string> = {
+    '2026-11': '2026-11-10',
+  };
+
   /** Afiliaciones incorrectas del MES completo de la fecha elegida en el formulario
    *  (no solo el día puntual) — es lo que se muestra en pantalla y lo que se exporta
    *  a Excel. Se llama tras cualquier cambio de `afiliacionesDetalleIncorrectas` o
@@ -381,7 +389,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   private recomputarAfiliacionesIncorrectasMes(): void {
     const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
     const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-    this.afiliacionesDetalleIncorrectasMes = this.afiliacionesDetalleIncorrectas.filter(d => d.fecha.startsWith(prefijoMes));
+    const corte = this.CORTE_AFILIACIONES[prefijoMes];
+    const dentroDeRango = (f: string) => f.startsWith(prefijoMes) && (!corte || f >= corte);
+    this.afiliacionesDetalleIncorrectasMes = this.afiliacionesDetalleIncorrectas.filter(d => dentroDeRango(d.fecha));
     // El mes cambió: la sede marcada ya no necesariamente tiene sentido → se limpia.
     this.sedeDetalleSeleccionada = null;
     this.sedeDetalleSeleccionadaNombre = '';
@@ -393,7 +403,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const totalPorSede = new Map<string, { nombre: string; total: number }>();
     let totalGeneral = 0;
     for (const [nombre, porDia] of this.afiliacionesData) {
-      const total = Object.entries(porDia).filter(([clave]) => clave.startsWith(prefijoMes)).reduce((s, [, n]) => s + n, 0);
+      const total = Object.entries(porDia).filter(([clave]) => dentroDeRango(clave)).reduce((s, [, n]) => s + n, 0);
       if (!total) continue;
       totalGeneral += total;
       const sede = sedePorAsesor.get(nombre);
