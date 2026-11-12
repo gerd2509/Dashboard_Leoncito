@@ -24,6 +24,9 @@ interface BloqueTienda {
   kommo: any[]; market: any[]; contactabilidad: any[];
   pctTotal: string;
   customizeTextoPct: (arg: any) => string;
+  // Cumplimiento de meta diaria por asesor (TOTAL/meta en cada fila, campo META_PCT) —
+  // solo Realzza Chiclayo por ahora, el resto de tiendas aún no tiene metas definidas.
+  tieneMetaChiclayo: boolean;
 }
 
 @Component({
@@ -484,16 +487,36 @@ export class CierreGestionComponent implements OnInit {
     ];
 
     this.bloques = defs.map(d => {
-      const contactabilidad = this.procesarContactabilidad(d.dataContactab, d.asesoresContactab, d.campoAsesor, true);
-      const kommo  = this.procesarContactabilidadKOMMO(d.dataKommo, d.asesoresKommo, d.campoAsesor, d.campoEstado, d.campoMarket, false);
-      const market = this.procesarContactabilidadKOMMO(d.dataKommo, d.asesoresMarket ?? d.asesoresKommo, d.campoAsesor, d.campoEstado, d.campoMarket, true);
+      let contactabilidad = this.procesarContactabilidad(d.dataContactab, d.asesoresContactab, d.campoAsesor, true);
+      let kommo  = this.procesarContactabilidadKOMMO(d.dataKommo, d.asesoresKommo, d.campoAsesor, d.campoEstado, d.campoMarket, false);
+      let market = this.procesarContactabilidadKOMMO(d.dataKommo, d.asesoresMarket ?? d.asesoresKommo, d.campoAsesor, d.campoEstado, d.campoMarket, true);
+
+      // Metas diarias por asesor — Realzza Chiclayo únicamente por ahora (mismo criterio
+      // que Mi Panel): agrega META_PCT (TOTAL/meta) a cada fila para pintarla en semáforo.
+      const tieneMetaChiclayo = d.key === 'REALZZA';
+      if (tieneMetaChiclayo) {
+        contactabilidad = this.conMetaPct(contactabilidad, this.META_RZ_LLAMADAS);
+        kommo = this.conMetaPct(kommo, this.META_RZ_KOMMO);
+        market = this.conMetaPct(market, this.META_RZ_MARKET);
+      }
+
       const pctTotal = this.textoPctTotal(contactabilidad);
       return {
         key: d.key, nombre: d.nombre, icono: d.icono, claseBarra: d.claseBarra, campoAsesor: d.campoAsesor,
-        contactabilidad, kommo, market, pctTotal,
+        contactabilidad, kommo, market, pctTotal, tieneMetaChiclayo,
         customizeTextoPct: (_arg: any) => pctTotal,
       };
     });
+  }
+
+  // Metas diarias por asesor — Realzza Chiclayo únicamente (igual que en Mi Panel).
+  private readonly META_RZ_LLAMADAS = 30;
+  private readonly META_RZ_KOMMO = 5;
+  private readonly META_RZ_MARKET = 5;
+
+  /** Agrega META_PCT (TOTAL de la fila ÷ meta diaria) a cada fila, para pintarla en semáforo. */
+  private conMetaPct(filas: any[], meta: number): any[] {
+    return filas.map(f => ({ ...f, 'META_PCT': meta > 0 ? (f['TOTAL'] || 0) / meta : 0 }));
   }
 
   /** Mapea los bloques a los campos "globales" que usan las tarjetas KPI, el reporte de
@@ -1364,6 +1387,26 @@ export class CierreGestionComponent implements OnInit {
         if (valor > 85) { e.cellElement.style.backgroundColor = '#4CAF50'; e.cellElement.style.color = 'black'; }
         else if (valor >= 50 && valor <= 85) { e.cellElement.style.backgroundColor = '#FFEB3B'; e.cellElement.style.color = 'black'; }
         else if (valor < 50) { e.cellElement.style.backgroundColor = '#d68e3bff'; e.cellElement.style.color = 'black'; }
+      }
+      // Cumplimiento de meta diaria (Realzza Chiclayo): verde cumplido, naranja intermedio, rojo falta.
+      if (e.column?.dataField === 'META_PCT') {
+        const valor = (e.value ?? 0) * 100;
+        if (valor >= 100) { e.cellElement.style.backgroundColor = '#4CAF50'; e.cellElement.style.color = 'white'; }
+        else if (valor >= 50) { e.cellElement.style.backgroundColor = '#FFA726'; e.cellElement.style.color = 'black'; }
+        else { e.cellElement.style.backgroundColor = '#E53935'; e.cellElement.style.color = 'white'; }
+      }
+    }
+    // Mismo semáforo en la fila de TOTAL (promedio del equipo) de % META.
+    if (e.rowType === 'totalFooter' && e.column?.dataField === 'META_PCT') {
+      const item = e.summaryItems?.find((s: any) => s.summaryType === 'avg');
+      const valor = item ? (item.value ?? 0) * 100 : null;
+      if (valor !== null) {
+        e.cellElement.style.textAlign = 'center';
+        e.cellElement.style.fontWeight = 'bold';
+        e.cellElement.style.borderRadius = '0';
+        if (valor >= 100) { e.cellElement.style.backgroundColor = '#4CAF50'; e.cellElement.style.color = 'white'; }
+        else if (valor >= 50) { e.cellElement.style.backgroundColor = '#FFA726'; e.cellElement.style.color = 'black'; }
+        else { e.cellElement.style.backgroundColor = '#E53935'; e.cellElement.style.color = 'white'; }
       }
     }
     if (e.column?.dataField === 'META') {
