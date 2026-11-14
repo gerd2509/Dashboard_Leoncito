@@ -88,7 +88,7 @@
   background: rgba(255,255,255,.18); color: #fff; transition: background .15s;
 }
 .rg-ampliar:hover { background: rgba(255,255,255,.32); }
-.rg-ampliar.on { background: #fff; color: #1A5FAD; }
+.rg-ampliar.on { background: #fff !important; color: #1A5FAD !important; }
 .rg-ampliar mat-icon { font-size: 18px; width: 18px; height: 18px; }
 
 /* Caja de herramientas del gráfico de Evolución: modo (Montos/Operaciones) + tipo de
@@ -102,7 +102,7 @@
   font-weight: 700; font-size: 12px; cursor: pointer; transition: background .15s;
 }
 .rg-chip-txt:hover { background: rgba(255,255,255,.32); }
-.rg-chip-txt.on { background: #fff; color: #1A5FAD; }
+.rg-chip-txt.on { background: #fff !important; color: #1A5FAD !important; }
 .rg-chip-txt mat-icon { font-size: 16px; width: 16px; height: 16px; }
 
 .rg-chart-wrap { padding: 10px 6px; }

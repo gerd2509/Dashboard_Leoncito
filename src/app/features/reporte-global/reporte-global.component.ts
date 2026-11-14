@@ -122,8 +122,16 @@ export class ReporteGlobalComponent implements OnInit {
     { value: 'monto', label: 'Montos S/', icon: 'payments' },
     { value: 'ops', label: '# Operaciones', icon: 'tag' },
   ];
+  // "Compañía" = los indicadores de comparativoKpis (Neto Global, Aliados, Margen…);
+  // "Por sede" = motos por sede (única dimensión por sede que tiene el comparativo),
+  // sumando todos los tipos de venta (Crédito/Contado/GLOBAL GO/aliados) por sede.
+  readonly vistasChartComp: { value: 'empresa' | 'sede'; label: string; icon: string }[] = [
+    { value: 'empresa', label: 'Compañía', icon: 'apartment' },
+    { value: 'sede', label: 'Por sede (motos)', icon: 'store' },
+  ];
   chartTipoComp: 'line' | 'spline' | 'bar' | 'area' = 'line';
   modoChartComp: 'ops' | 'monto' = 'monto';
+  vistaChartComp: 'empresa' | 'sede' = 'empresa';
   mostrarInfoChartComp = false;
   popupChartCompVisible = false;
   puntosComp: any[] = [];
@@ -132,10 +140,25 @@ export class ReporteGlobalComponent implements OnInit {
 
   cambiarTipoChartComp(t: 'line' | 'spline' | 'bar' | 'area'): void { this.chartTipoComp = t; }
   cambiarModoChartComp(m: 'ops' | 'monto'): void { this.modoChartComp = m; this.construirChartComparativo(); }
+  cambiarVistaChartComp(v: 'empresa' | 'sede'): void { this.vistaChartComp = v; this.construirChartComparativo(); }
 
-  /** Arma los puntos del gráfico a partir de comparativoKpis (ya calculados) — una
-   *  serie por indicador del modo elegido (montos S/ u operaciones), x = periodo. */
+  /** Arma los puntos del gráfico — "Compañía": una serie por indicador de
+   *  comparativoKpis; "Por sede": una serie por sede, sumando ops/monto de TODOS
+   *  los tipos de venta de motos de comparativoMotosDetalle (ya calculados, no pide
+   *  nada nuevo al backend en ninguno de los dos casos). */
   private construirChartComparativo(): void {
+    if (this.vistaChartComp === 'sede') {
+      this.puntosComp = this.comparativoCols.map(c => {
+        const row: any = { periodo: c.label };
+        for (const f of this.comparativoMotosDetalle) {
+          const porTipo = f.porPeriodo[c.key] || {};
+          row[f.sedeKey] = Object.values(porTipo).reduce((s, v) => s + (this.modoChartComp === 'monto' ? (v?.monto || 0) : (v?.ops || 0)), 0);
+        }
+        return row;
+      });
+      this.seriesChartComp = this.comparativoMotosDetalle.map(f => ({ key: f.sedeKey, nombre: f.sede, color: f.color }));
+      return;
+    }
     const kpisFiltrados = this.comparativoKpis.filter(k => k.moneda === (this.modoChartComp === 'monto'));
     this.puntosComp = this.comparativoCols.map(c => {
       const row: any = { periodo: c.label };
