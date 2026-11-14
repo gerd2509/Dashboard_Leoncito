@@ -410,19 +410,29 @@ export class ReporteGlobalComponent implements OnInit {
     this.aliadosOps = this.buildPivot(opsEnt, aliCols);
     this.aliadosMonto = this.buildPivot(montoEnt, aliCols);
 
-    // ── B) Motos por sede (GLOBAL GO / Propio Leoncito —Crédito/Contado— / Otros) ──
+    // ── B) Motos por sede (GLOBAL GO / Propio Leoncito —Crédito/Contado— / cada otra
+    //      entidad por su nombre: ALFIN, EFECTIVA, BRILLA, etc.) ──
     // "Propio (Leoncito)" se separa en Crédito (cuotas>0) y Contado (cuotas=0) para un
     // mejor control — SOLO en esta tabla, no en Aliados por Entidad ni en Motos por
-    // Marca/Tipo, que siguen agrupando por la entidad tal cual.
+    // Marca/Tipo, que siguen agrupando por la entidad tal cual. El resto de entidades
+    // (ni GLOBAL GO ni LEONCITO) ya no se agrupan en un solo "Otros": cada una sale con
+    // su propia columna, igual que en Aliados por Entidad.
+    const motoRows = rows.filter(r => r.es_moto);
+    const otrasEntsMoto = [...new Set(motoRows.map(r => norm(r.entidad)).filter(e => e && e !== 'GLOBAL GO' && e !== 'LEONCITO'))]
+      .sort((a, b) => (this.ORDEN_ALIADO.indexOf(a) + 1 || 99) - (this.ORDEN_ALIADO.indexOf(b) + 1 || 99) || a.localeCompare(b));
     const motoCols: ColPivot[] = [
       { key: 'GLOBAL GO', label: 'GLOBAL GO' },
       { key: 'LEONCITO_CREDITO', label: 'Propio — Crédito', entidadReal: 'LEONCITO', conCuotas: true },
       { key: 'LEONCITO_CONTADO', label: 'Propio — Contado', entidadReal: 'LEONCITO', conCuotas: false },
-      { key: 'OTROS', label: 'Otros' },
+      ...otrasEntsMoto.map(e => ({ key: e, label: e })),
     ];
-    const bucketMoto = (e: string, conCuotas: boolean) =>
-      e === 'GLOBAL GO' ? 'GLOBAL GO' : e === 'LEONCITO' ? (conCuotas ? 'LEONCITO_CREDITO' : 'LEONCITO_CONTADO') : 'OTROS';
-    const motoRows = rows.filter(r => r.es_moto);
+    // Entidad vacía (sin aliado) se trata como Propio — igual criterio que Aliados por
+    // Entidad (que ya la excluye de "aliado") y que /reporte-global-detalle.
+    const bucketMoto = (e: string, conCuotas: boolean): string => {
+      if (e === 'GLOBAL GO') return 'GLOBAL GO';
+      if (e === 'LEONCITO' || !e) return conCuotas ? 'LEONCITO_CREDITO' : 'LEONCITO_CONTADO';
+      return e;
+    };
     const opsMoto: any[] = [], montoMoto: any[] = [];
     for (const r of motoRows) {
       const info = this.sedeInfo(r.sede);
