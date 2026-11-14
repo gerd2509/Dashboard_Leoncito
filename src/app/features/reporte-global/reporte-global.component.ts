@@ -251,6 +251,11 @@ export class ReporteGlobalComponent implements OnInit {
       { key: 'motosNeto', label: 'Motos GLOBAL GO (S/)', moneda: true },
       { key: 'motosPropioOps', label: 'Motos Propio (#)', moneda: false },
       { key: 'motosPropioNeto', label: 'Motos Propio (S/)', moneda: true },
+      // Mismo desglose Crédito/Contado que las tablas de Motos por Sede.
+      { key: 'motosPropioCreditoOps', label: 'Motos Propio — Crédito (#)', moneda: false },
+      { key: 'motosPropioCreditoNeto', label: 'Motos Propio — Crédito (S/)', moneda: true },
+      { key: 'motosPropioContadoOps', label: 'Motos Propio — Contado (#)', moneda: false },
+      { key: 'motosPropioContadoNeto', label: 'Motos Propio — Contado (S/)', moneda: true },
       { key: 'margen', label: 'Margen Total', moneda: true },
     ];
     this.comparativoKpis = kpiDefs.map(d => ({ ...d, valores: {} }));
@@ -268,25 +273,29 @@ export class ReporteGlobalComponent implements OnInit {
       const aliadosRows = rows.filter(x => norm(x.entidad) && norm(x.entidad) !== 'LEONCITO');
       const aliados = aliadosRows.reduce((s, x) => s + (x.neto || 0), 0);
       const aliadosOps = aliadosRows.reduce((s, x) => s + (x.ops || 0), 0);
-      // Motos: NETO (mes de venta congelado − NC/incautaciones de su propio mes de afectación).
-      const motosGG = rows.filter(x => x.es_moto && norm(x.entidad) === 'GLOBAL GO');
+      // Motos: NETO (mes de venta congelado − NC/incautaciones de su propio mes de
+      // afectación). Mismo criterio bucketMoto() que "Motos por Sede" (entidad vacía
+      // cuenta como Propio), así el KPI y las tablas de detalle nunca se contradicen.
+      const motosGG = rows.filter(x => x.es_moto && this.bucketMoto(norm(x.entidad), !!x.con_cuotas) === 'GLOBAL GO');
       const motosOps = motosGG.reduce((s, x) => s + (x.ops || 0), 0);
       const motosNeto = motosGG.reduce((s, x) => s + (x.neto || 0), 0);
-      const motosProp = rows.filter(x => x.es_moto && norm(x.entidad) === 'LEONCITO');
-      const motosPropioOps = motosProp.reduce((s, x) => s + (x.ops || 0), 0);
-      const motosPropioNeto = motosProp.reduce((s, x) => s + (x.neto || 0), 0);
+      const motosPropCredito = rows.filter(x => x.es_moto && this.bucketMoto(norm(x.entidad), !!x.con_cuotas) === 'LEONCITO_CREDITO');
+      const motosPropContado = rows.filter(x => x.es_moto && this.bucketMoto(norm(x.entidad), !!x.con_cuotas) === 'LEONCITO_CONTADO');
+      const motosPropioCreditoOps = motosPropCredito.reduce((s, x) => s + (x.ops || 0), 0);
+      const motosPropioCreditoNeto = motosPropCredito.reduce((s, x) => s + (x.neto || 0), 0);
+      const motosPropioContadoOps = motosPropContado.reduce((s, x) => s + (x.ops || 0), 0);
+      const motosPropioContadoNeto = motosPropContado.reduce((s, x) => s + (x.neto || 0), 0);
       const margenRows = r.margen.filter((x: any) => this.sedeInfo(x.sede).key !== 'otras');
       const margenTotal = margenRows.reduce((s: number, x: any) => s + (x.margen_total || 0), 0);
 
-      this.comparativoKpis[0].valores[k] = neto;
-      this.comparativoKpis[1].valores[k] = netoOps;
-      this.comparativoKpis[2].valores[k] = aliados;
-      this.comparativoKpis[3].valores[k] = aliadosOps;
-      this.comparativoKpis[4].valores[k] = motosOps;
-      this.comparativoKpis[5].valores[k] = motosNeto;
-      this.comparativoKpis[6].valores[k] = motosPropioOps;
-      this.comparativoKpis[7].valores[k] = motosPropioNeto;
-      this.comparativoKpis[8].valores[k] = margenTotal;
+      const valoresKpi: Record<string, number> = {
+        neto, netoOps, aliados, aliadosOps, motosOps, motosNeto,
+        motosPropioOps: motosPropioCreditoOps + motosPropioContadoOps,
+        motosPropioNeto: motosPropioCreditoNeto + motosPropioContadoNeto,
+        motosPropioCreditoOps, motosPropioCreditoNeto, motosPropioContadoOps, motosPropioContadoNeto,
+        margen: margenTotal,
+      };
+      for (const kpi of this.comparativoKpis) kpi.valores[k] = valoresKpi[kpi.key] ?? 0;
 
       // Detalle de motos por sede: mismo criterio que la tabla "Motos por Sede" del mes
       // individual — GLOBAL GO / Propio Crédito / Propio Contado / cada otra entidad.
@@ -667,49 +676,73 @@ export class ReporteGlobalComponent implements OnInit {
     wsKpi.columns.forEach((col, i) => { col.width = i === 0 ? 26 : 16; });
     wsKpi.views = [{ state: 'frozen', ySplit: 1 }];
 
-    // Hoja 2: Motos por Sede × Periodo × Tipo de venta (2 columnas por combo: Ops y S/).
+    // Hoja 2: Motos por Sede × Periodo × Tipo de venta — encabezado de 2 filas (mes
+    // fusionado arriba, tipo de venta abajo, igual que se ve en pantalla), y al final
+    // un bloque más con el TOTAL de todos los periodos juntos.
     const wsMotos = wb.addWorksheet('Motos x Sede x Periodo');
-    const headers = ['Sede'];
-    for (const c of this.comparativoCols) {
-      for (const t of this.tiposMotoComparativo) headers.push(`${c.label} · ${t.label} (Ops)`, `${c.label} · ${t.label} (S/)`);
+    const nTipos = this.tiposMotoComparativo.length;
+    const bloques = [...this.comparativoCols, { key: '__TOTAL__', label: 'TOTAL (todos los periodos)' }];
+
+    const fila1: string[] = ['Sede'];
+    const fila2: string[] = [''];
+    for (const b of bloques) {
+      fila1.push(b.label, ...Array(nTipos * 2 - 1).fill(''));
+      for (const t of this.tiposMotoComparativo) fila2.push(`${t.label} (Ops)`, `${t.label} (S/)`);
     }
-    const hrMotos = wsMotos.addRow(headers);
-    hrMotos.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
-    for (const f of this.comparativoMotosDetalle) {
-      const row: (string | number)[] = [f.sede];
+    const hr1 = wsMotos.addRow(fila1);
+    const hr2 = wsMotos.addRow(fila2);
+    [hr1, hr2].forEach(hr => hr.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; }));
+    wsMotos.mergeCells(1, 1, 2, 1);
+    let colCursor = 2;
+    for (const _ of bloques) { wsMotos.mergeCells(1, colCursor, 1, colCursor + nTipos * 2 - 1); colCursor += nTipos * 2; }
+
+    // Total de todos los periodos juntos, por sede y por tipo — a partir de totPorTipo
+    // (ya viene sumado en construirComparativo()).
+    const filaConTotal = (porPeriodo: (c: ColPivot) => Partial<Record<string, MotoTipoCelda>> | undefined, totales: Partial<Record<string, MotoTipoCelda>>) => {
+      const row: (string | number)[] = [];
       for (const c of this.comparativoCols) {
         for (const t of this.tiposMotoComparativo) {
-          const celda = f.porPeriodo[c.key]?.[t.key];
+          const celda = porPeriodo(c)?.[t.key];
           row.push(celda?.ops || 0, Math.round(celda?.monto || 0));
         }
       }
-      wsMotos.addRow(row);
+      for (const t of this.tiposMotoComparativo) {
+        const celda = totales[t.key];
+        row.push(celda?.ops || 0, Math.round(celda?.monto || 0));
+      }
+      return row;
+    };
+    for (const f of this.comparativoMotosDetalle) {
+      wsMotos.addRow([f.sede, ...filaConTotal(c => f.porPeriodo[c.key], f.totPorTipo)]);
     }
     if (this.comparativoMotosDetalleTot && this.comparativoMotosDetalle.length) {
-      const rowTot: (string | number)[] = ['TOTAL'];
+      const totGeneralPorTipo: Record<string, MotoTipoCelda> = {};
+      for (const t of this.tiposMotoComparativo) totGeneralPorTipo[t.key] = { ops: 0, monto: 0 };
       for (const c of this.comparativoCols) {
         for (const t of this.tiposMotoComparativo) {
           const celda = this.comparativoMotosDetalleTot.porPeriodo[c.key]?.[t.key];
-          rowTot.push(celda?.ops || 0, Math.round(celda?.monto || 0));
+          totGeneralPorTipo[t.key].ops += celda?.ops || 0;
+          totGeneralPorTipo[t.key].monto += celda?.monto || 0;
         }
       }
+      const rowTot = ['TOTAL', ...filaConTotal(c => this.comparativoMotosDetalleTot!.porPeriodo[c.key], totGeneralPorTipo)];
       const trMotos = wsMotos.addRow(rowTot);
       trMotos.eachCell(cell => { cell.font = { bold: true }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3FB' } }; });
     }
-    wsMotos.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 15; });
-    wsMotos.views = [{ state: 'frozen', ySplit: 1 }];
+    wsMotos.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 13; });
+    wsMotos.views = [{ state: 'frozen', xSplit: 1, ySplit: 2 }];
 
     // Hoja 3: Motos por Marca × Periodo (compañía completa, # operaciones).
-    if (this.comparativoMarca) this.hojaPivot(wb, 'Motos x Marca x Periodo', this.comparativoMarca, false);
+    if (this.comparativoMarca) this.hojaPivot(wb, 'Motos x Marca x Periodo', this.comparativoMarca, false, 'Marca');
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     FileSaver.saveAs(blob, `Reporte_Global_Comparativo_${sufArchivo}.xlsx`);
   }
 
-  private hojaPivot(wb: Workbook, nombre: string, p: Pivot, moneda: boolean): void {
+  private hojaPivot(wb: Workbook, nombre: string, p: Pivot, moneda: boolean, etiquetaFila = 'Sede'): void {
     const ws = wb.addWorksheet(nombre);
-    const headers = ['Sede', ...p.cols.map(c => c.label), 'Total'];
+    const headers = [etiquetaFila, ...p.cols.map(c => c.label), 'Total'];
     const hr = ws.addRow(headers);
     hr.eachCell(cell => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
