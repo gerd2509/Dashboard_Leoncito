@@ -45,6 +45,16 @@ export class LoginComponent implements OnInit, OnDestroy {
   adminDual = false;
   private usuario$ = new Subject<string>();
 
+  // Logotipo Realzza (reemplaza al nombre en texto una vez identificada la marca):
+  // dos versiones del mismo logo — blanca para fondo oscuro, azul para fondo claro.
+  // El panel de branding (.brand-side) siempre es oscuro (degradado cosmic navy), así
+  // que hoy esto resuelve siempre a la blanca; queda como getter por si algún día este
+  // logo se usa también sobre un fondo claro.
+  private readonly fondoOscuroBrandSide = true;
+  get logoRealzzaSrc(): string {
+    return this.fondoOscuroBrandSide ? '/img/realzza-motos-blanco.png' : '/img/realzza-motos-azul.png';
+  }
+
   particles = Array.from({ length: 35 }, () => ({
     left: `${Math.random() * 100}%`,
     top: `${Math.random() * 110}%`,

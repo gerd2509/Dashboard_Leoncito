@@ -77,7 +77,14 @@
         <span class="bn-word bn-realzza">REALZZA</span>
       </div>
       <div class="brand-name brand-name--solo" *ngIf="brandConocida">
-        <span class="bn-word" [class.bn-leoncito]="brand.id === 'leoncito'" [class.bn-realzza]="brand.id === 'realzza'">{{ brand.nombre }}</span>
+        <ng-container *ngIf="brand.id === 'realzza'; else nombreTexto">
+          <div class="brand-logo-wrap">
+            <img class="brand-logo-img" [src]="logoRealzzaSrc" alt="Realzza Motos y más" />
+          </div>
+        </ng-container>
+        <ng-template #nombreTexto>
+          <span class="bn-word" [class.bn-leoncito]="brand.id === 'leoncito'" [class.bn-realzza]="brand.id === 'realzza'">{{ brand.nombre }}</span>
+        </ng-template>
         <span class="bn-tienda" *ngIf="storeLabel">{{ storeLabel }}</span>
       </div>
 
