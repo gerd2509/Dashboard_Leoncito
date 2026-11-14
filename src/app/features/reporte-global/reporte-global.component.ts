@@ -109,6 +109,45 @@ export class ReporteGlobalComponent implements OnInit {
   // Motos por marca (Wanxin/Ssenda) × periodo, a nivel compañía (# operaciones).
   comparativoMarca: Pivot | null = null;
 
+  // ── Gráfico de evolución del Comparativo (crecimiento/decrecimiento) — reutiliza
+  // los mismos indicadores de comparativoKpis, así que no pide datos aparte. Mismo
+  // patrón de "tipo de gráfico" + popup ampliado que Concreción de Cartera. ──
+  readonly tiposChartComp: { value: 'line' | 'spline' | 'bar' | 'area'; label: string; icon: string }[] = [
+    { value: 'line', label: 'Línea', icon: 'show_chart' },
+    { value: 'spline', label: 'Suavizada', icon: 'ssid_chart' },
+    { value: 'bar', label: 'Barras', icon: 'bar_chart' },
+    { value: 'area', label: 'Área', icon: 'area_chart' },
+  ];
+  readonly modosChartComp: { value: 'ops' | 'monto'; label: string; icon: string }[] = [
+    { value: 'monto', label: 'Montos S/', icon: 'payments' },
+    { value: 'ops', label: '# Operaciones', icon: 'tag' },
+  ];
+  chartTipoComp: 'line' | 'spline' | 'bar' | 'area' = 'line';
+  modoChartComp: 'ops' | 'monto' = 'monto';
+  mostrarInfoChartComp = false;
+  popupChartCompVisible = false;
+  puntosComp: any[] = [];
+  seriesChartComp: { key: string; nombre: string; color: string }[] = [];
+  private readonly PALETA_COMP = ['#1A5FAD', '#E65100', '#2E7D32', '#6A1B9A', '#C62828', '#00838F', '#F9A825', '#5D4037'];
+
+  cambiarTipoChartComp(t: 'line' | 'spline' | 'bar' | 'area'): void { this.chartTipoComp = t; }
+  cambiarModoChartComp(m: 'ops' | 'monto'): void { this.modoChartComp = m; this.construirChartComparativo(); }
+
+  /** Arma los puntos del gráfico a partir de comparativoKpis (ya calculados) — una
+   *  serie por indicador del modo elegido (montos S/ u operaciones), x = periodo. */
+  private construirChartComparativo(): void {
+    const kpisFiltrados = this.comparativoKpis.filter(k => k.moneda === (this.modoChartComp === 'monto'));
+    this.puntosComp = this.comparativoCols.map(c => {
+      const row: any = { periodo: c.label };
+      for (const k of kpisFiltrados) row[k.key] = k.valores[c.key] ?? 0;
+      return row;
+    });
+    this.seriesChartComp = kpisFiltrados.map((k, i) => ({ key: k.key, nombre: k.label, color: this.PALETA_COMP[i % this.PALETA_COMP.length] }));
+  }
+
+  /** Tooltip del gráfico en modo "Montos S/" — mismo formato que el resto de la pantalla. */
+  customizeTooltipSoles = (arg: any) => ({ text: `${arg.seriesName}: ${this.soles(arg.value)}` });
+
   private readonly coloresSede: Record<string, string> = {
     motupe: '#1565C0', olmos: '#00695C', ferrenafe: '#6A1B9A', jayanca: '#E65100',
     mochumi: '#2E7D32', morrope: '#AD1457', lambayeque: '#283593', oyotun: '#558B2F',
@@ -162,8 +201,8 @@ export class ReporteGlobalComponent implements OnInit {
 
   // ── Popup "Ver en grande" de las 3 tablas del Comparativo (KPIs / Motos por Sede ×
   // Periodo / Motos por Marca × Periodo) — mismas tablas, agrandadas en un modal. ──
-  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' = '';
-  abrirAmpliado(t: 'kpis' | 'motos' | 'marca'): void { this.popupAmpliado = t; }
+  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' | 'chart' = '';
+  abrirAmpliado(t: 'kpis' | 'motos' | 'marca' | 'chart'): void { this.popupAmpliado = t; }
   cerrarAmpliado(): void { this.popupAmpliado = ''; }
 
   constructor(private fb: UntypedFormBuilder) {
@@ -230,6 +269,8 @@ export class ReporteGlobalComponent implements OnInit {
     this.tiposMotoComparativo = [];
     this.comparativoMarca = null;
     this.comparativoCols = [];
+    this.puntosComp = [];
+    this.seriesChartComp = [];
   }
 
   /** % de cambio de una fila KPI entre el periodo en `idx` y el anterior (null = sin base). */
@@ -339,6 +380,7 @@ export class ReporteGlobalComponent implements OnInit {
     const ordenTipos = ['GLOBAL GO', 'LEONCITO_CREDITO', 'LEONCITO_CONTADO', ...otrasVistas].filter(t => tiposVistos.has(t));
     this.tiposMotoComparativo = ordenTipos.map(t => ({ key: t, label: this.labelMoto(t) }));
     this.comparativoMarca = this.buildPivot(marcaEnt, cols);
+    this.construirChartComparativo();
   }
 
   private color(k: string): string { return this.coloresSede[k] || '#607D8B'; }

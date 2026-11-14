@@ -88,7 +88,27 @@
   background: rgba(255,255,255,.18); color: #fff; transition: background .15s;
 }
 .rg-ampliar:hover { background: rgba(255,255,255,.32); }
+.rg-ampliar.on { background: #fff; color: #1A5FAD; }
 .rg-ampliar mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+/* Caja de herramientas del gráfico de Evolución: modo (Montos/Operaciones) + tipo de
+   gráfico + ayuda + ampliar, todos agrupados a la derecha de la cabecera. */
+.rg-chart-tools { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rg-chart-tools .rg-ampliar { margin-left: 0; }
+.rg-chart-sep { width: 1px; height: 20px; background: rgba(255,255,255,.3); margin: 0 2px; }
+.rg-chip-txt {
+  display: inline-flex; align-items: center; gap: 5px; border: none; border-radius: 8px;
+  padding: 0 12px; height: 30px; background: rgba(255,255,255,.18); color: #fff;
+  font-weight: 700; font-size: 12px; cursor: pointer; transition: background .15s;
+}
+.rg-chip-txt:hover { background: rgba(255,255,255,.32); }
+.rg-chip-txt.on { background: #fff; color: #1A5FAD; }
+.rg-chip-txt mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+.rg-chart-wrap { padding: 10px 6px; }
+.rg-chart { height: 330px; }
+.rg-chart-popup { height: 74vh; }
+.rg-amplio-body-chart { padding: 16px; overflow: visible; }
 
 /* Popup "Ver en grande": ocupa todo lo que el backdrop deja (su padding es 24px por
    lado), para que quepan la mayor cantidad de columnas posible — igual así, con

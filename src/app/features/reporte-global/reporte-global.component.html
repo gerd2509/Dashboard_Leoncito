@@ -43,6 +43,32 @@
   </div>
 
   <div class="rg-comp-resultados" *ngIf="comparando">
+    <!-- ── Gráfico de evolución (crecimiento/decrecimiento) — mismos indicadores de la
+         tabla de abajo, sin pedir datos aparte ── -->
+    <div class="am-cardhead fte rg-comp-sub">
+      <mat-icon>show_chart</mat-icon> Evolución <em>(crecimiento / decrecimiento por periodo)</em>
+      <div class="rg-chart-tools">
+        <button class="rg-chip-txt" type="button" *ngFor="let m of modosChartComp" [class.on]="modoChartComp === m.value"
+          (click)="cambiarModoChartComp(m.value)" [matTooltip]="m.label">
+          <mat-icon>{{ m.icon }}</mat-icon> {{ m.label }}
+        </button>
+        <span class="rg-chart-sep"></span>
+        <button class="rg-ampliar" type="button" *ngFor="let t of tiposChartComp" [class.on]="chartTipoComp === t.value"
+          (click)="cambiarTipoChartComp(t.value)" [matTooltip]="t.label">
+          <mat-icon>{{ t.icon }}</mat-icon>
+        </button>
+        <button class="rg-ampliar" type="button" (click)="mostrarInfoChartComp = true" title="¿Qué muestra este gráfico?">
+          <mat-icon>help_outline</mat-icon>
+        </button>
+        <button class="rg-ampliar" type="button" (click)="abrirAmpliado('chart')" title="Ver en grande">
+          <mat-icon>open_in_full</mat-icon>
+        </button>
+      </div>
+    </div>
+    <div class="am-scroll rg-chart-wrap" *ngIf="puntosComp.length && seriesChartComp.length">
+      <ng-container *ngTemplateOutlet="graficoComp"></ng-container>
+    </div>
+
     <!-- ── Indicadores de compañía, con variación % vs el periodo anterior ── -->
     <div class="am-cardhead fte rg-comp-sub">
       <mat-icon>insights</mat-icon> Indicadores (Compañía)
@@ -163,22 +189,71 @@
   </table>
 </ng-template>
 
-<!-- ══════════ Popup "Ver en grande" de las 3 tablas del Comparativo ══════════ -->
+<ng-template #graficoComp let-ampliado="ampliado">
+  <dx-chart [dataSource]="puntosComp" [redrawOnResize]="true" [class.rg-chart-popup]="ampliado" [class.rg-chart]="!ampliado">
+    <dxo-common-series-settings argumentField="periodo" [type]="chartTipoComp">
+      <dxo-point [visible]="true" [size]="ampliado ? 7 : 6"></dxo-point>
+      <dxo-label [visible]="chartTipoComp !== 'bar'"><dxo-font [size]="ampliado ? 12 : 11"></dxo-font></dxo-label>
+    </dxo-common-series-settings>
+    <dxi-series *ngFor="let s of seriesChartComp" [valueField]="s.key" [name]="s.nombre" [color]="s.color"></dxi-series>
+    <dxo-argument-axis>
+      <dxo-label [overlappingBehavior]="'rotate'" [rotationAngle]="-35"></dxo-label>
+    </dxo-argument-axis>
+    <dxo-value-axis>
+      <dxo-title [text]="modoChartComp === 'monto' ? 'Monto S/' : '# Operaciones'"></dxo-title>
+    </dxo-value-axis>
+    <dxo-tooltip [enabled]="true" [customizeTooltip]="modoChartComp === 'monto' ? customizeTooltipSoles : undefined"></dxo-tooltip>
+    <dxo-legend [visible]="seriesChartComp.length > 1" verticalAlignment="bottom" horizontalAlignment="center"></dxo-legend>
+  </dx-chart>
+</ng-template>
+
+<!-- Popup: qué muestra el gráfico de Evolución -->
+<dx-popup [(visible)]="mostrarInfoChartComp" [showTitle]="true" title="¿Qué muestra este gráfico?"
+  [dragEnabled]="false" [hideOnOutsideClick]="true" [showCloseButton]="true" width="420" height="auto"
+  [maxHeight]="420">
+  <div *dxTemplate="let d of 'content'" class="cc-info-popup">
+    <p>Cada línea/barra es uno de los <b>indicadores</b> de la tabla de abajo (Neto Global,
+      Aliados, Motos GLOBAL GO, Motos Propio — Crédito/Contado, Margen…), para los periodos
+      que elegiste en el comparativo.</p>
+    <p>Usa <b>Montos S/</b> u <b># Operaciones</b> arriba para cambiar de escala (mezclarlos
+      no se puede leer bien, tienen magnitudes muy distintas). Los íconos de la derecha
+      cambian el tipo de gráfico (línea, suavizada, barras o área); haz clic en la
+      leyenda para ocultar/mostrar una serie puntual si se ve muy cargado.</p>
+  </div>
+</dx-popup>
+
+<!-- ══════════ Popup "Ver en grande" de las 3 tablas + el gráfico del Comparativo ══════════ -->
 <div class="rg-detalle-backdrop" *ngIf="popupAmpliado" (click)="cerrarAmpliado()">
   <div class="rg-detalle-modal rg-amplio-modal" (click)="$event.stopPropagation()">
     <div class="rg-detalle-head" [style.background]="'#1A5FAD'">
       <div class="rg-detalle-head-ico">
-        <mat-icon>{{ popupAmpliado === 'kpis' ? 'insights' : (popupAmpliado === 'motos' ? 'two_wheeler' : 'sell') }}</mat-icon>
+        <mat-icon>{{ popupAmpliado === 'kpis' ? 'insights' : (popupAmpliado === 'motos' ? 'two_wheeler' : (popupAmpliado === 'marca' ? 'sell' : 'show_chart')) }}</mat-icon>
       </div>
       <div class="rg-detalle-head-txt">
         <h3>
-          {{ popupAmpliado === 'kpis' ? 'Indicadores (Compañía)' : (popupAmpliado === 'motos' ? 'Motos por Sede × Periodo' : 'Motos por Marca × Periodo') }}
+          {{ popupAmpliado === 'kpis' ? 'Indicadores (Compañía)' : (popupAmpliado === 'motos' ? 'Motos por Sede × Periodo' : (popupAmpliado === 'marca' ? 'Motos por Marca × Periodo' : 'Evolución')) }}
         </h3>
+      </div>
+      <div class="rg-chart-tools" *ngIf="popupAmpliado === 'chart'">
+        <button class="rg-chip-txt" type="button" *ngFor="let m of modosChartComp" [class.on]="modoChartComp === m.value"
+          (click)="cambiarModoChartComp(m.value)" [matTooltip]="m.label">
+          <mat-icon>{{ m.icon }}</mat-icon> {{ m.label }}
+        </button>
+        <span class="rg-chart-sep"></span>
+        <button class="rg-ampliar" type="button" *ngFor="let t of tiposChartComp" [class.on]="chartTipoComp === t.value"
+          (click)="cambiarTipoChartComp(t.value)" [matTooltip]="t.label">
+          <mat-icon>{{ t.icon }}</mat-icon>
+        </button>
       </div>
       <button mat-icon-button (click)="cerrarAmpliado()"><mat-icon>close</mat-icon></button>
     </div>
-    <div class="rg-detalle-body rg-amplio-body">
-      <ng-container *ngTemplateOutlet="popupAmpliado === 'kpis' ? tablaKpis : (popupAmpliado === 'motos' ? tablaMotosSedePeriodo : tablaMotosMarca)"></ng-container>
+    <div class="rg-detalle-body rg-amplio-body" [class.rg-amplio-body-chart]="popupAmpliado === 'chart'">
+      <ng-container *ngIf="popupAmpliado === 'chart'; else tablasAmpliadas">
+        <ng-container *ngTemplateOutlet="graficoComp; context: { ampliado: true }"></ng-container>
+      </ng-container>
+      <ng-template #tablasAmpliadas>
+        <ng-container *ngTemplateOutlet="popupAmpliado === 'kpis' ? tablaKpis : (popupAmpliado === 'motos' ? tablaMotosSedePeriodo : tablaMotosMarca)"></ng-container>
+      </ng-template>
     </div>
   </div>
 </div>
