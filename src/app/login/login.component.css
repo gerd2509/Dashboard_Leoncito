@@ -843,3 +843,27 @@
 @media (prefers-reduced-motion: reduce) {
   .cub-stage, .cub, .cub-ring, .k-cola, .k-brazo, .k-cabeza, .k-logo, .k-chispa, .k-parpado { animation: none !important; }
 }
+
+/* ═══ FORMULARIO EN AZUL REALZZA ═══
+   Con usuario Realzza, los acentos naranjas del formulario y las partículas pasan a azul. */
+.login-page.es-realzza .particle { background: #4fc3f7; box-shadow: 0 0 6px rgba(79,195,247,.6); }
+.login-page.es-realzza .particle:nth-child(2n) { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,.7); }
+.login-page.es-realzza .form-card { box-shadow: 0 25px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(46,125,225,.14); }
+.login-page.es-realzza .form-card::before { background: linear-gradient(to right, transparent, #2e7de1, #8fc0ff, transparent); }
+.login-page.es-realzza .form-icon { background: linear-gradient(135deg, #2e7de1, #1a5fad); box-shadow: 0 8px 24px rgba(46,125,225,.4); }
+.login-page.es-realzza .form-icon::after { border-color: rgba(46,125,225,.5); }
+.login-page.es-realzza .field-group:has(.input-wrap:focus-within) label { color: #6aa8f5; }
+.login-page.es-realzza .input-wrap:focus-within {
+  border-color: #2e7de1;
+  background: rgba(46,125,225,.07);
+  box-shadow: 0 0 0 3px rgba(46,125,225,.16);
+}
+.login-page.es-realzza .input-wrap::after { background: linear-gradient(90deg, #2e7de1, #8fc0ff); }
+.login-page.es-realzza .input-wrap:focus-within mat-icon:first-child,
+.login-page.es-realzza .eye-btn:hover { color: #6aa8f5; }
+.login-page.es-realzza .btn-ingresar {
+  background: linear-gradient(135deg, #2e7de1, #1a5fad);
+  box-shadow: 0 6px 20px rgba(26,95,173,.45);
+}
+.login-page.es-realzza .btn-ingresar:hover:not(:disabled) { box-shadow: 0 10px 28px rgba(46,125,225,.55); }
+.form-icon, .btn-ingresar, .form-card::before { transition: background .4s ease, box-shadow .3s ease, transform .15s, opacity .2s; }
