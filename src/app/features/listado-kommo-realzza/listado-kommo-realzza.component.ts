@@ -92,7 +92,10 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({ anio: [hoy.getFullYear()], mes: [hoy.getMonth() + 1] });
   }
 
-  ngOnInit(): void { this.cargar(); }
+  // Al abrir la pantalla se dispara una sincronización igual que si se apretara el
+  // botón — así "respondido" no se queda desactualizado solo porque nadie entró a
+  // esta pantalla en un rato (antes dependía 100% de que alguien tocara el botón).
+  ngOnInit(): void { this.cargar(); this.sincronizar(); }
 
   setTienda(t: TiendaRealzza): void {
     if (this.tienda === t) return;
@@ -256,6 +259,13 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
       await lastValueFrom(this.ventasSrv.sincronizarLeadsKommo(anio, mes));
       this.consultarAvanceSync();
     } catch (e: any) {
+      if (e?.status === 409) {
+        // Ya hay una sincronización en curso (p.ej. disparada por el auto-sync al
+        // abrir la pantalla, o por otra persona) — seguimos su avance en vez de
+        // marcar error, total es la misma sincronización que queríamos de todos modos.
+        this.consultarAvanceSync();
+        return;
+      }
       console.error('Error al iniciar la sincronización con Kommo:', e);
       this.error = e?.error?.message || 'No se pudo iniciar la sincronización con Kommo.';
       this.sincronizando = false;
