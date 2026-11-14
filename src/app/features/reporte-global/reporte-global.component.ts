@@ -9,7 +9,13 @@ import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
 
-interface ColPivot { key: string; label: string; }
+interface ColPivot {
+  key: string; label: string;
+  // Solo para Motos por Sede: "Propio (Leoncito)" se parte en Crédito/Contado — la
+  // columna necesita un `key` propio para agregar aparte, pero el detalle (clic en la
+  // celda) debe pedir la entidad REAL (LEONCITO) + este filtro extra de cuotas.
+  entidadReal?: string; conCuotas?: boolean;
+}
 interface FilaPivot { sedeKey: string; sede: string; color: string; valores: Record<string, number>; total: number; }
 interface Pivot { cols: ColPivot[]; filas: FilaPivot[]; totales: Record<string, number>; totalGeneral: number; }
 interface RankVendedor {
@@ -132,7 +138,11 @@ export class ReporteGlobalComponent implements OnInit {
     this.detalleFilas = [];
     try {
       const { anio, mes } = this.form.value;
-      const filtro = { ...(dimension === 'entidad' ? { entidad: col.key } : { [dimension]: col.key }), soloMoto };
+      const filtro = {
+        ...(dimension === 'entidad' ? { entidad: col.entidadReal ?? col.key } : { [dimension]: col.key }),
+        soloMoto,
+        ...(col.conCuotas !== undefined ? { conCuotas: col.conCuotas } : {}),
+      };
       const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(anio, mes || undefined, undefined, sedesRaw, filtro));
       this.detalleFilas = filas || [];
     } catch (e) {
@@ -362,7 +372,7 @@ export class ReporteGlobalComponent implements OnInit {
     return { cols, filas, totales, totalGeneral };
   }
 
-  private construir(rowsAll: { sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number; monto_bruto: number; ops_bruto: number }[]): void {
+  private construir(rowsAll: { sede: string; entidad: string | null; es_moto: boolean; con_cuotas: boolean; neto: number; ops: number; monto_bruto: number; ops_bruto: number }[]): void {
     // Solo sedes reconocidas (10 físicas + Realzza). Se excluye "Otras" (oficina/online,
     // incautados, La Victoria, variantes RETAIL) de todas las tablas y KPIs.
     const rows = rowsAll.filter(r => this.sedeInfo(r.sede).key !== 'otras');
@@ -400,18 +410,23 @@ export class ReporteGlobalComponent implements OnInit {
     this.aliadosOps = this.buildPivot(opsEnt, aliCols);
     this.aliadosMonto = this.buildPivot(montoEnt, aliCols);
 
-    // ── B) Motos por sede (GLOBAL GO / Propio Leoncito / Otros) ──
+    // ── B) Motos por sede (GLOBAL GO / Propio Leoncito —Crédito/Contado— / Otros) ──
+    // "Propio (Leoncito)" se separa en Crédito (cuotas>0) y Contado (cuotas=0) para un
+    // mejor control — SOLO en esta tabla, no en Aliados por Entidad ni en Motos por
+    // Marca/Tipo, que siguen agrupando por la entidad tal cual.
     const motoCols: ColPivot[] = [
       { key: 'GLOBAL GO', label: 'GLOBAL GO' },
-      { key: 'LEONCITO', label: 'Propio (Leoncito)' },
+      { key: 'LEONCITO_CREDITO', label: 'Propio — Crédito', entidadReal: 'LEONCITO', conCuotas: true },
+      { key: 'LEONCITO_CONTADO', label: 'Propio — Contado', entidadReal: 'LEONCITO', conCuotas: false },
       { key: 'OTROS', label: 'Otros' },
     ];
-    const bucketMoto = (e: string) => (e === 'GLOBAL GO' ? 'GLOBAL GO' : e === 'LEONCITO' ? 'LEONCITO' : 'OTROS');
+    const bucketMoto = (e: string, conCuotas: boolean) =>
+      e === 'GLOBAL GO' ? 'GLOBAL GO' : e === 'LEONCITO' ? (conCuotas ? 'LEONCITO_CREDITO' : 'LEONCITO_CONTADO') : 'OTROS';
     const motoRows = rows.filter(r => r.es_moto);
     const opsMoto: any[] = [], montoMoto: any[] = [];
     for (const r of motoRows) {
       const info = this.sedeInfo(r.sede);
-      const b = bucketMoto(norm(r.entidad));
+      const b = bucketMoto(norm(r.entidad), !!r.con_cuotas);
       opsMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.ops || 0 });
       montoMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.neto || 0 });
     }

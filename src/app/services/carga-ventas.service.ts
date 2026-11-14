@@ -129,7 +129,7 @@ export class CargaVentasService {
 
   // ── Reporte Global (módulo nuevo) ──
   /** Neto + # ops por (sede, entidad, es_moto). Aliados = entidad ≠ LEONCITO. */
-  obtenerReporteGlobal(anio: number, mes?: number, dia?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; neto: number; ops: number; monto_bruto: number; ops_bruto: number }[]> {
+  obtenerReporteGlobal(anio: number, mes?: number, dia?: number): Observable<{ sede: string; entidad: string | null; es_moto: boolean; con_cuotas: boolean; neto: number; ops: number; monto_bruto: number; ops_bruto: number }[]> {
     let params = new HttpParams().set('anio', anio);
     if (mes) params = params.set('mes', mes);
     if (dia) params = params.set('dia', dia);
@@ -144,7 +144,7 @@ export class CargaVentasService {
    *  ventas de esa entidad, no solo las motos). */
   obtenerReporteGlobalDetalle(
     anio: number, mes: number | undefined, dia: number | undefined, sedesRaw: string[],
-    filtro: { entidad?: string; marca?: string; tipo?: string; soloMoto?: boolean },
+    filtro: { entidad?: string; marca?: string; tipo?: string; soloMoto?: boolean; conCuotas?: boolean },
   ): Observable<{
     vendedor: string; cliente: string; producto: string; entidad: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number;
   }[]> {
@@ -155,6 +155,7 @@ export class CargaVentasService {
     if (filtro.marca) params = params.set('marca', filtro.marca);
     if (filtro.tipo) params = params.set('tipo', filtro.tipo);
     if (filtro.soloMoto) params = params.set('soloMoto', '1');
+    if (filtro.conCuotas !== undefined) params = params.set('conCuotas', filtro.conCuotas ? '1' : '0');
     return this.http.get<any[]>(`${this.root}/reporte-global-detalle`, { params });
   }
   /** Motos a nivel detalle por (sede, credito PROPIO/GLOBAL, marca, tipo, vendedor) + # motos
