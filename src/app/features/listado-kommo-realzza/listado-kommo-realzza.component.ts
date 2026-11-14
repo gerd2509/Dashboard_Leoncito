@@ -71,6 +71,9 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
   mensajeSync = '';
   private inicioSyncMs = 0;
   private pollErrorCount = 0;
+  // Última sincronización YA TERMINADA, siempre visible (no depende de confiar en el
+  // contador de una sincronización en curso que puede ir lenta con una cuenta grande).
+  ultimaSincronizacionTexto = '';
 
   filas: FilaLead[] = [];
 
@@ -95,7 +98,30 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
   // Al abrir la pantalla se dispara una sincronización igual que si se apretara el
   // botón — así "respondido" no se queda desactualizado solo porque nadie entró a
   // esta pantalla en un rato (antes dependía 100% de que alguien tocara el botón).
-  ngOnInit(): void { this.cargar(); this.sincronizar(); }
+  ngOnInit(): void {
+    this.cargar();
+    this.sincronizar();
+    // Por si la sincronización de arriba falla al tiro (antes de llegar a consultar
+    // el avance): igual se pide la última sincronización conocida, para que el
+    // indicador "hace X" no se quede vacío.
+    this.ventasSrv.estadoSyncLeadsKommo().subscribe({
+      next: (st) => this.actualizarUltimaSincronizacion(st.ultimaSincronizacionUnix),
+      error: () => {},
+    });
+  }
+
+  /** Texto "hace X" de la última sincronización YA TERMINADA (0/null = nunca). */
+  private actualizarUltimaSincronizacion(unix: number | null | undefined): void {
+    if (!unix) { this.ultimaSincronizacionTexto = 'nunca'; return; }
+    const seg = Math.max(0, Math.round(Date.now() / 1000 - unix));
+    const min = Math.floor(seg / 60);
+    if (min < 1) { this.ultimaSincronizacionTexto = 'hace unos segundos'; return; }
+    if (min < 60) { this.ultimaSincronizacionTexto = `hace ${min} min`; return; }
+    const horas = Math.floor(min / 60);
+    this.ultimaSincronizacionTexto = horas < 24
+      ? `hace ${horas}h ${min % 60}min`
+      : `hace ${Math.floor(horas / 24)}d ${horas % 24}h`;
+  }
 
   setTienda(t: TiendaRealzza): void {
     if (this.tienda === t) return;
@@ -282,6 +308,7 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     this.ventasSrv.estadoSyncLeadsKommo().subscribe({
       next: async (st) => {
         this.pollErrorCount = 0;
+        this.actualizarUltimaSincronizacion(st.ultimaSincronizacionUnix);
         if (st.enProgreso) {
           // El servidor guarda por páginas (lo más reciente primero), así que esto
           // va subiendo en vivo aunque falten minutos para terminar la cuenta entera.

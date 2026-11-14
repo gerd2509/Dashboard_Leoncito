@@ -325,6 +325,9 @@ export class CargaVentasService {
     success: boolean; enProgreso: boolean; inicio: string | null;
     resultado: { filas: number; insertados: number; actualizados: number; incremental: boolean } | null;
     error: string | null;
+    // De la última corrida YA TERMINADA (0 = nunca se sincronizó) — para mostrar
+    // "última sincronización: hace X" sin depender de una sincronización en curso.
+    ultimaSincronizacionUnix: number | null;
   }> {
     return this.http.get<any>(`${this.root}/leads-kommo-realzza/sync-kommo/estado`);
   }

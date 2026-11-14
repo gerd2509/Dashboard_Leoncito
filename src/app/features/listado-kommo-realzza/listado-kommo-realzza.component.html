@@ -40,6 +40,9 @@
           <mat-icon>{{ sincronizando ? 'hourglass_empty' : 'sync' }}</mat-icon>
           {{ sincronizando ? 'Sincronizando…' : 'Sincronizar con Kommo' }}
         </button>
+        <span class="lk-ultima-sync" *ngIf="ultimaSincronizacionTexto" [title]="'Última sincronización con Kommo YA TERMINADA (no depende de que esta pantalla siga abierta)'">
+          <mat-icon>history</mat-icon> Última sincronización: {{ ultimaSincronizacionTexto }}
+        </span>
         <button mat-stroked-button type="button" (click)="exportar()" *ngIf="filas.length">
           <mat-icon>file_download</mat-icon> Exportar
         </button>

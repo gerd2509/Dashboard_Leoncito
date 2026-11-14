@@ -35,6 +35,12 @@
 }
 .lk-hint mat-icon { font-size: 17px; width: 17px; height: 17px; }
 
+.lk-ultima-sync {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+  color: #6b7a90; margin-left: 4px;
+}
+.lk-ultima-sync mat-icon { font-size: 15px; width: 15px; height: 15px; color: #8fa2b8; }
+
 .lk-mensaje, .lk-error, .lk-vacio {
   display: flex; align-items: center; gap: 8px; font-size: 13px;
   padding: 10px 14px; border-radius: 8px; margin: 10px 0;
