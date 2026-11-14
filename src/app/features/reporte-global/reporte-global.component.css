@@ -81,6 +81,40 @@
 .am-cardhead em { font-style: normal; font-weight: 600; opacity: .85; font-size: 12px; }
 .am-cardhead mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
+/* Botón "Ver en grande" dentro de la cabecera de cada tabla del Comparativo. */
+.rg-ampliar {
+  margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border: none; border-radius: 8px; cursor: pointer;
+  background: rgba(255,255,255,.18); color: #fff; transition: background .15s;
+}
+.rg-ampliar:hover { background: rgba(255,255,255,.32); }
+.rg-ampliar mat-icon { font-size: 18px; width: 18px; height: 18px; }
+
+/* Popup "Ver en grande": ocupa todo lo que el backdrop deja (su padding es 24px por
+   lado), para que quepan la mayor cantidad de columnas posible — igual así, con
+   varios meses × varios tipos de venta puede seguir sobrando scroll horizontal, así
+   que la columna "Sede" y los encabezados quedan FIJOS al hacer scroll (como una
+   grilla de Excel con paneles inmovilizados), para no perder la referencia. */
+.rg-amplio-modal { width: calc(100vw - 48px); max-width: calc(100vw - 48px); max-height: 94vh; }
+.rg-amplio-body { overflow: auto; padding: 0; }
+.rg-amplio-body .am-table { font-size: 13px; }
+
+.rg-amplio-body .am-table thead th {
+  position: sticky; top: 0; z-index: 3;
+}
+.rg-amplio-body .am-table thead th.ta-l:first-child {
+  left: 0; z-index: 4; background: #f3f6fb;
+}
+.rg-amplio-body .am-table tbody td.ta-l:first-child,
+.rg-amplio-body .am-table tfoot td.ta-l:first-child {
+  position: sticky; left: 0; z-index: 2; background: #fff;
+  box-shadow: 2px 0 4px rgba(20,49,79,.08);
+}
+.rg-amplio-body .am-table tbody tr:hover td.ta-l:first-child { background: #f7fafd; }
+.rg-amplio-body .am-table tfoot td.ta-l:first-child { background: #eef3fb; }
+/* Línea más marcada entre bloques de periodo, para ubicarse rápido con muchas columnas. */
+.rg-amplio-body .rg-comp-motos-tabla .rg-grp-head { border-left: 2px solid #fff; }
+
 .am-scroll { overflow-x: auto; }
 .am-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
 .am-table th, .am-table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid #eef2f7; white-space: nowrap; }

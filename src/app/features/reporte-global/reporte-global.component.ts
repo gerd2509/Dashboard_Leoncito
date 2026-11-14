@@ -160,6 +160,12 @@ export class ReporteGlobalComponent implements OnInit {
 
   cerrarDetalle(): void { this.detalleAbierto = false; }
 
+  // ── Popup "Ver en grande" de las 3 tablas del Comparativo (KPIs / Motos por Sede ×
+  // Periodo / Motos por Marca × Periodo) — mismas tablas, agrandadas en un modal. ──
+  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' = '';
+  abrirAmpliado(t: 'kpis' | 'motos' | 'marca'): void { this.popupAmpliado = t; }
+  cerrarAmpliado(): void { this.popupAmpliado = ''; }
+
   constructor(private fb: UntypedFormBuilder) {
     this.form = this.fb.group({ anio: [2026], mes: [0] });
   }
