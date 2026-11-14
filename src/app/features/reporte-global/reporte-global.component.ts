@@ -26,12 +26,15 @@ interface RankSede {
   sedeKey: string; sede: string; color: string; vendedores: RankVendedor[]; propio: number; global: number; total: number;
   propioWanxin: number; propioSsenda: number; globalWanxin: number; globalSsenda: number;
 }
-/** Celda del detalle de motos por sede×periodo del comparativo: ops + monto, Propio y Global GO. */
-interface MotoCelda { propioOps: number; propioMonto: number; globalOps: number; globalMonto: number; }
+/** Celda del detalle de motos por sede×periodo del comparativo: ops + monto de un tipo
+ *  de venta puntual (GLOBAL GO / Propio Crédito / Propio Contado / otra entidad). */
+interface MotoTipoCelda { ops: number; monto: number; }
 interface ComparMotoSedeFila {
   sedeKey: string; sede: string; color: string;
-  porPeriodo: Partial<Record<string, MotoCelda>>;   // puede faltar un periodo (0 motos ese mes)
-  totPropioOps: number; totPropioMonto: number; totGlobalOps: number; totGlobalMonto: number;
+  // periodoKey → tipoKey → celda (puede faltar un periodo o un tipo: 0 ese mes/tipo).
+  porPeriodo: Partial<Record<string, Partial<Record<string, MotoTipoCelda>>>>;
+  totPorTipo: Partial<Record<string, MotoTipoCelda>>;
+  totMonto: number;   // suma de todos los tipos, para ordenar la tabla de mayor a menor
 }
 
 @Component({
@@ -96,9 +99,13 @@ export class ReporteGlobalComponent implements OnInit {
   cargandoComparativo = false;
   comparativoKpis: { key: string; label: string; moneda: boolean; valores: Record<string, number> }[] = [];
   comparativoCols: ColPivot[] = [];
-  // Detalle de motos por sede × periodo (Propio + GLOBAL GO, ops y S/, incl. Piura/Lima).
+  // Detalle de motos por sede × periodo (GLOBAL GO / Propio Crédito / Propio Contado /
+  // otras entidades, ops y S/, incl. Piura/Lima).
   comparativoMotosDetalle: ComparMotoSedeFila[] = [];
-  comparativoMotosDetalleTot: { porPeriodo: Record<string, MotoCelda> } | null = null;
+  comparativoMotosDetalleTot: { porPeriodo: Record<string, Partial<Record<string, MotoTipoCelda>>> } | null = null;
+  // Tipos de venta (columnas) presentes en el comparativo actual, mismo orden que la
+  // tabla del mes individual (GLOBAL GO, Propio Crédito/Contado, luego cada aliado).
+  tiposMotoComparativo: ColPivot[] = [];
   // Motos por marca (Wanxin/Ssenda) × periodo, a nivel compañía (# operaciones).
   comparativoMarca: Pivot | null = null;
 
@@ -214,6 +221,7 @@ export class ReporteGlobalComponent implements OnInit {
     this.comparativoKpis = [];
     this.comparativoMotosDetalle = [];
     this.comparativoMotosDetalleTot = null;
+    this.tiposMotoComparativo = [];
     this.comparativoMarca = null;
     this.comparativoCols = [];
   }
@@ -227,7 +235,7 @@ export class ReporteGlobalComponent implements OnInit {
     return Math.round(((cur - prev) / prev) * 1000) / 10;
   }
 
-  private celdaVacia(): MotoCelda { return { propioOps: 0, propioMonto: 0, globalOps: 0, globalMonto: 0 }; }
+  private celdaMotoVacia(): MotoTipoCelda { return { ops: 0, monto: 0 }; }
 
   private construirComparativo(resultados: { periodo: { key: string; label: string }; rows: any[]; motos: any[]; margen: any[] }[]): void {
     const norm = (e: string | null) => (e || '').toString().trim().toUpperCase();
@@ -248,7 +256,8 @@ export class ReporteGlobalComponent implements OnInit {
     this.comparativoKpis = kpiDefs.map(d => ({ ...d, valores: {} }));
 
     const bySede = new Map<string, ComparMotoSedeFila>();
-    const totPorPeriodo: Record<string, MotoCelda> = {};
+    const totPorPeriodo: Record<string, Partial<Record<string, MotoTipoCelda>>> = {};
+    const tiposVistos = new Set<string>();
     const marcaEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
 
     for (const r of resultados) {
@@ -279,25 +288,24 @@ export class ReporteGlobalComponent implements OnInit {
       this.comparativoKpis[7].valores[k] = motosPropioNeto;
       this.comparativoKpis[8].valores[k] = margenTotal;
 
-      // Detalle de motos por sede: Propio (LEONCITO) + GLOBAL GO, ops y monto NETO.
-      totPorPeriodo[k] = this.celdaVacia();
+      // Detalle de motos por sede: mismo criterio que la tabla "Motos por Sede" del mes
+      // individual — GLOBAL GO / Propio Crédito / Propio Contado / cada otra entidad.
+      totPorPeriodo[k] = {};
       for (const x of rows.filter(x => x.es_moto)) {
-        const esGlobal = norm(x.entidad) === 'GLOBAL GO';
-        const esPropio = norm(x.entidad) === 'LEONCITO';
-        if (!esGlobal && !esPropio) continue;   // "Otros" créditos: fuera del detalle propio/global.
+        const tipo = this.bucketMoto(norm(x.entidad), !!x.con_cuotas);
+        tiposVistos.add(tipo);
         const info = this.sedeInfo(x.sede);
         let f = bySede.get(info.key);
-        if (!f) { f = { sedeKey: info.key, sede: info.nombre, color: this.color(info.key), porPeriodo: {}, totPropioOps: 0, totPropioMonto: 0, totGlobalOps: 0, totGlobalMonto: 0 }; bySede.set(info.key, f); }
-        if (!f.porPeriodo[k]) f.porPeriodo[k] = this.celdaVacia();
-        if (esGlobal) {
-          f.porPeriodo[k].globalOps += x.ops || 0; f.porPeriodo[k].globalMonto += x.neto || 0;
-          f.totGlobalOps += x.ops || 0; f.totGlobalMonto += x.neto || 0;
-          totPorPeriodo[k].globalOps += x.ops || 0; totPorPeriodo[k].globalMonto += x.neto || 0;
-        } else {
-          f.porPeriodo[k].propioOps += x.ops || 0; f.porPeriodo[k].propioMonto += x.neto || 0;
-          f.totPropioOps += x.ops || 0; f.totPropioMonto += x.neto || 0;
-          totPorPeriodo[k].propioOps += x.ops || 0; totPorPeriodo[k].propioMonto += x.neto || 0;
-        }
+        if (!f) { f = { sedeKey: info.key, sede: info.nombre, color: this.color(info.key), porPeriodo: {}, totPorTipo: {}, totMonto: 0 }; bySede.set(info.key, f); }
+        if (!f.porPeriodo[k]) f.porPeriodo[k] = {};
+        if (!f.porPeriodo[k]![tipo]) f.porPeriodo[k]![tipo] = this.celdaMotoVacia();
+        if (!f.totPorTipo[tipo]) f.totPorTipo[tipo] = this.celdaMotoVacia();
+        if (!totPorPeriodo[k][tipo]) totPorPeriodo[k][tipo] = this.celdaMotoVacia();
+
+        f.porPeriodo[k]![tipo]!.ops += x.ops || 0; f.porPeriodo[k]![tipo]!.monto += x.neto || 0;
+        f.totPorTipo[tipo]!.ops += x.ops || 0; f.totPorTipo[tipo]!.monto += x.neto || 0;
+        f.totMonto += x.neto || 0;
+        totPorPeriodo[k][tipo]!.ops += x.ops || 0; totPorPeriodo[k][tipo]!.monto += x.neto || 0;
       }
 
       // Motos por marca (Wanxin/Ssenda/Otras) — compañía completa, en # operaciones (neto).
@@ -307,8 +315,14 @@ export class ReporteGlobalComponent implements OnInit {
       porMarca.forEach((v, marca) => marcaEnt.push({ sedeKey: marca, sede: this.titulo(marca), col: k, value: v }));
     }
 
-    this.comparativoMotosDetalle = [...bySede.values()].sort((a, b) => (b.totGlobalMonto + b.totPropioMonto) - (a.totGlobalMonto + a.totPropioMonto));
+    this.comparativoMotosDetalle = [...bySede.values()].sort((a, b) => b.totMonto - a.totMonto);
     this.comparativoMotosDetalleTot = { porPeriodo: totPorPeriodo };
+    // Mismo orden que motoCols en construir(): GLOBAL GO, Propio Crédito/Contado, y
+    // luego cada otra entidad vista (alfabético, con BRILLA/EFECTIVA primero si aplica).
+    const otrasVistas = [...tiposVistos].filter(t => t !== 'GLOBAL GO' && t !== 'LEONCITO_CREDITO' && t !== 'LEONCITO_CONTADO')
+      .sort((a, b) => (this.ORDEN_ALIADO.indexOf(a) + 1 || 99) - (this.ORDEN_ALIADO.indexOf(b) + 1 || 99) || a.localeCompare(b));
+    const ordenTipos = ['GLOBAL GO', 'LEONCITO_CREDITO', 'LEONCITO_CONTADO', ...otrasVistas].filter(t => tiposVistos.has(t));
+    this.tiposMotoComparativo = ordenTipos.map(t => ({ key: t, label: this.labelMoto(t) }));
     this.comparativoMarca = this.buildPivot(marcaEnt, cols);
   }
 
@@ -348,6 +362,22 @@ export class ReporteGlobalComponent implements OnInit {
       this.motosMarca = this.motosTipo = null; this.rankingSedes = [];
     }
     this.isLoading = false;
+  }
+
+  // "Propio (Leoncito)" se separa en Crédito (cuotas>0) / Contado (cuotas=0); el resto
+  // de entidades (ALFIN, EFECTIVA, BRILLA, etc.) sale cada una por su nombre. Entidad
+  // vacía (sin aliado) se trata como Propio — igual criterio que Aliados por Entidad
+  // (que ya la excluye de "aliado") y que /reporte-global-detalle. Compartido por la
+  // tabla del mes individual y por el comparativo de varios periodos.
+  private bucketMoto(e: string, conCuotas: boolean): string {
+    if (e === 'GLOBAL GO') return 'GLOBAL GO';
+    if (e === 'LEONCITO' || !e) return conCuotas ? 'LEONCITO_CREDITO' : 'LEONCITO_CONTADO';
+    return e;
+  }
+  private labelMoto(key: string): string {
+    if (key === 'LEONCITO_CREDITO') return 'Propio — Crédito';
+    if (key === 'LEONCITO_CONTADO') return 'Propio — Contado';
+    return key;
   }
 
   /** Arma un pivot sede × columna a partir de entradas sueltas. */
@@ -426,17 +456,10 @@ export class ReporteGlobalComponent implements OnInit {
       { key: 'LEONCITO_CONTADO', label: 'Propio — Contado', entidadReal: 'LEONCITO', conCuotas: false },
       ...otrasEntsMoto.map(e => ({ key: e, label: e })),
     ];
-    // Entidad vacía (sin aliado) se trata como Propio — igual criterio que Aliados por
-    // Entidad (que ya la excluye de "aliado") y que /reporte-global-detalle.
-    const bucketMoto = (e: string, conCuotas: boolean): string => {
-      if (e === 'GLOBAL GO') return 'GLOBAL GO';
-      if (e === 'LEONCITO' || !e) return conCuotas ? 'LEONCITO_CREDITO' : 'LEONCITO_CONTADO';
-      return e;
-    };
     const opsMoto: any[] = [], montoMoto: any[] = [];
     for (const r of motoRows) {
       const info = this.sedeInfo(r.sede);
-      const b = bucketMoto(norm(r.entidad), !!r.con_cuotas);
+      const b = this.bucketMoto(norm(r.entidad), !!r.con_cuotas);
       opsMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.ops || 0 });
       montoMoto.push({ sedeKey: info.key, sede: info.nombre, col: b, value: r.neto || 0 });
     }
@@ -624,6 +647,64 @@ export class ReporteGlobalComponent implements OnInit {
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     FileSaver.saveAs(blob, `Reporte_Global_${suf}.xlsx`);
+  }
+
+  /** Export del Comparativo (varios periodos lado a lado): KPIs, Motos por Sede ×
+   *  Periodo × Tipo de venta (GLOBAL GO / Propio Crédito-Contado / otras entidades) y
+   *  Motos por Marca × Periodo — las 3 tablas que se ven en pantalla al comparar. */
+  async exportarComparativoExcel(): Promise<void> {
+    if (!this.comparando) return;
+    const wb = new Workbook();
+    const sufArchivo = this.comparativoCols.map(c => c.key).join('_');
+
+    // Hoja 1: KPIs por periodo.
+    const wsKpi = wb.addWorksheet('Comparativo KPIs');
+    const hrKpi = wsKpi.addRow(['KPI', ...this.comparativoCols.map(c => c.label)]);
+    hrKpi.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
+    for (const k of this.comparativoKpis) {
+      wsKpi.addRow([k.label, ...this.comparativoCols.map(c => Math.round(k.valores[c.key] || 0))]);
+    }
+    wsKpi.columns.forEach((col, i) => { col.width = i === 0 ? 26 : 16; });
+    wsKpi.views = [{ state: 'frozen', ySplit: 1 }];
+
+    // Hoja 2: Motos por Sede × Periodo × Tipo de venta (2 columnas por combo: Ops y S/).
+    const wsMotos = wb.addWorksheet('Motos x Sede x Periodo');
+    const headers = ['Sede'];
+    for (const c of this.comparativoCols) {
+      for (const t of this.tiposMotoComparativo) headers.push(`${c.label} · ${t.label} (Ops)`, `${c.label} · ${t.label} (S/)`);
+    }
+    const hrMotos = wsMotos.addRow(headers);
+    hrMotos.eachCell(cell => { cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } }; });
+    for (const f of this.comparativoMotosDetalle) {
+      const row: (string | number)[] = [f.sede];
+      for (const c of this.comparativoCols) {
+        for (const t of this.tiposMotoComparativo) {
+          const celda = f.porPeriodo[c.key]?.[t.key];
+          row.push(celda?.ops || 0, Math.round(celda?.monto || 0));
+        }
+      }
+      wsMotos.addRow(row);
+    }
+    if (this.comparativoMotosDetalleTot && this.comparativoMotosDetalle.length) {
+      const rowTot: (string | number)[] = ['TOTAL'];
+      for (const c of this.comparativoCols) {
+        for (const t of this.tiposMotoComparativo) {
+          const celda = this.comparativoMotosDetalleTot.porPeriodo[c.key]?.[t.key];
+          rowTot.push(celda?.ops || 0, Math.round(celda?.monto || 0));
+        }
+      }
+      const trMotos = wsMotos.addRow(rowTot);
+      trMotos.eachCell(cell => { cell.font = { bold: true }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEEF3FB' } }; });
+    }
+    wsMotos.columns.forEach((col, i) => { col.width = i === 0 ? 22 : 15; });
+    wsMotos.views = [{ state: 'frozen', ySplit: 1 }];
+
+    // Hoja 3: Motos por Marca × Periodo (compañía completa, # operaciones).
+    if (this.comparativoMarca) this.hojaPivot(wb, 'Motos x Marca x Periodo', this.comparativoMarca, false);
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    FileSaver.saveAs(blob, `Reporte_Global_Comparativo_${sufArchivo}.xlsx`);
   }
 
   private hojaPivot(wb: Workbook, nombre: string, p: Pivot, moneda: boolean): void {
