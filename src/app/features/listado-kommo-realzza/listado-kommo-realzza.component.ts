@@ -69,6 +69,8 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
   sincronizando = false;
   error = '';
   mensajeSync = '';
+  private inicioSyncMs = 0;
+  private pollErrorCount = 0;
 
   filas: FilaLead[] = [];
 
@@ -247,6 +249,8 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
    *  pocos segundos hasta que termine, sin bloquear la pantalla mientras tanto. */
   async sincronizar(): Promise<void> {
     this.sincronizando = true; this.error = ''; this.mensajeSync = 'Sincronización iniciada en segundo plano…';
+    this.inicioSyncMs = Date.now();
+    this.pollErrorCount = 0;
     try {
       const { anio, mes } = this.form.value;
       await lastValueFrom(this.ventasSrv.sincronizarLeadsKommo(anio, mes));
@@ -258,15 +262,26 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     }
   }
 
+  /** Segundos transcurridos desde que se disparó la sincronización — se muestra en el
+   *  mensaje para que quede claro que sigue viva y no se trabó. */
+  private segundosDesdeInicio(): number {
+    return Math.max(0, Math.round((Date.now() - this.inicioSyncMs) / 1000));
+  }
+
   private consultarAvanceSync(): void {
     this.ventasSrv.estadoSyncLeadsKommo().subscribe({
       next: async (st) => {
+        this.pollErrorCount = 0;
         if (st.enProgreso) {
           // El servidor guarda por páginas (lo más reciente primero), así que esto
           // va subiendo en vivo aunque falten minutos para terminar la cuenta entera.
+          // El contador de segundos deja claro que sigue viva, no que se trabó.
+          const seg = this.segundosDesdeInicio();
           if (st.resultado) {
             const r = st.resultado;
-            this.mensajeSync = `Trayendo de Kommo… ${r.filas} leads vistos (${r.insertados} nuevos, ${r.actualizados} actualizados) — puede tardar varios minutos.`;
+            this.mensajeSync = `Trayendo de Kommo… ${r.filas} leads vistos (${r.insertados} nuevos, ${r.actualizados} actualizados) — ${seg}s, puede tardar varios minutos.`;
+          } else {
+            this.mensajeSync = `Conectando con Kommo… ${seg}s.`;
           }
           this.pollSyncTimeoutId = setTimeout(() => this.consultarAvanceSync(), 4000);
           return;
@@ -276,14 +291,27 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
           this.error = st.error;
         } else if (st.resultado) {
           const r = st.resultado;
-          this.mensajeSync = `Listo: ${r.filas} leads de Kommo (${r.insertados} nuevos, ${r.actualizados} actualizados).`;
+          this.mensajeSync = `Listo: ${r.filas} leads de Kommo (${r.insertados} nuevos, ${r.actualizados} actualizados) en ${this.segundosDesdeInicio()}s.`;
         }
+        // Recién AHORA, con la sincronización realmente terminada, se recarga el
+        // listado — así lo que se ve en pantalla queda al día con lo que Kommo
+        // reportó como respondido/modificado.
         await this.cargar();
       },
       error: (e) => {
         console.error('Error al consultar el avance de la sincronización:', e);
+        this.pollErrorCount++;
+        // Un fallo puntual al CONSULTAR el avance (red, cold start de Render) no
+        // significa que la sincronización en el servidor se haya detenido — sigue
+        // corriendo igual. Reintenta varias veces antes de darla por perdida, para
+        // no mostrar un error falso mientras el trabajo de fondo sigue vivo.
+        if (this.pollErrorCount <= 5) {
+          this.mensajeSync = `Se perdió la conexión consultando el avance… reintentando (${this.pollErrorCount}/5).`;
+          this.pollSyncTimeoutId = setTimeout(() => this.consultarAvanceSync(), 4000);
+          return;
+        }
         this.sincronizando = false;
-        this.error = 'No se pudo consultar el avance de la sincronización.';
+        this.error = 'No se pudo seguir consultando el avance (puede que la sincronización siga corriendo en el servidor). Vuelve a intentarlo en unos minutos.';
       },
     });
   }
