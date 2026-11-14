@@ -867,3 +867,7 @@
 }
 .login-page.es-realzza .btn-ingresar:hover:not(:disabled) { box-shadow: 0 10px 28px rgba(46,125,225,.55); }
 .form-icon, .btn-ingresar, .form-card::before { transition: background .4s ease, box-shadow .3s ease, transform .15s, opacity .2s; }
+
+/* Las partículas van por encima del fondo de los paneles (que son opacos y las tapaban)
+   y por debajo del contenido (mascota y tarjeta del formulario, z-index 2). */
+.particle { z-index: 1; }
