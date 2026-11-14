@@ -45,14 +45,21 @@ export class LoginComponent implements OnInit, OnDestroy {
   adminDual = false;
   private usuario$ = new Subject<string>();
 
-  // Logotipo Realzza (reemplaza al nombre en texto una vez identificada la marca):
-  // dos versiones del mismo logo — blanca para fondo oscuro, azul para fondo claro.
-  // El panel de branding (.brand-side) siempre es oscuro (degradado cosmic navy), así
-  // que hoy esto resuelve siempre a la blanca; queda como getter por si algún día este
-  // logo se usa también sobre un fondo claro.
-  private readonly fondoOscuroBrandSide = true;
-  get logoRealzzaSrc(): string {
-    return this.fondoOscuroBrandSide ? '/img/realzza-motos-blanco.png' : '/img/realzza-motos-azul.png';
+  // Logo con el que juega el cachorro de Realzza (versión blanca: el panel es oscuro).
+  readonly logoRealzzaSrc = '/img/realzza-motos-blanco.png';
+
+  // Mascota Realzza: solo cuando el usuario escrito ya se identificó como de Realzza.
+  get esRealzza(): boolean {
+    return this.brandConocida && this.brand.id === 'realzza';
+  }
+  focoUsuario = false;    // el cachorro voltea hacia el formulario
+  focoPassword = false;   // el cachorro cierra los ojos
+  cubSalta = false;
+
+  saltarCub(): void {
+    if (this.cubSalta) return;
+    this.cubSalta = true;
+    setTimeout(() => (this.cubSalta = false), 750);
   }
 
   particles = Array.from({ length: 35 }, () => ({
@@ -110,6 +117,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
     this.cargando = true;
     this.error = '';
+    this.saltarCub();
 
     this.auth.login(this.usuario.trim(), this.password.trim()).subscribe({
       next: (res: any) => {

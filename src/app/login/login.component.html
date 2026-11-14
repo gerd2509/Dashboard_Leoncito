@@ -36,7 +36,7 @@
   </div>
 </div>
 
-<div class="login-page">
+<div class="login-page" [class.es-realzza]="esRealzza" [class.atento]="focoUsuario" [class.discreto]="focoPassword">
 
   <!-- Partículas flotantes -->
   <div class="particle" *ngFor="let p of particles" [ngStyle]="p"></div>
@@ -47,7 +47,29 @@
 
       <!-- Anillos animados + leoncito(s): ambas marcas hasta identificar al usuario,
            luego solo la suya (con su tienda, si es Realzza Piura/Lima) -->
-      <div class="lion-stage">
+      <!-- Realzza: cachorro por capas (cola, cuerpo, brazo, cabeza) jugando con el logo -->
+      <div class="cub-stage" *ngIf="esRealzza" [class.salta]="cubSalta" (click)="saltarCub()">
+        <div class="cub-ring cub-r1"></div>
+        <div class="cub-ring cub-r2"></div>
+        <div class="cub-ring cub-r3"></div>
+        <div class="cub-sombra"></div>
+        <div class="cub">
+          <div class="cub-capa k-cola"><img src="/img/realzza-cub-tail.webp" alt="" /></div>
+          <div class="cub-capa"><img src="/img/realzza-cub-body.webp" alt="Mascota de Realzza" /></div>
+          <div class="cub-capa k-brazo"><img src="/img/realzza-cub-arm.webp" alt="" /></div>
+          <div class="cub-capa k-cabeza-estado">
+            <div class="cub-capa k-cabeza">
+              <img src="/img/realzza-cub-head.webp" alt="" />
+              <span class="k-parpado kp-izq"></span>
+              <span class="k-parpado kp-der"></span>
+            </div>
+          </div>
+          <span class="k-chispa"></span>
+          <div class="k-logo"><img [src]="logoRealzzaSrc" alt="Realzza Motos y más" /></div>
+        </div>
+      </div>
+
+      <div class="lion-stage" *ngIf="!esRealzza">
         <div class="ring ring-1"></div>
         <div class="ring ring-2"></div>
         <div class="ring ring-3"></div>
@@ -77,14 +99,8 @@
         <span class="bn-word bn-realzza">REALZZA</span>
       </div>
       <div class="brand-name brand-name--solo" *ngIf="brandConocida">
-        <ng-container *ngIf="brand.id === 'realzza'; else nombreTexto">
-          <div class="brand-logo-wrap">
-            <img class="brand-logo-img" [src]="logoRealzzaSrc" alt="Realzza Motos y más" />
-          </div>
-        </ng-container>
-        <ng-template #nombreTexto>
-          <span class="bn-word" [class.bn-leoncito]="brand.id === 'leoncito'" [class.bn-realzza]="brand.id === 'realzza'">{{ brand.nombre }}</span>
-        </ng-template>
+        <!-- Realzza no repite el nombre: el logo ya lo tiene el cachorro -->
+        <span class="bn-word bn-leoncito" *ngIf="!esRealzza">{{ brand.nombre }}</span>
         <span class="bn-tienda" *ngIf="storeLabel">{{ storeLabel }}</span>
       </div>
 
@@ -120,6 +136,8 @@
               type="text"
               [(ngModel)]="usuario"
               (ngModelChange)="onUsuarioChange($event)"
+              (focus)="focoUsuario = true"
+              (blur)="focoUsuario = false"
               name="usuario"
               placeholder="Ingresa tu usuario"
               [disabled]="cargando"
@@ -136,6 +154,8 @@
               #passwordRef
               [type]="mostrarPassword ? 'text' : 'password'"
               [(ngModel)]="password"
+              (focus)="focoPassword = true"
+              (blur)="focoPassword = false"
               name="password"
               placeholder="Ingresa tu contraseña"
               [disabled]="cargando"
