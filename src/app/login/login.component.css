@@ -695,155 +695,6 @@
 .fc-btn:hover:not(:disabled) { background: #17539a; }
 .fc-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-/* ═══ MASCOTA REALZZA — cachorro jugando con el logo ═══
-   4 capas del mismo lienzo (531×835) apiladas; cada una gira sobre su articulación
-   (los transform-origin son las coordenadas de cadera, codo y cuello en ese lienzo). */
-.cub-stage {
-  --h: min(50vh, 420px);
-  --t: 3.4s;
-  position: relative;
-  height: var(--h);
-  aspect-ratio: 531 / 835;
-  margin: 24px 70px 0;
-  cursor: pointer;
-  animation: cubEntra .9s cubic-bezier(.16,1,.3,1) both;
-}
-@keyframes cubEntra {
-  from { opacity: 0; transform: translateY(40px) scale(.92); }
-  to   { opacity: 1; transform: none; }
-}
-.cub-ring {
-  position: absolute; left: 50%; top: 50%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  border: 1.5px solid rgba(var(--brand-rgb), .3);
-  transform: translate(-50%,-50%);
-  animation: cubRing 3s ease-out infinite;
-}
-.cub-r1 { width: 120%; }
-.cub-r2 { width: 150%; animation-delay: .9s; }
-.cub-r3 { width: 180%; animation-delay: 1.8s; }
-@keyframes cubRing {
-  0%   { transform: translate(-50%,-50%) scale(.86); opacity: .8; }
-  80%  { opacity: .08; }
-  100% { transform: translate(-50%,-50%) scale(1.08); opacity: 0; }
-}
-.cub-sombra {
-  position: absolute; left: 50%; bottom: -2.5%;
-  width: 92%; height: 6%;
-  transform: translateX(-50%);
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(0,0,0,.55), transparent 70%);
-}
-.cub {
-  position: absolute; inset: 0;
-  transform-origin: 45% 100%;
-  animation: cubSalto var(--t) ease-in-out infinite;
-  filter: drop-shadow(0 16px 22px rgba(0,0,0,.5));
-}
-/* Saltito al lanzar el logo + respiración el resto del ciclo */
-@keyframes cubSalto {
-  0%, 100% { transform: translateY(0) scale(1,1); }
-  10% { transform: translateY(0) scale(1.02,.97); }
-  22% { transform: translateY(-3.5%) scale(.985,1.03); }
-  34% { transform: translateY(0) scale(1.015,.985); }
-  42% { transform: translateY(0) scale(1,1); }
-  70% { transform: translateY(0) scale(1.004,1.012); }
-}
-.cub-capa { position: absolute; inset: 0; }
-.cub-capa > img {
-  position: absolute; inset: 0; width: 100%; height: 100%; display: block;
-  user-select: none; -webkit-user-drag: none;
-}
-.k-cola { transform-origin: 56.69% 78.92%; animation: kCola .8s ease-in-out infinite; }
-@keyframes kCola { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(8deg); } }
-/* Brazo: baja para tomar impulso, lanza hacia arriba y amortigua al atrapar */
-.k-brazo { transform-origin: 64.22% 53.29%; animation: kBrazo var(--t) ease-in-out infinite; }
-@keyframes kBrazo {
-  0%, 100% { transform: rotate(0deg); }
-  10% { transform: rotate(7deg); }
-  19% { transform: rotate(-11deg); }
-  34% { transform: rotate(-3deg); }
-  78% { transform: rotate(-1deg); }
-  87% { transform: rotate(6deg); }
-}
-/* Cabeza: un contenedor para el estado (foco en los inputs) y otro para seguir al logo */
-.k-cabeza-estado { transform-origin: 35.97% 43.71%; transition: transform .5s cubic-bezier(.34,1.4,.64,1); }
-.k-cabeza { transform-origin: 35.97% 43.71%; animation: kCabeza var(--t) ease-in-out infinite; }
-@keyframes kCabeza {
-  0%, 100% { transform: rotate(2.5deg); }
-  12% { transform: rotate(3.5deg); }
-  50% { transform: rotate(-3deg); }
-  84% { transform: rotate(3.5deg); }
-}
-.login-page.atento .k-cabeza-estado   { transform: rotate(3deg) translateX(1%); }
-.login-page.discreto .k-cabeza-estado { transform: rotate(-2deg) translateY(.6%); }
-/* Párpados: parpadeo periódico; cerrados mientras se escribe la contraseña */
-.k-parpado {
-  position: absolute; width: 11.6%; height: 8.4%;
-  background: radial-gradient(ellipse at 50% 25%, #f7f3f0, #e9e2dc);
-  border-radius: 50%;
-  box-shadow: inset 0 -3px 0 #75655a, inset 0 -6px 5px rgba(120,100,88,.3);
-  transform-origin: 50% 0%; transform: scaleY(0);
-  animation: cubParpadeo 3.9s infinite;
-}
-.kp-izq { left: 21.2%; top: 19.3%; rotate: 4deg; }
-.kp-der { left: 46.4%; top: 21.4%; rotate: 7deg; }
-@keyframes cubParpadeo { 0%, 93%, 100% { transform: scaleY(0); } 95.5%, 97% { transform: scaleY(1); } }
-.login-page.discreto .k-parpado { animation: none; transform: scaleY(1); transition: transform .18s ease; }
-/* Logo: sale volando de la pata, gira en el aire y vuelve a caer en la palma */
-.k-logo {
-  position: absolute; z-index: 5;
-  left: 70%; top: 33.5%; width: 36%;
-  transform-origin: 50% 55%;
-  animation: kLogo var(--t) infinite;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,.5)) drop-shadow(0 0 14px rgba(var(--brand-rgb),.6));
-}
-.k-logo img { display: block; width: 100%; height: auto; }
-@keyframes kLogo {
-  0%   { transform: translateY(0) rotate(-4deg) scale(1); animation-timing-function: ease-in-out; }
-  10%  { transform: translateY(9%) rotate(-2deg) scale(1.03,.95); animation-timing-function: cubic-bezier(.2,.7,.3,1); }
-  50%  { transform: translateY(-205%) rotate(356deg) scale(1.08); animation-timing-function: cubic-bezier(.6,0,.9,.5); }
-  84%  { transform: translateY(4%) rotate(716deg) scale(1.04,.93); animation-timing-function: ease-out; }
-  92%  { transform: translateY(-9%) rotate(716deg) scale(.99,1.03); animation-timing-function: ease-in-out; }
-  100% { transform: translateY(0) rotate(716deg) scale(1); }
-}
-/* Chispa en la pata al lanzar y al atrapar */
-.k-chispa {
-  position: absolute; left: 80%; top: 46%; width: 16%; aspect-ratio: 1; z-index: 4;
-  background: radial-gradient(circle, rgba(255,255,255,.95) 0 8%, rgba(var(--brand-rgb),.7) 22%, transparent 62%);
-  border-radius: 50%; opacity: 0;
-  animation: kChispa var(--t) infinite;
-}
-@keyframes kChispa {
-  0%, 12%, 30%, 80%, 100% { opacity: 0; transform: scale(.3); }
-  17% { opacity: 1; transform: scale(1.5); }
-  86% { opacity: .9; transform: scale(1.2); }
-}
-.cub-stage:hover { --t: 2.1s; }
-.cub-stage:hover .k-cola { animation-duration: .45s; }
-.cub-stage:hover .cub-ring { animation-duration: 1.5s; }
-.cub-stage.salta .cub { animation: cubBrinco .7s cubic-bezier(.3,1.5,.5,1); }
-@keyframes cubBrinco {
-  0%,100% { transform: translateY(0) scale(1); }
-  30% { transform: translateY(0) scale(1.03,.95); }
-  60% { transform: translateY(-7%) scale(.98,1.04); }
-}
-/* Móvil: con usuario Realzza el panel de marca no se oculta; el cachorro queda
-   chico y centrado encima del formulario. */
-@media (max-width: 768px) {
-  .login-page.es-realzza { flex-direction: column; }
-  .login-page.es-realzza .brand-side { display: flex; flex: none; padding: 18px 20px 4px; background: transparent; }
-  .login-page.es-realzza .brand-content { gap: 8px; }
-  .login-page.es-realzza .cub-stage { --h: 210px; margin-top: 16px; }
-  .login-page.es-realzza .brand-tagline,
-  .login-page.es-realzza .brand-divider { display: none; }
-  .login-page.es-realzza .form-side { align-items: flex-start; padding-top: 12px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cub-stage, .cub, .cub-ring, .k-cola, .k-brazo, .k-cabeza, .k-logo, .k-chispa, .k-parpado { animation: none !important; }
-}
-
 /* ═══ FORMULARIO EN AZUL REALZZA ═══
    Con usuario Realzza, los acentos naranjas del formulario y las partículas pasan a azul. */
 .login-page.es-realzza .particle { background: #4fc3f7; box-shadow: 0 0 6px rgba(79,195,247,.6); }
@@ -871,3 +722,16 @@
 /* Las partículas van por encima del fondo de los paneles (que son opacos y las tapaban)
    y por debajo del contenido (mascota y tarjeta del formulario, z-index 2). */
 .particle { z-index: 1; }
+
+/* Móvil: el panel de marca no se oculta; la mascota queda chica y centrada encima del
+   formulario (su tamaño lo ajusta el componente login-mascota). */
+@media (max-width: 768px) {
+  .login-page { flex-direction: column; }
+  .login-page .brand-side { display: flex; flex: none; padding: 18px 20px 4px; background: transparent; }
+  .login-page .brand-content { gap: 8px; }
+  .login-page .brand-name--duo .bn-word { font-size: 20px; }
+  .login-page .brand-name--duo .bn-sep { font-size: 18px; }
+  .login-page .brand-tagline,
+  .login-page .brand-divider { display: none; }
+  .login-page .form-side { align-items: flex-start; padding-top: 12px; }
+}

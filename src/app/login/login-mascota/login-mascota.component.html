@@ -1,0 +1,51 @@
+<!-- Un cachorro por capas (cola, cuerpo, brazo, cabeza) jugando con el logo de su marca -->
+<div class="cub-stage" *ngIf="modo !== 'duo'" [class.es-leo]="modo === 'leoncito'" [class.salta]="salta">
+  <div class="cub-ring cub-r1"></div>
+  <div class="cub-ring cub-r2"></div>
+  <div class="cub-ring cub-r3"></div>
+  <div class="cub-sombra"></div>
+  <div class="cub">
+    <div class="cub-capa k-cola"><img [src]="cubBase + '-tail.webp'" alt="" /></div>
+    <div class="cub-capa"><img [src]="cubBase + '-body.webp'" [alt]="'Mascota de ' + nombre" /></div>
+    <div class="cub-capa k-brazo"><img [src]="cubBase + '-arm.webp'" alt="" /></div>
+    <div class="cub-capa k-cabeza-estado">
+      <div class="cub-capa k-cabeza">
+        <img [src]="cubBase + '-head.webp'" alt="" />
+        <span class="k-parpado kp-izq"></span>
+        <span class="k-parpado kp-der"></span>
+      </div>
+    </div>
+    <span class="k-chispa"></span>
+    <div class="k-logo"><img [src]="logoSrc" [alt]="nombre" /></div>
+  </div>
+</div>
+
+<!-- Los dos cachorros dándose la mano: una ilustración recortada en 8 capas -->
+<div class="duo-stage" *ngIf="modo === 'duo'" [class.salta]="salta">
+  <div class="cub-ring cub-r1"></div>
+  <div class="cub-ring cub-r2"></div>
+  <div class="cub-ring cub-r3"></div>
+  <div class="duo-sombra s-a"></div>
+  <div class="duo-sombra s-b"></div>
+  <div class="duo">
+    <div class="d-capa d-cola-leo"><img src="/img/duo-leo-tail.webp" alt="" /></div>
+    <div class="d-capa d-cola-rz"><img src="/img/duo-rz-tail.webp" alt="" /></div>
+    <div class="d-capa"><img src="/img/duo-body.webp" alt="Leoncito y Realzza dándose la mano" /></div>
+    <div class="d-capa d-brazo-rz"><img src="/img/duo-rz-arm.webp" alt="" /></div>
+    <div class="d-capa d-brazo-leo"><img src="/img/duo-leo-arm.webp" alt="" /></div>
+    <div class="d-capa d-manos"><img src="/img/duo-clasp.webp" alt="" /></div>
+    <div class="d-capa d-cab-leo">
+      <img src="/img/duo-leo-head.webp" alt="" />
+      <span class="d-parpado dp-leo"></span>
+    </div>
+    <div class="d-capa d-cab-rz">
+      <img src="/img/duo-rz-head.webp" alt="" />
+      <span class="d-parpado dp-rz1"></span>
+      <span class="d-parpado dp-rz2"></span>
+    </div>
+  </div>
+  <span class="duo-brillo"></span>
+  <span class="duo-chispa dc1">✦</span>
+  <span class="duo-chispa dc2">✦</span>
+  <span class="duo-chispa dc3">✦</span>
+</div>

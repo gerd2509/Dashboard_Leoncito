@@ -7,12 +7,13 @@ import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/
 import { AuthService } from '../services/auth.service';
 import { BrandService, Brand } from '../services/brand.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
+import { LoginMascotaComponent } from './login-mascota/login-mascota.component';
 import { nombreCorto } from '../shared/asesores';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatIconModule, LionIconComponent],
+  imports: [CommonModule, FormsModule, MatIconModule, LionIconComponent, LoginMascotaComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -45,12 +46,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   adminDual = false;
   private usuario$ = new Subject<string>();
 
-  // Logo con el que juega el cachorro de Realzza (versión blanca: el panel es oscuro).
-  readonly logoRealzzaSrc = '/img/realzza-motos-blanco.png';
-
-  // Mascota Realzza: solo cuando el usuario escrito ya se identificó como de Realzza.
+  // Mascota: con el usuario identificado se muestra el cachorro de su marca jugando con su
+  // logo; sin identificar (o admin) se muestran los dos cachorros dándose la mano.
   get esRealzza(): boolean {
     return this.brandConocida && this.brand.id === 'realzza';
+  }
+  get mascotaModo(): 'duo' | 'leoncito' | 'realzza' {
+    if (!this.brandConocida) return 'duo';
+    return this.esRealzza ? 'realzza' : 'leoncito';
   }
   focoUsuario = false;    // el cachorro voltea hacia el formulario
   focoPassword = false;   // el cachorro cierra los ojos

@@ -45,63 +45,26 @@
   <div class="brand-side" [style.--brand-rgb]="brand.rgb">
     <div class="brand-content">
 
-      <!-- Anillos animados + leoncito(s): ambas marcas hasta identificar al usuario,
-           luego solo la suya (con su tienda, si es Realzza Piura/Lima) -->
-      <!-- Realzza: cachorro por capas (cola, cuerpo, brazo, cabeza) jugando con el logo -->
-      <div class="cub-stage" *ngIf="esRealzza" [class.salta]="cubSalta" (click)="saltarCub()">
-        <div class="cub-ring cub-r1"></div>
-        <div class="cub-ring cub-r2"></div>
-        <div class="cub-ring cub-r3"></div>
-        <div class="cub-sombra"></div>
-        <div class="cub">
-          <div class="cub-capa k-cola"><img src="/img/realzza-cub-tail.webp" alt="" /></div>
-          <div class="cub-capa"><img src="/img/realzza-cub-body.webp" alt="Mascota de Realzza" /></div>
-          <div class="cub-capa k-brazo"><img src="/img/realzza-cub-arm.webp" alt="" /></div>
-          <div class="cub-capa k-cabeza-estado">
-            <div class="cub-capa k-cabeza">
-              <img src="/img/realzza-cub-head.webp" alt="" />
-              <span class="k-parpado kp-izq"></span>
-              <span class="k-parpado kp-der"></span>
-            </div>
-          </div>
-          <span class="k-chispa"></span>
-          <div class="k-logo"><img [src]="logoRealzzaSrc" alt="Realzza Motos y más" /></div>
-        </div>
-      </div>
+      <!-- Mascota: los dos cachorros dándose la mano hasta identificar al usuario (y para el
+           admin, que no es de una sola marca); luego el cachorro de su marca con su logo -->
+      <app-login-mascota
+        [modo]="mascotaModo"
+        [nombre]="brand.nombre"
+        [salta]="cubSalta"
+        [class.atento]="focoUsuario"
+        [class.discreto]="focoPassword"
+        (click)="saltarCub()">
+      </app-login-mascota>
 
-      <div class="lion-stage" *ngIf="!esRealzza">
-        <div class="ring ring-1"></div>
-        <div class="ring ring-2"></div>
-        <div class="ring ring-3"></div>
-
-        <div class="lion-duo" *ngIf="!brandConocida">
-          <div class="lion-circle">
-            <app-lion-icon class="lion-emoji" variant="leoncito"></app-lion-icon>
-          </div>
-          <div class="lion-circle">
-            <app-lion-icon class="lion-emoji" variant="realzza"></app-lion-icon>
-          </div>
-        </div>
-        <div class="lion-circle" *ngIf="brandConocida">
-          <app-lion-icon class="lion-emoji" [variant]="brand.id"></app-lion-icon>
-        </div>
-
-        <!-- Estrellas orbitales -->
-        <span class="orbit-star s1">✦</span>
-        <span class="orbit-star s2">✦</span>
-        <span class="orbit-star s3">✦</span>
-      </div>
-
-      <!-- Nombre: ambas marcas hasta identificar al usuario, luego solo la suya -->
+      <!-- Nombre de ambas marcas mientras no se identifica al usuario; luego el logo ya lo
+           lleva el cachorro y solo se muestra la tienda (Piura/Lima) si aplica -->
       <div class="brand-name brand-name--duo" *ngIf="!brandConocida">
         <span class="bn-word bn-leoncito">LEONCITO</span>
         <span class="bn-sep">·</span>
         <span class="bn-word bn-realzza">REALZZA</span>
       </div>
-      <div class="brand-name brand-name--solo" *ngIf="brandConocida">
-        <!-- Realzza no repite el nombre: el logo ya lo tiene el cachorro -->
-        <span class="bn-word bn-leoncito" *ngIf="!esRealzza">{{ brand.nombre }}</span>
-        <span class="bn-tienda" *ngIf="storeLabel">{{ storeLabel }}</span>
+      <div class="brand-name brand-name--solo" *ngIf="brandConocida && storeLabel">
+        <span class="bn-tienda">{{ storeLabel }}</span>
       </div>
 
       <p class="brand-tagline">Sistema de Gestión Integral</p>
