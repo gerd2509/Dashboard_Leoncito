@@ -629,13 +629,14 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     // Deduplicar por DNI (un cliente cuenta una sola vez, igual que Embudos).
     const unicos = this.dedupPorDni(clientesFiltrados);
     this.clientes = unicos;
-    this.calcularGlobales(unicos);
     // Lo que gestionó Call Center (Patricia/Maria/Juana) sobre la cartera: se guarda
-    // aparte (no entra al avance de piso) para agregarse como 1 fila más "Call Center"
+    // aparte (no entra al avance de cada sede) para agregarse como 1 fila más "Call Center"
     // en cada tabla por sede (Avance por sede, Asignados Totales, cada grupo).
     this.clientesCallCenter = this.modo === 'piso'
       ? this.dedupPorDni(clientes.filter(c => ASESORES_CALL_CENTER_CARTERA.has(c.asesor)))
       : [];
+    const universo = this.universoGlobal(unicos);
+    this.calcularGlobales(universo);
     if (this.modo === 'piso') {
       this.construirResumenSedes(unicos);
       this.resumenAsesores = [];
@@ -643,9 +644,16 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       this.resumenAsesores = this.agregarPorAsesor(unicos);
       this.resumenSedes = [];
     }
-    this.construirPorDia(unicos);
+    this.construirPorDia(universo);
     this.construirDistribucion();
     this.construirProyeccion();
+  }
+
+  /** Clientes que cuentan en los KPIs y gráficos: en la vista global de Piso (sin sede
+   *  elegida) es toda la cartera del Excel, o sea piso + lo asignado a Call Center, para
+   *  que calce con el "Total general" de la tabla por sede. */
+  private universoGlobal(subset: ClienteCartera[]): ClienteCartera[] {
+    return (this.modo === 'piso' && !this.sedeDetalle) ? [...subset, ...this.clientesCallCenter] : subset;
   }
 
   /** Deduplica la cartera por DNI (por sede+DNI en modo Piso). Si un DNI repetido
@@ -1322,8 +1330,9 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
   /** Recalcula KPIs, gráficos y tabla por asesor para el scope actual. */
   private recomputarVista(): void {
     const subset = this.subsetActual();
-    this.calcularGlobales(subset);
-    this.construirPorDia(subset);
+    const universo = this.universoGlobal(subset);
+    this.calcularGlobales(universo);
+    this.construirPorDia(universo);
     this.construirDistribucion();
     this.construirProyeccion();
     // En Piso global (sin sede) la tabla principal es "por sede"; con sede, "por asesor".
