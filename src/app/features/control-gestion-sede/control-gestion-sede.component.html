@@ -57,6 +57,96 @@
     </span>
 </div>
 
+<!-- Estado de las afiliaciones (columna ESTADO del Excel) -->
+<div class="afi-sinmatch" *ngIf="afiliacionesInfo && afiliacionesTieneEstado"
+     style="background:#F4F7FB; border-color:#C9D8EC; color:#1A2E44;">
+    <mat-icon style="color:#1A5FAD;">fact_check</mat-icon>
+    <span>
+        Estado de las afiliaciones ({{ estadoAlcance === 'mes' ? 'mes' : 'día' }}):
+        <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
+            <b *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]" [style.color]="e.color">{{ afiliacionesEstadoResumen.c[i] }} {{ e.label }}&nbsp;&nbsp;</b>
+        </ng-container>
+        <button mat-stroked-button type="button" (click)="verEstados = true">
+            <mat-icon>visibility</mat-icon> Ver por sede
+        </button>
+    </span>
+</div>
+<div class="afi-sinmatch" *ngIf="afiliacionesInfo && !afiliacionesTieneEstado">
+    <mat-icon>info</mat-icon>
+    <span>Para ver el estado de las afiliaciones (APROBADO / RECHAZADO / OBSERVADO / PENDIENTE) por sede, vuelve a importar el Excel con la columna ESTADO.</span>
+</div>
+
+<!-- Popup: estado de las afiliaciones por sede -->
+<dx-popup [(visible)]="verEstados" [showTitle]="true" title="Estado de las afiliaciones por sede"
+    [width]="'95vw'" [maxWidth]="1100" [height]="'auto'" [maxHeight]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">
+  <div style="overflow-y:auto; max-height:calc(90vh - 110px);">
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <span style="font-size:12.5px; color:#5A6B7D; font-weight:600;">Mostrar:</span>
+        <button mat-stroked-button type="button" (click)="setEstadoAlcance('mes')"
+                [style.background]="estadoAlcance === 'mes' ? '#1A5FAD' : ''" [style.color]="estadoAlcance === 'mes' ? '#fff' : ''">Mes de la fecha elegida</button>
+        <button mat-stroked-button type="button" (click)="setEstadoAlcance('dia')"
+                [style.background]="estadoAlcance === 'dia' ? '#1A5FAD' : ''" [style.color]="estadoAlcance === 'dia' ? '#fff' : ''">Solo el día elegido</button>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+        <div style="flex:1; min-width:130px; background:#F4F7FB; border-radius:10px; padding:10px 16px; border-left:5px solid #1A5FAD;">
+            <div style="font-size:12px; color:#5A6B7D; font-weight:600; text-transform:uppercase;">Total</div>
+            <div style="font-size:24px; font-weight:700; color:#1A2E44;">{{ afiliacionesEstadoResumen.total }}</div>
+        </div>
+        <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
+            <div *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]"
+                 style="flex:1; min-width:130px; border-radius:10px; padding:10px 16px;"
+                 [style.background]="e.bg" [style.border-left]="'5px solid ' + e.color">
+                <div style="font-size:12px; color:#5A6B7D; font-weight:600; text-transform:uppercase;">{{ e.label }}</div>
+                <div style="font-size:24px; font-weight:700;" [style.color]="e.color">
+                    {{ afiliacionesEstadoResumen.c[i] }}
+                    <span style="font-size:13px; font-weight:600;" *ngIf="afiliacionesEstadoResumen.total">
+                        ({{ (afiliacionesEstadoResumen.c[i] / afiliacionesEstadoResumen.total) * 100 | number:'1.0-0' }}%)
+                    </span>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+
+    <div *ngIf="!afiliacionesEstadoResumen.filas.length" style="padding:24px; text-align:center; color:#5A6B7D;">
+        No hay afiliaciones en el {{ estadoAlcance === 'mes' ? 'mes' : 'día' }} elegido.
+    </div>
+    <div style="overflow-x:auto;" *ngIf="afiliacionesEstadoResumen.filas.length">
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="background:#1A5FAD; color:#fff;">
+                    <th style="padding:8px 10px; text-align:left;">SEDE</th>
+                    <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
+                        <th *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]" style="padding:8px 10px; text-align:center;">{{ e.label }}</th>
+                    </ng-container>
+                    <th style="padding:8px 10px; text-align:center;">TOTAL</th>
+                    <th style="padding:8px 10px; text-align:center;">% APROBADO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let f of afiliacionesEstadoResumen.filas" style="border-bottom:1px solid #E6EAF0;">
+                    <td style="padding:7px 10px; font-weight:600; color:#1A2E44;">{{ f.sede }}</td>
+                    <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
+                        <td *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]" style="padding:7px 10px; text-align:center; font-weight:600;"
+                            [style.color]="f.c[i] ? e.color : '#B6BEC9'" [style.background]="f.c[i] ? e.bg : ''">{{ f.c[i] }}</td>
+                    </ng-container>
+                    <td style="padding:7px 10px; text-align:center; font-weight:700;">{{ f.total }}</td>
+                    <td style="padding:7px 10px; text-align:center; font-weight:700;">{{ f.pctAprobado }}%</td>
+                </tr>
+                <tr style="background:#F4F7FB; font-weight:700;">
+                    <td style="padding:8px 10px;">TOTAL</td>
+                    <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
+                        <td *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]" style="padding:8px 10px; text-align:center;" [style.color]="e.color">{{ afiliacionesEstadoResumen.c[i] }}</td>
+                    </ng-container>
+                    <td style="padding:8px 10px; text-align:center;">{{ afiliacionesEstadoResumen.total }}</td>
+                    <td style="padding:8px 10px; text-align:center;">{{ afiliacionesEstadoResumen.pctAprobado }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+  </div>
+</dx-popup>
+
 <!-- Popup con el detalle de afiliaciones con DIRECCIÓN/TELÉFONO inválido (del mes elegido) -->
 <dx-popup [(visible)]="verIncorrectas" [showTitle]="true" title="Afiliaciones con DIRECCIÓN/TELÉFONO inválido"
     [width]="'95vw'" [height]="'90vh'" [dragEnabled]="true" [closeOnOutsideClick]="true">

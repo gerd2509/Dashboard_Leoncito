@@ -40,6 +40,11 @@ interface AfiliacionesResumenMes {
   totalGeneral: number; incorrectasGeneral: number; pctGeneral: number; porSede: AfiliacionSedeResumen[];
 }
 
+/** Estado de las afiliaciones (columna ESTADO del Excel) por sede. `c` va en el
+ *  orden de `ESTADOS_AFI` (aprobado, rechazado, observado, pendiente, otros). */
+interface AfiliacionEstadoFila { sedeKey: string; sede: string; c: number[]; total: number; pctAprobado: number; }
+interface AfiliacionesEstadoResumen { filas: AfiliacionEstadoFila[]; c: number[]; total: number; pctAprobado: number; }
+
 interface EvoPunto { fecha: string; llamadas: number; cartas: number; afiliaciones: number; }
 interface EvoPivotFila { sedeKey: string; sede: string; valores: number[]; total: number; }
 interface EvoPivot { metrica: 'llamadas' | 'cartas' | 'afiliaciones'; label: string; color: string; filas: EvoPivotFila[]; totales: number[]; totalGeneral: number; valoresConDato: number[]; }
@@ -172,6 +177,20 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
   private afiliacionesSedePorNombre = new Map<string, { key: string; nombre: string }>();
   // Toggle de la grilla de incorrectas en pantalla (no solo en el Excel exportado).
   verIncorrectas = false;
+  // ── Estado de las afiliaciones (columna ESTADO del Excel) por sede ──
+  // sedeKey → { sede, dias: { 'YYYY-MM-DD': [aprob, rech, obs, pend, otros] } }.
+  readonly ESTADOS_AFI = [
+    { label: 'APROBADO',  color: '#16a34a', bg: '#e7f6ec' },
+    { label: 'RECHAZADO', color: '#dc2626', bg: '#fbe2e1' },
+    { label: 'OBSERVADO', color: '#d97706', bg: '#fdf0da' },
+    { label: 'PENDIENTE', color: '#64748b', bg: '#eef1f5' },
+    { label: 'OTROS / SIN ESTADO', color: '#7c3aed', bg: '#f1eafd' },
+  ];
+  private afiliacionesEstados: Record<string, { sede: string; dias: Record<string, number[]> }> = {};
+  afiliacionesTieneEstado = false;          // el Excel importado traía la columna ESTADO
+  afiliacionesEstadoResumen: AfiliacionesEstadoResumen = { filas: [], c: [0, 0, 0, 0, 0], total: 0, pctAprobado: 0 };
+  estadoAlcance: 'mes' | 'dia' = 'mes';     // mes de la fecha elegida, o solo ese día
+  verEstados = false;
   // Metas diarias POR ASESOR/VENDEDOR (la de la sede = nº asesores AJUSTADO × esto).
   private readonly META_LLAMADAS_ASESOR = 40;
   private readonly META_CARTAS_ASESOR = 5;
@@ -430,6 +449,52 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       pctGeneral: totalGeneral > 0 ? Math.round((incorrectasGeneral / totalGeneral) * 100) : 0,
       porSede,
     };
+    this.recomputarAfiliacionesEstado();
+  }
+
+  /** Estado de las afiliaciones por sede, del mes de la fecha elegida (mismo rango y
+   *  corte que el resumen de incorrectas, para que los totales calcen) o solo del día. */
+  recomputarAfiliacionesEstado(): void {
+    const fecha = (this.formCtrl?.value?.fechaGestion as Date) || new Date();
+    const prefijoMes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    const corte = this.CORTE_AFILIACIONES[prefijoMes];
+    const dia = this.claveFecha(fecha);
+    const dentro = this.estadoAlcance === 'dia'
+      ? (f: string) => f === dia
+      : (f: string) => f.startsWith(prefijoMes) && (!corte || f >= corte);
+
+    const n = this.ESTADOS_AFI.length;
+    const tot: number[] = new Array(n).fill(0);
+    const filas: AfiliacionEstadoFila[] = [];
+    for (const [sedeKey, info] of Object.entries(this.afiliacionesEstados)) {
+      const c: number[] = new Array(n).fill(0);
+      for (const [f, cuenta] of Object.entries(info.dias)) {
+        if (!dentro(f)) continue;
+        for (let i = 0; i < n; i++) c[i] += cuenta[i] || 0;
+      }
+      const total = c.reduce((s, v) => s + v, 0);
+      if (!total) continue;
+      for (let i = 0; i < n; i++) tot[i] += c[i];
+      filas.push({ sedeKey, sede: info.sede, c, total, pctAprobado: Math.round((c[0] / total) * 100) });
+    }
+    filas.sort((a, b) => b.total - a.total);
+    const total = tot.reduce((s, v) => s + v, 0);
+    this.afiliacionesEstadoResumen = { filas, c: tot, total, pctAprobado: total > 0 ? Math.round((tot[0] / total) * 100) : 0 };
+  }
+
+  setEstadoAlcance(a: 'mes' | 'dia'): void {
+    this.estadoAlcance = a;
+    this.recomputarAfiliacionesEstado();
+  }
+
+  /** Índice en `ESTADOS_AFI` del valor de la columna ESTADO (tolera género/plural). */
+  private indiceEstadoAfi(valor: any): number {
+    const s = this.normNombre(valor);
+    if (s.startsWith('aprob')) return 0;
+    if (s.startsWith('rechaz')) return 1;
+    if (s.startsWith('observ')) return 2;
+    if (s.startsWith('pendient')) return 3;
+    return 4;
   }
 
   /** Filtra el detalle de abajo a una sola sede (clic en su tarjeta) — o, con null,
@@ -788,6 +853,8 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       this.afiliacionesDetalleIncorrectas = data.detalleIncorrectas || [];
       this.afiliacionesSinColumnas = data.sinColumnas || { direccion: true, telefono: true };
       this.afiliacionesSedePorNombre = new Map(Object.entries(data.sedePorNombre || {}));
+      this.afiliacionesEstados = data.estados || {};
+      this.afiliacionesTieneEstado = !!data.tieneEstado;
       this.recomputarAfiliacionesIncorrectasMes();
     } catch { /* localStorage corrupto: se ignora */ }
   }
@@ -826,6 +893,10 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         // Columna "SEDE": si el propio Excel la trae (como en este caso), es más
         // confiable que cruzar el nombre del asesor contra el roster del CAP.
         const colSede = headers.find(h => this.normNombre(h) === this.normNombre('SEDE'));
+        // Columna "ESTADO" (APROBADO / RECHAZADO / OBSERVADO / PENDIENTE): opcional.
+        const colEstado = headers.find(h => this.normNombre(h) === 'estado')
+          ?? headers.find(h => this.normNombre(h).startsWith('estado') && !this.normNombre(h).includes('civil'));
+        const estados: Record<string, { sede: string; dias: Record<string, number[]> }> = {};
 
         // Roster CAP (vendedor normalizado → sede), de respaldo solo si el Excel NO
         // trae su propia columna SEDE, para agrupar el detalle de incorrectas.
@@ -860,6 +931,12 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           }
           if (sedeKey !== 'sin-sede') sedePorNombreArchivo.set(nombre, { key: sedeKey, nombre: sedeNombre });
 
+          if (colEstado) {
+            const e = (estados[sedeKey] ??= { sede: sedeNombre, dias: {} });
+            const cuenta = (e.dias[clave] ??= [0, 0, 0, 0, 0]);
+            cuenta[this.indiceEstadoAfi(r[colEstado])]++;
+          }
+
           if (colDireccion || colTelefono) {
             const direccion = (r[colDireccion ?? ''] ?? '').toString().trim();
             const telefono = (r[colTelefono ?? ''] ?? '').toString().trim();
@@ -880,10 +957,13 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         this.afiliacionesInfo = { archivo: file.name, fecha: new Date().toLocaleString('es-PE'), total, sinFecha };
         this.afiliacionesDetalleIncorrectas = detalleIncorrectas;
         this.afiliacionesSedePorNombre = sedePorNombreArchivo;
+        this.afiliacionesEstados = estados;
+        this.afiliacionesTieneEstado = !!colEstado;
         this.recomputarAfiliacionesIncorrectasMes();
         localStorage.setItem(this.AFI_KEY, JSON.stringify({
           ...this.afiliacionesInfo, porNombre, detalleIncorrectas, sinColumnas: this.afiliacionesSinColumnas,
           sedePorNombre: Object.fromEntries(sedePorNombreArchivo),
+          estados, tieneEstado: !!colEstado,
         }));
 
         if (this.listData.length) this.calcular();   // refresca las tablas con las afiliaciones
@@ -929,6 +1009,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     this.afiliacionesDetalleFiltrado = [];
     this.afiliacionesSinColumnas = { direccion: true, telefono: true };
     this.afiliacionesSedePorNombre.clear();
+    this.afiliacionesEstados = {};
+    this.afiliacionesTieneEstado = false;
+    this.recomputarAfiliacionesEstado();
     localStorage.removeItem(this.AFI_KEY);
     if (this.listData.length) this.calcular();
   }
@@ -997,6 +1080,30 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
     });
     wsResumen.columns.forEach(col => { col.width = 30; });
+
+    if (this.afiliacionesTieneEstado) {
+      // Siempre del mes completo, aunque en pantalla se esté viendo solo el día.
+      const alcancePrevio = this.estadoAlcance;
+      this.estadoAlcance = 'mes';
+      this.recomputarAfiliacionesEstado();
+      const est = this.afiliacionesEstadoResumen;
+      this.estadoAlcance = alcancePrevio;
+      this.recomputarAfiliacionesEstado();
+
+      const idx = est.c[4] > 0 ? [0, 1, 2, 3, 4] : [0, 1, 2, 3];
+      const wsEstado = wb.addWorksheet('Estado por Sede');
+      wsEstado.addRow([`ESTADO DE AFILIACIONES — ${mesLabel.toUpperCase()}`]);
+      wsEstado.addRow([]);
+      wsEstado.addRow(['SEDE', ...idx.map(i => this.ESTADOS_AFI[i].label), 'TOTAL', '% APROBADO']);
+      for (const f of est.filas) wsEstado.addRow([f.sede, ...idx.map(i => f.c[i]), f.total, f.pctAprobado + '%']);
+      wsEstado.addRow([]);
+      wsEstado.addRow(['TOTAL', ...idx.map(i => est.c[i]), est.total, est.pctAprobado + '%']);
+      wsEstado.getRow(3).eachCell(cell => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
+      });
+      wsEstado.columns.forEach((col, i) => { col.width = i === 0 ? 30 : 18; });
+    }
 
     const wsDetalle = wb.addWorksheet('Detalle Incorrectas');
     if (this.afiliacionesSinColumnas.direccion && this.afiliacionesSinColumnas.telefono) {
