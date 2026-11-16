@@ -42,7 +42,11 @@ interface AfiliacionesResumenMes {
 
 /** Estado de las afiliaciones (columna ESTADO del Excel) por sede. `c` va en el
  *  orden de `ESTADOS_AFI` (aprobado, rechazado, observado, pendiente, otros). */
-interface AfiliacionEstadoFila { sedeKey: string; sede: string; c: number[]; total: number; pctAprobado: number; }
+interface AfiliacionEstadoAsesor { asesor: string; c: number[]; total: number; pctAprobado: number; }
+interface AfiliacionEstadoFila { sedeKey: string; sede: string; c: number[]; total: number; pctAprobado: number; asesores: AfiliacionEstadoAsesor[]; }
+/** Lo que se guarda por sede: conteo por día de la sede y de cada asesor (nombre tal
+ *  como viene en el Excel). `asesores` falta en importaciones anteriores. */
+interface AfiliacionEstadoSede { sede: string; dias: Record<string, number[]>; asesores?: Record<string, Record<string, number[]>>; }
 interface AfiliacionesEstadoResumen { filas: AfiliacionEstadoFila[]; c: number[]; total: number; pctAprobado: number; }
 
 interface EvoPunto { fecha: string; llamadas: number; cartas: number; afiliaciones: number; }
@@ -186,11 +190,15 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     { label: 'PENDIENTE', color: '#64748b', bg: '#eef1f5' },
     { label: 'OTROS / SIN ESTADO', color: '#7c3aed', bg: '#f1eafd' },
   ];
-  private afiliacionesEstados: Record<string, { sede: string; dias: Record<string, number[]> }> = {};
+  private afiliacionesEstados: Record<string, AfiliacionEstadoSede> = {};
   afiliacionesTieneEstado = false;          // el Excel importado traía la columna ESTADO
   afiliacionesEstadoResumen: AfiliacionesEstadoResumen = { filas: [], c: [0, 0, 0, 0, 0], total: 0, pctAprobado: 0 };
   estadoAlcance: 'mes' | 'dia' = 'mes';     // mes de la fecha elegida, o solo ese día
   verEstados = false;
+  estadoSedesAbiertas = new Set<string>();  // sedes desplegadas (detalle por asesor)
+  toggleEstadoSede(sedeKey: string): void {
+    if (!this.estadoSedesAbiertas.delete(sedeKey)) this.estadoSedesAbiertas.add(sedeKey);
+  }
   // Metas diarias POR ASESOR/VENDEDOR (la de la sede = nº asesores AJUSTADO × esto).
   private readonly META_LLAMADAS_ASESOR = 40;
   private readonly META_CARTAS_ASESOR = 5;
@@ -466,16 +474,28 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
     const n = this.ESTADOS_AFI.length;
     const tot: number[] = new Array(n).fill(0);
     const filas: AfiliacionEstadoFila[] = [];
-    for (const [sedeKey, info] of Object.entries(this.afiliacionesEstados)) {
+    const sumar = (dias: Record<string, number[]>): number[] => {
       const c: number[] = new Array(n).fill(0);
-      for (const [f, cuenta] of Object.entries(info.dias)) {
+      for (const [f, cuenta] of Object.entries(dias)) {
         if (!dentro(f)) continue;
         for (let i = 0; i < n; i++) c[i] += cuenta[i] || 0;
       }
+      return c;
+    };
+    for (const [sedeKey, info] of Object.entries(this.afiliacionesEstados)) {
+      const c = sumar(info.dias);
       const total = c.reduce((s, v) => s + v, 0);
       if (!total) continue;
       for (let i = 0; i < n; i++) tot[i] += c[i];
-      filas.push({ sedeKey, sede: info.sede, c, total, pctAprobado: Math.round((c[0] / total) * 100) });
+      const asesores: AfiliacionEstadoAsesor[] = Object.entries(info.asesores ?? {})
+        .map(([asesor, dias]) => {
+          const ca = sumar(dias);
+          const ta = ca.reduce((s, v) => s + v, 0);
+          return { asesor, c: ca, total: ta, pctAprobado: ta > 0 ? Math.round((ca[0] / ta) * 100) : 0 };
+        })
+        .filter(a => a.total > 0)
+        .sort((a, b) => b.total - a.total);
+      filas.push({ sedeKey, sede: info.sede, c, total, pctAprobado: Math.round((c[0] / total) * 100), asesores });
     }
     filas.sort((a, b) => b.total - a.total);
     const total = tot.reduce((s, v) => s + v, 0);
@@ -896,7 +916,7 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         // Columna "ESTADO" (APROBADO / RECHAZADO / OBSERVADO / PENDIENTE): opcional.
         const colEstado = headers.find(h => this.normNombre(h) === 'estado')
           ?? headers.find(h => this.normNombre(h).startsWith('estado') && !this.normNombre(h).includes('civil'));
-        const estados: Record<string, { sede: string; dias: Record<string, number[]> }> = {};
+        const estados: Record<string, AfiliacionEstadoSede> = {};
 
         // Roster CAP (vendedor normalizado → sede), de respaldo solo si el Excel NO
         // trae su propia columna SEDE, para agrupar el detalle de incorrectas.
@@ -932,9 +952,11 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
           if (sedeKey !== 'sin-sede') sedePorNombreArchivo.set(nombre, { key: sedeKey, nombre: sedeNombre });
 
           if (colEstado) {
-            const e = (estados[sedeKey] ??= { sede: sedeNombre, dias: {} });
-            const cuenta = (e.dias[clave] ??= [0, 0, 0, 0, 0]);
-            cuenta[this.indiceEstadoAfi(r[colEstado])]++;
+            const e = (estados[sedeKey] ??= { sede: sedeNombre, dias: {}, asesores: {} });
+            const iEstado = this.indiceEstadoAfi(r[colEstado]);
+            (e.dias[clave] ??= [0, 0, 0, 0, 0])[iEstado]++;
+            const etiqueta = nombreCrudo.toUpperCase().replace(/\s+/g, ' ');
+            ((e.asesores![etiqueta] ??= {})[clave] ??= [0, 0, 0, 0, 0])[iEstado]++;
           }
 
           if (colDireccion || colTelefono) {
@@ -1103,6 +1125,20 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
       });
       wsEstado.columns.forEach((col, i) => { col.width = i === 0 ? 30 : 18; });
+
+      if (est.filas.some(f => f.asesores.length)) {
+        const wsAsesor = wb.addWorksheet('Estado por Asesor');
+        wsAsesor.addRow(['SEDE', 'ASESOR', ...idx.map(i => this.ESTADOS_AFI[i].label), 'TOTAL', '% APROBADO']);
+        for (const f of est.filas) {
+          for (const a of f.asesores) wsAsesor.addRow([f.sede, a.asesor, ...idx.map(i => a.c[i]), a.total, a.pctAprobado + '%']);
+        }
+        wsAsesor.getRow(1).eachCell(cell => {
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A5FAD' } };
+        });
+        wsAsesor.views = [{ state: 'frozen', ySplit: 1 }];
+        wsAsesor.columns.forEach((col, i) => { col.width = i === 0 ? 28 : i === 1 ? 36 : 18; });
+      }
     }
 
     const wsDetalle = wb.addWorksheet('Detalle Incorrectas');

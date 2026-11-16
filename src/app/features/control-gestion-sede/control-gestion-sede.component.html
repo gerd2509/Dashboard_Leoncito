@@ -124,8 +124,17 @@
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let f of afiliacionesEstadoResumen.filas" style="border-bottom:1px solid #E6EAF0;">
-                    <td style="padding:7px 10px; font-weight:600; color:#1A2E44;">{{ f.sede }}</td>
+                <ng-container *ngFor="let f of afiliacionesEstadoResumen.filas">
+                <tr style="border-bottom:1px solid #E6EAF0;" [style.cursor]="f.asesores.length ? 'pointer' : 'default'"
+                    (click)="f.asesores.length && toggleEstadoSede(f.sedeKey)"
+                    [title]="f.asesores.length ? 'Ver el detalle por asesor' : 'Vuelve a importar el Excel para ver el detalle por asesor'">
+                    <td style="padding:7px 10px; font-weight:600; color:#1A2E44; white-space:nowrap;">
+                        <mat-icon *ngIf="f.asesores.length" style="font-size:18px; width:18px; height:18px; vertical-align:middle; color:#1A5FAD;">
+                            {{ estadoSedesAbiertas.has(f.sedeKey) ? 'expand_more' : 'chevron_right' }}
+                        </mat-icon>
+                        {{ f.sede }}
+                        <span *ngIf="f.asesores.length" style="font-weight:500; color:#8A96A5; font-size:11.5px;">· {{ f.asesores.length }} asesor(es)</span>
+                    </td>
                     <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
                         <td *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]" style="padding:7px 10px; text-align:center; font-weight:600;"
                             [style.color]="f.c[i] ? e.color : '#B6BEC9'" [style.background]="f.c[i] ? e.bg : ''">{{ f.c[i] }}</td>
@@ -133,6 +142,18 @@
                     <td style="padding:7px 10px; text-align:center; font-weight:700;">{{ f.total }}</td>
                     <td style="padding:7px 10px; text-align:center; font-weight:700;">{{ f.pctAprobado }}%</td>
                 </tr>
+                <ng-container *ngIf="estadoSedesAbiertas.has(f.sedeKey)">
+                <tr *ngFor="let a of f.asesores" style="border-bottom:1px solid #EEF1F5; background:#FAFBFD; font-size:12.5px;">
+                    <td style="padding:5px 10px 5px 38px; color:#3F4E60;">{{ a.asesor }}</td>
+                    <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
+                        <td *ngIf="i < 4 || afiliacionesEstadoResumen.c[i]" style="padding:5px 10px; text-align:center; font-weight:600;"
+                            [style.color]="a.c[i] ? e.color : '#C8CED7'">{{ a.c[i] }}</td>
+                    </ng-container>
+                    <td style="padding:5px 10px; text-align:center; font-weight:600;">{{ a.total }}</td>
+                    <td style="padding:5px 10px; text-align:center; font-weight:600;">{{ a.pctAprobado }}%</td>
+                </tr>
+                </ng-container>
+                </ng-container>
                 <tr style="background:#F4F7FB; font-weight:700;">
                     <td style="padding:8px 10px;">TOTAL</td>
                     <ng-container *ngFor="let e of ESTADOS_AFI; let i = index">
