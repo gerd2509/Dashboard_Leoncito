@@ -49,6 +49,11 @@
 
   <div class="ba-tabla-wrap" *ngIf="!cargando && grupos.length">
     <table class="ba-tabla">
+      <colgroup>
+        <col class="c-nombre">
+        <col *ngFor="let i of [1,2,3,4,5,6]" class="c-num">
+        <col class="c-total">
+      </colgroup>
       <thead>
         <tr>
           <th rowspan="2" class="izq">SEDE / VENDEDOR</th>
@@ -89,21 +94,22 @@
                 </ng-container>
                 <td class="monto total">S/ {{ f.total | number }}</td>
               </tr>
-              <tr class="fila-det" *ngIf="abiertos.has(g.sede + '|' + f.vendedor)">
-                <td [attr.colspan]="8">
-                  <table class="ba-det">
-                    <tr><th>Aliado</th><th>Fecha</th><th>Producto</th><th>MAF</th><th>Bono</th><th>Criterio</th></tr>
-                    <tr *ngFor="let m of f.detalle">
-                      <td><b [style.color]="REGLAS[m.entidad].color">{{ m.entidad }}</b></td>
-                      <td>{{ m.fecha }}</td>
-                      <td class="prod">{{ m.producto }}</td>
-                      <td class="monto">{{ m.maf | number:'1.0-0' }}</td>
-                      <td class="monto"><b>{{ m.bono | number }}</b></td>
-                      <td class="nota">{{ m.nota }}</td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
+              <ng-container *ngIf="abiertos.has(g.sede + '|' + f.vendedor)">
+                <!-- Cada moto usa las mismas columnas: bajo su aliado, "Motos" muestra el MAF y "S/" el bono -->
+                <tr class="fila-det" *ngFor="let m of f.detalle">
+                  <td class="izq">
+                    <div class="det-prod" [title]="m.producto">
+                      <span class="det-fecha">{{ m.fecha }}</span> {{ m.producto }}
+                    </div>
+                    <div class="det-nota" [style.color]="REGLAS[m.entidad].color">{{ m.entidad }} · {{ m.nota }}</div>
+                  </td>
+                  <ng-container *ngFor="let e of ENTIDADES">
+                    <td><span *ngIf="e === m.entidad" class="det-maf">MAF {{ m.maf | number:'1.0-0' }}</span></td>
+                    <td class="monto"><b *ngIf="e === m.entidad">{{ m.bono | number }}</b></td>
+                  </ng-container>
+                  <td class="monto">S/ {{ m.bono | number }}</td>
+                </tr>
+              </ng-container>
             </ng-container>
           </ng-container>
         </ng-container>
