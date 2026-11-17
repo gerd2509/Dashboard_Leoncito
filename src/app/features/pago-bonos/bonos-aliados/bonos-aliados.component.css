@@ -1,0 +1,65 @@
+:host { display: block; margin-top: 22px; }
+.ba-card { border-radius: 14px; background: #fff; border: 1px solid #E1E0D9; overflow: hidden; box-shadow: 0 1px 3px rgba(11,11,11,.05); }
+.ba-head {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 14px 20px; color: #fff; background: linear-gradient(90deg, #C62828, #1565C0 55%, #6A1B9A);
+}
+.ba-head-left { display: flex; align-items: center; gap: 10px; }
+.ba-head-left > div { display: flex; flex-direction: column; }
+.ba-titulo { font-size: 16px; font-weight: 700; letter-spacing: .02em; }
+.ba-sub { font-size: 12px; opacity: .85; }
+.ba-acciones { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ba-toggle { display: inline-flex; background: rgba(255,255,255,.18); border-radius: 8px; padding: 3px; }
+.ba-toggle button {
+  border: 0; background: transparent; color: #fff; font: inherit; font-size: 13px; font-weight: 600;
+  padding: 6px 14px; border-radius: 6px; cursor: pointer;
+}
+.ba-toggle button.on { background: #fff; color: #1E3A5F; }
+.ba-btn { color: #fff !important; border-color: rgba(255,255,255,.6) !important; }
+
+.ba-reglas { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; padding: 14px 20px 0; }
+.ba-regla { border: 1px solid #E6EAF0; border-top: 3px solid; border-radius: 10px; padding: 10px 14px; font-size: 12.5px; color: #3F4E60; }
+.ba-regla ul { margin: 6px 0 0; padding-left: 18px; }
+.ba-vig { margin-left: 8px; font-size: 11px; color: #9a3c00; background: #fde6d8; border-radius: 6px; padding: 1px 6px; }
+
+.ba-kpis { display: flex; gap: 12px; flex-wrap: wrap; padding: 14px 20px; }
+.ba-kpi {
+  flex: 1; min-width: 150px; background: #F4F7FB; border-radius: 10px; padding: 10px 16px;
+  border-left: 5px solid #1E3A5F; display: flex; flex-direction: column;
+}
+.ba-kpi span { font-size: 11.5px; color: #5A6B7D; font-weight: 700; }
+.ba-kpi b { font-size: 22px; color: #1A2E44; }
+.ba-kpi small { font-size: 11.5px; color: #7A8796; }
+.ba-kpi-total { background: #1E3A5F; border-left-color: #1E3A5F; }
+.ba-kpi-total span, .ba-kpi-total b { color: #fff; }
+
+.ba-error { display: flex; align-items: center; gap: 8px; margin: 0 20px 12px; background: #FBE2E1; color: #9C1C1C; border-radius: 8px; padding: 10px 14px; font-size: 13px; }
+.ba-vacio { padding: 18px 20px 6px; color: #5A6B7D; font-size: 13px; }
+
+.ba-tabla-wrap { overflow-x: auto; padding: 0 20px; }
+.ba-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ba-tabla th { background: #1E3A5F; color: #fff; padding: 8px 10px; text-align: center; font-weight: 700; white-space: nowrap; }
+.ba-tabla th.sub { font-size: 11.5px; font-weight: 600; opacity: .92; }
+.ba-tabla td { padding: 7px 10px; text-align: center; border-bottom: 1px solid #E6EAF0; }
+.ba-tabla .izq { text-align: left; }
+.ba-tabla td.monto { font-variant-numeric: tabular-nums; }
+.ba-tabla td.total { font-weight: 700; color: #1E3A5F; white-space: nowrap; }
+.ba-tabla mat-icon { font-size: 18px; width: 18px; height: 18px; vertical-align: middle; color: #1565C0; }
+.fila-sede { background: #EEF3FA; cursor: pointer; font-weight: 700; color: #1A2E44; }
+.fila-sede small { font-weight: 500; color: #8A96A5; }
+.fila-vend { cursor: pointer; background: #fff; }
+.fila-vend td.izq { padding-left: 30px; color: #3F4E60; }
+.fila-vend:hover, .fila-sede:hover { filter: brightness(.97); }
+.fila-aviso td { text-align: left; font-size: 12px; color: #8a5a00; background: #fdf6e7; }
+.fila-det > td { background: #FAFBFD; padding: 6px 10px 10px 54px; }
+.fila-total td { background: #1E3A5F; color: #fff; font-weight: 700; }
+.fila-total td.total { color: #fff; }
+
+.ba-det { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ba-det th { background: #E6ECF4; color: #1E3A5F; padding: 5px 8px; font-weight: 700; text-align: left; }
+.ba-det td { padding: 5px 8px; text-align: left; border-bottom: 1px solid #EEF1F5; }
+.ba-det td.monto { text-align: right; }
+.ba-det td.prod { max-width: 320px; }
+.ba-det td.nota { color: #5A6B7D; }
+
+.ba-pie { margin: 10px 20px 14px; font-size: 11.5px; color: #7A8796; }

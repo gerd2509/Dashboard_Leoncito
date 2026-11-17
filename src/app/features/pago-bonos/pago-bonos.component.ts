@@ -7,6 +7,7 @@ import * as FileSaver from 'file-saver';
 import { SHARED_MATERIAL_IMPORTS } from '../common_imports';
 import { DX_COMMON_MODULES } from '../dx_common_modules';
 import { LoadingOverlayComponent } from '../../shared/loading-overlay/loading-overlay.component';
+import { BonosAliadosComponent } from './bonos-aliados/bonos-aliados.component';
 import { CargaVentasService } from '../../services/carga-ventas.service';
 import { BonosManualesService, BonoManual } from '../../services/bonos-manuales.service';
 import { AuthService } from '../../services/auth.service';
@@ -76,7 +77,7 @@ const CANAL_LABEL: Record<Canal, string> = {
 @Component({
   selector: 'app-pago-bonos',
   standalone: true,
-  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent],
+  imports: [...SHARED_MATERIAL_IMPORTS, ...DX_COMMON_MODULES, LoadingOverlayComponent, BonosAliadosComponent],
   templateUrl: './pago-bonos.component.html',
   styleUrl: './pago-bonos.component.css',
 })

@@ -1,0 +1,123 @@
+<div class="ba-card">
+  <div class="ba-head">
+    <div class="ba-head-left">
+      <mat-icon>two_wheeler</mat-icon>
+      <div>
+        <span class="ba-titulo">BONOS POR ALIADO — MOTOS</span>
+        <span class="ba-sub">Global Go · Efectiva · Alfin, por vendedor y sede</span>
+      </div>
+    </div>
+    <div class="ba-acciones">
+      <div class="ba-toggle">
+        <button type="button" [class.on]="canal === 'SEDES'" (click)="setCanal('SEDES')">Sedes</button>
+        <button type="button" [class.on]="canal === 'REALZZA'" (click)="setCanal('REALZZA')">Realzza</button>
+      </div>
+      <button mat-stroked-button type="button" class="ba-btn" (click)="verReglas = !verReglas">
+        <mat-icon>rule</mat-icon> Reglas
+      </button>
+      <button mat-stroked-button type="button" class="ba-btn" (click)="exportar()" [disabled]="cargando">
+        <mat-icon>file_download</mat-icon> Excel
+      </button>
+    </div>
+  </div>
+
+  <div class="ba-reglas" *ngIf="verReglas">
+    <div class="ba-regla" *ngFor="let e of ENTIDADES" [style.border-top-color]="REGLAS[e].color">
+      <b [style.color]="REGLAS[e].color">{{ e }}</b>
+      <span class="ba-vig" *ngIf="!vigente(e)">fuera de vigencia este mes</span>
+      <ul><li *ngFor="let r of REGLAS[e].resumen">{{ r }}</li></ul>
+    </div>
+  </div>
+
+  <div class="ba-kpis">
+    <div class="ba-kpi" *ngFor="let e of ENTIDADES" [style.border-left-color]="REGLAS[e].color">
+      <span>{{ e }}</span>
+      <b>S/ {{ totales.bono[e] | number }}</b>
+      <small>{{ totales.motos[e] }} moto(s){{ vigente(e) ? '' : ' · fuera de vigencia' }}</small>
+    </div>
+    <div class="ba-kpi ba-kpi-total">
+      <span>TOTAL {{ canal === 'SEDES' ? 'SEDES' : 'REALZZA' }}</span>
+      <b>S/ {{ totales.total | number }}</b>
+    </div>
+  </div>
+
+  <div class="ba-error" *ngIf="error"><mat-icon>error_outline</mat-icon> {{ error }}</div>
+  <div class="ba-vacio" *ngIf="cargando">Cargando motos…</div>
+  <div class="ba-vacio" *ngIf="!cargando && !error && !grupos.length">
+    Sin motos de Global Go, Efectiva ni Alfin en {{ canal === 'SEDES' ? 'las sedes' : 'Realzza' }} este mes.
+  </div>
+
+  <div class="ba-tabla-wrap" *ngIf="!cargando && grupos.length">
+    <table class="ba-tabla">
+      <thead>
+        <tr>
+          <th rowspan="2" class="izq">SEDE / VENDEDOR</th>
+          <th colspan="2" *ngFor="let e of ENTIDADES" [style.background]="REGLAS[e].color">{{ e }}</th>
+          <th rowspan="2">TOTAL BONO</th>
+        </tr>
+        <tr>
+          <ng-container *ngFor="let e of ENTIDADES">
+            <th class="sub" [style.background]="REGLAS[e].color">Motos</th>
+            <th class="sub" [style.background]="REGLAS[e].color">S/</th>
+          </ng-container>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let g of grupos">
+          <tr class="fila-sede" (click)="toggle(g.sede)">
+            <td class="izq">
+              <mat-icon>{{ abiertos.has(g.sede) ? 'expand_more' : 'chevron_right' }}</mat-icon>
+              {{ g.sede }} <small>· {{ g.filas.length }} vendedor(es)</small>
+            </td>
+            <ng-container *ngFor="let e of ENTIDADES">
+              <td>{{ g.motos[e] || '–' }}</td>
+              <td class="monto">{{ g.bono[e] ? (g.bono[e] | number) : '–' }}</td>
+            </ng-container>
+            <td class="monto total">S/ {{ g.total | number }}</td>
+          </tr>
+          <ng-container *ngIf="abiertos.has(g.sede)">
+            <tr class="fila-aviso" *ngFor="let a of g.avisos"><td [attr.colspan]="8"><mat-icon>info</mat-icon> {{ a }}</td></tr>
+            <ng-container *ngFor="let f of g.filas">
+              <tr class="fila-vend" (click)="toggle(g.sede + '|' + f.vendedor)">
+                <td class="izq">
+                  <mat-icon>{{ abiertos.has(g.sede + '|' + f.vendedor) ? 'remove' : 'add' }}</mat-icon>
+                  {{ f.vendedor }}
+                </td>
+                <ng-container *ngFor="let e of ENTIDADES">
+                  <td>{{ f.motos[e] || '–' }}</td>
+                  <td class="monto">{{ f.bono[e] ? (f.bono[e] | number) : '–' }}</td>
+                </ng-container>
+                <td class="monto total">S/ {{ f.total | number }}</td>
+              </tr>
+              <tr class="fila-det" *ngIf="abiertos.has(g.sede + '|' + f.vendedor)">
+                <td [attr.colspan]="8">
+                  <table class="ba-det">
+                    <tr><th>Aliado</th><th>Fecha</th><th>Producto</th><th>MAF</th><th>Bono</th><th>Criterio</th></tr>
+                    <tr *ngFor="let m of f.detalle">
+                      <td><b [style.color]="REGLAS[m.entidad].color">{{ m.entidad }}</b></td>
+                      <td>{{ m.fecha }}</td>
+                      <td class="prod">{{ m.producto }}</td>
+                      <td class="monto">{{ m.maf | number:'1.0-0' }}</td>
+                      <td class="monto"><b>{{ m.bono | number }}</b></td>
+                      <td class="nota">{{ m.nota }}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+        <tr class="fila-total">
+          <td class="izq">TOTAL</td>
+          <ng-container *ngFor="let e of ENTIDADES">
+            <td>{{ totales.motos[e] }}</td>
+            <td class="monto">{{ totales.bono[e] | number }}</td>
+          </ng-container>
+          <td class="monto total">S/ {{ totales.total | number }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="ba-pie">MAF = monto de la venta. Solo motos del mes de venta; no cuentan Notas de Crédito ni Incautaciones.
+    Este bloque no se suma al "Total a pagar" de arriba.</p>
+</div>
