@@ -106,6 +106,9 @@ export class BonosAliadosComponent implements OnChanges {
   incOpciones: { key: string; label: string }[] = [];
   incCargando = false;
   incAviso = '';
+  incSede = '';   // '' = todas · 'LAMBAYEQUE' · 'FERRENAFE'
+  readonly INC_SEDES = [{ v: '', t: 'Todas' }, { v: 'LAMBAYEQUE', t: 'Lambayeque' }, { v: 'FERRENAFE', t: 'Ferreñafe' }];
+  setIncSede(v: string): void { this.incSede = v; this.armarIncentivo(); }
 
   ngOnChanges(): void {
     if (!this.anio || !this.mes) return;
@@ -291,7 +294,9 @@ export class BonosAliadosComponent implements OnChanges {
    *  (productos Efectiva) y por gerente de tienda (productos Efectiva + motos Global Go). */
   private armarIncentivo(): void {
     const enCanal = (sede: string) => this.esRealzza(sede) === (this.canal === 'REALZZA');
-    const ventas = this.ventasInc.filter(v => enCanal(v.sede));
+    // Combo de sede (solo en la vista Sedes): Lambayeque o Ferreñafe; vacío = todas.
+    const sedeSel = this.canal === 'SEDES' ? this.incSede : '';
+    const ventas = this.ventasInc.filter(v => enCanal(v.sede) && (!sedeSel || this.up(v.sede) === sedeSel));
     this.incTotales = { productos: 0, asesores: 0, gerentes: 0 };
     this.incMeses = this.mesesEntre(this.incDesde, this.incHasta).map(key => {
       const delMes = ventas.filter(v => v.mes === key);

@@ -133,6 +133,11 @@
         <span class="inc-sub">Asesor: S/ {{ INC.asesor }} por producto Efectiva · Gerente de tienda: S/ {{ INC.gerente }} por producto Efectiva + S/ {{ INC.motoGG }} por moto Global Go</span>
       </div>
       <div class="inc-rango">
+        <label *ngIf="canal === 'SEDES'">Sede
+          <select (change)="setIncSede($any($event.target).value)">
+            <option *ngFor="let o of INC_SEDES" [value]="o.v" [selected]="o.v === incSede">{{ o.t }}</option>
+          </select>
+        </label>
         <label>Desde
           <select [value]="incDesde" (change)="setIncRango($any($event.target).value, incHasta)">
             <option *ngFor="let m of incOpciones" [value]="m.key" [selected]="m.key === incDesde">{{ m.label }}</option>
