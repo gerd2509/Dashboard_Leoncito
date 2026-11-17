@@ -27,6 +27,8 @@ interface VentaInc { mes: string; sede: string; vendedor: string; tipo: 'EFECTIV
 interface IncMes { key: string; label: string; asesores: IncAsesor[]; gerentes: IncGerente[]; productos: number; totAsesores: number; totGerentes: number; }
 const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const MAX_MESES_INC = 12;
+/** Sedes cuyo gerente recibe el incentivo de la empresa (nombre sin tildes). */
+const SEDES_INC_GERENTE = ['LAMBAYEQUE', 'FERRENAFE'];
 interface IncAsesor { sede: string; vendedor: string; productos: number; monto: number; detalle: VentaInc[]; }
 interface IncGerente { sede: string; gerente: string; productosEfectiva: number; montoEfectiva: number; motosGG: number; montoGG: number; total: number; detalle: VentaInc[]; }
 const INC_ASESOR_EFECTIVA = 50, INC_GERENTE_EFECTIVA = 25, INC_GERENTE_MOTO_GG = 50;
@@ -305,6 +307,7 @@ export class BonosAliadosComponent implements OnChanges {
 
       const porSede = new Map<string, IncGerente>();
       for (const v of delMes) {
+        if (!SEDES_INC_GERENTE.includes(this.up(v.sede))) continue;   // solo Lambayeque y Ferreñafe
         const g = porSede.get(v.sede) ?? porSede.set(v.sede, {
           sede: v.sede, gerente: this.gerentePorSede.get(v.sede) || 'SIN GERENTE ASIGNADO',
           productosEfectiva: 0, montoEfectiva: 0, motosGG: 0, montoGG: 0, total: 0, detalle: [],

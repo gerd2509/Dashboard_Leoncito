@@ -117,3 +117,5 @@
 .inc-cargando { padding: 16px; color: #5A6B7D; font-size: 13px; }
 .inc-mes td { background: #DCE6F2; color: #1E3A5F; font-weight: 700; text-align: left; letter-spacing: .02em; text-transform: uppercase; font-size: 12px; }
 .inc-subtotal td { background: #EEF3FA; color: #1E3A5F; font-weight: 700; }
+
+.inc-nota { font-weight: 500; color: #7A8796; font-size: 11.5px; }

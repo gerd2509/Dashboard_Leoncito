@@ -207,7 +207,7 @@
       <!-- Gerentes de tienda -->
       <div class="inc-bloque">
         <div class="inc-bloque-tit">
-          <span>Gerentes de tienda</span>
+          <span>Gerentes de tienda <small class="inc-nota">(solo Lambayeque y Ferreñafe)</small></span>
           <b>S/ {{ incTotales.gerentes | number }}</b>
         </div>
         <table class="inc-tabla">
@@ -260,7 +260,7 @@
                 <td class="monto">S/ {{ mm.totGerentes | number }}</td>
               </tr>
             </ng-container>
-            <tr *ngIf="!incTotales.gerentes"><td colspan="7" class="vacio">Sin productos Efectiva ni motos Global Go en el rango.</td></tr>
+            <tr *ngIf="!incTotales.gerentes"><td colspan="7" class="vacio">Sin productos Efectiva ni motos Global Go de Lambayeque o Ferreñafe en el rango.</td></tr>
             <tr class="inc-total" *ngIf="incTotales.gerentes">
               <td class="izq" colspan="6">TOTAL {{ incRangoLabel }}</td>
               <td class="monto">S/ {{ incTotales.gerentes | number }}</td>
