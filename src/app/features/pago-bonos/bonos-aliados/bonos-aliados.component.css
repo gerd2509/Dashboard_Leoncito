@@ -68,3 +68,27 @@
 .ba-tabla td.izq { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .ba-pie { margin: 10px 20px 14px; font-size: 11.5px; color: #7A8796; }
+
+/* ── Incentivo de la empresa ── */
+.inc-wrap { margin: 18px 20px 0; border: 1px solid #E1E0D9; border-radius: 12px; overflow: hidden; }
+.inc-head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #1E3A5F; color: #fff; }
+.inc-head > div { display: flex; flex-direction: column; }
+.inc-titulo { font-size: 14.5px; font-weight: 700; letter-spacing: .02em; }
+.inc-sub { font-size: 12px; opacity: .85; }
+.inc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px; padding: 14px 16px; }
+@media (max-width: 1100px) { .inc-grid { grid-template-columns: 1fr; } }
+.inc-bloque { min-width: 0; overflow-x: auto; }
+.inc-bloque-tit { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; color: #1E3A5F; }
+.inc-bloque-tit span { font-size: 13px; font-weight: 700; }
+.inc-bloque-tit b { font-size: 18px; }
+.inc-tabla { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; min-width: 420px; }
+.inc-tabla th { background: #E6ECF4; color: #1E3A5F; padding: 7px 8px; text-align: center; font-weight: 700; white-space: nowrap; }
+.inc-tabla th.sub { font-size: 11px; font-weight: 600; }
+.inc-tabla th.c-ef { background: #1565C0; color: #fff; }
+.inc-tabla th.c-gg { background: #C62828; color: #fff; }
+.inc-tabla td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #EEF1F5; }
+.inc-tabla .izq { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inc-tabla td.monto { font-variant-numeric: tabular-nums; }
+.inc-tabla td.vacio { color: #7A8796; text-align: left; }
+.inc-tabla td.sin-ger { color: #9a3c00; font-style: italic; }
+.inc-total td { background: #1E3A5F; color: #fff; font-weight: 700; }

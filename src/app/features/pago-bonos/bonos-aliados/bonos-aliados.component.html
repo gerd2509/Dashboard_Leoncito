@@ -124,6 +124,80 @@
       </tbody>
     </table>
   </div>
+  <!-- ═══ Incentivo de la empresa (no del banco) ═══ -->
+  <div class="inc-wrap" *ngIf="!cargando">
+    <div class="inc-head">
+      <mat-icon>workspace_premium</mat-icon>
+      <div>
+        <span class="inc-titulo">INCENTIVO DE LA EMPRESA — {{ canal === 'SEDES' ? 'SEDES' : 'REALZZA' }}</span>
+        <span class="inc-sub">Asesor: S/ {{ INC.asesor }} por producto Efectiva · Gerente de tienda: S/ {{ INC.gerente }} por producto Efectiva + S/ {{ INC.motoGG }} por moto Global Go</span>
+      </div>
+    </div>
+
+    <div class="inc-grid">
+      <!-- Asesores -->
+      <div class="inc-bloque">
+        <div class="inc-bloque-tit">
+          <span>Asesores — productos Efectiva</span>
+          <b>S/ {{ incTotales.asesores | number }}</b>
+        </div>
+        <table class="inc-tabla">
+          <colgroup><col style="width:24%"><col><col style="width:16%"><col style="width:18%"></colgroup>
+          <thead><tr><th class="izq">SEDE</th><th class="izq">ASESOR</th><th>PRODUCTOS</th><th>INCENTIVO</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let a of incAsesores">
+              <td class="izq">{{ a.sede }}</td>
+              <td class="izq">{{ a.vendedor }}</td>
+              <td>{{ a.productos }}</td>
+              <td class="monto">S/ {{ a.monto | number }}</td>
+            </tr>
+            <tr *ngIf="!incAsesores.length"><td colspan="4" class="vacio">Sin productos vendidos con Efectiva este mes.</td></tr>
+            <tr class="inc-total" *ngIf="incAsesores.length">
+              <td class="izq" colspan="2">TOTAL</td>
+              <td>{{ incTotales.productos }}</td>
+              <td class="monto">S/ {{ incTotales.asesores | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Gerentes de tienda -->
+      <div class="inc-bloque">
+        <div class="inc-bloque-tit">
+          <span>Gerentes de tienda</span>
+          <b>S/ {{ incTotales.gerentes | number }}</b>
+        </div>
+        <table class="inc-tabla">
+          <colgroup><col style="width:20%"><col><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:13%"></colgroup>
+          <thead>
+            <tr>
+              <th class="izq" rowspan="2">SEDE</th><th class="izq" rowspan="2">GERENTE</th>
+              <th colspan="2" class="c-ef">EFECTIVA</th><th colspan="2" class="c-gg">MOTOS GLOBAL GO</th>
+              <th rowspan="2">TOTAL</th>
+            </tr>
+            <tr><th class="c-ef sub">Prod.</th><th class="c-ef sub">S/</th><th class="c-gg sub">Motos</th><th class="c-gg sub">S/</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let g of incGerentes">
+              <td class="izq">{{ g.sede }}</td>
+              <td class="izq" [class.sin-ger]="g.gerente === 'SIN GERENTE ASIGNADO'">{{ g.gerente }}</td>
+              <td>{{ g.productosEfectiva || '–' }}</td>
+              <td class="monto">{{ g.montoEfectiva ? (g.montoEfectiva | number) : '–' }}</td>
+              <td>{{ g.motosGG || '–' }}</td>
+              <td class="monto">{{ g.montoGG ? (g.montoGG | number) : '–' }}</td>
+              <td class="monto"><b>S/ {{ g.total | number }}</b></td>
+            </tr>
+            <tr *ngIf="!incGerentes.length"><td colspan="7" class="vacio">Sin productos Efectiva ni motos Global Go este mes.</td></tr>
+            <tr class="inc-total" *ngIf="incGerentes.length">
+              <td class="izq" colspan="6">TOTAL</td>
+              <td class="monto">S/ {{ incTotales.gerentes | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <p class="ba-pie">MAF = monto de la venta. Solo motos del mes de venta; no cuentan Notas de Crédito ni Incautaciones.
     Este bloque no se suma al "Total a pagar" de arriba.</p>
 </div>
