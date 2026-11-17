@@ -23,7 +23,10 @@ interface FilaVendedor {
 /** Incentivo de la empresa (no del banco): asesor S/ 50 por producto Efectiva; gerente de
  *  tienda S/ 25 por producto Efectiva + S/ 50 por moto Global Go de su tienda. */
 /** Una venta que genera incentivo (producto Efectiva o moto Global Go). */
-interface VentaInc { sede: string; vendedor: string; tipo: 'EFECTIVA' | 'MOTO GLOBAL GO'; fecha: string; cliente: string; dni: string; producto: string; monto: number; }
+interface VentaInc { mes: string; sede: string; vendedor: string; tipo: 'EFECTIVA' | 'MOTO GLOBAL GO'; fecha: string; cliente: string; dni: string; producto: string; monto: number; }
+interface IncMes { key: string; label: string; asesores: IncAsesor[]; gerentes: IncGerente[]; productos: number; totAsesores: number; totGerentes: number; }
+const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const MAX_MESES_INC = 12;
 interface IncAsesor { sede: string; vendedor: string; productos: number; monto: number; detalle: VentaInc[]; }
 interface IncGerente { sede: string; gerente: string; productosEfectiva: number; montoEfectiva: number; motosGG: number; montoGG: number; total: number; detalle: VentaInc[]; }
 const INC_ASESOR_EFECTIVA = 50, INC_GERENTE_EFECTIVA = 25, INC_GERENTE_MOTO_GG = 50;
@@ -92,13 +95,91 @@ export class BonosAliadosComponent implements OnChanges {
 
   // Incentivo de la empresa
   readonly INC = { asesor: INC_ASESOR_EFECTIVA, gerente: INC_GERENTE_EFECTIVA, motoGG: INC_GERENTE_MOTO_GG };
-  private ventasEfectiva: VentaInc[] = [];   // todo producto Efectiva
+  private ventasInc: VentaInc[] = [];          // productos Efectiva + motos Global Go del rango
   private gerentePorSede = new Map<string, string>();                   // del maestro de sedes
-  incAsesores: IncAsesor[] = [];
-  incGerentes: IncGerente[] = [];
+  incMeses: IncMes[] = [];
   incTotales = { productos: 0, asesores: 0, gerentes: 0 };
+  incDesde = '';
+  incHasta = '';
+  incOpciones: { key: string; label: string }[] = [];
+  incCargando = false;
+  incAviso = '';
 
-  ngOnChanges(): void { if (this.anio && this.mes) this.cargar(); }
+  ngOnChanges(): void {
+    if (!this.anio || !this.mes) return;
+    this.cargar();
+    // El rango del incentivo arranca en el mes elegido arriba; luego se puede ampliar.
+    this.incDesde = this.incHasta = this.periodo;
+    this.cargarIncentivo();
+  }
+
+  get incRangoLabel(): string {
+    return this.incDesde === this.incHasta ? this.mesLabel(this.incDesde) : `${this.mesLabel(this.incDesde)} – ${this.mesLabel(this.incHasta)}`;
+  }
+  private mesLabel(key: string): string {
+    const [a, m] = key.split('-').map(Number);
+    return `${MESES_NOMBRE[m - 1]} ${a}`;
+  }
+  /** Meses entre dos claves 'AAAA-MM' (inclusive). */
+  private mesesEntre(desde: string, hasta: string): string[] {
+    const out: string[] = [];
+    let [a, m] = desde.split('-').map(Number);
+    const [ah, mh] = hasta.split('-').map(Number);
+    while (a < ah || (a === ah && m <= mh)) {
+      out.push(`${a}-${String(m).padStart(2, '0')}`);
+      if (++m > 12) { m = 1; a++; }
+    }
+    return out;
+  }
+
+  setIncRango(desde: string, hasta: string): void {
+    if (desde > hasta) [desde, hasta] = [hasta, desde];
+    this.incDesde = desde; this.incHasta = hasta;
+    this.cargarIncentivo();
+  }
+
+  /** Trae las ventas de cada mes del rango (máx. 12) y arma el incentivo listado por mes. */
+  async cargarIncentivo(): Promise<void> {
+    // Opciones: desde ene-2025 hasta el mes actual.
+    const hoy = new Date();
+    this.incOpciones = this.mesesEntre('2025-01', `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`)
+      .reverse().map(key => ({ key, label: this.mesLabel(key) }));
+    let meses = this.mesesEntre(this.incDesde, this.incHasta);
+    this.incAviso = '';
+    if (meses.length > MAX_MESES_INC) {
+      meses = meses.slice(-MAX_MESES_INC);
+      this.incDesde = meses[0];
+      this.incAviso = `Se muestran como máximo ${MAX_MESES_INC} meses: desde ${this.mesLabel(this.incDesde)}.`;
+    }
+    this.incCargando = true;
+    try {
+      const lotes = await Promise.all(meses.map(k => {
+        const [a, m] = k.split('-').map(Number);
+        return lastValueFrom(this.ventasSrv.obtenerVentas(a, { mes: m })).catch(() => [] as any[]);
+      }));
+      this.ventasInc = [];
+      lotes.forEach((rows, i) => {
+        const [a, m] = meses[i].split('-').map(Number);
+        for (const r of rows || []) {
+          if (Number(r.anio_cv) !== a || Number(r.mes_cv) !== m) continue;   // solo mes de venta
+          const ent = this.up(r.entidad);
+          const estado = this.up(r.estado_venta);
+          if (estado.includes('NOTA DE CR') || estado.includes('INCAUTAC')) continue;
+          if ((Number(r.monto_consolidado) || 0) <= 0) continue;
+          const esEfectiva = ent.includes('EFECTIVA');
+          const esMotoGG = ent.includes('GLOBAL GO') && this.up(r.estado_tipo_producto).includes('MOTO');
+          if (!esEfectiva && !esMotoGG) continue;
+          this.ventasInc.push({
+            mes: meses[i], sede: this.nombreSede(r.sede), vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+            tipo: esEfectiva ? 'EFECTIVA' : 'MOTO GLOBAL GO', ...this.datosCliente(r), monto: 0,
+          });
+        }
+      });
+      this.armarIncentivo();
+    } finally {
+      this.incCargando = false;
+    }
+  }
 
   private get periodo(): string { return `${this.anio}-${String(this.mes).padStart(2, '0')}`; }
   vigente(e: Entidad): boolean { return this.periodo >= REGLAS[e].desde; }
@@ -112,7 +193,6 @@ export class BonosAliadosComponent implements OnChanges {
       ]);
       this.gerentePorSede = new Map((sedes || []).map(x => [this.nombreSede(x.nombre), (x.gerente || '').toString().trim().toUpperCase()]));
       this.motos = [];
-      this.ventasEfectiva = [];
       for (const r of rows || []) {
         if (Number(r.anio_cv) !== this.anio || Number(r.mes_cv) !== this.mes) continue;   // solo mes de venta
         const ent = this.up(r.entidad);
@@ -122,12 +202,6 @@ export class BonosAliadosComponent implements OnChanges {
         if (estado.includes('NOTA DE CR') || estado.includes('INCAUTAC')) continue;
         const maf = Number(r.monto_consolidado) || 0;
         if (maf <= 0) continue;
-        if (entidad === 'EFECTIVA') {
-          this.ventasEfectiva.push({
-            sede: this.nombreSede(r.sede), vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
-            tipo: 'EFECTIVA', ...this.datosCliente(r), monto: INC_ASESOR_EFECTIVA,
-          });
-        }
         if (!this.up(r.estado_tipo_producto).includes('MOTO')) continue;
         this.motos.push({
           sede: this.nombreSede(r.sede), vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
@@ -208,45 +282,46 @@ export class BonosAliadosComponent implements OnChanges {
       this.totales.total += g.total;
       return g;
     }).sort((a, b) => b.total - a.total || a.sede.localeCompare(b.sede));
-    this.armarIncentivo(motos);
+    this.armarIncentivo();
   }
 
-  /** Incentivo de la empresa para el canal elegido: por asesor (productos Efectiva) y por
-   *  gerente de tienda (productos Efectiva + motos Global Go de su tienda). */
-  private armarIncentivo(motos: MotoAliado[]): void {
+  /** Incentivo de la empresa para el canal elegido, listado por mes del rango: por asesor
+   *  (productos Efectiva) y por gerente de tienda (productos Efectiva + motos Global Go). */
+  private armarIncentivo(): void {
     const enCanal = (sede: string) => this.esRealzza(sede) === (this.canal === 'REALZZA');
-    const efectiva = this.ventasEfectiva.filter(v => enCanal(v.sede));
+    const ventas = this.ventasInc.filter(v => enCanal(v.sede));
+    this.incTotales = { productos: 0, asesores: 0, gerentes: 0 };
+    this.incMeses = this.mesesEntre(this.incDesde, this.incHasta).map(key => {
+      const delMes = ventas.filter(v => v.mes === key);
 
-    const porAsesor = new Map<string, IncAsesor>();
-    for (const v of efectiva) {
-      const k = `${v.sede}|${v.vendedor}`;
-      const a = porAsesor.get(k) ?? porAsesor.set(k, { sede: v.sede, vendedor: v.vendedor, productos: 0, monto: 0, detalle: [] }).get(k)!;
-      a.productos++; a.monto += INC_ASESOR_EFECTIVA; a.detalle.push(v);
-    }
-    this.incAsesores = Array.from(porAsesor.values()).sort((a, b) => a.sede.localeCompare(b.sede) || b.monto - a.monto);
+      const porAsesor = new Map<string, IncAsesor>();
+      for (const v of delMes) if (v.tipo === 'EFECTIVA') {
+        const k = `${v.sede}|${v.vendedor}`;
+        const x = porAsesor.get(k) ?? porAsesor.set(k, { sede: v.sede, vendedor: v.vendedor, productos: 0, monto: 0, detalle: [] }).get(k)!;
+        x.productos++; x.monto += INC_ASESOR_EFECTIVA; x.detalle.push({ ...v, monto: INC_ASESOR_EFECTIVA });
+      }
+      const asesores = Array.from(porAsesor.values()).sort((p, q) => p.sede.localeCompare(q.sede) || q.monto - p.monto);
+      for (const x of asesores) x.detalle.sort((p, q) => p.fecha.localeCompare(q.fecha));
 
-    const porSede = new Map<string, IncGerente>();
-    const fila = (sede: string) => porSede.get(sede) ?? porSede.set(sede, {
-      sede, gerente: this.gerentePorSede.get(sede) || 'SIN GERENTE ASIGNADO',
-      productosEfectiva: 0, montoEfectiva: 0, motosGG: 0, montoGG: 0, total: 0, detalle: [],
-    }).get(sede)!;
-    for (const v of efectiva) {
-      const g = fila(v.sede); g.productosEfectiva++; g.montoEfectiva += INC_GERENTE_EFECTIVA; g.total += INC_GERENTE_EFECTIVA;
-      g.detalle.push({ ...v, monto: INC_GERENTE_EFECTIVA });
-    }
-    for (const m of motos) if (m.entidad === 'GLOBAL GO') {
-      const g = fila(m.sede); g.motosGG++; g.montoGG += INC_GERENTE_MOTO_GG; g.total += INC_GERENTE_MOTO_GG;
-      g.detalle.push({ sede: m.sede, vendedor: m.vendedor, tipo: 'MOTO GLOBAL GO', fecha: m.fecha, cliente: m.cliente, dni: m.dni, producto: m.producto, monto: INC_GERENTE_MOTO_GG });
-    }
-    for (const a of this.incAsesores) a.detalle.sort((x, y) => x.fecha.localeCompare(y.fecha));
-    for (const g of porSede.values()) g.detalle.sort((x, y) => x.tipo.localeCompare(y.tipo) || x.fecha.localeCompare(y.fecha));
-    this.incGerentes = Array.from(porSede.values()).sort((a, b) => b.total - a.total || a.sede.localeCompare(b.sede));
+      const porSede = new Map<string, IncGerente>();
+      for (const v of delMes) {
+        const g = porSede.get(v.sede) ?? porSede.set(v.sede, {
+          sede: v.sede, gerente: this.gerentePorSede.get(v.sede) || 'SIN GERENTE ASIGNADO',
+          productosEfectiva: 0, montoEfectiva: 0, motosGG: 0, montoGG: 0, total: 0, detalle: [],
+        }).get(v.sede)!;
+        const monto = v.tipo === 'EFECTIVA' ? INC_GERENTE_EFECTIVA : INC_GERENTE_MOTO_GG;
+        if (v.tipo === 'EFECTIVA') { g.productosEfectiva++; g.montoEfectiva += monto; } else { g.motosGG++; g.montoGG += monto; }
+        g.total += monto; g.detalle.push({ ...v, monto });
+      }
+      const gerentes = Array.from(porSede.values()).sort((p, q) => q.total - p.total || p.sede.localeCompare(q.sede));
+      for (const g of gerentes) g.detalle.sort((p, q) => p.tipo.localeCompare(q.tipo) || p.fecha.localeCompare(q.fecha));
 
-    this.incTotales = {
-      productos: efectiva.length,
-      asesores: this.incAsesores.reduce((s, a) => s + a.monto, 0),
-      gerentes: this.incGerentes.reduce((s, g) => s + g.total, 0),
-    };
+      const productos = asesores.reduce((t, x) => t + x.productos, 0);
+      const totAsesores = asesores.reduce((t, x) => t + x.monto, 0);
+      const totGerentes = gerentes.reduce((t, g) => t + g.total, 0);
+      this.incTotales.productos += productos; this.incTotales.asesores += totAsesores; this.incTotales.gerentes += totGerentes;
+      return { key, label: this.mesLabel(key), asesores, gerentes, productos, totAsesores, totGerentes };
+    });
   }
 
   async exportar(): Promise<void> {
@@ -279,24 +354,31 @@ export class BonosAliadosComponent implements OnChanges {
       wd.views = [{ state: 'frozen', ySplit: 1 }];
 
       const wi = wb.addWorksheet(canal === 'SEDES' ? 'Incentivo Sedes' : 'Incentivo Realzza');
-      wi.addRow([`INCENTIVO EMPRESA — ASESORES (S/ ${INC_ASESOR_EFECTIVA} por producto Efectiva)`]).font = { bold: true };
-      estilo(wi.addRow(['SEDE', 'ASESOR', 'PRODUCTOS EFECTIVA', 'INCENTIVO (S/)']));
-      for (const a of this.incAsesores) wi.addRow([a.sede, a.vendedor, a.productos, a.monto]);
-      wi.addRow(['TOTAL', '', this.incTotales.productos, this.incTotales.asesores]).font = { bold: true };
+      wi.addRow([`INCENTIVO EMPRESA — ${this.incRangoLabel.toUpperCase()}`]).font = { bold: true };
+      wi.addRow([`ASESORES (S/ ${INC_ASESOR_EFECTIVA} por producto Efectiva)`]).font = { bold: true };
+      estilo(wi.addRow(['MES', 'SEDE', 'ASESOR', 'PRODUCTOS EFECTIVA', 'INCENTIVO (S/)']));
+      for (const mm of this.incMeses) {
+        for (const a of mm.asesores) wi.addRow([mm.label, a.sede, a.vendedor, a.productos, a.monto]);
+        if (mm.asesores.length) wi.addRow([`Subtotal ${mm.label}`, '', '', mm.productos, mm.totAsesores]).font = { bold: true };
+      }
+      wi.addRow(['TOTAL', '', '', this.incTotales.productos, this.incTotales.asesores]).font = { bold: true };
       wi.addRow([]);
-      wi.addRow([`INCENTIVO EMPRESA — GERENTES (S/ ${INC_GERENTE_EFECTIVA} por producto Efectiva + S/ ${INC_GERENTE_MOTO_GG} por moto Global Go)`]).font = { bold: true };
-      estilo(wi.addRow(['SEDE', 'GERENTE', 'PRODUCTOS EFECTIVA', 'S/ EFECTIVA', 'MOTOS GLOBAL GO', 'S/ GLOBAL GO', 'TOTAL (S/)']));
-      for (const g of this.incGerentes) wi.addRow([g.sede, g.gerente, g.productosEfectiva, g.montoEfectiva, g.motosGG, g.montoGG, g.total]);
-      wi.addRow(['TOTAL', '', '', '', '', '', this.incTotales.gerentes]).font = { bold: true };
-      wi.columns.forEach((c, i) => { c.width = i < 2 ? 34 : 18; });
+      wi.addRow([`GERENTES (S/ ${INC_GERENTE_EFECTIVA} por producto Efectiva + S/ ${INC_GERENTE_MOTO_GG} por moto Global Go)`]).font = { bold: true };
+      estilo(wi.addRow(['MES', 'SEDE', 'GERENTE', 'PRODUCTOS EFECTIVA', 'S/ EFECTIVA', 'MOTOS GLOBAL GO', 'S/ GLOBAL GO', 'TOTAL (S/)']));
+      for (const mm of this.incMeses) {
+        for (const g of mm.gerentes) wi.addRow([mm.label, g.sede, g.gerente, g.productosEfectiva, g.montoEfectiva, g.motosGG, g.montoGG, g.total]);
+        if (mm.gerentes.length) wi.addRow([`Subtotal ${mm.label}`, '', '', '', '', '', '', mm.totGerentes]).font = { bold: true };
+      }
+      wi.addRow(['TOTAL', '', '', '', '', '', '', this.incTotales.gerentes]).font = { bold: true };
+      wi.columns.forEach((c, i) => { c.width = i === 0 ? 22 : i < 3 ? 34 : 18; });
 
       const wid = wb.addWorksheet(canal === 'SEDES' ? 'Detalle Incentivo Sedes' : 'Detalle Incentivo Realzza');
-      estilo(wid.addRow(['SEDE', 'GERENTE', 'VENDEDOR', 'TIPO', 'FECHA', 'CLIENTE', 'DNI', 'PRODUCTO', 'INCENTIVO ASESOR (S/)', 'INCENTIVO GERENTE (S/)']));
-      for (const g of this.incGerentes) for (const d of g.detalle) {
-        wid.addRow([d.sede, g.gerente, d.vendedor, d.tipo, d.fecha, d.cliente, d.dni, d.producto,
+      estilo(wid.addRow(['MES', 'SEDE', 'GERENTE', 'VENDEDOR', 'TIPO', 'FECHA', 'CLIENTE', 'DNI', 'PRODUCTO', 'INCENTIVO ASESOR (S/)', 'INCENTIVO GERENTE (S/)']));
+      for (const mm of this.incMeses) for (const g of mm.gerentes) for (const d of g.detalle) {
+        wid.addRow([mm.label, d.sede, g.gerente, d.vendedor, d.tipo, d.fecha, d.cliente, d.dni, d.producto,
           d.tipo === 'EFECTIVA' ? INC_ASESOR_EFECTIVA : 0, d.monto]);
       }
-      wid.columns.forEach((c, i) => { c.width = [22, 32, 32, 16, 12, 36, 12, 48, 14, 14][i]; });
+      wid.columns.forEach((c, i) => { c.width = [18, 22, 32, 32, 16, 12, 36, 12, 48, 14, 14][i]; });
       wid.views = [{ state: 'frozen', ySplit: 1 }];
     }
     this.canal = canalPrevio; this.armar();
