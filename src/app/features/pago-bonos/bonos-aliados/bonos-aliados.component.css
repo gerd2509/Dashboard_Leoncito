@@ -92,3 +92,14 @@
 .inc-tabla td.vacio { color: #7A8796; text-align: left; }
 .inc-tabla td.sin-ger { color: #9a3c00; font-style: italic; }
 .inc-total td { background: #1E3A5F; color: #fff; font-weight: 700; }
+
+/* Detalle de ventas (cliente, DNI, producto) */
+.inc-click { cursor: pointer; }
+.inc-click:hover td { background: #F4F7FB; }
+.inc-ico { font-size: 16px; width: 16px; height: 16px; vertical-align: middle; color: #1565C0; }
+.inc-det > td { background: #FAFBFD; padding: 4px 8px 10px 28px; }
+.inc-det-tabla { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11.5px; }
+.inc-det-tabla th { background: #EEF2F7; color: #1E3A5F; padding: 5px 6px; text-align: left; font-weight: 700; }
+.inc-det-tabla td { padding: 4px 6px; text-align: left; border-bottom: 1px solid #EEF1F5; }
+.inc-det-tabla td.cli { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+

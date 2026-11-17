@@ -145,12 +145,33 @@
           <colgroup><col style="width:24%"><col><col style="width:16%"><col style="width:18%"></colgroup>
           <thead><tr><th class="izq">SEDE</th><th class="izq">ASESOR</th><th>PRODUCTOS</th><th>INCENTIVO</th></tr></thead>
           <tbody>
-            <tr *ngFor="let a of incAsesores">
+            <ng-container *ngFor="let a of incAsesores">
+            <tr class="inc-click" (click)="toggle('inc-a|' + a.sede + '|' + a.vendedor)">
               <td class="izq">{{ a.sede }}</td>
-              <td class="izq">{{ a.vendedor }}</td>
+              <td class="izq">
+                <mat-icon class="inc-ico">{{ abiertos.has('inc-a|' + a.sede + '|' + a.vendedor) ? 'remove' : 'add' }}</mat-icon>
+                {{ a.vendedor }}
+              </td>
               <td>{{ a.productos }}</td>
               <td class="monto">S/ {{ a.monto | number }}</td>
             </tr>
+            <tr class="inc-det" *ngIf="abiertos.has('inc-a|' + a.sede + '|' + a.vendedor + '')">
+              <td [attr.colspan]="4">
+                <table class="inc-det-tabla">
+                  <colgroup><col style="width:10%"><col style="width:24%"><col style="width:11%"><col></colgroup>
+                  <thead><tr><th>Fecha</th><th>Cliente</th><th>DNI</th><th>Producto</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let d of a.detalle">
+                      <td>{{ d.fecha }}</td>
+                      <td class="cli" [title]="d.cliente">{{ d.cliente || '—' }}</td>
+                      <td>{{ d.dni || '—' }}</td>
+                      <td class="cli" [title]="d.producto">{{ d.producto || '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            </ng-container>
             <tr *ngIf="!incAsesores.length"><td colspan="4" class="vacio">Sin productos vendidos con Efectiva este mes.</td></tr>
             <tr class="inc-total" *ngIf="incAsesores.length">
               <td class="izq" colspan="2">TOTAL</td>
@@ -178,15 +199,38 @@
             <tr><th class="c-ef sub">Prod.</th><th class="c-ef sub">S/</th><th class="c-gg sub">Motos</th><th class="c-gg sub">S/</th></tr>
           </thead>
           <tbody>
-            <tr *ngFor="let g of incGerentes">
+            <ng-container *ngFor="let g of incGerentes">
+            <tr class="inc-click" (click)="toggle('inc-g|' + g.sede + '|' + g.gerente)">
               <td class="izq">{{ g.sede }}</td>
-              <td class="izq" [class.sin-ger]="g.gerente === 'SIN GERENTE ASIGNADO'">{{ g.gerente }}</td>
+              <td class="izq" [class.sin-ger]="g.gerente === 'SIN GERENTE ASIGNADO'">
+                <mat-icon class="inc-ico">{{ abiertos.has('inc-g|' + g.sede + '|' + g.gerente) ? 'remove' : 'add' }}</mat-icon>
+                {{ g.gerente }}
+              </td>
               <td>{{ g.productosEfectiva || '–' }}</td>
               <td class="monto">{{ g.montoEfectiva ? (g.montoEfectiva | number) : '–' }}</td>
               <td>{{ g.motosGG || '–' }}</td>
               <td class="monto">{{ g.montoGG ? (g.montoGG | number) : '–' }}</td>
               <td class="monto"><b>S/ {{ g.total | number }}</b></td>
             </tr>
+            <tr class="inc-det" *ngIf="abiertos.has('inc-g|' + g.sede + '|' + g.gerente + '')">
+              <td [attr.colspan]="7">
+                <table class="inc-det-tabla">
+                  <colgroup><col style="width:10%"><col style="width:14%"><col style="width:20%"><col style="width:24%"><col style="width:11%"><col></colgroup>
+                  <thead><tr><th>Fecha</th><th>Tipo</th><th>Vendedor</th><th>Cliente</th><th>DNI</th><th>Producto</th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let d of g.detalle">
+                      <td>{{ d.fecha }}</td>
+                      <td><b [style.color]="d.tipo === 'EFECTIVA' ? '#1565C0' : '#C62828'">{{ d.tipo }}</b></td>
+                      <td class="cli" [title]="d.vendedor">{{ d.vendedor }}</td>
+                      <td class="cli" [title]="d.cliente">{{ d.cliente || '—' }}</td>
+                      <td>{{ d.dni || '—' }}</td>
+                      <td class="cli" [title]="d.producto">{{ d.producto || '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            </ng-container>
             <tr *ngIf="!incGerentes.length"><td colspan="7" class="vacio">Sin productos Efectiva ni motos Global Go este mes.</td></tr>
             <tr class="inc-total" *ngIf="incGerentes.length">
               <td class="izq" colspan="6">TOTAL</td>

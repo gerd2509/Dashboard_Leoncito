@@ -10,7 +10,7 @@ type Entidad = 'GLOBAL GO' | 'EFECTIVA' | 'ALFIN';
 type Canal = 'SEDES' | 'REALZZA';
 
 interface MotoAliado {
-  sede: string; vendedor: string; entidad: Entidad; fecha: string;
+  sede: string; vendedor: string; entidad: Entidad; fecha: string; cliente: string; dni: string;
   producto: string; maf: number; bono: number; nota: string;
 }
 interface FilaVendedor {
@@ -22,8 +22,10 @@ interface FilaVendedor {
 }
 /** Incentivo de la empresa (no del banco): asesor S/ 50 por producto Efectiva; gerente de
  *  tienda S/ 25 por producto Efectiva + S/ 50 por moto Global Go de su tienda. */
-interface IncAsesor { sede: string; vendedor: string; productos: number; monto: number; }
-interface IncGerente { sede: string; gerente: string; productosEfectiva: number; montoEfectiva: number; motosGG: number; montoGG: number; total: number; }
+/** Una venta que genera incentivo (producto Efectiva o moto Global Go). */
+interface VentaInc { sede: string; vendedor: string; tipo: 'EFECTIVA' | 'MOTO GLOBAL GO'; fecha: string; cliente: string; dni: string; producto: string; monto: number; }
+interface IncAsesor { sede: string; vendedor: string; productos: number; monto: number; detalle: VentaInc[]; }
+interface IncGerente { sede: string; gerente: string; productosEfectiva: number; montoEfectiva: number; motosGG: number; montoGG: number; total: number; detalle: VentaInc[]; }
 const INC_ASESOR_EFECTIVA = 50, INC_GERENTE_EFECTIVA = 25, INC_GERENTE_MOTO_GG = 50;
 
 interface GrupoSede {
@@ -90,7 +92,7 @@ export class BonosAliadosComponent implements OnChanges {
 
   // Incentivo de la empresa
   readonly INC = { asesor: INC_ASESOR_EFECTIVA, gerente: INC_GERENTE_EFECTIVA, motoGG: INC_GERENTE_MOTO_GG };
-  private ventasEfectiva: { sede: string; vendedor: string }[] = [];   // todo producto Efectiva
+  private ventasEfectiva: VentaInc[] = [];   // todo producto Efectiva
   private gerentePorSede = new Map<string, string>();                   // del maestro de sedes
   incAsesores: IncAsesor[] = [];
   incGerentes: IncGerente[] = [];
@@ -121,13 +123,17 @@ export class BonosAliadosComponent implements OnChanges {
         const maf = Number(r.monto_consolidado) || 0;
         if (maf <= 0) continue;
         if (entidad === 'EFECTIVA') {
-          this.ventasEfectiva.push({ sede: this.nombreSede(r.sede), vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase() });
+          this.ventasEfectiva.push({
+            sede: this.nombreSede(r.sede), vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
+            tipo: 'EFECTIVA', ...this.datosCliente(r), monto: INC_ASESOR_EFECTIVA,
+          });
         }
         if (!this.up(r.estado_tipo_producto).includes('MOTO')) continue;
         this.motos.push({
           sede: this.nombreSede(r.sede), vendedor: (r.vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase(),
           entidad, fecha: `${String(r.dia_cv).padStart(2, '0')}/${String(r.mes_cv).padStart(2, '0')}/${r.anio_cv}`,
           producto: (r.productos || '').toString(), maf, bono: 0, nota: '',
+          cliente: this.datosCliente(r).cliente, dni: this.datosCliente(r).dni,
         });
       }
       this.armar();
@@ -214,18 +220,26 @@ export class BonosAliadosComponent implements OnChanges {
     const porAsesor = new Map<string, IncAsesor>();
     for (const v of efectiva) {
       const k = `${v.sede}|${v.vendedor}`;
-      const a = porAsesor.get(k) ?? porAsesor.set(k, { sede: v.sede, vendedor: v.vendedor, productos: 0, monto: 0 }).get(k)!;
-      a.productos++; a.monto += INC_ASESOR_EFECTIVA;
+      const a = porAsesor.get(k) ?? porAsesor.set(k, { sede: v.sede, vendedor: v.vendedor, productos: 0, monto: 0, detalle: [] }).get(k)!;
+      a.productos++; a.monto += INC_ASESOR_EFECTIVA; a.detalle.push(v);
     }
     this.incAsesores = Array.from(porAsesor.values()).sort((a, b) => a.sede.localeCompare(b.sede) || b.monto - a.monto);
 
     const porSede = new Map<string, IncGerente>();
     const fila = (sede: string) => porSede.get(sede) ?? porSede.set(sede, {
       sede, gerente: this.gerentePorSede.get(sede) || 'SIN GERENTE ASIGNADO',
-      productosEfectiva: 0, montoEfectiva: 0, motosGG: 0, montoGG: 0, total: 0,
+      productosEfectiva: 0, montoEfectiva: 0, motosGG: 0, montoGG: 0, total: 0, detalle: [],
     }).get(sede)!;
-    for (const v of efectiva) { const g = fila(v.sede); g.productosEfectiva++; g.montoEfectiva += INC_GERENTE_EFECTIVA; g.total += INC_GERENTE_EFECTIVA; }
-    for (const m of motos) if (m.entidad === 'GLOBAL GO') { const g = fila(m.sede); g.motosGG++; g.montoGG += INC_GERENTE_MOTO_GG; g.total += INC_GERENTE_MOTO_GG; }
+    for (const v of efectiva) {
+      const g = fila(v.sede); g.productosEfectiva++; g.montoEfectiva += INC_GERENTE_EFECTIVA; g.total += INC_GERENTE_EFECTIVA;
+      g.detalle.push({ ...v, monto: INC_GERENTE_EFECTIVA });
+    }
+    for (const m of motos) if (m.entidad === 'GLOBAL GO') {
+      const g = fila(m.sede); g.motosGG++; g.montoGG += INC_GERENTE_MOTO_GG; g.total += INC_GERENTE_MOTO_GG;
+      g.detalle.push({ sede: m.sede, vendedor: m.vendedor, tipo: 'MOTO GLOBAL GO', fecha: m.fecha, cliente: m.cliente, dni: m.dni, producto: m.producto, monto: INC_GERENTE_MOTO_GG });
+    }
+    for (const a of this.incAsesores) a.detalle.sort((x, y) => x.fecha.localeCompare(y.fecha));
+    for (const g of porSede.values()) g.detalle.sort((x, y) => x.tipo.localeCompare(y.tipo) || x.fecha.localeCompare(y.fecha));
     this.incGerentes = Array.from(porSede.values()).sort((a, b) => b.total - a.total || a.sede.localeCompare(b.sede));
 
     this.incTotales = {
@@ -275,11 +289,30 @@ export class BonosAliadosComponent implements OnChanges {
       for (const g of this.incGerentes) wi.addRow([g.sede, g.gerente, g.productosEfectiva, g.montoEfectiva, g.motosGG, g.montoGG, g.total]);
       wi.addRow(['TOTAL', '', '', '', '', '', this.incTotales.gerentes]).font = { bold: true };
       wi.columns.forEach((c, i) => { c.width = i < 2 ? 34 : 18; });
+
+      const wid = wb.addWorksheet(canal === 'SEDES' ? 'Detalle Incentivo Sedes' : 'Detalle Incentivo Realzza');
+      estilo(wid.addRow(['SEDE', 'GERENTE', 'VENDEDOR', 'TIPO', 'FECHA', 'CLIENTE', 'DNI', 'PRODUCTO', 'INCENTIVO ASESOR (S/)', 'INCENTIVO GERENTE (S/)']));
+      for (const g of this.incGerentes) for (const d of g.detalle) {
+        wid.addRow([d.sede, g.gerente, d.vendedor, d.tipo, d.fecha, d.cliente, d.dni, d.producto,
+          d.tipo === 'EFECTIVA' ? INC_ASESOR_EFECTIVA : 0, d.monto]);
+      }
+      wid.columns.forEach((c, i) => { c.width = [22, 32, 32, 16, 12, 36, 12, 48, 14, 14][i]; });
+      wid.views = [{ state: 'frozen', ySplit: 1 }];
     }
     this.canal = canalPrevio; this.armar();
     const buf = await wb.xlsx.writeBuffer();
     FileSaver.saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
       `Bonos_Aliados_Motos_${this.periodo}.xlsx`);
+  }
+
+  /** Cliente, DNI, producto y fecha de una fila de `ventas`. */
+  private datosCliente(r: any): { cliente: string; dni: string; producto: string; fecha: string } {
+    return {
+      cliente: (r.cliente_venta || '').toString().trim().toUpperCase(),
+      dni: (r.doc_identidad || '').toString().trim(),
+      producto: (r.productos || '').toString().trim(),
+      fecha: `${String(r.dia_cv).padStart(2, '0')}/${String(r.mes_cv).padStart(2, '0')}/${r.anio_cv}`,
+    };
   }
 
   private up(v: any): string {
