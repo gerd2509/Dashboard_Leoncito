@@ -109,6 +109,9 @@ export class BonosAliadosComponent implements OnChanges {
   incSede = '';   // '' = todas · 'LAMBAYEQUE' · 'FERRENAFE'
   readonly INC_SEDES = [{ v: '', t: 'Todas' }, { v: 'LAMBAYEQUE', t: 'Lambayeque' }, { v: 'FERRENAFE', t: 'Ferreñafe' }];
   setIncSede(v: string): void { this.incSede = v; this.armarIncentivo(); }
+  incTipo: '' | 'EFECTIVA' | 'MOTO GLOBAL GO' = '';   // '' = ambos
+  readonly INC_TIPOS = [{ v: '', t: 'Efectiva y Global Go' }, { v: 'EFECTIVA', t: 'Solo Efectiva' }, { v: 'MOTO GLOBAL GO', t: 'Solo Global Go' }];
+  setIncTipo(v: string): void { this.incTipo = v as any; this.armarIncentivo(); }
 
   ngOnChanges(): void {
     if (!this.anio || !this.mes) return;
@@ -296,7 +299,8 @@ export class BonosAliadosComponent implements OnChanges {
     const enCanal = (sede: string) => this.esRealzza(sede) === (this.canal === 'REALZZA');
     // Combo de sede (solo en la vista Sedes): Lambayeque o Ferreñafe; vacío = todas.
     const sedeSel = this.canal === 'SEDES' ? this.incSede : '';
-    const ventas = this.ventasInc.filter(v => enCanal(v.sede) && (!sedeSel || this.up(v.sede) === sedeSel));
+    const ventas = this.ventasInc.filter(v => enCanal(v.sede) && (!sedeSel || this.up(v.sede) === sedeSel)
+      && (!this.incTipo || v.tipo === this.incTipo));
     this.incTotales = { productos: 0, asesores: 0, gerentes: 0 };
     this.incMeses = this.mesesEntre(this.incDesde, this.incHasta).map(key => {
       const delMes = ventas.filter(v => v.mes === key);

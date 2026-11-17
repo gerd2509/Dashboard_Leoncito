@@ -133,6 +133,11 @@
         <span class="inc-sub">Asesor: S/ {{ INC.asesor }} por producto Efectiva · Gerente de tienda: S/ {{ INC.gerente }} por producto Efectiva + S/ {{ INC.motoGG }} por moto Global Go</span>
       </div>
       <div class="inc-rango">
+        <label>Aliado
+          <select (change)="setIncTipo($any($event.target).value)">
+            <option *ngFor="let o of INC_TIPOS" [value]="o.v" [selected]="o.v === incTipo">{{ o.t }}</option>
+          </select>
+        </label>
         <label *ngIf="canal === 'SEDES'">Sede
           <select (change)="setIncSede($any($event.target).value)">
             <option *ngFor="let o of INC_SEDES" [value]="o.v" [selected]="o.v === incSede">{{ o.t }}</option>
@@ -199,7 +204,7 @@
                 <td class="monto">S/ {{ mm.totAsesores | number }}</td>
               </tr>
             </ng-container>
-            <tr *ngIf="!incTotales.productos"><td colspan="4" class="vacio">Sin productos vendidos con Efectiva en el rango.</td></tr>
+            <tr *ngIf="!incTotales.productos"><td colspan="4" class="vacio">{{ incTipo === 'MOTO GLOBAL GO' ? 'Los asesores no tienen incentivo de la empresa por Global Go (solo Efectiva).' : 'Sin productos vendidos con Efectiva en el rango.' }}</td></tr>
             <tr class="inc-total" *ngIf="incTotales.productos">
               <td class="izq" colspan="2">TOTAL {{ incRangoLabel }}</td>
               <td>{{ incTotales.productos }}</td>
