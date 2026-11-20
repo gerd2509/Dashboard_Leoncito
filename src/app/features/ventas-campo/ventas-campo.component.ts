@@ -981,11 +981,12 @@ export class VentasCampoComponent implements OnInit {
     // venta netean a 0 (ya están sumadas en Monto total); las de meses posteriores restan
     // aparte, sin tocar el mes en que se hizo la venta.
     this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito;
-    // Total Ventas (#): igual criterio que el monto — una venta anulada por NC/incautación
-    // ya no debe contar como operación real (si se refactura, la nueva venta es su propia
-    // fila en filtroVentas y se cuenta sola).
-    this.totalVentas = this.filtroVentas.length - this.filtroNotasCredito.length;
-    this.ticket = this.totalVentas > 0 ? Math.round(this.montoRealVentas / this.totalVentas) : 0;
+    // Total Ventas (#): las ventas FACTURADAS del mes, sin restar las NC (restarlas aquí
+    // desfasa el conteo frente a lo facturado; las NC se ven en su propio KPI).
+    this.totalVentas = this.filtroVentas.length;
+    // Ticket: se mantiene sobre las operaciones netas (sin las anuladas por NC/incautación).
+    const operacionesNetas = this.filtroVentas.length - this.filtroNotasCredito.length;
+    this.ticket = operacionesNetas > 0 ? Math.round(this.montoRealVentas / operacionesNetas) : 0;
 
     // 2. Lógica de Proyección
     const hoy = new Date();
