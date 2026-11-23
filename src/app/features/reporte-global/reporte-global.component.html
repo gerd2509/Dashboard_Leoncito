@@ -100,6 +100,10 @@
     <!-- ── Motos por marca × periodo (compañía completa) ── -->
     <div class="am-cardhead moto rg-comp-sub">
       <mat-icon>sell</mat-icon> Motos por Marca × Periodo <em>(# operaciones, compañía)</em>
+      <button class="rg-ampliar rg-btn-excel" type="button" (click)="exportarDetalleComparativo()" [disabled]="exportandoDetalle"
+              title="Excel con el detalle de las motos de cada mes (una hoja por mes + todos)">
+        <mat-icon>{{ exportandoDetalle ? 'hourglass_empty' : 'file_download' }}</mat-icon><span>Detalle por mes</span>
+      </button>
       <button class="rg-ampliar" type="button" (click)="abrirAmpliado('marca')" title="Ver en grande">
         <mat-icon>open_in_full</mat-icon>
       </button>
@@ -111,6 +115,10 @@
     <!-- ── Motos por tipo × periodo (Lineal / Mototaxi / Carguera) ── -->
     <div class="am-cardhead moto rg-comp-sub">
       <mat-icon>two_wheeler</mat-icon> Motos por Tipo × Periodo <em>(# operaciones, compañía · carguera = producto "Trimoto de carga")</em>
+      <button class="rg-ampliar rg-btn-excel" type="button" (click)="exportarDetalleComparativo()" [disabled]="exportandoDetalle"
+              title="Excel con el detalle de las motos de cada mes (una hoja por mes + todos)">
+        <mat-icon>{{ exportandoDetalle ? 'hourglass_empty' : 'file_download' }}</mat-icon><span>Detalle por mes</span>
+      </button>
       <button class="rg-ampliar" type="button" (click)="abrirAmpliado('tipo')" title="Ver en grande">
         <mat-icon>open_in_full</mat-icon>
       </button>
@@ -530,6 +538,10 @@
         <span *ngIf="!detalleCargando && !detalleCompleto">{{ detalleFilas.length }} venta(s) · {{ soles(detalleTotal) }}</span>
         <span *ngIf="!detalleCargando && detalleCompleto">{{ detalleCuentan }} cuentan<ng-container *ngIf="detalleRefact"> · {{ detalleRefact }} refacturación(es) no cuentan</ng-container> · {{ detalleFilas.length }} facturada(s) · {{ soles(detalleTotal) }}</span>
       </div>
+      <button class="rg-ampliar rg-btn-excel rg-det-excel" type="button" (click)="exportarDetallePopup()"
+              [disabled]="detalleCargando || !detalleFilas.length" title="Exportar este detalle a Excel">
+        <mat-icon>file_download</mat-icon><span>Excel</span>
+      </button>
       <button mat-icon-button (click)="cerrarDetalle()"><mat-icon>close</mat-icon></button>
     </div>
     <div class="rg-detalle-body">

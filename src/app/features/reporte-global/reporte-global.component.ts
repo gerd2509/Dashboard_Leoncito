@@ -194,7 +194,7 @@ export class ReporteGlobalComponent implements OnInit {
   detalleFilas: {
     vendedor: string; cliente: string; producto: string; entidad: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number;
     codigo_cv?: number; dni?: string; estado_venta?: string; tiene_nc?: boolean; dia_af?: number; mes_af?: number; anio_af?: number;
-    nc_mes_posterior?: boolean; es_refacturacion?: boolean;
+    nc_mes_posterior?: boolean; es_refacturacion?: boolean; marca?: string; tipo?: string; sede?: string;
   }[] = [];
   // true = popup del comparativo (Motos por Marca/Tipo × Periodo): columnas extendidas
   // (código CV, DNI, NC y si la NC cayó en un mes posterior, refacturación).
@@ -224,6 +224,84 @@ export class ReporteGlobalComponent implements OnInit {
     }
     this.detalleCargando = false;
   }
+  // ── Exportar a Excel: el popup abierto, o el detalle de todos los meses del comparativo ──
+  exportandoDetalle = false;
+  private readonly COLS_DET_FULL = ['MES', 'CÓDIGO CV', 'FECHA', 'SEDE', 'ASESOR', 'CLIENTE', 'DNI', 'PRODUCTO', 'MARCA', 'TIPO', 'ENTIDAD',
+    'MONTO (S/)', 'ESTADO', 'NOTA DE CRÉDITO', 'FECHA NC', 'NC EN MES POSTERIOR', 'REFACTURACIÓN', 'CUENTA'];
+  private filaDetFull(mesLabel: string, f: any): any[] {
+    return [mesLabel, f.codigo_cv, this.fechaCorta(f), f.sede || '', f.vendedor || '', f.cliente || '', f.dni || '', f.producto || '',
+      this.titulo(f.marca || ''), this.titulo(f.tipo || ''), f.entidad || '', f.monto || 0, f.estado_venta || '',
+      f.tiene_nc ? 'SÍ' : 'NO', this.fechaAf(f), f.tiene_nc ? (f.nc_mes_posterior ? 'SÍ' : 'MISMO MES') : '',
+      f.es_refacturacion ? 'SÍ' : 'NO', f.es_refacturacion ? 'NO' : 'SÍ'];
+  }
+  private hojaDetalle(wb: Workbook, nombre: string, titulo: string, headers: string[], filas: any[][]): void {
+    const ws = wb.addWorksheet(nombre.replace(/[\\/?*\[\]:]/g, ' ').slice(0, 31));
+    ws.addRow([titulo]).font = { bold: true, size: 12 };
+    const hr = ws.addRow(headers);
+    hr.eachCell(c => {
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEF6C00' } };
+    });
+    for (const f of filas) ws.addRow(f);
+    const iMonto = headers.indexOf('MONTO (S/)') + 1;
+    if (iMonto > 0) ws.getColumn(iMonto).numFmt = '#,##0';
+    ws.columns.forEach((c, i) => {
+      const h = headers[i] || '';
+      c.width = h === 'PRODUCTO' ? 48 : (h === 'CLIENTE' || h === 'ASESOR') ? 32 : h === 'SEDE' ? 26 : h === 'ESTADO' ? 18 : 14;
+    });
+    ws.views = [{ state: 'frozen', ySplit: 2 }];
+    ws.autoFilter = { from: { row: 2, column: 1 }, to: { row: 2, column: headers.length } };
+  }
+  private async guardarLibro(wb: Workbook, archivo: string): Promise<void> {
+    const buf = await wb.xlsx.writeBuffer();
+    FileSaver.saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), archivo);
+  }
+
+  /** Excel del popup abierto, tal cual se ve. */
+  async exportarDetallePopup(): Promise<void> {
+    if (!this.detalleFilas.length) return;
+    const wb = new Workbook();
+    const limpio = this.detalleTitulo.replace(/[—\s]+/g, '_').replace(/[^\wÁÉÍÓÚÑáéíóúñ_-]/g, '');
+    if (this.detalleCompleto) {
+      this.hojaDetalle(wb, 'Detalle', this.detalleTitulo, this.COLS_DET_FULL, this.detalleFilas.map(f => this.filaDetFull(this.mesDe(f), f)));
+    } else {
+      this.hojaDetalle(wb, 'Detalle', this.detalleTitulo, ['FECHA', 'ASESOR', 'CLIENTE', 'PRODUCTO', 'ENTIDAD', 'MONTO (S/)'],
+        this.detalleFilas.map(f => [this.fechaCorta(f), f.vendedor || '', f.cliente || '', f.producto || '', f.entidad || '', f.monto || 0]));
+    }
+    await this.guardarLibro(wb, `Detalle_${limpio || 'ventas'}.xlsx`);
+  }
+
+  /** Excel con el detalle de TODAS las motos de cada mes del comparativo: una hoja por mes
+   *  y una hoja "Todos los meses" (con marca, tipo, NC, refacturación y si cuenta). */
+  async exportarDetalleComparativo(): Promise<void> {
+    if (!this.comparativoCols.length || this.exportandoDetalle) return;
+    this.exportandoDetalle = true;
+    try {
+      const porMes = await Promise.all(this.comparativoCols.map(async c => {
+        const info = this.comparativoPeriodoInfo.get(c.key);
+        if (!info || !info.sedesRaw.length) return { col: c, filas: [] as any[] };
+        const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(info.anio, info.mes, info.dia, info.sedesRaw, { soloMoto: true }));
+        return { col: c, filas: filas || [] };
+      }));
+      const wb = new Workbook();
+      const hojas = porMes.map(m => ({ m, filas: m.filas.map(f => this.filaDetFull(m.col.label, f)) }));
+      // Primero "Todos los meses", luego una hoja por mes.
+      this.hojaDetalle(wb, 'Todos los meses', 'MOTOS — TODOS LOS MESES DEL COMPARATIVO', this.COLS_DET_FULL, hojas.flatMap(h => h.filas));
+      for (const { m, filas } of hojas) {
+        const cuentan = m.filas.filter((f: any) => !f.es_refacturacion).length;
+        this.hojaDetalle(wb, m.col.label, `MOTOS — ${m.col.label.toUpperCase()} · ${cuentan} cuentan · ${m.filas.length} facturadas`, this.COLS_DET_FULL, filas);
+      }
+      await this.guardarLibro(wb, `Detalle_Motos_${this.comparativoCols.map(c => c.key).join('_')}.xlsx`);
+    } catch (e) {
+      console.error('Error exportando detalle del comparativo:', e);
+    }
+    this.exportandoDetalle = false;
+  }
+  private mesDe(f: { mes_cv: number; anio_cv: number }): string {
+    const M = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${M[(f.mes_cv || 1) - 1]} ${f.anio_cv}`;
+  }
+
   fechaAf(f: { dia_af?: number; mes_af?: number; anio_af?: number }): string {
     if (!f.anio_af || !f.mes_af) return '';
     return `${String(f.dia_af || 0).padStart(2, '0')}/${String(f.mes_af).padStart(2, '0')}/${f.anio_af}`;

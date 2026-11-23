@@ -263,3 +263,10 @@
 .rg-detalle-tabla.rg-det-full th:nth-child(9), .rg-detalle-tabla.rg-det-full td:nth-child(9) { width: 7%; text-align: center; white-space: normal; }
 .rg-det-prod { text-transform: capitalize; }
 
+/* Botones Excel (cabeceras del comparativo y popup de detalle) */
+.rg-btn-excel { width: auto; padding: 0 10px; gap: 4px; font-size: 12px; font-weight: 700; }
+.rg-btn-excel mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.rg-btn-excel:disabled { opacity: .55; cursor: default; }
+.rg-btn-excel + .rg-ampliar { margin-left: 6px; }
+.rg-det-excel { margin-left: auto; margin-right: 6px; }
+
