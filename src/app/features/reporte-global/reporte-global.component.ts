@@ -275,7 +275,7 @@ export class ReporteGlobalComponent implements OnInit {
           lastValueFrom(this.ventas.obtenerReporteGlobalMotos(p.anio, p.mes, dia)),
           lastValueFrom(this.ventas.obtenerMargenLineaSede(p.anio, p.mes, dia)),
         ]);
-        return { periodo: p, rows: rows || [], motos: motos || [], margen: margen || [] };
+        return { periodo: p, rows: this.opsFacturadas(rows || []), motos: this.motosFacturadas(motos || []), margen: margen || [] };
       }));
       // Orden cronológico (el más antiguo primero) para que el comparativo se lea como evolución.
       resultados.sort((a, b) => (a.periodo.anio - b.periodo.anio) || (a.periodo.mes - b.periodo.mes));
@@ -447,8 +447,8 @@ export class ReporteGlobalComponent implements OnInit {
         lastValueFrom(this.ventas.obtenerReporteGlobalMotos(anio, mes || undefined)),
         lastValueFrom(this.ventas.obtenerMargenLineaSede(anio, mes || undefined)),
       ]);
-      this.construir(rows || []);
-      this.construirMotos(motos || []);
+      this.construir(this.opsFacturadas(rows || []));
+      this.construirMotos(this.motosFacturadas(motos || []));
       this.construirMargen(margen || []);
     } catch (e) {
       console.error('Error reporte global:', e);
@@ -463,6 +463,18 @@ export class ReporteGlobalComponent implements OnInit {
   // vacía (sin aliado) se trata como Propio — igual criterio que Aliados por Entidad
   // (que ya la excluye de "aliado") y que /reporte-global-detalle. Compartido por la
   // tabla del mes individual y por el comparativo de varios periodos.
+  /** # operaciones = ventas FACTURADAS del periodo (ops_bruto), sin restar la cantidad de
+   *  NC/incautaciones: restarlas desfasaba el conteo frente a lo facturado y dejaba celdas
+   *  negativas (NC de una venta de un mes anterior). El MONTO sigue siendo neto (neto =
+   *  facturado − NC por su mes de afectación), como indican los rótulos "monto neto". */
+  private opsFacturadas<T extends { ops: number; ops_bruto: number }>(rows: T[]): T[] {
+    return rows.map(r => ({ ...r, ops: r.ops_bruto || 0 }));
+  }
+  /** Igual para las motos: # motos facturadas del periodo (motos_bruto). */
+  private motosFacturadas<T extends { motos: number; motos_bruto: number }>(rows: T[]): T[] {
+    return rows.map(r => ({ ...r, motos: r.motos_bruto || 0 })).filter(r => r.motos > 0);
+  }
+
   private bucketMoto(e: string, conCuotas: boolean): string {
     if (e === 'GLOBAL GO') return 'GLOBAL GO';
     if (e === 'LEONCITO' || !e) return conCuotas ? 'LEONCITO_CREDITO' : 'LEONCITO_CONTADO';
