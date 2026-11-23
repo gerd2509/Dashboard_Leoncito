@@ -107,6 +107,17 @@
     <div class="am-scroll">
       <ng-container *ngTemplateOutlet="tablaMotosMarca"></ng-container>
     </div>
+
+    <!-- ── Motos por tipo × periodo (Lineal / Mototaxi / Carguera) ── -->
+    <div class="am-cardhead moto rg-comp-sub">
+      <mat-icon>two_wheeler</mat-icon> Motos por Tipo × Periodo <em>(# operaciones, compañía · carguera = producto "Trimoto de carga")</em>
+      <button class="rg-ampliar" type="button" (click)="abrirAmpliado('tipo')" title="Ver en grande">
+        <mat-icon>open_in_full</mat-icon>
+      </button>
+    </div>
+    <div class="am-scroll">
+      <ng-container *ngTemplateOutlet="tablaMotosTipo"></ng-container>
+    </div>
   </div>
   </ng-container>
 </div>
@@ -194,6 +205,25 @@
   </table>
 </ng-template>
 
+<ng-template #tablaMotosTipo>
+  <table class="am-table" *ngIf="comparativoTipo">
+    <thead>
+      <tr><th class="ta-l">Tipo</th><th *ngFor="let c of comparativoCols">{{ c.label }}</th><th>Total</th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let f of comparativoTipo.filas">
+        <td class="ta-l">{{ f.sede }}</td>
+        <td *ngFor="let c of comparativoCols">{{ f.valores[c.key] | number }}</td>
+        <td class="tot">{{ f.total | number }}</td>
+      </tr>
+      <tr *ngIf="!comparativoTipo.filas.length" class="vacio"><td [attr.colspan]="comparativoCols.length + 2">Sin datos para el periodo</td></tr>
+    </tbody>
+    <tfoot *ngIf="comparativoTipo.filas.length">
+      <tr><td class="ta-l">TOTAL</td><td *ngFor="let c of comparativoCols">{{ comparativoTipo.totales[c.key] | number }}</td><td class="tot">{{ comparativoTipo.totalGeneral | number }}</td></tr>
+    </tfoot>
+  </table>
+</ng-template>
+
 <ng-template #graficoComp let-ampliado="ampliado">
   <dx-chart [dataSource]="puntosComp" [redrawOnResize]="true" [class.rg-chart-popup]="ampliado" [class.rg-chart]="!ampliado">
     <dxo-common-series-settings argumentField="periodo" [type]="chartTipoComp">
@@ -234,11 +264,11 @@
   <div class="rg-detalle-modal rg-amplio-modal" (click)="$event.stopPropagation()">
     <div class="rg-detalle-head" [style.background]="'#1A5FAD'">
       <div class="rg-detalle-head-ico">
-        <mat-icon>{{ popupAmpliado === 'kpis' ? 'insights' : (popupAmpliado === 'motos' ? 'two_wheeler' : (popupAmpliado === 'marca' ? 'sell' : 'show_chart')) }}</mat-icon>
+        <mat-icon>{{ popupAmpliado === 'kpis' ? 'insights' : (popupAmpliado === 'motos' ? 'two_wheeler' : (popupAmpliado === 'marca' ? 'sell' : (popupAmpliado === 'tipo' ? 'two_wheeler' : 'show_chart'))) }}</mat-icon>
       </div>
       <div class="rg-detalle-head-txt">
         <h3>
-          {{ popupAmpliado === 'kpis' ? 'Indicadores (Compañía)' : (popupAmpliado === 'motos' ? 'Motos por Sede × Periodo' : (popupAmpliado === 'marca' ? 'Motos por Marca × Periodo' : 'Evolución')) }}
+          {{ popupAmpliado === 'kpis' ? 'Indicadores (Compañía)' : (popupAmpliado === 'motos' ? 'Motos por Sede × Periodo' : (popupAmpliado === 'marca' ? 'Motos por Marca × Periodo' : (popupAmpliado === 'tipo' ? 'Motos por Tipo × Periodo' : 'Evolución'))) }}
         </h3>
       </div>
       <div class="rg-chart-tools" *ngIf="popupAmpliado === 'chart'">
@@ -264,7 +294,7 @@
         <ng-container *ngTemplateOutlet="graficoComp; context: { ampliado: true }"></ng-container>
       </ng-container>
       <ng-template #tablasAmpliadas>
-        <ng-container *ngTemplateOutlet="popupAmpliado === 'kpis' ? tablaKpis : (popupAmpliado === 'motos' ? tablaMotosSedePeriodo : tablaMotosMarca)"></ng-container>
+        <ng-container *ngTemplateOutlet="popupAmpliado === 'kpis' ? tablaKpis : (popupAmpliado === 'motos' ? tablaMotosSedePeriodo : (popupAmpliado === 'tipo' ? tablaMotosTipo : tablaMotosMarca))"></ng-container>
       </ng-template>
     </div>
   </div>

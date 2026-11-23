@@ -108,6 +108,9 @@ export class ReporteGlobalComponent implements OnInit {
   tiposMotoComparativo: ColPivot[] = [];
   // Motos por marca (Wanxin/Ssenda) × periodo, a nivel compañía (# operaciones).
   comparativoMarca: Pivot | null = null;
+  // Motos por tipo (Moto Lineal / Mototaxi / Moto Carguera) × periodo, compañía (# operaciones).
+  // La carguera viene reclasificada del backend (producto "TRIMOTO DE CARGA").
+  comparativoTipo: Pivot | null = null;
 
   // ── Gráfico de evolución del Comparativo (crecimiento/decrecimiento) — reutiliza
   // los mismos indicadores de comparativoKpis, así que no pide datos aparte. Mismo
@@ -224,8 +227,8 @@ export class ReporteGlobalComponent implements OnInit {
 
   // ── Popup "Ver en grande" de las 3 tablas del Comparativo (KPIs / Motos por Sede ×
   // Periodo / Motos por Marca × Periodo) — mismas tablas, agrandadas en un modal. ──
-  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' | 'chart' = '';
-  abrirAmpliado(t: 'kpis' | 'motos' | 'marca' | 'chart'): void { this.popupAmpliado = t; }
+  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' | 'tipo' | 'chart' = '';
+  abrirAmpliado(t: 'kpis' | 'motos' | 'marca' | 'tipo' | 'chart'): void { this.popupAmpliado = t; }
   cerrarAmpliado(): void { this.popupAmpliado = ''; }
 
   constructor(private fb: UntypedFormBuilder) {
@@ -291,6 +294,7 @@ export class ReporteGlobalComponent implements OnInit {
     this.comparativoMotosDetalleTot = null;
     this.tiposMotoComparativo = [];
     this.comparativoMarca = null;
+    this.comparativoTipo = null;
     this.comparativoCols = [];
     this.puntosComp = [];
     this.seriesChartComp = [];
@@ -334,6 +338,7 @@ export class ReporteGlobalComponent implements OnInit {
     const totPorPeriodo: Record<string, Partial<Record<string, MotoTipoCelda>>> = {};
     const tiposVistos = new Set<string>();
     const marcaEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
+    const tipoEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
 
     for (const r of resultados) {
       const k = r.periodo.key;
@@ -392,6 +397,10 @@ export class ReporteGlobalComponent implements OnInit {
       const porMarca = new Map<string, number>();
       motosSede.forEach((m: any) => porMarca.set(m.marca, (porMarca.get(m.marca) || 0) + (m.motos || 0)));
       porMarca.forEach((v, marca) => marcaEnt.push({ sedeKey: marca, sede: this.titulo(marca), col: k, value: v }));
+      // Motos por tipo — misma fuente y criterio que la de marca.
+      const porTipo = new Map<string, number>();
+      motosSede.forEach((m: any) => { const t = (m.tipo || 'OTRO').toString().toUpperCase(); porTipo.set(t, (porTipo.get(t) || 0) + (m.motos || 0)); });
+      porTipo.forEach((v, tipo) => tipoEnt.push({ sedeKey: tipo, sede: this.titulo(tipo), col: k, value: v }));
     }
 
     this.comparativoMotosDetalle = [...bySede.values()].sort((a, b) => b.totMonto - a.totMonto);
@@ -403,6 +412,11 @@ export class ReporteGlobalComponent implements OnInit {
     const ordenTipos = ['GLOBAL GO', 'LEONCITO_CREDITO', 'LEONCITO_CONTADO', ...otrasVistas].filter(t => tiposVistos.has(t));
     this.tiposMotoComparativo = ordenTipos.map(t => ({ key: t, label: this.labelMoto(t) }));
     this.comparativoMarca = this.buildPivot(marcaEnt, cols);
+    // Orden fijo de tipos (no por total): Lineal, Mototaxi, Carguera y luego cualquier otro.
+    const ordenTipoMoto = ['MOTO LINEAL', 'MOTOTAXI', 'MOTO CARGUERA'];
+    const pivTipo = this.buildPivot(tipoEnt, cols);
+    pivTipo.filas.sort((a, b) => (ordenTipoMoto.indexOf(a.sedeKey) + 1 || 99) - (ordenTipoMoto.indexOf(b.sedeKey) + 1 || 99) || b.total - a.total);
+    this.comparativoTipo = pivTipo;
     this.construirChartComparativo();
   }
 
@@ -805,6 +819,8 @@ export class ReporteGlobalComponent implements OnInit {
 
     // Hoja 3: Motos por Marca × Periodo (compañía completa, # operaciones).
     if (this.comparativoMarca) this.hojaPivot(wb, 'Motos x Marca x Periodo', this.comparativoMarca, false, 'Marca');
+    // Hoja 4: Motos por Tipo × Periodo (Moto Lineal / Mototaxi / Moto Carguera).
+    if (this.comparativoTipo) this.hojaPivot(wb, 'Motos x Tipo x Periodo', this.comparativoTipo, false, 'Tipo');
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
