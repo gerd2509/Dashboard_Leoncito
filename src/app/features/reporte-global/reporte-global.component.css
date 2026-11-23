@@ -272,3 +272,11 @@
 .rg-btn-excel + .rg-ampliar { margin-left: 6px; }
 .rg-det-excel { margin-left: auto; margin-right: 6px; }
 
+/* "Ver en grande": el ancho se ajusta a la tabla (se ve completa sin scroll si cabe) y
+   el máximo es la pantalla — con muchos meses, aparece el scroll horizontal. Va con más
+   especificidad porque .rg-detalle-modal (más abajo en el archivo) fijaba max-width 1360px. */
+.rg-detalle-modal.rg-amplio-modal {
+  width: fit-content; min-width: min(720px, calc(100vw - 48px)); max-width: calc(100vw - 48px);
+}
+.rg-detalle-modal.rg-amplio-modal.rg-amplio-chart { width: calc(100vw - 48px); }
+
