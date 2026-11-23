@@ -540,6 +540,9 @@ export class VentasCampoComponent implements OnInit {
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
           SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
           Margen: tot ? tot.mt : 0, ValorVenta: tot ? tot.vv : 0, LineaReal: primaryLinea,
+          // Re-venta al mismo cliente tras una NC: NO cuenta como operación nueva (la
+          // operación es la venta original) — misma regla que el Reporte Global.
+          EsRefact: !!r.es_refacturacion,
         });
       }
       if (esNC) {
@@ -568,6 +571,7 @@ export class VentasCampoComponent implements OnInit {
           AsesorVenta: (r.asesor_venta || '').toString().trim(),
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
           SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
+          EsRefact: !!r.es_refacturacion,
         });
       }
     }
@@ -918,8 +922,10 @@ export class VentasCampoComponent implements OnInit {
 
         const tieneAF = nc.AñoAF > 0 && nc.MesAF > 0;
         if (tieneAF) {
-          // Ruta principal: AF indica a qué mes pertenece la NC → comparar vs mes seleccionado
-          return nc.AñoAF === anioSeleccionado && nc.MesAF === mesSeleccionado;
+          // Ruta principal: la NC resta en su fecha de AFECTACIÓN si cae dentro del rango
+          // (sirve para un rango de varios meses o de algunos días del mes).
+          const fAF = new Date(nc.AñoAF, nc.MesAF - 1, nc.DiaAF > 0 ? nc.DiaAF : 1);
+          return fAF >= fechaInicio && fAF <= fechaFin;
         }
         // Fallback: sin AF → usar FECHAVENTA contra el rango seleccionado
         const fechaNC = nc.FECHAVENTA as Date;
@@ -954,16 +960,16 @@ export class VentasCampoComponent implements OnInit {
     });
     return map;
   }
-  /** Igual que agruparNCTodas() pero CONTANDO operaciones en vez de sumar monto — para
-   *  restar del N° de operaciones mostrado junto al monto neto (una venta anulada por NC
-   *  no debe seguir contando como operación). Si esa venta se REFACTURA (re-vendida), la
-   *  nueva venta ya es su propia fila en filtroVentas y se cuenta sola — no hace falta
-   *  ningún ajuste aparte por refacturación acá. */
-  private agruparNCTodasOps(keyFn: (nc: any) => string, soloAvance = false): Map<string, number> {
+  /** REFACTURACIONES del filtro por clave → se restan del N° de operaciones. El N° de
+   *  operaciones = ventas FACTURADAS del periodo (una venta con NC sigue contando en su
+   *  mes) MENOS las refacturaciones (re-venta al mismo cliente tras la NC: pertenece a la
+   *  venta original). Mismo criterio que el Reporte Global. Las NC ya NO restan del conteo
+   *  (solo del monto neto): restarlas descontaba aquí ventas de meses anteriores. */
+  private agruparRefactOps(keyFn: (v: any) => string, soloAvance = false): Map<string, number> {
     const map = new Map<string, number>();
-    this.filtroNotasCredito.forEach(nc => {
-      if (soloAvance && this.esVentaOrfana(nc)) return;
-      const key = keyFn(nc);
+    (soloAvance ? this.filtroVentasAvance : this.filtroVentas).forEach(v => {
+      if (!v.EsRefact) return;
+      const key = keyFn(v);
       map.set(key, (map.get(key) || 0) + 1);
     });
     return map;
@@ -982,8 +988,9 @@ export class VentasCampoComponent implements OnInit {
     // aparte, sin tocar el mes en que se hizo la venta.
     this.montoRealVentas = this.totalMontoVentas - this.totalNotasCredito;
     // Total Ventas (#): las ventas FACTURADAS del mes, sin restar las NC (restarlas aquí
-    // desfasa el conteo frente a lo facturado; las NC se ven en su propio KPI).
-    this.totalVentas = this.filtroVentas.length;
+    // desfasa el conteo frente a lo facturado; las NC se ven en su propio KPI) y sin las
+    // refacturaciones (no son una operación nueva) — mismo número que el Reporte Global.
+    this.totalVentas = this.filtroVentas.filter(v => !v.EsRefact).length;
     // Ticket: se mantiene sobre las operaciones netas (sin las anuladas por NC/incautación).
     const operacionesNetas = this.filtroVentas.length - this.filtroNotasCredito.length;
     this.ticket = operacionesNetas > 0 ? Math.round(this.montoRealVentas / operacionesNetas) : 0;
@@ -1156,7 +1163,7 @@ export class VentasCampoComponent implements OnInit {
       allSemanas.add(semana);
       if (!mapSemana.has(diaNom)) mapSemana.set(diaNom, new Map());
       const inner = mapSemana.get(diaNom)!;
-      inner.set(semana, (inner.get(semana) || 0) + 1);
+      inner.set(semana, (inner.get(semana) || 0) + (v.EsRefact ? 0 : 1));   // # ventas sin refacturaciones
     });
 
     const semanasOrdenadas = Array.from(allSemanas).sort();
@@ -1258,7 +1265,7 @@ export class VentasCampoComponent implements OnInit {
       const vendedor = v.Vendedor;
       if (!map.has(vendedor)) map.set(vendedor, new Map());
       const inner = map.get(vendedor)!;
-      inner.set(dStr, (inner.get(dStr) || 0) + 1);
+      inner.set(dStr, (inner.get(dStr) || 0) + (v.EsRefact ? 0 : 1));   // # operaciones sin refacturaciones
     });
     this.operacionesPorDiaMesActual = Array.from(map.keys()).map(vend => {
       const row: any = { Asesor: vend };
@@ -1278,7 +1285,7 @@ export class VentasCampoComponent implements OnInit {
     // mapVentas ya viene de filtroVentasAvance, que incluye toda venta del mes (congelada).
     // Solo resta las NC/incautaciones de su propio mes de afectación.
     const mapNCTodas = this.agruparNCTodas(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true);
-    const mapNCOps = this.agruparNCTodasOps(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true);
+    const mapRefactOps = this.agruparRefactOps(nc => this.resolverNombreVendedor(nc.Vendedor, nc.TipoBase, nc.FECHAVENTA), true);
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(nombre => {
@@ -1290,7 +1297,7 @@ export class VentasCampoComponent implements OnInit {
         MontoVentas: Math.round(data.monto),
         MontoNC: Math.round(montoNC),
         MontoNeto: Math.round(montoNeto),
-        NroOps: data.ops - (mapNCOps.get(nombre) || 0),
+        NroOps: data.ops - (mapRefactOps.get(nombre) || 0),
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0
       });
@@ -1371,7 +1378,6 @@ export class VentasCampoComponent implements OnInit {
     // filtroVentas ya incluye toda venta del mes en su semana de VENTA (CV), congelada.
     // Las NC/incautaciones restan aparte en su semana de AFECTACIÓN (AF).
     const ncTodasPorSemanaAF = this.agruparNCTodas(nc => semanaDeNCAF(nc.DiaAF || 0));
-    const ncOpsPorSemanaAF = this.agruparNCTodasOps(nc => semanaDeNCAF(nc.DiaAF || 0));
     this.ventasPorSemana = config.map(s => {
       const ventas = this.filtroVentas.filter(v => {
         const dia = (v.FECHAVENTA as Date).getDate();
@@ -1388,7 +1394,7 @@ export class VentasCampoComponent implements OnInit {
         // semana no cuadraría con el Monto Real global cuando una semana tiene más NC
         // arrastrada que ventas propias.
         MontoNeto: montoVentas - montoNC,
-        NroOps: ops - (ncOpsPorSemanaAF.get(s.label) || 0),
+        NroOps: ventas.filter(v => !v.EsRefact).length,
         TicketPromedio: ops > 0 ? Math.round(montoVentas / ops) : 0
       };
     });
@@ -1402,7 +1408,7 @@ export class VentasCampoComponent implements OnInit {
       mapVentas.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
     const mapNCTodas = this.agruparNCTodas(nc => this.entidadDisplay(nc.Entidad));
-    const mapNCOps = this.agruparNCTodasOps(nc => this.entidadDisplay(nc.Entidad));
+    const mapRefactOps = this.agruparRefactOps(nc => this.entidadDisplay(nc.Entidad));
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(ent => {
       const data = mapVentas.get(ent) || { monto: 0, ops: 0 };
@@ -1410,7 +1416,7 @@ export class VentasCampoComponent implements OnInit {
       const montoNC = Math.round(mapNCTodas.get(ent) || 0);
       const montoNeto = montoVentas - montoNC;
       rows.push({ Entidad: ent, MontoVentas: montoVentas, MontoNC: montoNC,
-        MontoNeto: montoNeto, NroOps: data.ops - (mapNCOps.get(ent) || 0),
+        MontoNeto: montoNeto, NroOps: data.ops - (mapRefactOps.get(ent) || 0),
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0, Participacion: 0 });
     });
     const totalNeto = rows.reduce((sum, r) => sum + r.MontoNeto, 0);
@@ -1438,9 +1444,9 @@ export class VentasCampoComponent implements OnInit {
     // que Ventas por Entidad/Tipo de Crédito (agruparNCTodas). Las NC que NO son de moto
     // caen en una clave aparte y no tocan este cuadro.
     const mapNC = this.agruparNCTodas(nc => this.esProductoMoto(nc.TipoProducto) ? this.entidadDisplay(nc.Entidad) : '');
-    const mapNCOps = this.agruparNCTodasOps(nc => this.esProductoMoto(nc.TipoProducto) ? this.entidadDisplay(nc.Entidad) : '');
+    const mapRefactOps = this.agruparRefactOps(nc => this.esProductoMoto(nc.TipoProducto) ? this.entidadDisplay(nc.Entidad) : '');
     this.motosPorEntidad = Array.from(map, ([Entidad, d]) => ({
-      Entidad, Monto: Math.round(d.monto - (mapNC.get(Entidad) || 0)), NroOps: d.ops - (mapNCOps.get(Entidad) || 0)
+      Entidad, Monto: Math.round(d.monto - (mapNC.get(Entidad) || 0)), NroOps: d.ops - (mapRefactOps.get(Entidad) || 0)
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoEntidad = this.motosPorEntidad.length > 0 ? this.motosPorEntidad[0].Monto : 1;
   }
@@ -1454,9 +1460,9 @@ export class VentasCampoComponent implements OnInit {
       map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
     });
     const mapNC = this.agruparNCTodas(nc => this.esProductoMoto(nc.TipoProducto) ? (nc.TipoProducto || 'SIN TIPO') : '');
-    const mapNCOps = this.agruparNCTodasOps(nc => this.esProductoMoto(nc.TipoProducto) ? (nc.TipoProducto || 'SIN TIPO') : '');
+    const mapRefactOps = this.agruparRefactOps(nc => this.esProductoMoto(nc.TipoProducto) ? (nc.TipoProducto || 'SIN TIPO') : '');
     this.motosPorTipoProducto = Array.from(map, ([TipoProducto, d]) => ({
-      TipoProducto, Monto: Math.round(d.monto - (mapNC.get(TipoProducto) || 0)), NroOps: d.ops - (mapNCOps.get(TipoProducto) || 0)
+      TipoProducto, Monto: Math.round(d.monto - (mapNC.get(TipoProducto) || 0)), NroOps: d.ops - (mapRefactOps.get(TipoProducto) || 0)
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoTipo = this.motosPorTipoProducto.length > 0 ? this.motosPorTipoProducto[0].Monto : 1;
   }
@@ -1477,9 +1483,9 @@ export class VentasCampoComponent implements OnInit {
       ? ((nc.TipoBase || '').toString().trim().toUpperCase() || 'SIN TIPO DE BASE')
       : '';
     const mapNC = this.agruparNCTodas(claveNC);
-    const mapNCOps = this.agruparNCTodasOps(claveNC);
+    const mapRefactOps = this.agruparRefactOps(claveNC);
     this.motosPorTipoBase = Array.from(map, ([TipoBase, d]) => ({
-      TipoBase, Monto: Math.round(d.monto - (mapNC.get(TipoBase) || 0)), NroOps: d.ops - (mapNCOps.get(TipoBase) || 0)
+      TipoBase, Monto: Math.round(d.monto - (mapNC.get(TipoBase) || 0)), NroOps: d.ops - (mapRefactOps.get(TipoBase) || 0)
     })).sort((a, b) => b.Monto - a.Monto);
     this.maxMontoMotoTipoBase = this.motosPorTipoBase.length > 0 ? this.motosPorTipoBase[0].Monto : 1;
   }
@@ -1500,7 +1506,7 @@ export class VentasCampoComponent implements OnInit {
     });
 
     const mapNCTodas = this.agruparNCTodas(tipoKey);
-    const mapNCOps = this.agruparNCTodasOps(tipoKey);
+    const mapRefactOps = this.agruparRefactOps(tipoKey);
 
     const rows: any[] = [];
     new Set<string>([...mapVentas.keys(), ...mapNCTodas.keys()]).forEach(tipo => {
@@ -1512,7 +1518,7 @@ export class VentasCampoComponent implements OnInit {
         MontoVentas: montoVentas,
         MontoNC: montoNC,
         MontoNeto: montoVentas - montoNC,
-        NroOps: data.ops - (mapNCOps.get(tipo) || 0),
+        NroOps: data.ops - (mapRefactOps.get(tipo) || 0),
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0
       });
@@ -1572,7 +1578,7 @@ export class VentasCampoComponent implements OnInit {
 
     const claveTipoBaseNC = (nc: any) => (nc.TipoBase || 'SIN TIPO').toString().trim().toUpperCase();
     const mapNCTodas = this.agruparNCTodas(claveTipoBaseNC);
-    const mapNCOps = this.agruparNCTodasOps(claveTipoBaseNC);
+    const mapRefactOps = this.agruparRefactOps(claveTipoBaseNC);
 
     // Metas del MES filtrado (según fechaFin del filtro).
     const fechaFin = new Date(this.formVentas.value.fechaFin);
@@ -1596,7 +1602,7 @@ export class VentasCampoComponent implements OnInit {
         TipoBase: tipo,
         MontoVentas: montoVentas,
         MontoNeto: montoNeto,
-        NroOps: data.ops - (mapNCOps.get(tipo) || 0),
+        NroOps: data.ops - (mapRefactOps.get(tipo) || 0),
         TicketPromedio: data.ops > 0 ? Math.round(data.monto / data.ops) : 0,
         Participacion: 0,
         Meta: meta,
@@ -1737,7 +1743,8 @@ export class VentasCampoComponent implements OnInit {
         if (!mapVendedor.has(nombre)) mapVendedor.set(nombre, new Map());
         const inner = mapVendedor.get(nombre)!;
         const cur   = inner.get(tipo) || { monto: 0, ops: 0 };
-        inner.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+        // # motos sin refacturaciones (misma moto re-facturada tras una NC: no es otra moto).
+        inner.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.EsRefact ? 0 : 1) });
       });
 
     this.tiposProductoGlobalGo = Array.from(tiposSet).sort();
