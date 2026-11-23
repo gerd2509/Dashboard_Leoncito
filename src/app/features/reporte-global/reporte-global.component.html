@@ -534,7 +534,7 @@
     </div>
     <div class="rg-detalle-body">
       <app-loading-overlay *ngIf="detalleCargando" [inline]="true" [visible]="detalleCargando" mensaje="Cargando detalle…" icon="receipt_long"></app-loading-overlay>
-      <table class="am-table rg-detalle-tabla" *ngIf="!detalleCargando && detalleCompleto">
+      <table class="am-table rg-detalle-tabla rg-det-full" *ngIf="!detalleCargando && detalleCompleto">
         <thead><tr><th>Código CV</th><th>Fecha</th><th class="ta-l">Cliente</th><th>DNI</th><th class="ta-l">Producto</th><th class="ta-l">Entidad</th><th>Monto</th><th>Nota de crédito</th><th>NC en mes posterior</th></tr></thead>
         <tbody>
           <tr *ngFor="let f of detalleFilas" [class.rg-fila-refact]="f.es_refacturacion">
@@ -545,7 +545,7 @@
               <span class="rg-tag-refact" *ngIf="f.es_refacturacion" title="Re-venta al mismo cliente tras una NC: no cuenta como operación nueva">REFACTURACIÓN</span>
             </td>
             <td>{{ f.dni || '—' }}</td>
-            <td class="ta-l rg-detalle-producto" [title]="f.producto">{{ f.producto || '—' }}</td>
+            <td class="ta-l rg-det-prod" [title]="f.producto">{{ f.producto || '—' }}</td>
             <td class="ta-l">{{ f.entidad || '—' }}</td>
             <td class="tot">{{ soles(f.monto) }}</td>
             <td>
