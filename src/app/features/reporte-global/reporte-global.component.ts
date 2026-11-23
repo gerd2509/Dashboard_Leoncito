@@ -466,16 +466,16 @@ export class ReporteGlobalComponent implements OnInit {
   // vacía (sin aliado) se trata como Propio — igual criterio que Aliados por Entidad
   // (que ya la excluye de "aliado") y que /reporte-global-detalle. Compartido por la
   // tabla del mes individual y por el comparativo de varios periodos.
-  /** # operaciones = ventas FACTURADAS del periodo (ops_bruto), sin restar la cantidad de
-   *  NC/incautaciones: restarlas desfasaba el conteo frente a lo facturado y dejaba celdas
-   *  negativas (NC de una venta de un mes anterior). El MONTO sigue siendo neto (neto =
-   *  facturado − NC por su mes de afectación), como indican los rótulos "monto neto". */
-  private opsFacturadas<T extends { ops: number; ops_bruto: number }>(rows: T[]): T[] {
-    return rows.map(r => ({ ...r, ops: r.ops_bruto || 0 }));
+  /** # operaciones = ventas FACTURADAS del periodo, sin restar las NC (la venta sigue
+   *  contando en su mes aunque luego tenga NC) y SIN las refacturaciones (re-venta al mismo
+   *  cliente tras la NC: pertenece a la venta original) → `ops_conteo` del backend. El MONTO
+   *  sigue siendo neto (facturado − NC por su mes de afectación), como dicen los rótulos. */
+  private opsFacturadas<T extends { ops: number; ops_bruto: number; ops_conteo?: number }>(rows: T[]): T[] {
+    return rows.map(r => ({ ...r, ops: r.ops_conteo ?? r.ops_bruto ?? 0 }));
   }
-  /** Igual para las motos: # motos facturadas del periodo (motos_bruto). */
-  private motosFacturadas<T extends { motos: number; motos_bruto: number }>(rows: T[]): T[] {
-    return rows.map(r => ({ ...r, motos: r.motos_bruto || 0 })).filter(r => r.motos > 0);
+  /** Igual para las motos (`motos_conteo`). */
+  private motosFacturadas<T extends { motos: number; motos_bruto: number; motos_conteo?: number }>(rows: T[]): T[] {
+    return rows.map(r => ({ ...r, motos: r.motos_conteo ?? r.motos_bruto ?? 0 })).filter(r => r.motos > 0);
   }
 
   private bucketMoto(e: string, conCuotas: boolean): string {
