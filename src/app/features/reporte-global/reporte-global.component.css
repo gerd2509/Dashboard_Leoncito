@@ -252,15 +252,17 @@
 .rg-detalle-tabla.rg-det-full th, .rg-detalle-tabla.rg-det-full td {
   padding: 7px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
 }
-.rg-detalle-tabla.rg-det-full th:nth-child(1), .rg-detalle-tabla.rg-det-full td:nth-child(1) { width: 8%; }
-.rg-detalle-tabla.rg-det-full th:nth-child(2), .rg-detalle-tabla.rg-det-full td:nth-child(2) { width: 8%; }
-.rg-detalle-tabla.rg-det-full th:nth-child(3), .rg-detalle-tabla.rg-det-full td:nth-child(3) { width: 17%; }
-.rg-detalle-tabla.rg-det-full th:nth-child(4), .rg-detalle-tabla.rg-det-full td:nth-child(4) { width: 8%; }
-.rg-detalle-tabla.rg-det-full th:nth-child(5), .rg-detalle-tabla.rg-det-full td:nth-child(5) { width: 25%; }
-.rg-detalle-tabla.rg-det-full th:nth-child(6), .rg-detalle-tabla.rg-det-full td:nth-child(6) { width: 9%; }
-.rg-detalle-tabla.rg-det-full th:nth-child(7), .rg-detalle-tabla.rg-det-full td:nth-child(7) { width: 8%; text-align: right; }
-.rg-detalle-tabla.rg-det-full th:nth-child(8), .rg-detalle-tabla.rg-det-full td:nth-child(8) { width: 10%; text-align: center; }
-.rg-detalle-tabla.rg-det-full th:nth-child(9), .rg-detalle-tabla.rg-det-full td:nth-child(9) { width: 7%; text-align: center; white-space: normal; }
+/* 10 columnas: CV · Fecha · Sede · Cliente · DNI · Producto · Entidad · Monto · NC · NC posterior */
+.rg-detalle-tabla.rg-det-full th:nth-child(1), .rg-detalle-tabla.rg-det-full td:nth-child(1) { width: 7%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(2), .rg-detalle-tabla.rg-det-full td:nth-child(2) { width: 7%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(3), .rg-detalle-tabla.rg-det-full td:nth-child(3) { width: 10%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(4), .rg-detalle-tabla.rg-det-full td:nth-child(4) { width: 15%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(5), .rg-detalle-tabla.rg-det-full td:nth-child(5) { width: 7%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(6), .rg-detalle-tabla.rg-det-full td:nth-child(6) { width: 22%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(7), .rg-detalle-tabla.rg-det-full td:nth-child(7) { width: 8%; }
+.rg-detalle-tabla.rg-det-full th:nth-child(8), .rg-detalle-tabla.rg-det-full td:nth-child(8) { width: 8%; text-align: right; }
+.rg-detalle-tabla.rg-det-full th:nth-child(9), .rg-detalle-tabla.rg-det-full td:nth-child(9) { width: 9%; text-align: center; }
+.rg-detalle-tabla.rg-det-full th:nth-child(10), .rg-detalle-tabla.rg-det-full td:nth-child(10) { width: 7%; text-align: center; white-space: normal; }
 .rg-det-prod { text-transform: capitalize; }
 
 /* Botones Excel (cabeceras del comparativo y popup de detalle) */

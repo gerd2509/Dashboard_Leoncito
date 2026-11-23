@@ -111,6 +111,8 @@ export class ReporteGlobalComponent implements OnInit {
   // Motos por tipo (Moto Lineal / Mototaxi / Moto Carguera) × periodo, compañía (# operaciones).
   // La carguera viene reclasificada del backend (producto "TRIMOTO DE CARGA").
   comparativoTipo: Pivot | null = null;
+  // Motos por sede × periodo (# motos, mismo conteo que marca/tipo: sin refacturaciones).
+  comparativoSede: Pivot | null = null;
 
   // ── Gráfico de evolución del Comparativo (crecimiento/decrecimiento) — reutiliza
   // los mismos indicadores de comparativoKpis, así que no pide datos aparte. Mismo
@@ -206,9 +208,12 @@ export class ReporteGlobalComponent implements OnInit {
   private comparativoPeriodoInfo = new Map<string, { anio: number; mes: number; dia?: number; sedesRaw: string[] }>();
 
   /** Clic en una celda de Motos por Marca/Tipo × Periodo → ventas de ese periodo (compañía). */
-  async abrirDetalleComparativo(fila: FilaPivot, col: ColPivot, dimension: 'marca' | 'tipo'): Promise<void> {
+  async abrirDetalleComparativo(fila: FilaPivot, col: ColPivot, dimension: 'marca' | 'tipo' | 'sede'): Promise<void> {
     const info = this.comparativoPeriodoInfo.get(col.key);
     if (!info || !info.sedesRaw.length) return;
+    const sedesRaw = dimension === 'sede' ? info.sedesRaw.filter(s => this.sedeInfo(s).key === fila.sedeKey) : info.sedesRaw;
+    if (!sedesRaw.length) return;
+    const filtro = dimension === 'sede' ? { soloMoto: true } : { [dimension]: fila.sedeKey };
     this.detalleTitulo = `${fila.sede} — ${col.label}`;
     this.detalleColor = '#EF6C00';
     this.detalleCompleto = true;
@@ -217,7 +222,7 @@ export class ReporteGlobalComponent implements OnInit {
     this.detalleFilas = [];
     try {
       const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(
-        info.anio, info.mes, info.dia, info.sedesRaw, { [dimension]: fila.sedeKey }));
+        info.anio, info.mes, info.dia, sedesRaw, filtro));
       this.detalleFilas = filas || [];
     } catch (e) {
       console.error('Error detalle comparativo:', e);
@@ -229,7 +234,7 @@ export class ReporteGlobalComponent implements OnInit {
   private readonly COLS_DET_FULL = ['MES', 'CÓDIGO CV', 'FECHA', 'SEDE', 'ASESOR', 'CLIENTE', 'DNI', 'PRODUCTO', 'MARCA', 'TIPO', 'ENTIDAD',
     'MONTO (S/)', 'ESTADO', 'NOTA DE CRÉDITO', 'FECHA NC', 'NC EN MES POSTERIOR', 'REFACTURACIÓN', 'CUENTA'];
   private filaDetFull(mesLabel: string, f: any): any[] {
-    return [mesLabel, f.codigo_cv, this.fechaCorta(f), f.sede || '', f.vendedor || '', f.cliente || '', f.dni || '', f.producto || '',
+    return [mesLabel, f.codigo_cv, this.fechaCorta(f), this.nombreSedeDet(f.sede), f.vendedor || '', f.cliente || '', f.dni || '', f.producto || '',
       this.titulo(f.marca || ''), this.titulo(f.tipo || ''), f.entidad || '', f.monto || 0, f.estado_venta || '',
       f.tiene_nc ? 'SÍ' : 'NO', this.fechaAf(f), f.tiene_nc ? (f.nc_mes_posterior ? 'SÍ' : 'MISMO MES') : '',
       f.es_refacturacion ? 'SÍ' : 'NO', f.es_refacturacion ? 'NO' : 'SÍ'];
@@ -302,6 +307,9 @@ export class ReporteGlobalComponent implements OnInit {
     return `${M[(f.mes_cv || 1) - 1]} ${f.anio_cv}`;
   }
 
+  /** Nombre legible de la sede para el detalle (Lambayeque, Realzza Piura, …). */
+  nombreSedeDet(raw?: string): string { return raw ? this.sedeInfo(raw).nombre : '—'; }
+
   fechaAf(f: { dia_af?: number; mes_af?: number; anio_af?: number }): string {
     if (!f.anio_af || !f.mes_af) return '';
     return `${String(f.dia_af || 0).padStart(2, '0')}/${String(f.mes_af).padStart(2, '0')}/${f.anio_af}`;
@@ -342,8 +350,8 @@ export class ReporteGlobalComponent implements OnInit {
 
   // ── Popup "Ver en grande" de las 3 tablas del Comparativo (KPIs / Motos por Sede ×
   // Periodo / Motos por Marca × Periodo) — mismas tablas, agrandadas en un modal. ──
-  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' | 'tipo' | 'chart' = '';
-  abrirAmpliado(t: 'kpis' | 'motos' | 'marca' | 'tipo' | 'chart'): void { this.popupAmpliado = t; }
+  popupAmpliado: '' | 'kpis' | 'motos' | 'marca' | 'tipo' | 'sede' | 'chart' = '';
+  abrirAmpliado(t: 'kpis' | 'motos' | 'marca' | 'tipo' | 'sede' | 'chart'): void { this.popupAmpliado = t; }
   cerrarAmpliado(): void { this.popupAmpliado = ''; }
 
   constructor(private fb: UntypedFormBuilder) {
@@ -413,6 +421,7 @@ export class ReporteGlobalComponent implements OnInit {
     this.tiposMotoComparativo = [];
     this.comparativoMarca = null;
     this.comparativoTipo = null;
+    this.comparativoSede = null;
     this.comparativoCols = [];
     this.puntosComp = [];
     this.seriesChartComp = [];
@@ -458,6 +467,7 @@ export class ReporteGlobalComponent implements OnInit {
     const tiposVistos = new Set<string>();
     const marcaEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
     const tipoEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
+    const sedeEnt: { sedeKey: string; sede: string; col: string; value: number }[] = [];
 
     for (const r of resultados) {
       const k = r.periodo.key;
@@ -524,6 +534,8 @@ export class ReporteGlobalComponent implements OnInit {
       const porTipo = new Map<string, number>();
       motosSede.forEach((m: any) => { const t = (m.tipo || 'OTRO').toString().toUpperCase(); porTipo.set(t, (porTipo.get(t) || 0) + (m.motos || 0)); });
       porTipo.forEach((v, tipo) => tipoEnt.push({ sedeKey: tipo, sede: this.titulo(tipo), col: k, value: v }));
+      // Motos por sede — misma fuente y criterio.
+      motosSede.forEach((m: any) => { const i = this.sedeInfo(m.sede); sedeEnt.push({ sedeKey: i.key, sede: i.nombre, col: k, value: m.motos || 0 }); });
     }
 
     this.comparativoMotosDetalle = [...bySede.values()].sort((a, b) => b.totMonto - a.totMonto);
@@ -540,6 +552,7 @@ export class ReporteGlobalComponent implements OnInit {
     const pivTipo = this.buildPivot(tipoEnt, cols);
     pivTipo.filas.sort((a, b) => (ordenTipoMoto.indexOf(a.sedeKey) + 1 || 99) - (ordenTipoMoto.indexOf(b.sedeKey) + 1 || 99) || b.total - a.total);
     this.comparativoTipo = pivTipo;
+    this.comparativoSede = this.buildPivot(sedeEnt, cols);
     this.construirChartComparativo();
   }
 
@@ -956,6 +969,8 @@ export class ReporteGlobalComponent implements OnInit {
     if (this.comparativoMarca) this.hojaPivot(wb, 'Motos x Marca x Periodo', this.comparativoMarca, false, 'Marca');
     // Hoja 4: Motos por Tipo × Periodo (Moto Lineal / Mototaxi / Moto Carguera).
     if (this.comparativoTipo) this.hojaPivot(wb, 'Motos x Tipo x Periodo', this.comparativoTipo, false, 'Tipo');
+    // Hoja 5: Motos por Sede × Periodo (# motos).
+    if (this.comparativoSede) this.hojaPivot(wb, 'Motos x Sede x Periodo', this.comparativoSede, false, 'Sede');
 
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

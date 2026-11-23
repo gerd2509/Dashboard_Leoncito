@@ -126,6 +126,21 @@
     <div class="am-scroll">
       <ng-container *ngTemplateOutlet="tablaMotosTipo"></ng-container>
     </div>
+
+    <!-- ── Motos por sede × periodo (# motos) ── -->
+    <div class="am-cardhead moto rg-comp-sub">
+      <mat-icon>store</mat-icon> Motos por Sede × Periodo <em>(# motos · clic en un número para ver el detalle)</em>
+      <button class="rg-ampliar rg-btn-excel" type="button" (click)="exportarDetalleComparativo()" [disabled]="exportandoDetalle"
+              title="Excel con el detalle de las motos de cada mes (una hoja por mes + todos)">
+        <mat-icon>{{ exportandoDetalle ? 'hourglass_empty' : 'file_download' }}</mat-icon><span>Detalle por mes</span>
+      </button>
+      <button class="rg-ampliar" type="button" (click)="abrirAmpliado('sede')" title="Ver en grande">
+        <mat-icon>open_in_full</mat-icon>
+      </button>
+    </div>
+    <div class="am-scroll">
+      <ng-container *ngTemplateOutlet="tablaMotosSedeCant"></ng-container>
+    </div>
   </div>
   </ng-container>
 </div>
@@ -214,6 +229,26 @@
   </table>
 </ng-template>
 
+<ng-template #tablaMotosSedeCant>
+  <table class="am-table" *ngIf="comparativoSede">
+    <thead>
+      <tr><th class="ta-l">Sede</th><th *ngFor="let c of comparativoCols">{{ c.label }}</th><th>Total</th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let f of comparativoSede.filas">
+        <td class="ta-l"><span class="dot" [style.background]="f.color"></span>{{ f.sede }}</td>
+        <td *ngFor="let c of comparativoCols" [class.rg-celda-link]="f.valores[c.key]"
+            (click)="f.valores[c.key] && abrirDetalleComparativo(f, c, 'sede')" [title]="f.valores[c.key] ? 'Ver el detalle de estas ventas' : ''">{{ f.valores[c.key] | number }}</td>
+        <td class="tot">{{ f.total | number }}</td>
+      </tr>
+      <tr *ngIf="!comparativoSede.filas.length" class="vacio"><td [attr.colspan]="comparativoCols.length + 2">Sin datos para el periodo</td></tr>
+    </tbody>
+    <tfoot *ngIf="comparativoSede.filas.length">
+      <tr><td class="ta-l">TOTAL</td><td *ngFor="let c of comparativoCols">{{ comparativoSede.totales[c.key] | number }}</td><td class="tot">{{ comparativoSede.totalGeneral | number }}</td></tr>
+    </tfoot>
+  </table>
+</ng-template>
+
 <ng-template #tablaMotosTipo>
   <table class="am-table" *ngIf="comparativoTipo">
     <thead>
@@ -274,11 +309,11 @@
   <div class="rg-detalle-modal rg-amplio-modal" (click)="$event.stopPropagation()">
     <div class="rg-detalle-head" [style.background]="'#1A5FAD'">
       <div class="rg-detalle-head-ico">
-        <mat-icon>{{ popupAmpliado === 'kpis' ? 'insights' : (popupAmpliado === 'motos' ? 'two_wheeler' : (popupAmpliado === 'marca' ? 'sell' : (popupAmpliado === 'tipo' ? 'two_wheeler' : 'show_chart'))) }}</mat-icon>
+        <mat-icon>{{ popupAmpliado === 'kpis' ? 'insights' : (popupAmpliado === 'motos' ? 'two_wheeler' : (popupAmpliado === 'marca' ? 'sell' : (popupAmpliado === 'tipo' ? 'two_wheeler' : (popupAmpliado === 'sede' ? 'store' : 'show_chart')))) }}</mat-icon>
       </div>
       <div class="rg-detalle-head-txt">
         <h3>
-          {{ popupAmpliado === 'kpis' ? 'Indicadores (Compañía)' : (popupAmpliado === 'motos' ? 'Motos por Sede × Periodo' : (popupAmpliado === 'marca' ? 'Motos por Marca × Periodo' : (popupAmpliado === 'tipo' ? 'Motos por Tipo × Periodo' : 'Evolución'))) }}
+          {{ popupAmpliado === 'kpis' ? 'Indicadores (Compañía)' : (popupAmpliado === 'motos' ? 'Motos por Sede × Periodo' : (popupAmpliado === 'marca' ? 'Motos por Marca × Periodo' : (popupAmpliado === 'tipo' ? 'Motos por Tipo × Periodo' : (popupAmpliado === 'sede' ? 'Motos por Sede × Periodo (# motos)' : 'Evolución')))) }}
         </h3>
       </div>
       <div class="rg-chart-tools" *ngIf="popupAmpliado === 'chart'">
@@ -304,7 +339,7 @@
         <ng-container *ngTemplateOutlet="graficoComp; context: { ampliado: true }"></ng-container>
       </ng-container>
       <ng-template #tablasAmpliadas>
-        <ng-container *ngTemplateOutlet="popupAmpliado === 'kpis' ? tablaKpis : (popupAmpliado === 'motos' ? tablaMotosSedePeriodo : (popupAmpliado === 'tipo' ? tablaMotosTipo : tablaMotosMarca))"></ng-container>
+        <ng-container *ngTemplateOutlet="popupAmpliado === 'kpis' ? tablaKpis : (popupAmpliado === 'motos' ? tablaMotosSedePeriodo : (popupAmpliado === 'tipo' ? tablaMotosTipo : (popupAmpliado === 'sede' ? tablaMotosSedeCant : tablaMotosMarca)))"></ng-container>
       </ng-template>
     </div>
   </div>
@@ -547,11 +582,12 @@
     <div class="rg-detalle-body">
       <app-loading-overlay *ngIf="detalleCargando" [inline]="true" [visible]="detalleCargando" mensaje="Cargando detalle…" icon="receipt_long"></app-loading-overlay>
       <table class="am-table rg-detalle-tabla rg-det-full" *ngIf="!detalleCargando && detalleCompleto">
-        <thead><tr><th>Código CV</th><th>Fecha</th><th class="ta-l">Cliente</th><th>DNI</th><th class="ta-l">Producto</th><th class="ta-l">Entidad</th><th>Monto</th><th>Nota de crédito</th><th>NC en mes posterior</th></tr></thead>
+        <thead><tr><th>Código CV</th><th>Fecha</th><th class="ta-l">Sede</th><th class="ta-l">Cliente</th><th>DNI</th><th class="ta-l">Producto</th><th class="ta-l">Entidad</th><th>Monto</th><th>Nota de crédito</th><th>NC en mes posterior</th></tr></thead>
         <tbody>
           <tr *ngFor="let f of detalleFilas" [class.rg-fila-refact]="f.es_refacturacion">
             <td>{{ f.codigo_cv }}</td>
             <td>{{ fechaCorta(f) }}</td>
+            <td class="ta-l" [title]="f.sede || ''">{{ nombreSedeDet(f.sede) }}</td>
             <td class="ta-l" [title]="f.cliente">
               {{ nombreRank(f.cliente) || '—' }}
               <span class="rg-tag-refact" *ngIf="f.es_refacturacion" title="Re-venta al mismo cliente tras una NC: no cuenta como operación nueva">REFACTURACIÓN</span>
@@ -570,7 +606,7 @@
               <span class="rg-tag-no" *ngIf="!f.tiene_nc">—</span>
             </td>
           </tr>
-          <tr *ngIf="!detalleFilas.length" class="vacio"><td colspan="9">Sin ventas para esta celda</td></tr>
+          <tr *ngIf="!detalleFilas.length" class="vacio"><td colspan="10">Sin ventas para esta celda</td></tr>
         </tbody>
       </table>
       <table class="am-table rg-detalle-tabla" *ngIf="!detalleCargando && !detalleCompleto">
