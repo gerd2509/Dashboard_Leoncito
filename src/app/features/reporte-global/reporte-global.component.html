@@ -17,7 +17,7 @@
 <div class="am-card rg-comp">
   <div class="am-cardhead fte rg-comp-head" (click)="toggleComparativoAbierto()">
     <mat-icon>calendar_month</mat-icon> Comparativo por Rango de Días
-    <em>día 1 al {{ diaCorte }} de cada mes elegido</em>
+    <em>meses anteriores completos · mes actual del 1 al {{ diaCorte }}</em>
     <mat-icon class="rg-comp-chevron">{{ comparativoAbierto ? 'expand_less' : 'expand_more' }}</mat-icon>
   </div>
   <ng-container *ngIf="comparativoAbierto">

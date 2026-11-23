@@ -260,8 +260,8 @@ export class ReporteGlobalComponent implements OnInit {
 
   private ultimoDiaDe(anio: number, mes: number): number { return new Date(anio, mes, 0).getDate(); }
 
-  /** Trae reporte-global + reporte-global-motos + margen-linea-sede de cada periodo elegido,
-   *  todos con el mismo corte "día 1 al día {diaCorte}" (clamp si el mes es más corto), y arma
+  /** Trae reporte-global + reporte-global-motos + margen-linea-sede de cada periodo elegido:
+   *  los meses anteriores COMPLETOS y el mes en curso hasta hoy (día {diaCorte}), y arma
    *  el comparativo de KPIs de compañía + motos GLOBAL GO por sede (Chiclayo/Piura/Lima incl.). */
   async compararPeriodos(): Promise<void> {
     const elegidos = this.periodosDisponibles.filter(p => this.periodosSel.has(p.key));
@@ -269,7 +269,10 @@ export class ReporteGlobalComponent implements OnInit {
     this.cargandoComparativo = true;
     try {
       const resultados = await Promise.all(elegidos.map(async p => {
-        const dia = Math.min(this.diaCorte, this.ultimoDiaDe(p.anio, p.mes));
+        // Mes en curso: hasta hoy. Meses anteriores: el mes completo (sin tope de día).
+        const hoy = new Date();
+        const esMesActual = p.anio === hoy.getFullYear() && p.mes === hoy.getMonth() + 1;
+        const dia = esMesActual ? Math.min(this.diaCorte, this.ultimoDiaDe(p.anio, p.mes)) : undefined;
         const [rows, motos, margen] = await Promise.all([
           lastValueFrom(this.ventas.obtenerReporteGlobal(p.anio, p.mes, dia)),
           lastValueFrom(this.ventas.obtenerReporteGlobalMotos(p.anio, p.mes, dia)),
