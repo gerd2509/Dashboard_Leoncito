@@ -237,3 +237,13 @@
   background: #e4ebf6; color: #1E3A5F; font-size: 11px; font-weight: 800;
 }
 .rg-rank-pos.top { background: #F6C445; color: #6a4b00; }
+
+/* Detalle del comparativo (Motos por Marca/Tipo × Periodo) */
+.rg-celda-link { cursor: pointer; color: #1A5FAD; font-weight: 700; text-decoration: underline dotted; }
+.rg-celda-link:hover { background: #EEF3FB; }
+.rg-fila-refact td { background: #FBF6EC; color: #7A6A4E; }
+.rg-tag-refact { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; font-size: 10px; font-weight: 700; background: #F3E1BC; color: #7A4B00; }
+.rg-tag-nc { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #FBE2E1; color: #9C1C1C; white-space: nowrap; }
+.rg-tag-post { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #FDE6D8; color: #9A3C00; }
+.rg-tag-no { color: #8A96A5; font-size: 11.5px; }
+

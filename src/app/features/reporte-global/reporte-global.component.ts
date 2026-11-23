@@ -191,7 +191,43 @@ export class ReporteGlobalComponent implements OnInit {
   detalleCargando = false;
   detalleTitulo = '';
   detalleColor = '#1A5FAD';
-  detalleFilas: { vendedor: string; cliente: string; producto: string; entidad: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number }[] = [];
+  detalleFilas: {
+    vendedor: string; cliente: string; producto: string; entidad: string; monto: number; dia_cv: number; mes_cv: number; anio_cv: number;
+    codigo_cv?: number; dni?: string; estado_venta?: string; tiene_nc?: boolean; dia_af?: number; mes_af?: number; anio_af?: number;
+    nc_mes_posterior?: boolean; es_refacturacion?: boolean;
+  }[] = [];
+  // true = popup del comparativo (Motos por Marca/Tipo × Periodo): columnas extendidas
+  // (código CV, DNI, NC y si la NC cayó en un mes posterior, refacturación).
+  detalleCompleto = false;
+  get detalleCuentan(): number { return this.detalleFilas.filter(f => !f.es_refacturacion).length; }
+  get detalleRefact(): number { return this.detalleFilas.filter(f => f.es_refacturacion).length; }
+  // Por periodo del comparativo: año/mes/corte de día y textos de sede (tal cual en la BD)
+  // que entraron al cálculo — para pedir el detalle de una celda con el mismo universo.
+  private comparativoPeriodoInfo = new Map<string, { anio: number; mes: number; dia?: number; sedesRaw: string[] }>();
+
+  /** Clic en una celda de Motos por Marca/Tipo × Periodo → ventas de ese periodo (compañía). */
+  async abrirDetalleComparativo(fila: FilaPivot, col: ColPivot, dimension: 'marca' | 'tipo'): Promise<void> {
+    const info = this.comparativoPeriodoInfo.get(col.key);
+    if (!info || !info.sedesRaw.length) return;
+    this.detalleTitulo = `${fila.sede} — ${col.label}`;
+    this.detalleColor = '#EF6C00';
+    this.detalleCompleto = true;
+    this.detalleAbierto = true;
+    this.detalleCargando = true;
+    this.detalleFilas = [];
+    try {
+      const filas = await lastValueFrom(this.ventas.obtenerReporteGlobalDetalle(
+        info.anio, info.mes, info.dia, info.sedesRaw, { [dimension]: fila.sedeKey }));
+      this.detalleFilas = filas || [];
+    } catch (e) {
+      console.error('Error detalle comparativo:', e);
+    }
+    this.detalleCargando = false;
+  }
+  fechaAf(f: { dia_af?: number; mes_af?: number; anio_af?: number }): string {
+    if (!f.anio_af || !f.mes_af) return '';
+    return `${String(f.dia_af || 0).padStart(2, '0')}/${String(f.mes_af).padStart(2, '0')}/${f.anio_af}`;
+  }
 
   get detalleTotal(): number { return this.detalleFilas.reduce((s, f) => s + (f.monto || 0), 0); }
 
@@ -205,6 +241,7 @@ export class ReporteGlobalComponent implements OnInit {
     if (!sedesRaw.length) return;
     this.detalleTitulo = `${fila.sede} — ${col.label}`;
     this.detalleColor = fila.color;
+    this.detalleCompleto = false;
     this.detalleAbierto = true;
     this.detalleCargando = true;
     this.detalleFilas = [];
@@ -278,7 +315,7 @@ export class ReporteGlobalComponent implements OnInit {
           lastValueFrom(this.ventas.obtenerReporteGlobalMotos(p.anio, p.mes, dia)),
           lastValueFrom(this.ventas.obtenerMargenLineaSede(p.anio, p.mes, dia)),
         ]);
-        return { periodo: p, rows: this.opsFacturadas(rows || []), motos: this.motosFacturadas(motos || []), margen: margen || [] };
+        return { periodo: p, dia, rows: this.opsFacturadas(rows || []), motos: this.motosFacturadas(motos || []), margen: margen || [] };
       }));
       // Orden cronológico (el más antiguo primero) para que el comparativo se lea como evolución.
       resultados.sort((a, b) => (a.periodo.anio - b.periodo.anio) || (a.periodo.mes - b.periodo.mes));
@@ -314,7 +351,8 @@ export class ReporteGlobalComponent implements OnInit {
 
   private celdaMotoVacia(): MotoTipoCelda { return { ops: 0, monto: 0 }; }
 
-  private construirComparativo(resultados: { periodo: { key: string; label: string }; rows: any[]; motos: any[]; margen: any[] }[]): void {
+  private construirComparativo(resultados: { periodo: { key: string; label: string; anio: number; mes: number }; dia?: number; rows: any[]; motos: any[]; margen: any[] }[]): void {
+    this.comparativoPeriodoInfo.clear();
     const norm = (e: string | null) => (e || '').toString().trim().toUpperCase();
     const cols: ColPivot[] = resultados.map(r => ({ key: r.periodo.key, label: r.periodo.label }));
     this.comparativoCols = cols;
@@ -397,6 +435,10 @@ export class ReporteGlobalComponent implements OnInit {
 
       // Motos por marca (Wanxin/Ssenda/Otras) — compañía completa, en # operaciones (neto).
       const motosSede = r.motos.filter((m: any) => this.sedeInfo(m.sede).key !== 'otras');
+      this.comparativoPeriodoInfo.set(k, {
+        anio: r.periodo.anio, mes: r.periodo.mes, dia: r.dia,
+        sedesRaw: [...new Set<string>(r.motos.map((m: any) => m.sede).filter((x: string) => this.sedeInfo(x).key !== 'otras'))],
+      });
       const porMarca = new Map<string, number>();
       motosSede.forEach((m: any) => porMarca.set(m.marca, (porMarca.get(m.marca) || 0) + (m.motos || 0)));
       porMarca.forEach((v, marca) => marcaEnt.push({ sedeKey: marca, sede: this.titulo(marca), col: k, value: v }));
