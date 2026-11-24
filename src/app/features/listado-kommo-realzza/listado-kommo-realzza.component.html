@@ -183,6 +183,8 @@
     <div class="lk-resumen" *ngIf="embudoKommo as emb">
       <h3><mat-icon>filter_alt</mat-icon> Embudo KOMMO (LEADS) — {{ meses[form.value.mes - 1].t }} {{ form.value.anio }}</h3>
       <p class="lk-resumen-hint">Mismo embudo que "Embudos de Gestión": asignados → contactados → gestionados → interesados → ventas. El color se oscurece a medida que el embudo se angosta.</p>
+      <p class="lk-resumen-hint" *ngIf="embudoSinLeadsCuenta"><mat-icon style="font-size:14px;width:14px;height:14px;vertical-align:middle;">info</mat-icon>
+        Esta tienda aún no tiene leads en su cuenta de Kommo: el embudo empieza a contar desde que ingrese el primer lead.</p>
       <div style="display:flex; flex-direction:column; gap:9px; max-width:640px;">
         <div *ngFor="let e of emb.etapas; let i = index" style="display:flex; align-items:center; gap:12px;">
           <span style="width:120px; flex:none; font-size:12px; font-weight:600; color:#52514E;">{{ e.nombre }}</span>

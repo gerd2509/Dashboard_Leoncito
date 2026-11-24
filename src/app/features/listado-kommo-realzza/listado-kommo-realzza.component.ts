@@ -174,6 +174,8 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
 
   // ═══════════════════ Embudo KOMMO (LEADS) — mismo formato que Embudos de Gestión ═══════════════════
   cargandoEmbudo = false;
+  /** Piura/Lima sin leads aún en su cuenta Kommo propia (embudo en 0, se muestra aviso). */
+  embudoSinLeadsCuenta = false;
   embudoKommo: EmbudoKommo | null = null;
 
   /** Arma el mismo embudo KOMMO (LEADS) que "Embudos de Gestión", para esta tienda/mes:
@@ -188,18 +190,38 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     if (!anio || !mes) return;
     this.cargandoEmbudo = true;
     try {
-      const [dataVentas, dataKommo] = await Promise.all([
+      const [dataVentas, dataKommo, inicio] = await Promise.all([
         lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio)),
         lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes, leadAnio: anio, canal: 'REALZZA', sede: this.tienda })),
+        this.inicioCuenta(this.tienda),
       ]);
-      const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === this.tienda);
-      this.embudoKommo = this.armarEmbudoKommo(this.filas, mes, anio, ventasTienda, dataKommo || []);
+      const { ventas, kommo, sinLeads } = this.aplicarInicioCuenta(this.tienda, inicio, dataVentas, dataKommo);
+      this.embudoKommo = this.armarEmbudoKommo(this.filas, mes, anio, ventas, kommo);
+      this.embudoSinLeadsCuenta = sinLeads;
     } catch (e) {
       console.error('Error al cargar el embudo KOMMO:', e);
       this.embudoKommo = null;
     } finally {
       this.cargandoEmbudo = false;
     }
+  }
+
+  private inicioCuenta(tienda: TiendaRealzza): Promise<{ aplica: boolean; fecha: string | null }> {
+    return lastValueFrom(this.ventasSrv.obtenerInicioCuentaKommo(tienda)).catch(() => ({ aplica: false, fecha: null }));
+  }
+
+  /** Ventas de la tienda + gestiones Kommo, recortadas al inicio de la cuenta Kommo propia
+   *  de Piura/Lima (fecha de su PRIMER lead): antes de eso no hay leads suyos, así que
+   *  gestiones y ventas anteriores no entran al embudo. Sin leads todavía → todo en 0.
+   *  Chiclayo (aplica=false) no tiene corte. */
+  private aplicarInicioCuenta(tienda: TiendaRealzza, inicio: { aplica: boolean; fecha: string | null },
+                              dataVentas: any[], dataKommo: any[]): { ventas: any[]; kommo: any[]; sinLeads: boolean } {
+    const corte = inicio?.aplica ? (inicio.fecha ? this.fechaIso(inicio.fecha) : 'sin-leads') : null;
+    const desdeCorte = (f: Date | null) => corte === null || (corte !== 'sin-leads' && !!f && f >= corte);
+    const ventas = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === tienda
+      && desdeCorte(new Date(+v.anio_cv, +v.mes_cv - 1, +v.dia_cv)));
+    const kommo = (dataKommo || []).filter(r => desdeCorte(this.fechaDMY(r['FECHA DE LEAD ASIGNADO'])));
+    return { ventas, kommo, sinLeads: corte === 'sin-leads' };
   }
 
   private armarEmbudoKommo(filas: FilaLead[], mes: number, anio: number, dataVentas: any[], dataKommo: any[]): EmbudoKommo {
@@ -237,6 +259,19 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
   private normTxt(s: any): string {
     return (s ?? '').toString().toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   }
+  /** 'YYYY-MM-DD' → Date local (00:00). */
+  private fechaIso(iso: string): Date {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  /** d/m/yyyy | d.m.yyyy | yyyy-m-d (con o sin hora) → Date local, o null. */
+  private fechaDMY(valor: any): Date | null {
+    if (!valor) return null;
+    const p = valor.toString().trim().split(' ')[0].split(/[\/.\-]/).map((x: string) => +x.trim());
+    if (p.length < 3 || p.some((n: number) => isNaN(n))) return null;
+    return p[0] > 31 ? new Date(p[0], p[1] - 1, p[2]) : new Date(p[2], p[1] - 1, p[0]);
+  }
+
   /** ¿La fecha (d/m/yyyy | d.m.yyyy | yyyy-m-d) cae en el mes/año dados (ambos 1-based)? */
   private fechaEnMes(valor: any, mes: number, anio: number): boolean {
     if (!valor) return false;
@@ -436,17 +471,18 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
    *  día × embudo, sin tocar el estado del componente (this.filas/this.tienda) — así se
    *  pueden pedir las 3 tiendas en paralelo para el reporte general. */
   private async datosReporteTienda(tienda: TiendaRealzza, anio: number, mes: number): Promise<DatosReporteTienda> {
-    const [filasRaw, dataVentas, dataKommo] = await Promise.all([
+    const [filasRaw, dataVentas, dataKommo, inicio] = await Promise.all([
       lastValueFrom(this.ventasSrv.obtenerListadoLeadsKommo(anio, mes, tienda)),
       lastValueFrom(this.ventasSrv.obtenerVentasRealzzaModulo(anio)),
       lastValueFrom(this.sheets.getGestionKommo({ leadMes: mes, leadAnio: anio, canal: 'REALZZA', sede: tienda })),
+      this.inicioCuenta(tienda),
     ]);
     const filas = (filasRaw || []).filter(f => !this.EMBUDOS_EXCLUIDOS.has((f.embudo || '').toString().trim().toUpperCase()));
-    const ventasTienda = (dataVentas || []).filter(v => tiendaDeSedeRealzza(v.sede) === tienda);
+    const { ventas: ventasTienda, kommo: kommoTienda } = this.aplicarInicioCuenta(tienda, inicio, dataVentas, dataKommo);
     return {
       tienda, nombre: this.NOMBRE_TIENDA[tienda], totalLeads: filas.length,
       sinResponder: filas.filter(f => !f.respondido).length,
-      embudo: this.armarEmbudoKommo(filas, mes, anio, ventasTienda, dataKommo || []),
+      embudo: this.armarEmbudoKommo(filas, mes, anio, ventasTienda, kommoTienda),
       pivot: this.construirPivotPorDia(filas, anio, mes),
     };
   }

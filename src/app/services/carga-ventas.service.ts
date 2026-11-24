@@ -332,6 +332,12 @@ export class CargaVentasService {
     return this.http.get<any>(`${this.root}/leads-kommo-realzza/sync-kommo/estado`);
   }
 
+  /** Fecha (YYYY-MM-DD) del primer lead de Piura/Lima en su cuenta Kommo propia; null si
+   *  aún no tiene leads. aplica=false para Chiclayo (sin corte). */
+  obtenerInicioCuentaKommo(tienda: string): Observable<{ aplica: boolean; fecha: string | null }> {
+    return this.http.get<any>(`${this.root}/leads-kommo-realzza/inicio-cuenta`, { params: { tienda } });
+  }
+
   /**
    * Listado de leads Kommo Realzza del mes: ID, nombre del cliente, embudo, estado,
    * fechas y quién modificó por última vez — para ver de un vistazo si está
