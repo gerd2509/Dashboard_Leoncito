@@ -65,6 +65,7 @@ interface ClienteCartera {
   telefonos: string[];
   estado: EstadoCliente;
   fechaGestion: Date | null;
+  fechaPrimera: Date | null;   // PRIMERA gestión del cliente en el mes (cuándo se le llamó por 1ª vez)
   diaGestion: number | null;
   sedeKey: string;
   sedeNombre: string;
@@ -76,6 +77,9 @@ interface ResumenAsesor {
   asesor: string;
   asignados: number; gestionados: number;
   contacto: number; noContacto: number; pendientes: number; avance: number;
+  // Barrido de la base: 1ª gestión del primer cliente (inicio) y, si ya no le faltan
+  // clientes, 1ª gestión del ÚLTIMO cliente que le faltaba (fin = terminó su base).
+  inicio: Date | null; fin: Date | null; ultimoAvance: Date | null;
 }
 
 /** Desglose de un asesor por tipo de cliente (Afiliaciones / Lover A / Lover B):
@@ -150,7 +154,10 @@ interface DetalleIntensidad {
 }
 
 interface RegGestion { fecha: Date; estado: EstadoCliente; }
-interface IndiceGestion { porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>; }
+interface IndiceGestion {
+  porDni: Map<string, RegGestion>; porTel: Map<string, RegGestion>;
+  primDni: Map<string, Date>; primTel: Map<string, Date>;   // PRIMERA gestión por DNI / teléfono
+}
 
 /** Fila del detalle de Seguimiento No Contacto → Carta: UN cliente que está en estado
  *  NO CONTACTO (misma definición que el KPI general — última gestión de CUALQUIER
@@ -594,7 +601,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       }
 
       const candidatos: RegGestion[] = [];
+      const primeras: Date[] = [];
       if (idx) {
+        const p = idx.primDni.get(dni); if (p) primeras.push(p);
+        telefonos.forEach(t => { const pt = idx!.primTel.get(t.slice(-9)); if (pt) primeras.push(pt); });
         const g = idx.porDni.get(dni); if (g) candidatos.push(g);
         telefonos.forEach(t => {
           const gt = idx!.porTel.get(t.slice(-9));
@@ -615,6 +625,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         : 'SIN TIPO';
       return {
         dni, asesor, telefonos, estado, fechaGestion,
+        fechaPrimera: primeras.length ? primeras.reduce((a, b) => (b < a ? b : a)) : null,
         diaGestion: fechaGestion ? fechaGestion.getDate() : null,
         sedeKey, sedeNombre, tipoCliente, raw: fila,
       };
@@ -693,6 +704,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
 
     const porDni = new Map<string, RegGestion>();
     const porTel = new Map<string, RegGestion>();
+    const primDni = new Map<string, Date>(), primTel = new Map<string, Date>();
     let count = 0;
     for (const item of data) {
       const fecha = this.parseMarcaTemporal(item[G_FECHA]);
@@ -702,6 +714,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       const dni = this.soloDigitos(String(item[G_DNI] ?? ''));
       if (dni) {
         this.guardarUltima(porDni, dni, { fecha, estado });
+        this.guardarPrimera(primDni, dni, fecha);
         if (colectarDetalle) {
           // OJO: cargarGestion() lee Call/Realzza (gestion_call / gestion_realzza), que NO
           // tienen "TIPO DE GESTION" ni los campos "MOTIVOS ..." de Sedes — es un formulario
@@ -724,10 +737,10 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         }
       }
       const tel = this.soloDigitos(String(item[G_CELULAR] ?? '')).slice(-9);
-      if (tel.length >= 9) this.guardarUltima(porTel, tel, { fecha, estado });
+      if (tel.length >= 9) { this.guardarUltima(porTel, tel, { fecha, estado }); this.guardarPrimera(primTel, tel, fecha); }
     }
     this.gestionesMes = count;
-    return { porDni, porTel };
+    return { porDni, porTel, primDni, primTel };
   }
 
   /** Gestión SEDES → un índice (DNI/teléfono) POR CADA sede (TIENDA SEDE).
@@ -757,7 +770,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       if (!sedeKey) continue;
       const estado = this.mapEstado(item[GS_ESTADO]);
       count++;
-      if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map() });
+      if (!porSede.has(sedeKey)) porSede.set(sedeKey, { porDni: new Map(), porTel: new Map(), primDni: new Map(), primTel: new Map() });
       const idx = porSede.get(sedeKey)!;
       // Para el DETALLE de gestiones (lo que ve el supervisor en el popup): SOLO el
       // celular gestionado real de ESA gestión puntual. Si es un registro viejo que no
@@ -772,6 +785,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
       const dni = this.soloDigitos(String(item[GS_DNI] ?? ''));
       if (dni) {
         this.guardarUltima(idx.porDni, dni, { fecha, estado });
+        this.guardarPrimera(idx.primDni, dni, fecha);
         if (!this.gestionesPorSedeDni.has(sedeKey)) this.gestionesPorSedeDni.set(sedeKey, new Map());
         const porDniSede = this.gestionesPorSedeDni.get(sedeKey)!;
         const reg: RegistroGestionDetalle = {
@@ -784,7 +798,7 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
         const arr = porDniSede.get(dni); if (arr) arr.push(reg); else porDniSede.set(dni, [reg]);
       }
       const tel = telParaCruce.slice(-9);
-      if (tel.length >= 9) this.guardarUltima(idx.porTel, tel, { fecha, estado });
+      if (tel.length >= 9) { this.guardarUltima(idx.porTel, tel, { fecha, estado }); this.guardarPrimera(idx.primTel, tel, fecha); }
     }
     this.gestionesMes = count;
     return porSede;
@@ -877,6 +891,19 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     return (raw || '').toString().trim().toUpperCase() === 'CONTACTO' ? 'CONTACTO' : 'NO CONTACTO';
   }
 
+  /** Días calendario entre el inicio y el fin del barrido (mismo día = 1). */
+  diasBarrido(r: ResumenAsesor): number | null {
+    if (!r.inicio || !r.fin) return null;
+    const d0 = new Date(r.inicio.getFullYear(), r.inicio.getMonth(), r.inicio.getDate());
+    const d1 = new Date(r.fin.getFullYear(), r.fin.getMonth(), r.fin.getDate());
+    return Math.round((d1.getTime() - d0.getTime()) / 86400000) + 1;
+  }
+
+  private guardarPrimera(map: Map<string, Date>, key: string, fecha: Date): void {
+    const actual = map.get(key);
+    if (!actual || fecha < actual) map.set(key, fecha);
+  }
+
   private guardarUltima(map: Map<string, RegGestion>, key: string, reg: RegGestion): void {
     const actual = map.get(key);
     if (!actual || reg.fecha > actual.fecha) map.set(key, reg);
@@ -887,12 +914,21 @@ export class AvanceCarteraComponent implements OnInit, AfterViewChecked, OnDestr
     const map = new Map<string, ResumenAsesor>();
     for (const c of clientes) {
       let r = map.get(c.asesor);
-      if (!r) { r = { asesor: c.asesor, asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0 }; map.set(c.asesor, r); }
+      if (!r) { r = { asesor: c.asesor, asignados: 0, gestionados: 0, contacto: 0, noContacto: 0, pendientes: 0, avance: 0, inicio: null, fin: null, ultimoAvance: null }; map.set(c.asesor, r); }
       r.asignados++;
       if (c.estado === 'PENDIENTE') r.pendientes++;
       else { r.gestionados++; if (c.estado === 'CONTACTO') r.contacto++; else r.noContacto++; }
+      const f = c.fechaPrimera;
+      if (f) {
+        if (!r.inicio || f < r.inicio) r.inicio = f;
+        if (!r.ultimoAvance || f > r.ultimoAvance) r.ultimoAvance = f;
+      }
     }
-    map.forEach(r => { r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0; });
+    map.forEach(r => {
+      r.avance = r.asignados > 0 ? Math.round((r.gestionados / r.asignados) * 100) : 0;
+      // Terminó su base = no le falta ningún cliente: el fin es la 1ª gestión del último.
+      r.fin = r.pendientes === 0 && r.asignados > 0 ? r.ultimoAvance : null;
+    });
     return Array.from(map.values()).sort((a, b) => b.avance - a.avance || b.asignados - a.asignados);
   }
 

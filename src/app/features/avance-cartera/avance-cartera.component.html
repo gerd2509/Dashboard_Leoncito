@@ -323,6 +323,9 @@
                 <th class="left">Asesor</th>
                 <th>Asignados</th><th>Gestionados</th><th>Contacto</th>
                 <th>No contacto</th><th>Faltan</th><th>% Avance</th>
+                <th title="Primera gestión del mes sobre su base">Inició</th>
+                <th title="Cuándo gestionó (por 1ª vez) al último cliente que le faltaba de su base">Terminó su base</th>
+                <th title="Días calendario desde que inició hasta que terminó su base">Días</th>
                 <th *ngIf="esPiso && sedeDetalle">Ventas (ops)</th>
                 <th *ngIf="esPiso && sedeDetalle">Monto vendido</th>
                 <th *ngIf="esPiso && sedeDetalle">Concreción</th>
@@ -342,6 +345,12 @@
                     <div class="mini-bar"><span [class]="claseAvance(r.avance)" [style.width.%]="r.avance"></span></div>
                     <b>{{ r.avance }}%</b>
                   </td>
+                  <td>{{ r.inicio ? (r.inicio | date:'dd/MM HH:mm') : '—' }}</td>
+                  <td>
+                    <b *ngIf="r.fin" class="c-ok">{{ r.fin | date:'dd/MM HH:mm' }}</b>
+                    <span *ngIf="!r.fin" class="c-alerta" [title]="r.ultimoAvance ? 'Último cliente nuevo gestionado: ' + (r.ultimoAvance | date:'dd/MM HH:mm') : ''">En curso · faltan {{ r.pendientes }}</span>
+                  </td>
+                  <td>{{ diasBarrido(r) ?? '—' }}</td>
                   <td *ngIf="esPiso && sedeDetalle"><b>{{ ventaDe(r.asesor).ops }}</b></td>
                   <td *ngIf="esPiso && sedeDetalle">S/ {{ ventaDe(r.asesor).monto | number:'1.0-0' }}</td>
                   <td *ngIf="esPiso && sedeDetalle">{{ concrecionAsesor(r) }}%</td>
@@ -350,7 +359,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="esPiso && sedeDetalle && asesorDesplegado === r.asesor" class="fila-desglose-tipo">
-                  <td [attr.colspan]="11">
+                  <td [attr.colspan]="14">
                     <div class="desglose-tipo">
                       <table class="tabla-tipo">
                         <thead>
@@ -397,6 +406,7 @@
                   <div class="mini-bar"><span [class]="claseAvance(totBase(resumenAsesores).avance)" [style.width.%]="totBase(resumenAsesores).avance"></span></div>
                   <b>{{ totBase(resumenAsesores).avance }}%</b>
                 </td>
+                <td></td><td></td><td></td>
                 <td *ngIf="esPiso && sedeDetalle"><b>{{ totVentasAsesores(resumenAsesores).ops }}</b></td>
                 <td *ngIf="esPiso && sedeDetalle">S/ {{ totVentasAsesores(resumenAsesores).monto | number:'1.0-0' }}</td>
                 <td *ngIf="esPiso && sedeDetalle">{{ totVentasAsesores(resumenAsesores).concrecion }}%</td>
