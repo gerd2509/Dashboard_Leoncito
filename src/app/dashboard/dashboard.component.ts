@@ -63,6 +63,7 @@ import { AtribucionCallComponent } from "../features/atribucion-call/atribucion-
 import { CargaVentasComponent } from "../features/carga-ventas/carga-ventas.component";
 import { AuthService } from '../services/auth.service';
 import { LionIconComponent } from '../shared/lion-icon/lion-icon.component';
+import { RecordatorioPulsoComponent } from '../shared/recordatorio-pulso/recordatorio-pulso.component';
 import { PermissionsService } from '../services/permissions.service';
 import { SedeConfigService } from '../services/sede-config.service';
 import { BrandService, Brand } from '../services/brand.service';
@@ -83,6 +84,7 @@ interface MenuItem {
   imports: [
     CommonModule, MatIconModule,
     LionIconComponent,
+    RecordatorioPulsoComponent,
     AgendamientosComponent,
     GestionContactXHoraComponent,
     CierreGestionComponent,
