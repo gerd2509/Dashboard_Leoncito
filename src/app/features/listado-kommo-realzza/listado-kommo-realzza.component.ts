@@ -205,10 +205,10 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
   private armarEmbudoKommo(filas: FilaLead[], mes: number, anio: number, dataVentas: any[], dataKommo: any[]): EmbudoKommo {
     const esVentaKommo = (v: any) =>
       this.normTxt(v.tipo_base) === 'kommo' && (Number(v.monto_consolidado) || 0) > 0;
-    const bruto = (dataVentas || []).filter(v => esVentaKommo(v) && +v.mes_cv === mes && +v.anio_cv === anio).length;
-    const nc = (dataVentas || []).filter(v =>
-      esVentaKommo(v) && this.esVentaReductora(v) && +v.mes_af === mes && +v.anio_af === anio).length;
-    const ventasKommo = bruto - nc;
+    // # ventas = ventas KOMMO del mes que no están anuladas (NC/incautación/error/moras):
+    // mismo conteo que el resto del dashboard; la NC no resta del conteo de otro mes.
+    const ventasKommo = (dataVentas || []).filter(v =>
+      esVentaKommo(v) && +v.mes_cv === mes && +v.anio_cv === anio && !v.es_anulada).length;
 
     // GESTIONADOS = TODOS los registros de gestión Kommo de esa tienda/mes (incluye
     // Market Place: una tienda como Lima gestiona casi todo por ahí, y excluirlo
@@ -234,12 +234,6 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     return { titulo: 'KOMMO (LEADS)', etapas };
   }
 
-  /** ¿Es una venta NOTA DE CRÉDITO/INCAUTACIÓN (resta en su mes de AFECTACIÓN, no en el
-   *  de venta)? Mismo criterio que el resto del dashboard (Ventas Campo / Embudos). */
-  private esVentaReductora(v: any): boolean {
-    const est = (v.estado_venta || '').toString().toUpperCase();
-    return est.includes('NOTA DE') || est.includes('INCAUTAC');
-  }
   private normTxt(s: any): string {
     return (s ?? '').toString().toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   }
