@@ -162,6 +162,13 @@ export class ListadoKommoRealzzaComponent implements OnInit, OnDestroy {
     } finally {
       this.isLoading = false;
     }
+    // Sin leads (p.ej. Piura/Lima recién conectadas) la grilla no se dibuja y su
+    // onContentReady no corre: hay que limpiar aquí el detalle por embudo y el pivot
+    // por día, si no se quedan mostrando los de la tienda anterior.
+    if (!this.filas.length) {
+      this.resumenEmbudo = [];
+      this.pivotLeadsPorDia = null;
+    }
     await this.cargarEmbudoKommo();
   }
 
