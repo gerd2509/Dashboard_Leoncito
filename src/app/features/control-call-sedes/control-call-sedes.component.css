@@ -24,6 +24,19 @@
     border-radius: 99px;
 }
 
+/* Botones principales con el acento celeste del grupo "Control & Sedes" */
+.form button[mat-flat-button] {
+    background: linear-gradient(135deg, rgb(79,195,247), #1A5FAD) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(79,195,247,.35) !important;
+}
+.form button[mat-stroked-button] {
+    border-color: rgb(79,195,247) !important;
+    color: #0E6FA8 !important;
+    border-radius: 10px !important;
+}
+
 .grid-container { position: relative; }
 
 .grid-overlay {
@@ -41,7 +54,7 @@
 
 .titulosGrillas {
     margin: 0;
-    background: #F0F6FF;
+    background: linear-gradient(135deg, rgba(79,195,247,.14), #F0F6FF);
     color: #1A5FAD;
     padding: 10px 16px;
     border-radius: 8px;
@@ -50,7 +63,7 @@
     letter-spacing: 0.8px;
     text-transform: uppercase;
     border: 1px solid #CCDAEE;
-    border-left: 3px solid #1A5FAD;
+    border-left: 3px solid rgb(79,195,247);
 }
 
 .focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }

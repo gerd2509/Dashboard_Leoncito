@@ -13,7 +13,7 @@
         stylingMode="underlined" [displayFormat]="'dd/MM/yyyy'">
     </dx-date-box>
 
-    <button mat-flat-button [disabled]="formPostVentas.invalid" (click)="actualizarFiltros()">
+    <button class="pv-btn-actualizar" mat-flat-button [disabled]="formPostVentas.invalid" (click)="actualizarFiltros()">
         <mat-icon>search</mat-icon>
         Actualizar
     </button>
@@ -23,36 +23,36 @@
         class="dashboard-box mt-3">
             <dxi-item baseSize="25%">
                 <div class="metric-card">
-                    <div class="metric-title">CONTACTOS</div>
+                    <div class="metric-title"><span class="pv-emoji">✅</span>CONTACTOS</div>
                     <div class="metric-content">
-                        ✅ <span class="ok">{{ dataResumen[0]?.contacto }}</span> /
-                        ❌ <span class="error">{{ dataResumen[0]?.noContacto }}</span>
+                        <span class="ok">{{ dataResumen[0]?.contacto }}</span> /
+                        <span class="error">{{ dataResumen[0]?.noContacto }}</span>
                     </div>
                 </div>
             </dxi-item>
             <dxi-item baseSize="25%">
                 <div class="metric-card">
-                    <div class="metric-title">CONFORMIDAD</div>
+                    <div class="metric-title"><span class="pv-emoji">👍</span>CONFORMIDAD</div>
                     <div class="metric-content">
-                        👍 <span class="ok">{{ dataResumen[0]?.conforme }}</span> /
-                        👎 <span class="error">{{ dataResumen[0]?.noConforme }}</span>
+                        <span class="ok">{{ dataResumen[0]?.conforme }}</span> /
+                        <span class="error">{{ dataResumen[0]?.noConforme }}</span>
                     </div>
                 </div>
             </dxi-item>
             <dxi-item baseSize="25%">
                 <div class="metric-card">
-                    <div class="metric-title">ÁREAS</div>
+                    <div class="metric-title"><span class="pv-emoji">🏢</span>ÁREAS</div>
                     <div class="metric-content">
-                        🏢 <span class="area">{{ dataResumen[0]?.area }}</span> /
+                        <span class="area">{{ dataResumen[0]?.area }}</span> /
                         <span class="highlight">{{ dataResumen[0]?.porcentajeArea }}%</span>
                     </div>
                 </div>
             </dxi-item>
             <dxi-item baseSize="25%">
                 <div class="metric-card">
-                    <div class="metric-title">SATISFACCIÓN</div>
+                    <div class="metric-title"><span class="pv-emoji">⭐</span>SATISFACCIÓN</div>
                     <div class="metric-content">
-                        ⭐ <span class="highlight">{{ dataResumen[0]?.satisfaccion }}</span> / 10
+                        <span class="highlight">{{ dataResumen[0]?.satisfaccion }}</span> / 10
                     </div>
                 </div>
             </dxi-item>
@@ -110,8 +110,7 @@
             </dxi-item>
         </dx-box>
 
-        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Evolución Mensual General
-        </h3>
+        <h3 class="pv-section-title">Evolución Mensual General</h3>
         <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
             class="charts-box mt-3" wrap="wrap">
             <dxi-item baseSize="50%">
@@ -155,8 +154,7 @@
             </dxi-item>
         </dx-box>
 
-        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Evolución de No Conformidad
-            por Área</h3>
+        <h3 class="pv-section-title">Evolución de No Conformidad por Área</h3>
         <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="center"
             class="charts-box mt-3">
             <dxi-item baseSize="100%">
@@ -182,7 +180,7 @@
             </dxi-item>
         </dx-box>
 
-        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Desglose de Hallazgos</h3>
+        <h3 class="pv-section-title">Desglose de Hallazgos</h3>
         <dx-box direction="row" width="100%" height="auto" alignItems="stretch" justifyContent="space-between"
             class="charts-box mt-3" wrap="wrap">
 
@@ -245,7 +243,7 @@
             </dxi-item>
         </dx-box>
 
-        <h3 style="margin: 30px 0 10px 10px; color: #293964; border-bottom: 2px solid #ccc;">Detalle General</h3>
+        <h3 class="pv-section-title">Detalle General</h3>
         <div style="padding: 10px;">
             <dx-data-grid [dataSource]="dataFiltradaGrid" [showBorders]="true" [rowAlternationEnabled]="true"
                 (onCellPrepared)="onCellPrepared($event)">

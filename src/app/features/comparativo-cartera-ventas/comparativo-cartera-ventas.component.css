@@ -38,7 +38,11 @@
 .cc-btn:hover:not(:disabled) { filter: brightness(1.08); }
 .cc-btn:disabled { opacity: .5; cursor: not-allowed; }
 .cc-btn-dark    { background: #293964; color: #fff; }
-.cc-btn-primary { background: #1565C0; color: #fff; }
+.cc-btn-primary {
+  background: linear-gradient(135deg, #FF6B6B, #ff9b9b); color: #fff;
+  box-shadow: 0 4px 12px rgba(255,107,107,.3); transition: transform .15s, box-shadow .2s, opacity .15s;
+}
+.cc-btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(255,107,107,.4); filter: none; }
 .cc-btn-ghost   { background: #eef2f9; color: #1E3A5F; }
 
 .cc-archivo {
@@ -239,7 +243,7 @@
 /* ── Desglose por tipo de cliente (afectaciones) ── */
 .cc-tipocliente { background: #fff; border: 1px solid #e6edf5; border-radius: 12px; padding: 12px 14px; margin: 12px 0 6px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
 .ct-h { display: flex; align-items: center; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 8px; }
-.ct-h mat-icon { color: #1A5FAD; }
+.ct-h mat-icon { color: #FF6B6B; }
 .ct-h small { font-weight: 600; color: #78909c; }
 .ct-table { font-size: 13px; }
 .ct-row { display: grid; grid-template-columns: 1.4fr .7fr 1fr 1.4fr; align-items: center; gap: 8px; padding: 7px 6px; border-bottom: 1px solid #f0f4f9; }
@@ -250,6 +254,6 @@
 .ct-m { font-weight: 700; color: #1E3A5F; }
 .ct-p { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: #1A5FAD; width: 100%; justify-content: flex-end; }
 .ct-bar { flex: 1; max-width: 140px; height: 8px; background: #eef2f7; border-radius: 999px; overflow: hidden; }
-.ct-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, #1A5FAD, #2a7fd0); border-radius: 999px; }
+.ct-bar-fill { display: block; height: 100%; background: linear-gradient(90deg, #FF6B6B, #ff9b9b); border-radius: 999px; }
 .ct-row.ct-total { border-top: 2px solid #e6edf5; border-bottom: 0; background: #f5f9fe; font-weight: 800; }
 .ct-row.ct-total .ct-k, .ct-row.ct-total .ct-m { color: #1A5FAD; }

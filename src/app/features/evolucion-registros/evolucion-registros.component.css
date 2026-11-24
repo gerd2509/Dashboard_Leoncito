@@ -21,13 +21,13 @@
 }
 .ev-kpi {
     flex: 1 1 140px;
-    background: linear-gradient(135deg, #1A5FAD, #2E7BD6);
+    background: linear-gradient(135deg, rgb(79,195,247), #1A5FAD);
     color: #fff;
     border-radius: 12px;
     padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 3px 10px rgba(26, 95, 173, .25);
+    box-shadow: 0 3px 10px rgba(79,195,247, .35);
 }
 .ev-kpi-num { font-size: 28px; font-weight: 800; line-height: 1.1; }
 .ev-kpi-lbl { font-size: 11px; letter-spacing: .5px; opacity: .9; }
@@ -42,14 +42,27 @@
 .ev-card-head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-weight: 700;
     color: #1A5FAD;
     padding: 8px 10px;
 }
-.ev-card-head mat-icon { color: #1A5FAD; }
+.ev-card-head > mat-icon {
+    color: rgb(79,195,247);
+    background: rgba(79,195,247,.16);
+    border-radius: 9px;
+    width: 30px; height: 30px; font-size: 18px;
+    display: inline-flex; align-items: center; justify-content: center;
+}
 .ev-card-head .ev-titulo { flex: 1; }
-.ev-expand { color: #1A5FAD; }
+.ev-expand { color: rgb(79,195,247); }
+
+.ev-form button[mat-flat-button] {
+    background: linear-gradient(135deg, rgb(79,195,247), #1A5FAD) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(79,195,247,.35) !important;
+}
 
 .ev-chart { height: 560px; width: 100%; }
 .ev-chart-popup { height: 100%; width: 100%; }

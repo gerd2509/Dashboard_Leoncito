@@ -15,11 +15,17 @@
   align-items: flex-start;
   gap: 14px;
 }
+.carga-head-chip {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 54px; height: 54px; border-radius: 14px;
+  background: linear-gradient(135deg, #26C6DA, #00A8BF);
+  box-shadow: 0 6px 16px rgba(38,198,218,.3);
+}
 .carga-head mat-icon {
-  font-size: 40px;
-  width: 40px;
-  height: 40px;
-  color: #1A5FAD;
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  color: #fff;
 }
 .carga-head h2 {
   margin: 0;
@@ -52,14 +58,14 @@
   cursor: pointer;
   transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.tipo-btn:hover:not(:disabled) { border-color: #9fc4e6; }
+.tipo-btn:hover:not(:disabled) { border-color: #7fdbe6; }
 .tipo-btn.activo {
-  border-color: #1A5FAD;
-  background: #eef5fc;
-  box-shadow: 0 0 0 3px rgba(26, 95, 173, .10);
+  border-color: #26C6DA;
+  background: #e5f9fb;
+  box-shadow: 0 0 0 3px rgba(38, 198, 218, .14);
 }
 .tipo-btn:disabled { opacity: .6; cursor: default; }
-.tipo-btn mat-icon { color: #1A5FAD; }
+.tipo-btn mat-icon { color: #00A8BF; }
 .tipo-label { font-size: 15px; font-weight: 800; color: #1E3A5F; }
 .tipo-desc { font-size: 12px; color: #6b8299; }
 
@@ -123,9 +129,10 @@
 }
 .btn-subir {
   align-self: flex-start;
-  background: #1A5FAD;
+  background: linear-gradient(135deg, #26C6DA, #00A8BF) !important;
   color: #fff;
   font-weight: 700;
+  box-shadow: 0 6px 16px rgba(38,198,218,.3);
 }
 .btn-subir[disabled] {
   background: #c7d6e6;

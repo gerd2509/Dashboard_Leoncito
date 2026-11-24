@@ -1,5 +1,5 @@
 :host {
-  --rc-primary: #1A5FAD; --rc-border: #d7e1ee; --rc-bg: #f4f7fb;
+  --rc-primary: #E84393; --rc-border: #d7e1ee; --rc-bg: #f4f7fb;
   display: block; min-height: 100%; background: var(--rc-bg); color: #24303f;
   font-family: 'Segoe UI', Roboto, sans-serif;
 }
@@ -7,7 +7,7 @@
 
 /* Encabezado */
 .rc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.rc-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--rc-primary); display: grid; place-items: center; flex-shrink: 0; }
+.rc-ico { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #E84393, #F178B6); box-shadow: 0 6px 16px rgba(232,67,147,.3); display: grid; place-items: center; flex-shrink: 0; }
 .rc-ico mat-icon { color: #fff; font-size: 26px; width: 26px; height: 26px; }
 .rc-head h2 { margin: 0; font-size: 19px; font-weight: 800; color: #14314f; }
 .rc-head p { margin: 2px 0 0; font-size: 12.5px; color: #6b7a8d; }

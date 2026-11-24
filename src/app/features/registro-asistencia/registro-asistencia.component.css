@@ -8,23 +8,37 @@
 
 .ra-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 20px; box-shadow: 0 3px 12px rgba(20,49,79,.05); }
 
-.ra-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.ra-head mat-icon { font-size: 30px; width: 30px; height: 30px; color: #1A5FAD; }
+.ra-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.ra-head-chip {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 46px; height: 46px; border-radius: 14px;
+  background: linear-gradient(135deg, #1A5FAD, #4FC3F7);
+  box-shadow: 0 6px 16px rgba(26,95,173,.3);
+}
+.ra-head-chip.verde { background: linear-gradient(135deg, #1E9E5A, #2ECC71); box-shadow: 0 6px 16px rgba(46,204,113,.3); }
+.ra-head-chip mat-icon { font-size: 24px; width: 24px; height: 24px; color: #fff; }
 .ra-head h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1E3A5F; }
 .ra-head small { color: #78909c; }
 
 .ra-btn {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: #1A5FAD; color: #fff; border: 0; border-radius: 10px; padding: 14px 18px;
-  font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s;
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, #1A5FAD, #4FC3F7); color: #fff; border: 0; border-radius: 12px; padding: 14px 18px;
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .15s, box-shadow .2s;
+  box-shadow: 0 8px 20px rgba(26,95,173,.3);
 }
-.ra-btn:hover:not([disabled]) { background: #14497f; }
-.ra-btn[disabled] { opacity: .65; cursor: default; }
-.ra-btn.sm { width: auto; padding: 9px 16px; font-size: 13px; }
+.ra-btn:hover:not([disabled]) { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(26,95,173,.4); }
+.ra-btn:active:not([disabled]) { transform: translateY(0); }
+.ra-btn[disabled] { opacity: .65; cursor: default; transform: none; }
+.ra-btn.sm { width: auto; padding: 9px 16px; font-size: 13px; box-shadow: none; }
 .ra-btn.sm.verde { background: linear-gradient(135deg, #1E9E5A, #2ECC71); }
 .ra-btn.sm[disabled] { background: #cfd8dc; }
 
 .ra-grupo-count { font-weight: 600; color: #78909c; font-size: 12px; }
+.ra-btn-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.22);
+}
+.ra-btn-icon mat-icon { font-size: 17px; width: 17px; height: 17px; }
 .ra-btn mat-icon.girando { animation: ra-spin .8s linear infinite; }
 @keyframes ra-spin { to { transform: rotate(360deg); } }
 
@@ -37,7 +51,26 @@
 
 .ra-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
 
-.ra-badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+/* ── Tarjetas de resumen (conteos por estado) ── */
+.ra-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+.ra-stat {
+  flex: 1; min-width: 130px; display: flex; align-items: center; gap: 10px;
+  border-radius: 12px; padding: 12px 14px; border: 1px solid transparent;
+}
+.ra-stat mat-icon { font-size: 22px; width: 22px; height: 22px; flex-shrink: 0; }
+.ra-stat div { display: flex; flex-direction: column; line-height: 1.15; }
+.ra-stat b { font-size: 17px; font-weight: 800; }
+.ra-stat small { font-size: 11px; font-weight: 600; opacity: .85; }
+.ra-stat.total       { background: #eef3fb; border-color: #dbe6f6; color: #1A5FAD; }
+.ra-stat.ok          { background: #e8f5e9; border-color: #d2ecd6; color: #2E7D32; }
+.ra-stat.fuera       { background: #fdecea; border-color: #f7d6d2; color: #C62828; }
+.ra-stat.sin-config  { background: #eceff1; border-color: #dfe4e7; color: #607d8b; }
+
+.ra-badge {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700;
+  padding: 3px 10px 3px 8px; border-radius: 999px;
+}
+.ra-badge mat-icon { font-size: 14px; width: 14px; height: 14px; }
 .ra-badge.ok        { background: #e8f5e9; color: #2E7D32; }
 .ra-badge.fuera      { background: #fdecea; color: #C62828; }
 .ra-badge.sin-config { background: #eceff1; color: #78909c; }

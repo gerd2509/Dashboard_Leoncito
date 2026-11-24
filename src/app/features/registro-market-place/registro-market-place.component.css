@@ -7,7 +7,7 @@
 
 /* Encabezado */
 .mp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-.mp-ico { width: 44px; height: 44px; border-radius: 12px; background: var(--mp-primary); display: grid; place-items: center; flex-shrink: 0; }
+.mp-ico { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #C2185B, #E84393); display: grid; place-items: center; flex-shrink: 0; box-shadow: 0 5px 14px rgba(232,67,147,.32); }
 .mp-ico mat-icon { color: #fff; font-size: 26px; width: 26px; height: 26px; }
 .mp-head h2 { margin: 0; font-size: 19px; font-weight: 800; color: #14314f; }
 .mp-head p { margin: 2px 0 0; font-size: 12.5px; color: #6b7a8d; }

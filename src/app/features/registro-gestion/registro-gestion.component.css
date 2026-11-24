@@ -19,8 +19,9 @@
 .rg-head { margin-bottom: 14px; }
 .rg-title { display: flex; align-items: center; gap: 12px; }
 .rg-title mat-icon {
-  background: var(--rg-primary); color: #fff; border-radius: 12px;
+  background: linear-gradient(135deg, #C2185B, #E84393); color: #fff; border-radius: 12px;
   width: 44px; height: 44px; font-size: 26px; display: grid; place-items: center; flex-shrink: 0;
+  box-shadow: 0 5px 14px rgba(232,67,147,.32);
 }
 .rg-title h2 { margin: 0; font-size: 19px; font-weight: 800; color: #14314f; }
 .rg-title span { font-size: 12.5px; color: #6b7a8d; }

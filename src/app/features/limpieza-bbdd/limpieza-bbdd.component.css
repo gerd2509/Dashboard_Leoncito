@@ -29,9 +29,9 @@
   width: 54px;
   height: 54px;
   border-radius: 14px;
-  background: linear-gradient(135deg, var(--azul), #2b7fd6);
+  background: linear-gradient(135deg, #26C6DA, #00A8BF);
   color: #fff;
-  box-shadow: 0 6px 18px rgba(26, 95, 173, 0.28);
+  box-shadow: 0 6px 18px rgba(38, 198, 218, 0.3);
   flex-shrink: 0;
 }
 .enc-icono mat-icon { font-size: 28px; width: 28px; height: 28px; }

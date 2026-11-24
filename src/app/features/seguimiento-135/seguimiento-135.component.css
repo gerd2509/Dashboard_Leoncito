@@ -2,7 +2,7 @@
 
 .sg-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
 .sg-ico { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #6A1B9A, #1A5FAD); color: #fff; }
+  background: linear-gradient(135deg, #FF6B6B, #ff9b9b); color: #fff; box-shadow: 0 6px 16px rgba(255,107,107,.3); }
 .sg-ico mat-icon { font-size: 26px; width: 26px; height: 26px; }
 .sg-head h2 { margin: 0; font-size: 20px; color: #1E3A5F; font-weight: 800; }
 .sg-head p { margin: 2px 0 0; font-size: 13px; color: #6b7a90; max-width: 900px; }
@@ -14,7 +14,7 @@
   padding: 9px 12px; border-radius: 9px; cursor: pointer; transition: background .15s, color .15s; }
 .sg-tabs button mat-icon { font-size: 18px; height: 18px; width: 18px; }
 .sg-tabs button.active { background: #293964; color: #fff; box-shadow: 0 2px 8px rgba(41,57,100,.25); }
-.sg-tabs.fuente button.active { background: #1A5FAD; }
+.sg-tabs.fuente button.active { background: #FF6B6B; box-shadow: 0 2px 8px rgba(255,107,107,.35); }
 
 .sg-bar { display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
 .sg-campo { display: flex; flex-direction: column; gap: 4px; }
@@ -23,9 +23,10 @@
 .sg-nota mat-icon { font-size: 17px; height: 17px; width: 17px; }
 
 .sg-btn { display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 9px; cursor: pointer;
-  background: #1A5FAD; color: #fff; font-weight: 700; font-size: 13px; padding: 9px 14px; transition: filter .15s; }
-.sg-btn:hover:not(:disabled) { filter: brightness(1.08); }
-.sg-btn:disabled { opacity: .55; cursor: not-allowed; }
+  background: linear-gradient(135deg, #FF6B6B, #ff9b9b); color: #fff; font-weight: 700; font-size: 13px; padding: 9px 14px;
+  transition: transform .15s, box-shadow .2s; box-shadow: 0 4px 12px rgba(255,107,107,.3); }
+.sg-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(255,107,107,.4); }
+.sg-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .sg-btn mat-icon { font-size: 18px; height: 18px; width: 18px; }
 .sg-head .sg-btn { margin-left: auto; }
 
@@ -40,15 +41,17 @@
 .sg-error { display: flex; align-items: center; gap: 8px; color: #c0392b; font-weight: 600; font-size: 13.5px; margin: 8px 0; }
 
 .sg-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.sg-kpi { background: #fff; border: 1px solid #e6edf6; border-radius: 12px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(30,45,80,.06); }
+.sg-kpi { background: #fff; border: 1px solid #e6edf6; border-radius: 12px; padding: 12px 14px; box-shadow: 0 2px 8px rgba(30,45,80,.06);
+  display: flex; align-items: center; gap: 10px; }
+.sg-kpi mat-icon { font-size: 22px; width: 22px; height: 22px; flex-shrink: 0; color: #90a0b5; }
 .sg-kpi b { display: block; font-size: 22px; color: #1E3A5F; }
 .sg-kpi small { font-size: 11.5px; color: #6b7a90; }
-.sg-kpi.ok b { color: #2E7D32; }
-.sg-kpi.warn { background: #fff4e0; } .sg-kpi.warn b { color: #b26a00; }
-.sg-kpi.bad { background: #fdeeee; } .sg-kpi.bad b { color: #C62828; }
-.sg-kpi.dest { background: #eef5fc; } .sg-kpi.dest b { color: #1A5FAD; }
-.sg-kpi.vta { background: #eafaf0; } .sg-kpi.vta b { color: #2E7D32; }
+.sg-kpi.ok b, .sg-kpi.ok mat-icon { color: #2E7D32; }
+.sg-kpi.warn { background: #fff4e0; } .sg-kpi.warn b, .sg-kpi.warn mat-icon { color: #b26a00; }
+.sg-kpi.bad { background: #fdeeee; } .sg-kpi.bad b, .sg-kpi.bad mat-icon { color: #C62828; }
+.sg-kpi.dest { background: #FFF2F1; } .sg-kpi.dest b, .sg-kpi.dest mat-icon { color: #FF6B6B; }
+.sg-kpi.vta { background: #eafaf0; } .sg-kpi.vta b, .sg-kpi.vta mat-icon { color: #2E7D32; }
 
 .sg-card { background: #fff; border: 1px solid #e6edf6; border-radius: 12px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(30,45,80,.06); }
-.sg-card-h { display: flex; align-items: center; gap: 8px; background: #293964; color: #fff; font-weight: 800; font-size: 14px; padding: 11px 15px; }
+.sg-card-h { display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #293964, #425585); color: #fff; font-weight: 800; font-size: 14px; padding: 11px 15px; }
 .sg-card-h mat-icon { font-size: 20px; width: 20px; height: 20px; }

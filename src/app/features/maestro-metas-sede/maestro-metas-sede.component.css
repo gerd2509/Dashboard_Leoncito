@@ -1,7 +1,7 @@
 .mms-shell { padding: 18px 22px; }
 .mms-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
 .mms-ico { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center;
-  background: linear-gradient(135deg, #00838F, #26A69A); color: #fff; }
+  background: linear-gradient(135deg, #00838F, #26A69A); color: #fff; box-shadow: 0 6px 16px rgba(0,131,143,.3); }
 .mms-ico mat-icon { font-size: 26px; width: 26px; height: 26px; }
 .mms-head h2 { margin: 0; font-size: 20px; font-weight: 700; color: #0f2a3d; }
 .mms-head p { margin: 2px 0 0; font-size: 13px; color: #5a6b78; }

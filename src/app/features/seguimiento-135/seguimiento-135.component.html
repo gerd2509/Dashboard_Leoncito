@@ -55,12 +55,12 @@
   <ng-container *ngIf="listo">
     <!-- KPIs -->
     <div class="sg-kpis">
-      <div class="sg-kpi"><b>{{ kTotal }}</b><small>Clientes</small></div>
-      <div class="sg-kpi ok"><b>{{ kAlDia }}</b><small>Al día (≤2 días)</small></div>
-      <div class="sg-kpi warn"><b>{{ kPorLlamar }}</b><small>Por llamar (3-6 días)</small></div>
-      <div class="sg-kpi bad"><b>{{ kAtrasado }}</b><small>Atrasados (≥7 días)</small></div>
-      <div class="sg-kpi dest"><b>{{ kCompletos }}</b><small>Completos 1-3-5-7</small></div>
-      <div class="sg-kpi vta"><b>{{ kVentas }}</b><small>Cerraron venta · {{ kConversion }}%</small></div>
+      <div class="sg-kpi"><mat-icon>groups</mat-icon><div><b>{{ kTotal }}</b><small>Clientes</small></div></div>
+      <div class="sg-kpi ok"><mat-icon>check_circle</mat-icon><div><b>{{ kAlDia }}</b><small>Al día (≤2 días)</small></div></div>
+      <div class="sg-kpi warn"><mat-icon>schedule</mat-icon><div><b>{{ kPorLlamar }}</b><small>Por llamar (3-6 días)</small></div></div>
+      <div class="sg-kpi bad"><mat-icon>warning</mat-icon><div><b>{{ kAtrasado }}</b><small>Atrasados (≥7 días)</small></div></div>
+      <div class="sg-kpi dest"><mat-icon>repeat</mat-icon><div><b>{{ kCompletos }}</b><small>Completos 1-3-5-7</small></div></div>
+      <div class="sg-kpi vta"><mat-icon>paid</mat-icon><div><b>{{ kVentas }}</b><small>Cerraron venta · {{ kConversion }}%</small></div></div>
     </div>
 
     <!-- Detalle por cliente -->

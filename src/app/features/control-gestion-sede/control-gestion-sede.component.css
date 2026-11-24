@@ -13,6 +13,20 @@
     margin-bottom: 18px;
 }
 
+/* Botones principales con el acento celeste del grupo "Control & Sedes" */
+.form button[mat-flat-button],
+.ev-form button[mat-flat-button] {
+    background: linear-gradient(135deg, rgb(79,195,247), #1A5FAD) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 14px rgba(79,195,247,.35) !important;
+}
+.form button[mat-stroked-button] {
+    border-color: rgb(79,195,247) !important;
+    color: #0E6FA8 !important;
+    border-radius: 10px !important;
+}
+
 .grid-container { position: relative; }
 
 .grid-overlay {
@@ -48,7 +62,7 @@
     justify-content: space-between;
     padding: 14px 18px;
     cursor: pointer;
-    background: linear-gradient(135deg, #0E1B33, #1A5FAD);
+    background: linear-gradient(135deg, #0E1B33, #1A5FAD, rgb(79,195,247));
     color: #FFFFFF;
     transition: background 0.2s;
 }
@@ -167,7 +181,7 @@
     transition: background 0.2s;
 }
 
-.sede-header:hover { background: linear-gradient(135deg, #1E6BC0, #1A5FAD); }
+.sede-header:hover { background: linear-gradient(135deg, rgb(79,195,247), #1A5FAD); }
 
 .sede-header-left {
     display: flex;
@@ -184,10 +198,15 @@
 .chevron.open { transform: rotate(180deg); }
 
 .sede-ico {
-    font-size: 22px;
-    width: 22px;
-    height: 22px;
-    opacity: 0.9;
+    font-size: 19px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: rgba(79,195,247,.28);
+    opacity: 1;
 }
 
 .sede-nombre {

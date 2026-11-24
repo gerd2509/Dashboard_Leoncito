@@ -1,7 +1,7 @@
 <div class="rs-wrap">
   <div class="rs-card">
     <div class="rs-head">
-      <mat-icon>fact_check</mat-icon>
+      <span class="rs-head-chip"><mat-icon>fact_check</mat-icon></span>
       <div>
         <h2>Registro de Control — Supervisor</h2>
         <p>Realzza · Supervisor: <b>{{ supervisor || '—' }}</b></p>
@@ -304,7 +304,7 @@
     <p class="rs-error" *ngIf="intento && primerError"><mat-icon>error_outline</mat-icon> {{ primerError }}</p>
 
     <button class="rs-btn" (click)="registrar()" [disabled]="guardando || !formValido">
-      <mat-icon>{{ guardando ? 'hourglass_empty' : 'save' }}</mat-icon>
+      <span class="rs-btn-icon"><mat-icon>{{ guardando ? 'hourglass_empty' : 'save' }}</mat-icon></span>
       {{ guardando ? 'Guardando…' : 'Registrar control' }}
     </button>
   </div>

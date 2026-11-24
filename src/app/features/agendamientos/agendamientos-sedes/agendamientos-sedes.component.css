@@ -16,28 +16,44 @@
 .button {
     height: 40px;
     border-radius: 8px !important;
-    background: #1A5FAD !important;
+    background: linear-gradient(135deg, #00A8A4, #4FE0DC) !important;
     color: #fff !important;
     border: none !important;
     font-weight: 600 !important;
-    box-shadow: 0 2px 10px rgba(26,95,173,0.25) !important;
+    box-shadow: 0 2px 10px rgba(0,206,201,0.3) !important;
     transition: all 0.18s !important;
 }
 
-.button:hover { background: #2B73D1 !important; transform: translateY(-1px); }
+.button:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,206,201,0.4) !important; }
+.button[disabled] { opacity: .65; transform: none !important; }
+
+.btn-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.22);
+    margin-right: 2px;
+}
+.btn-icon mat-icon { font-size: 15px; width: 15px; height: 15px; }
 
 .sede-chip {
     margin-left: auto;
     font-size: 13px;
     font-weight: 700;
-    color: #1A5FAD;
-    background: #EBF3FF;
-    border: 1px solid #CCDAEE;
+    color: #00A8A4;
+    background: #E0F7F6;
+    border: 1px solid #B9EDEB;
     padding: 6px 14px;
     border-radius: 99px;
 }
 
 .grid-container { position: relative; }
+
+::ng-deep .dx-datagrid-headers {
+    background: linear-gradient(135deg, #00A8A4, #0E8F8C) !important;
+}
+::ng-deep .dx-datagrid-headers .dx-header-row td {
+    color: #fff !important;
+    font-weight: 700 !important;
+}
 
 .grid-overlay {
     position: absolute;

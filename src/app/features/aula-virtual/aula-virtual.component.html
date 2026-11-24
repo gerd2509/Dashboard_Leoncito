@@ -4,7 +4,7 @@
   <div class="av-hero" *ngIf="vista !== 'certificado'">
     <div class="av-hero-top">
       <div class="av-hero-titulo">
-        <mat-icon>auto_stories</mat-icon>
+        <span class="av-hero-chip"><mat-icon>auto_stories</mat-icon></span>
         <div><h2>Aula Virtual</h2><p>¡Sigue aprendiendo, {{ vendedor.split(' ')[0] }}! 🚀</p></div>
       </div>
       <button class="av-btn-ghost" (click)="verRanking()"><mat-icon>leaderboard</mat-icon> Ranking</button>

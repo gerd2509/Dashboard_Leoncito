@@ -150,6 +150,54 @@
   transform: scale(1.15);
 }
 
+/* ── Chip de color por sección: cada grupo del menú (Agendamientos,
+   Gestión, Ventas…) tiene un color de acento fijo vía --accent-rgb, puesto
+   en .menu-group / el botón simple desde el template (colorDe(item)). El
+   mismo color se usa en el topbar para el módulo abierto → identidad visual
+   coherente de punta a punta. ── */
+.sidebar-content button mat-icon:first-child,
+.menu-main mat-icon:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  border-radius: 9px;
+  background: rgba(var(--accent-rgb, 240,116,32), .17);
+  color: rgb(var(--accent-rgb, 240,116,32));
+}
+
+.sidebar-content button:hover mat-icon:first-child,
+.menu-main:hover mat-icon:first-child {
+  background: rgb(var(--accent-rgb, 240,116,32));
+  color: #fff;
+  transform: scale(1.07);
+}
+
+/* Módulo activo: fila resaltada + chip sólido, siempre visible (no solo hover) */
+.menu-main.active,
+.submenu button.active {
+  background: rgba(var(--accent-rgb, 240,116,32), .22);
+  color: #fff;
+}
+.menu-main.active span,
+.submenu button.active span { font-weight: 700; }
+.menu-main.active mat-icon:first-child,
+.submenu button.active mat-icon:first-child {
+  background: rgb(var(--accent-rgb, 240,116,32));
+  color: #fff;
+}
+
+/* Header del grupo: un leve resalte cuando el módulo activo está dentro de su submenú */
+.menu-group.has-active > .menu-main {
+  color: #fff;
+}
+.menu-group.has-active > .menu-main mat-icon:first-child {
+  background: rgba(var(--accent-rgb, 240,116,32), .32);
+  color: #fff;
+}
+
 /* Sidebar colapsado */
 .sidebar.collapsed .sidebar-content { padding: 10px 4px; }
 
@@ -488,6 +536,26 @@
   color: #1E3A5F;
   letter-spacing: 0.3px;
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--accent-rgb, 240,116,32), .14);
+  flex-shrink: 0;
+}
+.tm-icon mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: rgb(var(--accent-rgb, 240,116,32));
 }
 
 .titulo-modulo::after {
@@ -495,17 +563,16 @@
   display: inline-block;
   width: 7px;
   height: 7px;
-  background: #F07420;
+  background: rgb(var(--accent-rgb, 240,116,32));
   border-radius: 50%;
-  margin-left: 10px;
   vertical-align: middle;
-  box-shadow: 0 0 8px rgba(240,116,32,0.7);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb, 240,116,32), 0.7);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(240,116,32,0.7); }
-  50%       { opacity: 0.5; box-shadow: 0 0 4px rgba(240,116,32,0.3); }
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
 }
 
 /* =====================================================
@@ -613,6 +680,20 @@
 .submenu button:hover mat-icon {
   color: #F07420;
   transform: scale(1.12);
+}
+
+.submenu button mat-icon:first-child {
+  width: 26px;
+  height: 26px;
+  font-size: 15px;
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb, 240,116,32), .14);
+  color: rgb(var(--accent-rgb, 240,116,32));
+}
+.submenu button:hover mat-icon:first-child {
+  background: rgb(var(--accent-rgb, 240,116,32));
+  color: #fff;
+  transform: scale(1.07);
 }
 
 /* =====================================================
@@ -767,27 +848,43 @@
   .contenido { padding: 10px 8px; }
 }
 
-/* ── Indicador de carga de módulo (@defer @loading) ── */
+/* ── Indicador de carga de módulo (@defer @loading): se ve de inmediato al
+   entrar a un módulo, mientras Angular descarga su código — antes de esto
+   no se mostraba nada en ese instante. ── */
 .mod-loading {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 48px 20px;
+  padding: 64px 20px;
   color: #5b7a99;
   font-weight: 600;
   font-size: 14px;
+  animation: mod-fade-in .25s ease both;
 }
+@keyframes mod-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .mod-spin {
-  width: 22px;
-  height: 22px;
-  border: 3px solid #cddcec;
-  border-top-color: #1A5FAD;
-  border-radius: 50%;
-  animation: mod-spin 0.7s linear infinite;
+  position: relative;
+  width: 24px;
+  height: 24px;
   flex: none;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0%, transparent 55%, #1A5FAD 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: mod-spin 0.8s linear infinite;
+}
+.mod-spin::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,95,173,.2), transparent 70%);
+  animation: mod-glow 1.6s ease-in-out infinite alternate;
+  z-index: -1;
 }
 @keyframes mod-spin { to { transform: rotate(360deg); } }
+@keyframes mod-glow { from { opacity: .4; transform: scale(.85); } to { opacity: .9; transform: scale(1.1); } }
 
 /* ── Menú/popup del usuario en el topbar ── */
 .topbar-user { position: relative; }

@@ -32,6 +32,11 @@
   100% { transform: translateY(-110vh) scale(0.4); opacity: 0; }
 }
 
+/* Variedad de color en las partículas (más "vistoso" sin tocar el TS/HTML) */
+.particle:nth-child(3n)  { background: #ffffff; box-shadow: 0 0 6px rgba(255,255,255,.7); }
+.particle:nth-child(4n)  { background: #4fc3f7; box-shadow: 0 0 6px rgba(79,195,247,.6); }
+.particle:nth-child(7n)  { background: #ffd23f; box-shadow: 0 0 6px rgba(255,210,63,.6); }
+
 /* ── PANEL IZQUIERDO — BRANDING ── */
 .brand-side {
   --brand-rgb: 240,116,32;            /* fallback; lo sobreescribe el TS según marca */
@@ -58,6 +63,24 @@
   left: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
+}
+
+/* Segundo resplandor ("aurora") que se mueve despacio, para dar profundidad */
+.brand-side::after {
+  content: '';
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(26,95,173,.16) 0%, transparent 70%);
+  top: 12%;
+  left: 8%;
+  pointer-events: none;
+  animation: aurora-drift 10s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(50px, 36px) scale(1.18); }
 }
 
 .brand-content {
@@ -121,6 +144,11 @@
   animation: lionBreath 3.5s ease-in-out infinite;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.45));
 }
+
+/* Al pasar el mouse por el león: todo se acelera un poco (igual que en el sidebar) */
+.lion-stage:hover .ring        { animation-duration: 1.3s; }
+.lion-stage:hover .lion-circle { animation-duration: 1.8s, 1.2s; }
+.lion-stage:hover .lion-emoji  { animation-duration: 0.7s; }
 
 /* ── Dúo de leoncitos (login muestra ambas marcas) ── */
 .lion-duo {
@@ -235,9 +263,29 @@
   font-family: 'Segoe UI', sans-serif;
   animation: letterEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.bn-leoncito { color: #F2A22C; text-shadow: 0 0 20px rgba(242,162,44,0.55), 0 2px 4px rgba(0,0,0,0.5); }
-.bn-realzza  { color: #DCE8FF; text-shadow: 0 0 20px rgba(160,200,255,0.5), 0 2px 4px rgba(0,0,0,0.5); animation-delay: 0.15s; }
+.bn-leoncito {
+  background-image: linear-gradient(90deg, #F2A22C 0%, #ffe2b0 50%, #F2A22C 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 20px rgba(242,162,44,0.55), 0 2px 4px rgba(0,0,0,0.5);
+  animation: letterEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both, bn-shimmer 4s linear 1s infinite;
+}
+.bn-realzza {
+  background-image: linear-gradient(90deg, #DCE8FF 0%, #ffffff 50%, #DCE8FF 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: 0 0 20px rgba(160,200,255,0.5), 0 2px 4px rgba(0,0,0,0.5);
+  animation: letterEntrance 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both, bn-shimmer 4s linear 1.2s infinite;
+}
 .bn-sep      { color: rgba(255,255,255,0.55); font-size: 30px; font-weight: 700; }
+@keyframes bn-shimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* El rombo del separador gira despacio */
+.brand-divider .dot { display: inline-block; animation: dot-spin 3.2s linear infinite; }
+@keyframes dot-spin { to { transform: rotate(360deg); } }
 
 /* Una sola marca (usuario ya identificado): nombre + tienda (Piura/Lima), si aplica. */
 .brand-name--solo { flex-direction: column; align-items: center; gap: 4px; }
@@ -327,6 +375,11 @@
     0 0 0 1px rgba(240,116,32,0.08);
   position: relative;
   z-index: 2;
+  animation: card-in .65s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(24px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Línea de acento superior */
@@ -342,6 +395,7 @@
 .form-header {
   text-align: center;
   margin-bottom: 32px;
+  animation: field-in .5s ease .05s both;
 }
 
 .form-icon {
@@ -354,6 +408,27 @@
   justify-content: center;
   margin: 0 auto 16px;
   box-shadow: 0 8px 24px rgba(240,116,32,0.35);
+  position: relative;
+}
+
+/* Anillo que respira alrededor del ícono */
+.form-icon::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(240,116,32,.45);
+  animation: ficon-pulse 2.4s ease-out infinite;
+}
+@keyframes ficon-pulse {
+  0%   { transform: scale(.85); opacity: .9; }
+  70%  { opacity: .15; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+@keyframes field-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .form-icon mat-icon {
@@ -379,7 +454,10 @@
 /* ── CAMPOS ── */
 .field-group {
   margin-bottom: 20px;
+  animation: field-in .5s ease both;
 }
+.field-group:nth-of-type(1) { animation-delay: .15s; }
+.field-group:nth-of-type(2) { animation-delay: .25s; }
 
 .field-group label {
   display: block;
@@ -389,7 +467,10 @@
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
+  transition: color .2s ease;
 }
+/* El label se tiñe cuando su input está en foco (navegadores modernos) */
+.field-group:has(.input-wrap:focus-within) label { color: #f07420; }
 
 .input-wrap {
   display: flex;
@@ -398,6 +479,7 @@
   border: 1.5px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   overflow: hidden;
+  position: relative;
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
@@ -406,6 +488,16 @@
   background: rgba(240,116,32,0.05);
   box-shadow: 0 0 0 3px rgba(240,116,32,0.1);
 }
+
+/* Línea de acento que crece de izquierda a derecha al enfocar */
+.input-wrap::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: 0; height: 2px; width: 0;
+  background: linear-gradient(90deg, #f07420, #1a5fad);
+  transition: width .3s ease;
+}
+.input-wrap:focus-within::after { width: 100%; }
 
 .input-wrap mat-icon {
   font-size: 18px;
@@ -453,7 +545,9 @@
   width: 18px;
   height: 18px;
   padding: 0;
+  transition: color .2s, transform .2s;
 }
+.eye-btn:hover mat-icon { transform: scale(1.15); }
 
 /* ── ERROR ── */
 .error-box {
@@ -467,6 +561,14 @@
   margin-bottom: 16px;
   color: #fc8181;
   font-size: 13px;
+  animation: error-shake .4s ease;
+}
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
 }
 
 .error-box mat-icon {
@@ -490,7 +592,21 @@
   transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
   box-shadow: 0 6px 20px rgba(240,116,32,0.35);
   letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  animation: field-in .5s ease .35s both;
 }
+
+/* Brillo diagonal que recorre el botón al pasar el mouse */
+.btn-ingresar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%; width: 40%; height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(255,255,255,.35), transparent);
+  transform: skewX(-20deg);
+  transition: left .6s ease;
+}
+.btn-ingresar:hover:not(:disabled)::before { left: 130%; }
 
 .btn-ingresar:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -544,6 +660,7 @@
   color: #2a3a50;
   font-size: 11px;
   letter-spacing: 0.5px;
+  animation: field-in .5s ease .45s both;
 }
 
 .form-footer mat-icon {
@@ -551,6 +668,11 @@
   width: 14px;
   height: 14px;
   color: #1a5fad;
+  animation: shield-pulse 2.6s ease-in-out infinite;
+}
+@keyframes shield-pulse {
+  0%, 100% { opacity: .7; }
+  50%      { opacity: 1; filter: drop-shadow(0 0 4px rgba(26,95,173,.6)); }
 }
 
 /* ── TOPBAR USUARIO — para el dashboard ── */

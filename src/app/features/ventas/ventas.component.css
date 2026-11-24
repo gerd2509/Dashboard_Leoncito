@@ -44,25 +44,31 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #F0F6FF;
+    background: linear-gradient(90deg, rgba(255,193,69,0.12), rgba(255,193,69,0.02));
     color: #1E3A5F;
-    padding: 11px 18px;
+    padding: 10px 16px;
     border-radius: 9px;
     font-size: 12.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
     margin: 20px 0 10px 0;
-    border: 1px solid #CCDAEE;
-    border-left: 3px solid #1A5FAD;
-    box-shadow: 0 1px 4px rgba(26,95,173,0.07);
+    border: 1px solid #f3e0b8;
+    border-left: 3px solid #E8930B;
+    box-shadow: 0 1px 4px rgba(230,149,0,0.08);
 }
 
 .section-header mat-icon {
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-    color: #1A5FAD;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 16px;
+    background: linear-gradient(135deg, #E8930B, #FFC145);
+    color: #fff;
+    box-shadow: 0 3px 8px rgba(230,149,0,0.3);
 }
 
 /* =========================================================
@@ -79,8 +85,8 @@
     background: #FFFFFF;
     border-radius: 12px;
     padding: 18px 16px;
-    border: 1px solid #CCDAEE;
-    border-top: 3px solid #1A5FAD;
+    border: 1px solid #f3e0b8;
+    border-top: 3px solid #E8930B;
     text-align: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
     position: relative;
@@ -92,14 +98,14 @@
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 60px;
-    background: linear-gradient(180deg, rgba(26,95,173,0.05) 0%, transparent 100%);
+    background: linear-gradient(180deg, rgba(230,149,0,0.08) 0%, transparent 100%);
     pointer-events: none;
 }
 
 .card-resumen:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(26,95,173,0.14);
-    border-color: #1A5FAD;
+    box-shadow: 0 8px 24px rgba(230,149,0,0.16);
+    border-color: #E8930B;
 }
 
 .card-resumen .titulo {
@@ -114,7 +120,7 @@
 .card-resumen .valor {
     font-size: 24px;
     font-weight: 800;
-    color: #1A5FAD;
+    color: #E8930B;
     line-height: 1;
     letter-spacing: -0.5px;
 }

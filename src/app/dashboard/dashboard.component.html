@@ -17,9 +17,10 @@
 
     <div class="sidebar-content">
 
-      <!-- Menú filtrado por sede/rol -->
+      <!-- Menú filtrado por sede/rol — cada grupo tiene su color de acento -->
       <ng-container *ngFor="let item of menuItemsVisibles">
-        <div *ngIf="item.submenu; else simpleItem" class="menu-group">
+        <div *ngIf="item.submenu; else simpleItem" class="menu-group" [class.has-active]="grupoTieneActivo(item)"
+             [style.--accent-rgb]="colorDe(item)">
           <button class="menu-main" (click)="toggleSubmenu(item.label)">
             <mat-icon>{{ item.icon }}</mat-icon>
             <span>{{ item.label }}</span>
@@ -27,7 +28,7 @@
           </button>
 
           <div class="submenu" [class.open]="submenuAbierto === item.label">
-            <button *ngFor="let sub of item.submenu" (click)="selectModule(sub.modulo)">
+            <button *ngFor="let sub of item.submenu" [class.active]="moduloSeleccionado === sub.modulo" (click)="selectModule(sub.modulo)">
               <mat-icon>{{ sub.icon }}</mat-icon>
               <span>{{ sub.label }}</span>
             </button>
@@ -35,7 +36,8 @@
         </div>
 
         <ng-template #simpleItem>
-          <button class="menu-main" (click)="selectModuleRaiz(item.modulo)">
+          <button class="menu-main" [class.active]="moduloSeleccionado === item.modulo"
+                  [style.--accent-rgb]="colorDe(item)" (click)="selectModuleRaiz(item.modulo)">
             <mat-icon>{{ item.icon }}</mat-icon>
             <span>{{ item.label }}</span>
           </button>
@@ -94,7 +96,10 @@
       <button class="hamburger" (click)="toggleSidebar()" aria-label="Menú">
         <mat-icon>menu</mat-icon>
       </button>
-      <div class="titulo-modulo">{{ getTituloModulo() }}</div>
+      <div class="titulo-modulo" [style.--accent-rgb]="getAccentModulo()">
+        <span class="tm-icon"><mat-icon>{{ getIconoModulo() }}</mat-icon></span>
+        {{ getTituloModulo() }}
+      </div>
       <div class="topbar-user">
         <button class="user-trigger" [class.open]="userMenuOpen" (click)="toggleUserMenu()"
                 [style.--brand-rgb]="brand.rgb" title="Mi cuenta">

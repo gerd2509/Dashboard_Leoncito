@@ -39,7 +39,7 @@
   transition: background .15s, color .15s;
 }
 .cs-tipo button mat-icon { font-size: 17px; height: 17px; width: 17px; }
-.cs-tipo button.active { background: #293964; color: #fff; }
+.cs-tipo button.active { background: rgb(142,111,247); color: #fff; }
 
 .cs-kpis-wrap { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 2px 14px; }
 .cs-kpis { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -178,9 +178,9 @@
 }
 .cs-views button:hover { background: #d5deef; }
 .cs-views button.active {
-  background: #293964;
+  background: rgb(142,111,247);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(41,57,100,.28);
+  box-shadow: 0 2px 8px rgba(142,111,247,.35);
 }
 
 /* ── Popup: detalle de un control ── */
@@ -312,7 +312,7 @@
   gap: 12px;
   margin: -4px -4px 14px;
   padding: 12px 14px;
-  background: #293964;
+  background: linear-gradient(135deg, #4b2e8f, rgb(142,111,247));
   border-radius: 10px;
 }
 .cs-dia-head-fecha {
@@ -457,10 +457,13 @@
 .cs-rep { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .cs-rep-head {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  background: linear-gradient(135deg, #14315a, #1A5FAD); color: #fff; padding: 13px 18px;
+  background: linear-gradient(135deg, #4b2e8f, rgb(142,111,247)); color: #fff; padding: 13px 18px;
 }
 .cs-rep-title { display: flex; align-items: center; gap: 11px; }
-.cs-rep-title mat-icon { font-size: 28px; width: 28px; height: 28px; }
+.cs-rep-title mat-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 22px; width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.18);
+}
 .cs-rep-title b { display: block; font-size: 15.5px; }
 .cs-rep-title small { display: block; opacity: .88; font-size: 12px; margin-top: 2px; }
 .cs-rep-actions { display: flex; align-items: center; gap: 8px; }

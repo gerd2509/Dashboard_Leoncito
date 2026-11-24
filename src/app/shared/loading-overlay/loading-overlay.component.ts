@@ -53,32 +53,51 @@ import { MatIconModule } from '@angular/material/icon';
     }
     @keyframes lo-pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .lo-stage { position: relative; width: 76px; height: 76px; display: grid; place-items: center; }
+    /* Resplandor pulsante detrás de los anillos */
+    .lo-stage::before {
+      content: ''; position: absolute; inset: -12px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(26,95,173,.22), transparent 70%);
+      animation: lo-glow 1.8s ease-in-out infinite alternate;
+    }
+    @keyframes lo-glow { from { opacity: .35; transform: scale(.88); } to { opacity: .9; transform: scale(1.1); } }
+    /* Anillos con "cola" degradada (conic-gradient) en vez de borde plano: más fino y moderno */
     .lo-ring {
       position: absolute; inset: 0; border-radius: 50%;
-      border: 3px solid #e3edf7; border-top-color: #1A5FAD;
+      background: conic-gradient(from 0deg, transparent 0%, transparent 55%, #1A5FAD 100%);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
       animation: lo-spin .9s linear infinite;
     }
     .lo-ring2 {
-      inset: 9px; border-width: 3px; border-top-color: #F07420;
+      inset: 9px;
+      background: conic-gradient(from 0deg, transparent 0%, transparent 60%, #F07420 100%);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+      mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
       animation: lo-spin 1.3s linear infinite reverse;
     }
     @keyframes lo-spin { to { transform: rotate(360deg); } }
     .lo-core {
-      display: grid; place-items: center; width: 40px; height: 40px;
+      display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #eef5fc, #dce9f8);
+      box-shadow: 0 4px 14px rgba(26,95,173,.22);
       animation: lo-beat 1.1s ease-in-out infinite;
     }
-    .lo-core mat-icon { font-size: 26px; width: 26px; height: 26px; color: #1A5FAD; }
+    .lo-core mat-icon { font-size: 24px; width: 24px; height: 24px; color: #1A5FAD; }
     @keyframes lo-beat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.14); } }
     .lo-msg { font-weight: 800; font-size: 15px; color: #1E3A5F; }
     .lo-sub { font-size: 12.5px; color: #7d93a8; font-weight: 500; margin-top: -4px; }
     .lo-dots { display: flex; gap: 6px; margin-top: 2px; }
     .lo-dots span {
       width: 8px; height: 8px; border-radius: 50%; background: #1A5FAD;
+      box-shadow: 0 0 0 rgba(26,95,173,.4);
       animation: lo-bounce 1s ease-in-out infinite;
     }
     .lo-dots span:nth-child(2) { animation-delay: .15s; background: #3d7fc0; }
     .lo-dots span:nth-child(3) { animation-delay: .3s; background: #F07420; }
-    @keyframes lo-bounce { 0%,100% { transform: translateY(0); opacity: .5; } 50% { transform: translateY(-7px); opacity: 1; } }
+    @keyframes lo-bounce {
+      0%, 100% { transform: translateY(0) scale(1); opacity: .5; box-shadow: 0 0 0 rgba(26,95,173,0); }
+      50%      { transform: translateY(-7px) scale(1.15); opacity: 1; box-shadow: 0 2px 8px rgba(26,95,173,.35); }
+    }
   `],
 })
 export class LoadingOverlayComponent {

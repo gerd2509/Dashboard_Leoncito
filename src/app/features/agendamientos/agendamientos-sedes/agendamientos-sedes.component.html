@@ -11,12 +11,12 @@
     </dx-select-box>
 
     <button class="button" mat-flat-button (click)="actualizar()" [disabled]="isLoading">
-        <mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon>
+        <span class="btn-icon"><mat-icon>{{ isLoading ? 'hourglass_empty' : 'search' }}</mat-icon></span>
         {{ isLoading ? 'Actualizando...' : 'Actualizar' }}
     </button>
 
     <button class="button" mat-flat-button (click)="exportar()">
-        <mat-icon>file_download</mat-icon>
+        <span class="btn-icon"><mat-icon>file_download</mat-icon></span>
         Exportar
     </button>
 

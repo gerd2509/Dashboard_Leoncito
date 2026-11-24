@@ -3,7 +3,7 @@
 
   <!-- ── Sub-menú lateral ── -->
   <aside class="seg-side">
-    <div class="seg-side-brand"><mat-icon>shield</mat-icon> Seguridad</div>
+    <div class="seg-side-brand"><span class="seg-chip"><mat-icon>shield</mat-icon></span> Seguridad</div>
     <button class="seg-side-item activo">
       <mat-icon>group</mat-icon> Usuarios
     </button>
@@ -21,7 +21,7 @@
     <div *ngIf="vista === 'usuarios'" class="seg-card">
       <div class="seg-card-tools">
         <div class="sct-left">
-          <mat-icon>group</mat-icon>
+          <span class="seg-chip sm"><mat-icon>group</mat-icon></span>
           <span>Usuarios del sistema</span>
           <span class="sct-count" *ngIf="!cargandoU">{{ usuarios.length }}</span>
         </div>
@@ -57,7 +57,10 @@
           [allowFiltering]="false" [allowSearch]="false" cellTemplate="accTpl"></dxi-column>
 
         <div *dxTemplate="let d of 'estadoTpl'">
-          <span class="estado-chip" [class.on]="d.data.activo">{{ d.data.activo ? 'Activo' : 'Inactivo' }}</span>
+          <span class="estado-chip" [class.on]="d.data.activo">
+            <mat-icon>{{ d.data.activo ? 'check_circle' : 'cancel' }}</mat-icon>
+            {{ d.data.activo ? 'Activo' : 'Inactivo' }}
+          </span>
         </div>
         <div *dxTemplate="let d of 'accTpl'" class="usr-acc">
           <button (click)="editarUsuario(d.data)" title="Editar"><mat-icon>edit</mat-icon></button>

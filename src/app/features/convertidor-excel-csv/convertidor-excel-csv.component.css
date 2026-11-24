@@ -10,3 +10,13 @@
     border: 1px solid #CCDAEE;
     margin-bottom: 18px;
 }
+
+.cx-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.cx-head-chip {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 46px; height: 46px; border-radius: 14px; font-size: 20px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #26C6DA, #00A8BF);
+  box-shadow: 0 6px 16px rgba(38,198,218,.3);
+}
+.cx-head h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1E3A5F; }
+.cx-head p { margin: 2px 0 0; color: #78909c; font-size: 13px; }

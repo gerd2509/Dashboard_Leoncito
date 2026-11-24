@@ -23,11 +23,13 @@
         displayExpr="HeaderName" valueExpr="HeaderField" placeholder="Columnas" label="Columnas"
         labelMode="floating" stylingMode="underlined" [showSelectionControls]="true"
         (onValueChanged)="onColumnsChange()" [showDropDownButton]="true" [maxDisplayedTags]="0" />
-    <button mat-flat-button [disabled]="formVentas.invalid || cargandoBD" (click)="cargarDesdeBD()">
+    <button mat-flat-button [disabled]="formVentas.invalid || cargandoBD" (click)="cargarDesdeBD()"
+        style="background:linear-gradient(135deg,#E8930B,#FFC145); color:#fff; border-radius:8px; font-weight:700; box-shadow:0 4px 12px rgba(230,149,0,.3);">
         <mat-icon>search</mat-icon> Actualizar
     </button>
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
-    <button mat-flat-button (click)="fileInput.click()">
+    <button mat-flat-button (click)="fileInput.click()"
+        style="background:linear-gradient(135deg,#1A5FAD,#4FC3F7); color:#fff; border-radius:8px; font-weight:700; box-shadow:0 4px 12px rgba(26,95,173,.3);">
         <mat-icon>upload</mat-icon> Importar Excel
     </button>
 </form>
@@ -119,7 +121,7 @@
         {{ showDetailGrid ? 'Ocultar tabla de detalle' : 'Ver tabla de detalle completa' }}
     </button>
     <button *ngIf="showDetailGrid" mat-flat-button color="primary" (click)="exportar()"
-        style="border-radius:8px; font-weight:600;">
+        style="background:linear-gradient(135deg,#2E7D32,#66BB6A); color:#fff; border-radius:8px; font-weight:700; box-shadow:0 4px 12px rgba(46,125,50,.3);">
         <mat-icon>file_download</mat-icon> Exportar detalle
     </button>
 </div>

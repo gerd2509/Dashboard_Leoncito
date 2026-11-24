@@ -5,7 +5,7 @@
   <!-- Encabezado + acciones -->
   <div class="mc-head">
     <div>
-      <div class="mc-title"><mat-icon>badge</mat-icon> Maestro CAP — Asesores por Sede</div>
+      <div class="mc-title"><span class="mc-chip"><mat-icon>badge</mat-icon></span> Maestro CAP — Asesores por Sede</div>
       <div class="mc-sub">Agrega, edita o elimina asesores. Se reflejan en Control Gestión/Call Sedes, Pizarra de Metas y el registro de sedes.</div>
     </div>
     <span class="mc-total">{{ filas.length }} asesores</span>
@@ -51,7 +51,9 @@
 
       <div *dxTemplate="let c of 'vendTpl'"><span class="mc-vend">{{ c.value }}</span></div>
       <div *dxTemplate="let c of 'estadoTpl'">
-        <span class="mc-estado" [class.activo]="c.value === 'ACTIVO'" [class.baja]="c.value !== 'ACTIVO'">{{ c.value }}</span>
+        <span class="mc-estado" [class.activo]="c.value === 'ACTIVO'" [class.baja]="c.value !== 'ACTIVO'">
+          <mat-icon>{{ c.value === 'ACTIVO' ? 'check_circle' : 'cancel' }}</mat-icon> {{ c.value }}
+        </span>
       </div>
     </dx-data-grid>
   </div>

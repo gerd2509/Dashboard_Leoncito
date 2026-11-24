@@ -125,10 +125,21 @@ export class RegistroAsistenciaComponent implements OnInit {
     const base = this.sedeFiltro ? this.filas.filter(f => f.sede === this.sedeFiltro) : this.filas;
     this.asesoresDisponibles = Array.from(new Set(base.map(f => f.nombre).filter(Boolean))).sort();
   }
+  // Contadores (sobre lo filtrado) para las tarjetas de resumen del admin.
+  totalFilas = 0;
+  dentroCount = 0;
+  fueraCount = 0;
+  sinConfigCount = 0;
+
   private recomputarFilasFiltradas(): void {
     this.filasFiltradas = this.filas.filter(f =>
       (!this.sedeFiltro || f.sede === this.sedeFiltro) &&
       (!this.asesorFiltro || f.nombre === this.asesorFiltro));
+
+    this.totalFilas = this.filasFiltradas.length;
+    this.dentroCount = this.filasFiltradas.filter(f => f.dentro_rango === true).length;
+    this.fueraCount = this.filasFiltradas.filter(f => f.dentro_rango === false).length;
+    this.sinConfigCount = this.filasFiltradas.filter(f => f.dentro_rango === null).length;
   }
 
   onMesChange(): void {

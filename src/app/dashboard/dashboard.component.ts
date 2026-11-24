@@ -167,6 +167,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private fraseTimer?: ReturnType<typeof setInterval>;
   private celebrarTimer?: ReturnType<typeof setTimeout>;
 
+  // ── Paleta de acentos por sección (mismos colores que el confeti del
+  // leoncito): cada grupo del menú recibe un color fijo e identificable,
+  // y el topbar usa el mismo color para el módulo abierto. ──
+  readonly paletaMenu: string[] = [
+    '240,116,32',   // naranja marca
+    '46,204,113',   // verde
+    '0,206,201',    // teal
+    '232,67,147',   // rosa
+    '255,193,69',   // ámbar
+    '79,195,247',   // celeste
+    '142,111,247',  // morado
+    '255,107,107',  // coral
+    '92,107,192',   // índigo
+    '38,198,218',   // cian
+  ];
+
   readonly menuItems: MenuItem[] = [
     { icon: 'dashboard_customize', label: 'Mi Panel', modulo: 'mi-panel' },
     { icon: 'location_on', label: 'Registro de Asistencia', modulo: 'registro-asistencia' },
@@ -492,7 +508,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return found?.label ?? 'Seleccione un módulo';
   }
 
+  /** Icono del módulo actualmente abierto (para el chip del topbar). */
+  getIconoModulo(): string {
+    const found = this.flatMenuItems(this.menuItems).find(i => i.modulo === this.moduloSeleccionado);
+    return found?.icon ?? 'dashboard';
+  }
+
   private flatMenuItems(items: MenuItem[]): Array<{ label: string; icon: string; modulo?: string }> {
     return items.flatMap(m => m.submenu ? m.submenu : [{ label: m.label, icon: m.icon, modulo: m.modulo }]);
+  }
+
+  /** Índice del grupo de nivel superior al que pertenece un ítem (identidad
+   * estable: por `label` si es un grupo con submenú, por `modulo` si es un
+   * ítem simple — así el color no cambia aunque el texto se adapte por sede). */
+  private indiceGrupo(item: MenuItem): number {
+    const i = this.menuItems.findIndex(m => item.submenu ? m.label === item.label : m.modulo === item.modulo);
+    return i < 0 ? 0 : i;
+  }
+
+  /** Color de acento (rgb "r,g,b") de un ítem de menú, para el chip de icono. */
+  colorDe(item: MenuItem): string {
+    return this.paletaMenu[this.indiceGrupo(item) % this.paletaMenu.length];
+  }
+
+  /** Color de acento del módulo actualmente abierto (topbar). */
+  getAccentModulo(): string {
+    const i = this.menuItems.findIndex(m => m.modulo === this.moduloSeleccionado || m.submenu?.some(s => s.modulo === this.moduloSeleccionado));
+    return this.paletaMenu[(i < 0 ? 0 : i) % this.paletaMenu.length];
+  }
+
+  /** true si el módulo activo está dentro del submenú de este grupo (resalta el header del grupo). */
+  grupoTieneActivo(item: MenuItem): boolean {
+    return !!item.submenu?.some(s => s.modulo === this.moduloSeleccionado);
   }
 }

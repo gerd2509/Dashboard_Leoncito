@@ -3,7 +3,7 @@
   <!-- Marcar asistencia -->
   <div class="ra-card">
     <div class="ra-head">
-      <mat-icon>location_on</mat-icon>
+      <span class="ra-head-chip"><mat-icon>location_on</mat-icon></span>
       <div>
         <h2>Registro de Asistencia</h2>
         <small>Marca tu llegada — se guarda tu ubicación, fecha y hora.</small>
@@ -11,7 +11,7 @@
     </div>
 
     <button class="ra-btn" (click)="marcarAsistencia()" [disabled]="marcando">
-      <mat-icon [class.girando]="marcando">{{ marcando ? 'sync' : 'my_location' }}</mat-icon>
+      <span class="ra-btn-icon"><mat-icon [class.girando]="marcando">{{ marcando ? 'sync' : 'my_location' }}</mat-icon></span>
       {{ marcando ? 'Obteniendo tu ubicación…' : 'Marcar Asistencia' }}
     </button>
 
@@ -29,8 +29,27 @@
   <!-- Listado de revisión (admin/gerente/supervisor) -->
   <div class="ra-card" *ngIf="puedeVerListado">
     <div class="ra-head">
-      <mat-icon>fact_check</mat-icon>
+      <span class="ra-head-chip verde"><mat-icon>fact_check</mat-icon></span>
       <div><h2>Asistencias Registradas</h2><small>Revisa quién marcó dentro o fuera de la ubicación esperada.</small></div>
+    </div>
+
+    <div class="ra-stats" *ngIf="totalFilas">
+      <div class="ra-stat total">
+        <mat-icon>groups</mat-icon>
+        <div><b>{{ totalFilas }}</b><small>Total</small></div>
+      </div>
+      <div class="ra-stat ok">
+        <mat-icon>check_circle</mat-icon>
+        <div><b>{{ dentroCount }}</b><small>Dentro de rango</small></div>
+      </div>
+      <div class="ra-stat fuera">
+        <mat-icon>warning</mat-icon>
+        <div><b>{{ fueraCount }}</b><small>Fuera de rango</small></div>
+      </div>
+      <div class="ra-stat sin-config">
+        <mat-icon>info</mat-icon>
+        <div><b>{{ sinConfigCount }}</b><small>Sin ubicación</small></div>
+      </div>
     </div>
 
     <div class="ra-filtros">
@@ -72,7 +91,10 @@
       </div>
       <div *dxTemplate="let c of 'distTpl'">{{ c.value != null ? (c.value | number) + ' m' : '—' }}</div>
       <div *dxTemplate="let c of 'estadoTpl'">
-        <span class="ra-badge" [ngClass]="estadoClase(c.data)">{{ estadoTexto(c.data) }}</span>
+        <span class="ra-badge" [ngClass]="estadoClase(c.data)">
+          <mat-icon>{{ c.data.dentro_rango === null ? 'info' : (c.data.dentro_rango ? 'check_circle' : 'warning') }}</mat-icon>
+          {{ estadoTexto(c.data) }}
+        </span>
       </div>
     </dx-data-grid>
     <div *ngIf="!filasFiltradas.length && !cargandoListado" class="ra-empty"><mat-icon>search_off</mat-icon> Sin asistencias en el mes/filtro elegido.</div>

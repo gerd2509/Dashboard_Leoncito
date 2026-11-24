@@ -1,8 +1,11 @@
 :host {
   display: block;
   position: relative;
-  --azul: #1A5FAD;
-  --azul-suave: #F0F6FF;
+  /* Acento del grupo "Análisis" del menú (coral) — chips, header y acciones
+     principales usan esta variable para quedar en la misma identidad visual
+     que el sidebar/topbar del dashboard. */
+  --azul: #FF6B6B;
+  --azul-suave: #FFF2F1;
   --borde: #CCDAEE;
   --texto: #1f2d3d;
   --gris: #6b7a90;
@@ -13,7 +16,7 @@
 
 .encabezado { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
 .enc-icono { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 14px;
-  background: linear-gradient(135deg, var(--azul), #2b7fd6); color: #fff; box-shadow: 0 6px 18px rgba(26,95,173,.28); flex-shrink: 0; }
+  background: linear-gradient(135deg, var(--azul), #ff9b9b); color: #fff; box-shadow: 0 6px 18px rgba(255,107,107,.3); flex-shrink: 0; }
 .enc-icono mat-icon { font-size: 28px; width: 28px; height: 28px; }
 .encabezado h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--azul); }
 .encabezado p { margin: 4px 0 0; font-size: 13.5px; color: var(--gris); }
@@ -23,7 +26,7 @@
 .modos { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
 .modo-card { text-align: left; cursor: pointer; background: #fff; border: 1px solid var(--borde); border-radius: 16px;
   padding: 22px 20px; transition: transform .12s, box-shadow .15s, border-color .15s; }
-.modo-card:hover { transform: translateY(-3px); border-color: var(--azul); box-shadow: 0 10px 26px rgba(26,95,173,.16); }
+.modo-card:hover { transform: translateY(-3px); border-color: var(--azul); box-shadow: 0 10px 26px rgba(255,107,107,.18); }
 .modo-ico { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 13px; color: #fff; margin-bottom: 14px; }
 .modo-ico.call { background: linear-gradient(135deg, #1A5FAD, #2b7fd6); }
 .modo-ico.realzza { background: linear-gradient(135deg, #E65100, #f59e0b); }
@@ -46,9 +49,11 @@
 .dz-titulo { margin: 14px 0 2px; font-size: 17px; font-weight: 700; }
 .dz-sub { margin: 8px 0; color: var(--gris); font-size: 13px; }
 .dz-formatos { margin: 16px 0 0; font-size: 12px; color: var(--gris); }
-.btn-cargar { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; background: var(--azul); color: #fff;
-  font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; box-shadow: 0 4px 14px rgba(26,95,173,.3); border: 0; }
-.btn-cargar:hover { background: #14508f; }
+.btn-cargar { display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  background: linear-gradient(135deg, var(--azul), #ff9b9b); color: #fff;
+  font-weight: 600; font-size: 14px; padding: 11px 22px; border-radius: 10px; box-shadow: 0 6px 16px rgba(255,107,107,.35); border: 0;
+  transition: transform .15s, box-shadow .2s; }
+.btn-cargar:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,107,107,.45); }
 .btn-cargar mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
 /* Tienda (Chiclayo/Piura/Lima) dentro de Realzza */

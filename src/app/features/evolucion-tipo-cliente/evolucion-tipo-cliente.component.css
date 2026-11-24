@@ -1,4 +1,4 @@
-:host { display: block; position: relative; }
+:host { display: block; position: relative; --accent-rgb: 255,193,69; }
 
 .form {
     display: flex;
@@ -11,6 +11,18 @@
     border-radius: 12px;
     border: 1px solid #CCDAEE;
     margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+}
+.form::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, rgb(var(--accent-rgb)), #4FC3F7);
+}
+.form ::ng-deep button[mat-flat-button] {
+    background: linear-gradient(135deg, rgb(var(--accent-rgb)), #4FC3F7) !important;
+    color: #1E3A5F !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
 }
 
 .focqus-elevation { box-shadow: 0 4px 20px rgba(26,95,173,0.1); }

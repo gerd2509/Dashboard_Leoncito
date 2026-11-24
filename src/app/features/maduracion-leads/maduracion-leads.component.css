@@ -9,7 +9,7 @@
 }
 .ml-seg button + button { border-left: 1px solid #e3ecf5; }
 .ml-seg button mat-icon { font-size: 18px; width: 18px; height: 18px; }
-.ml-seg button.on { background: #1A5FAD; color: #fff; }
+.ml-seg button.on { background: linear-gradient(135deg, #FF6B6B, #ff9b9b); color: #fff; }
 .ml-seg-alt button.on { background: #F07420; }
 .ml-fechas { display: inline-flex; align-items: center; gap: 10px; margin-left: auto; }
 
@@ -35,7 +35,7 @@
 .ml-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 14px 16px; box-shadow: 0 3px 12px rgba(20,49,79,.05); margin-top: 16px; }
 .ml-card-h { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-weight: 800; color: #1E3A5F; margin-bottom: 12px; letter-spacing: .3px; }
 .ml-card-h > span:first-child, .ml-card-h { display: flex; align-items: center; gap: 8px; }
-.ml-card-h mat-icon { color: #1A5FAD; }
+.ml-card-h mat-icon { color: #FF6B6B; }
 .ml-sub { font-size: 12px; font-weight: 600; color: #7d93a8; letter-spacing: 0; }
 .ml-card-h-col { flex-direction: column; align-items: flex-start !important; gap: 2px; }
 .ml-sub-block { display: block; font-weight: 500; line-height: 1.4; }
@@ -43,7 +43,7 @@
 .ml-chart-seg { display: inline-flex; border: 1px solid #cddcec; border-radius: 8px; overflow: hidden; }
 .ml-chart-seg button { border: 0; background: #fff; padding: 6px 12px; font-size: 12px; font-weight: 700; color: #4a6a88; cursor: pointer; }
 .ml-chart-seg button + button { border-left: 1px solid #e3ecf5; }
-.ml-chart-seg button.on { background: #1A5FAD; color: #fff; }
+.ml-chart-seg button.on { background: linear-gradient(135deg, #FF6B6B, #ff9b9b); color: #fff; }
 
 /* ── Tabla ── */
 .ml-table-wrap { overflow-x: auto; }
@@ -63,8 +63,8 @@
 .ml-chart { height: 100%; width: 100%; display: block; }
 .ml-chart-box { height: 400px; }
 .ml-card-actions { display: inline-flex; align-items: center; gap: 8px; }
-.ml-max { display: inline-grid; place-items: center; width: 34px; height: 32px; border: 1px solid #cddcec; background: #fff; border-radius: 8px; color: #1A5FAD; cursor: pointer; transition: background .15s; }
-.ml-max:hover { background: #eef5fc; }
+.ml-max { display: inline-grid; place-items: center; width: 34px; height: 32px; border: 1px solid #cddcec; background: #fff; border-radius: 8px; color: #FF6B6B; cursor: pointer; transition: background .15s; }
+.ml-max:hover { background: #FFF2F1; }
 .ml-max mat-icon { font-size: 19px; width: 19px; height: 19px; }
 .ml-popup-chart { height: 100%; padding: 6px; }
 .ml-error { display: flex; align-items: center; gap: 8px; background: #fdecea; border: 1px solid #f5c6cb; color: #B71C1C; border-radius: 8px; padding: 12px 14px; font-weight: 600; margin-bottom: 10px; }
@@ -72,10 +72,10 @@
 /* ── Botón "Ver detalle" + celda Total clickeable ── */
 .ml-detalle-btn {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cddcec; background: #fff;
-  color: #1A5FAD; font-weight: 700; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  color: #FF6B6B; font-weight: 700; font-size: 12.5px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
   transition: background .15s;
 }
-.ml-detalle-btn:hover { background: #eef5fc; }
+.ml-detalle-btn:hover { background: #FFF2F1; }
 .ml-detalle-btn mat-icon { font-size: 18px; width: 18px; height: 18px; }
 .ml-table td.tot.click { cursor: pointer; transition: background .15s; }
 .ml-table td.tot.click:hover { background: #dcebfb !important; }

@@ -21,11 +21,13 @@
     <dx-select-box style="width: 300px;" formControlName="Asesores" [dataSource]="asesores" displayExpr="viewValue"
         valueExpr="value" label="Filtrar Vendedor" labelMode="floating" stylingMode="underlined" placeholder=""
         (onValueChanged)="onAsesorChanged($event)" [showClearButton]="true" />
-    <button mat-flat-button [disabled]="formVentas.invalid || cargandoBD" (click)="cargarDesdeBD()">
+    <button mat-flat-button [disabled]="formVentas.invalid || cargandoBD" (click)="cargarDesdeBD()"
+        style="background:linear-gradient(135deg,#E8930B,#FFC145); color:#fff; border-radius:8px; font-weight:700; box-shadow:0 4px 12px rgba(230,149,0,.3);">
         <mat-icon>search</mat-icon> Actualizar
     </button>
     <input type="file" (change)="importar($event)" accept=".xlsx, .xls" hidden #fileInput />
-    <button mat-flat-button (click)="fileInput.click()">
+    <button mat-flat-button (click)="fileInput.click()"
+        style="background:linear-gradient(135deg,#1A5FAD,#4FC3F7); color:#fff; border-radius:8px; font-weight:700; box-shadow:0 4px 12px rgba(26,95,173,.3);">
         <mat-icon>upload</mat-icon> Importar Excel
     </button>
 </form>
@@ -324,7 +326,8 @@
         [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="170"></dx-date-box>
     <dx-date-box formControlName="hasta" type="date" label="Hasta" labelMode="floating" displayFormat="MMMM yyyy"
         [calendarOptions]="{ maxZoomLevel: 'year' }" stylingMode="outlined" [width]="170"></dx-date-box>
-    <button mat-flat-button type="button" (click)="buscarMotosFuente()" [disabled]="cargandoMotosFuente">
+    <button mat-flat-button type="button" (click)="buscarMotosFuente()" [disabled]="cargandoMotosFuente"
+        style="background:linear-gradient(135deg,#E8930B,#FFC145); color:#fff; border-radius:8px; font-weight:700; box-shadow:0 4px 12px rgba(230,149,0,.3);">
         <mat-icon>{{ cargandoMotosFuente ? 'hourglass_empty' : 'search' }}</mat-icon>
         {{ cargandoMotosFuente ? 'Buscando...' : 'Buscar' }}
     </button>
