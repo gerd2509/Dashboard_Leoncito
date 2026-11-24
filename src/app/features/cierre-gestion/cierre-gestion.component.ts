@@ -161,9 +161,12 @@ export class CierreGestionComponent implements OnInit {
   ticketCall = 0;
   ticketRealzza = 0;
 
-  intervaloMediaHora: any = null;
-  timeoutMediaHora: any = null;
   intervaloCincoMin: any = null;
+  /** Momento de la última carga COMPLETA del mes (las demás actualizaciones traen solo hoy). */
+  private ultimaCargaCompleta = 0;
+  /** Momento de la última actualización (completa o de hoy). */
+  private ultimaActualizacion = 0;
+  private readonly onVisibilidad = () => this.alCambiarVisibilidad();
 
   semanas: string[] = [];
   semanaMap = new Map<string, string>();
@@ -222,7 +225,7 @@ export class CierreGestionComponent implements OnInit {
     return this.kellyAnitaRealzza ? this.asesoresCallBase : [...this.asesoresCallBase, ...this.TRANSICION];
   }
   // Lista REALZZA completa (Chiclayo + Piura + Lima) — ya NO depende del combo; se usa
-  // para los KPI/voz globales (siempre el equipo entero, independiente de qué tienda se
+  // para los KPI globales (siempre el equipo entero, independiente de qué tienda se
   // esté viendo en el detalle de abajo). Las 3 tiendas salen del Maestro CAP — ya no
   // hay lista hardcodeada en el código para ninguna (ver AsesoresPorTienda).
   get asesoresRealzza() {
@@ -371,6 +374,7 @@ export class CierreGestionComponent implements OnInit {
       this.dataKOMMO = dataKOMMO;
 
       this.calcularIndicadoresCompletos();
+      this.ultimaCargaCompleta = this.ultimaActualizacion = Date.now();
 
     } catch (error) {
       console.error('Error al cargar datos iniciales:', error);
@@ -379,12 +383,13 @@ export class CierreGestionComponent implements OnInit {
     }
 
     this.limpiarTimers();
-    this.programarActualizacionCadaMediaHora();
     this.programarActualizacionCadaCincoMinutos();
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibilidad);
   }
 
   ngOnDestroy() {
     this.limpiarTimers();
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibilidad);
   }
 
   /** El combo solo decide qué tiendas se muestran — ya no recalcula nada. */
@@ -420,7 +425,15 @@ export class CierreGestionComponent implements OnInit {
     this.totalGestionesPorAsesorYTipo();
   }
 
-  async actualizar() {
+  /**
+   * Recarga los datos.
+   *  - Completa (botón "Actualizar", cambio de fecha): trae el mes entero.
+   *  - soloHoy (automática cada 5 min): trae SOLO las gestiones de hoy y las fusiona con lo
+   *    ya cargado. El mes completo pesa varios MB y se descargaba cada 5 min → era casi
+   *    todo el ancho de banda de api-unificada en Render.
+   */
+  async actualizar(opciones: { soloHoy?: boolean } = {}) {
+    if (opciones.soloHoy) return this.actualizarSoloHoy();
     this.isLoading = true;
     try {
       await this.tiendas.cargar();
@@ -439,10 +452,57 @@ export class CierreGestionComponent implements OnInit {
       // this.dataPostVenta = dataPost;
       this.dataKOMMO = dataKOMMO;
       this.calcularIndicadoresCompletos();
+      this.ultimaCargaCompleta = this.ultimaActualizacion = Date.now();
     } catch (error) {
       console.error('Error al actualizar datos:', error);
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  /** Trae solo las gestiones de HOY y reemplaza las de hoy en los arreglos del mes. */
+  private async actualizarSoloHoy(): Promise<void> {
+    const hoy = new Date();
+    const rangoHoy = { desde: hoy, hasta: hoy };
+    try {
+      const [callHoy, realzzaHoy, kommoHoy] = await Promise.all([
+        lastValueFrom(this.service.getSheetDataCallRango(rangoHoy)),
+        lastValueFrom(this.service.getSheetDataCampoRango(rangoHoy)),
+        lastValueFrom(this.service.getSheetKOMMORango(rangoHoy)),
+      ]);
+      const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+      const sinHoy = (arr: any[]) => arr.filter(item => !this.esMismaFecha(item['Marca temporal'], d, m, a));
+      this.dataOriginal = [...(callHoy || []), ...sinHoy(this.dataOriginal)];
+      this.dataRealzza = [...(realzzaHoy || []), ...sinHoy(this.dataRealzza)];
+      this.dataKOMMO = [...(kommoHoy || []), ...sinHoy(this.dataKOMMO)];
+      this.calcularIndicadoresCompletos();
+      this.ultimaActualizacion = Date.now();
+    } catch (error) {
+      console.error('Error al actualizar las gestiones de hoy:', error);
+    }
+  }
+
+  /** ¿La fecha seleccionada cae en el mes actual? (si no, los datos ya no cambian). */
+  private viendoMesActual(): boolean {
+    const f: Date = this.formCierreGestion?.value?.fechaGestion || new Date();
+    const hoy = new Date();
+    return f.getFullYear() === hoy.getFullYear() && f.getMonth() === hoy.getMonth();
+  }
+
+  /** Actualización automática: solo si la pestaña está visible y se mira el mes actual.
+   *  Una vez por hora hace la carga completa para recoger correcciones de días anteriores. */
+  private async actualizacionAutomatica(): Promise<void> {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    if (!this.viendoMesActual()) return;
+    const unaHora = 60 * 60 * 1000;
+    if (Date.now() - this.ultimaCargaCompleta >= unaHora) await this.actualizar();
+    else await this.actualizar({ soloHoy: true });
+  }
+
+  /** Al volver a la pestaña, si pasaron más de 5 min desde la última actualización, refresca. */
+  private alCambiarVisibilidad(): void {
+    if (document.visibilityState === 'visible' && Date.now() - this.ultimaActualizacion > 5 * 60 * 1000) {
+      this.actualizacionAutomatica();
     }
   }
 
@@ -521,7 +581,7 @@ export class CierreGestionComponent implements OnInit {
   }
 
   /** Mapea los bloques a los campos "globales" que usan las tarjetas KPI, el reporte de
-   *  voz y los gráficos — para no tocar esa lógica, que no depende del combo de tienda. */
+   *  y los gráficos — para no tocar esa lógica, que no depende del combo de tienda. */
   private sincronizarCamposLegado(): void {
     const call = this.bloques.find(b => b.key === 'CALL');
     const realzza = this.bloques.filter(b => b.key !== 'CALL');
@@ -827,49 +887,17 @@ export class CierreGestionComponent implements OnInit {
 
   // TIMERS
   limpiarTimers() {
-    if (this.timeoutMediaHora) clearTimeout(this.timeoutMediaHora);
-    if (this.intervaloMediaHora) clearInterval(this.intervaloMediaHora);
     if (this.intervaloCincoMin) clearInterval(this.intervaloCincoMin);
-    this.timeoutMediaHora = null;
-    this.intervaloMediaHora = null;
     this.intervaloCincoMin = null;
-  }
-
-  programarActualizacionCadaMediaHora() {
-    const ahora = new Date();
-    const siguiente = new Date(ahora);
-    if (ahora.getMinutes() < 30) {
-      siguiente.setMinutes(30, 0, 0);
-    } else {
-      siguiente.setHours(ahora.getHours() + 1, 0, 0, 0);
-    }
-    const tiempoEspera = siguiente.getTime() - ahora.getTime();
-
-    if (this.timeoutMediaHora) clearTimeout(this.timeoutMediaHora);
-    if (this.intervaloMediaHora) clearInterval(this.intervaloMediaHora);
-
-    this.timeoutMediaHora = setTimeout(() => {
-      this.ejecutarActualizacionYVoz();
-      this.intervaloMediaHora = setInterval(() => {
-        this.ejecutarActualizacionYVoz();
-      }, 30 * 60 * 1000);
-    }, tiempoEspera);
   }
 
   programarActualizacionCadaCincoMinutos() {
     if (this.intervaloCincoMin) clearInterval(this.intervaloCincoMin);
-    this.intervaloCincoMin = setInterval(() => {
-      console.log("🔄 Actualización automática cada 5 minutos");
-      this.actualizar();
-    }, 5 * 60 * 1000);
+    this.intervaloCincoMin = setInterval(() => this.actualizacionAutomatica(), 5 * 60 * 1000);
   }
 
-  async ejecutarActualizacionYVoz() {
-    await this.actualizar();
-    this.leerAvance();
-  }
-
-  protected getNombreParaVoz(nombreCompleto: string): string {
+  /** Nombre corto del asesor para mostrar en la tabla (p. ej. "Yudith"). */
+  protected getNombreCorto(nombreCompleto: string): string {
     const normalizado = nombreCompleto.trim().toUpperCase();
     if (normalizado === "RIVAS PURISACA KAREN YUDITH") return "Yudith";
     if (normalizado === "BONILLA CHUMACERO VILMA ROSSMERY") return "Rosmery";
@@ -880,20 +908,6 @@ export class CierreGestionComponent implements OnInit {
 
   private capitalize(text: string): string {
     return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-  }
-
-  leerAvance() {
-    if (!('speechSynthesis' in window)) return;
-    let mensaje = 'Reporte actualizado. ';
-    this.dataContactabilidad.forEach(item => {
-      const nombre = this.getNombreParaVoz(item['ASESOR CONTACT'] ?? item['ASESOR REALZZA']);
-      mensaje += `${nombre} tiene ${item['CONTACTO']} contactos de ${item['TOTAL']} gestiones. `;
-    });
-    mensaje += `En total van ${this.totalDerivaciones} derivaciones. `;
-    const utterance = new SpeechSynthesisUtterance(mensaje);
-    utterance.lang = 'es-PE';
-    utterance.rate = 1;
-    speechSynthesis.speak(utterance);
   }
 
   private obtenerFechaSeleccionada(): { dia: number; mes: number; anio: number } | null {

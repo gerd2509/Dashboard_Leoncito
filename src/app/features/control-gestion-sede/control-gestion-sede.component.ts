@@ -266,7 +266,9 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
     // Carga los datos y renderiza YA (con la lista estática como fallback).
     await this.cargarDatos();
-    this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
+    // Auto-actualización cada 5 min, solo con la pestaña visible.
+    this.intervaloCincoMin = setInterval(() => { if (this.pestanaVisible()) this.cargarDatos(); }, 5 * 60 * 1000);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibilidad);
 
     // El CAP se carga en segundo plano; al llegar, recalcula con los nombres correctos.
     this.cargarRosterCap();
@@ -349,10 +351,21 @@ export class ControlGestionSedeComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.intervaloCincoMin) clearInterval(this.intervaloCincoMin);
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibilidad);
+  }
+
+  private ultimaCarga = Date.now();
+  /** Al volver a la pestaña, si pasaron más de 5 min desde la última carga, refresca. */
+  private readonly onVisibilidad = () => {
+    if (this.pestanaVisible() && Date.now() - this.ultimaCarga > 5 * 60 * 1000) this.cargarDatos();
+  };
+  private pestanaVisible(): boolean {
+    return typeof document === 'undefined' || document.visibilityState === 'visible';
   }
 
   async cargarDatos() {
     this.isLoading = true;
+    this.ultimaCarga = Date.now();
     try {
       // Recalcula sedesObjetivo primero: si el usuario cambió la fecha a un mes
       // donde una sede hoy cerrada seguía operando, debe reaparecer.

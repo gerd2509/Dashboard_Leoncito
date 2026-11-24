@@ -146,7 +146,7 @@
                         </div>
                         <div class="kpi-detail-item" *ngFor="let item of g.filas">
                             <div class="kpi-detail-top">
-                                <span class="kpi-detail-asesor">{{ getNombreParaVoz(item['ASESOR CONTACT']) }}</span>
+                                <span class="kpi-detail-asesor">{{ getNombreCorto(item['ASESOR CONTACT']) }}</span>
                                 <span class="kpi-detail-valor" [class.valor-zero]="item[campoValorKpi] === 0">
                                     {{ item[campoValorKpi] }}
                                 </span>

@@ -102,7 +102,24 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
     } finally {
       this.isLoading = false;
     }
-    this.intervaloCincoMin = setInterval(() => this.cargarDatos(), 5 * 60 * 1000);
+    // Auto-actualización cada 5 min, solo con la pestaña visible (no gasta ancho de banda
+    // en segundo plano). Al volver a la pestaña se refresca si ya pasaron 5 min.
+    this.intervaloCincoMin = setInterval(() => { if (this.pestanaVisible()) this.cargarDatos(); }, 5 * 60 * 1000);
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibilidad);
+  }
+
+  private ultimaCarga = Date.now();
+  private readonly onVisibilidad = () => {
+    if (this.pestanaVisible() && Date.now() - this.ultimaCarga > 5 * 60 * 1000) this.cargarDatos();
+  };
+  private pestanaVisible(): boolean {
+    return typeof document === 'undefined' || document.visibilityState === 'visible';
+  }
+
+  /** Solo el día seleccionado: la pantalla solo muestra ese día (antes traía todo el historial). */
+  private rangoDia(): { desde: Date; hasta: Date } {
+    const fecha = (this.formCtrl.value.fechaGestion as Date) || new Date();
+    return { desde: fecha, hasta: fecha };
   }
 
   // Roster de vendedores ACTIVOS por sede desde el CAP (fuente única de nombres).
@@ -129,7 +146,7 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
   // Solo trae la data del form (sin calcular).
   private async cargarListData(): Promise<void> {
     try {
-      this.listData = await lastValueFrom(this.sheetsService.getCallSedesDB());
+      this.listData = await lastValueFrom(this.sheetsService.getCallSedesDB(this.rangoDia()));
     } catch (e) {
       console.error('Error al cargar datos de gestión de sedes:', e);
       this.listData = [];
@@ -138,6 +155,7 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     if (this.intervaloCincoMin) clearInterval(this.intervaloCincoMin);
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', this.onVisibilidad);
   }
 
   // Define qué sede(s) puede ver el usuario actual:
@@ -183,9 +201,10 @@ export class ControlCallSedesComponent implements OnInit, OnDestroy {
 
   async cargarDatos() {
     this.isLoading = true;
+    this.ultimaCarga = Date.now();
     try {
       // Form de gestión (contacto / no contacto / motivo interés). Hoy contiene Ferreñafe (+ Motupe).
-      this.listData = await lastValueFrom(this.sheetsService.getCallSedesDB());
+      this.listData = await lastValueFrom(this.sheetsService.getCallSedesDB(this.rangoDia()));
       this.calcular();
     } catch (e) {
       console.error('Error al cargar datos de gestión de sedes:', e);
