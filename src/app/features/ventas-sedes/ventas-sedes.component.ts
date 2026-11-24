@@ -406,6 +406,7 @@ export class VentasSedesComponent implements OnInit {
           TipoCredito: row.tipo_credito,
           TipoProducto: row.estado_tipo_producto, // aproximación (la fuente no trae TipoProducto)
           Fuente: (row.atrib_fuente_sede || '').toString().trim().toUpperCase(),  // fuente generadora (atribución sedes)
+          NoCuenta: this.esVentaNoCuenta(estadoVenta),
         });
       }
 
@@ -572,6 +573,7 @@ export class VentasSedesComponent implements OnInit {
             AsesorVenta: row['AsesorVenta'],
             TipoCredito: row['TipoCredito'],
             TipoProducto: row['TipoProducto'],
+            NoCuenta: this.esVentaNoCuenta(estadoVenta),
           });
         }
 
@@ -768,7 +770,7 @@ export class VentasSedesComponent implements OnInit {
     this.filtroVentas.forEach(v => {
       const fu = fuenteKey(v);
       const cur = mapVentas.get(fu) || { monto: 0, ops: 0 };
-      mapVentas.set(fu, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      mapVentas.set(fu, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
 
     const mapNC = this.agruparNCTodas(fuenteKey);
@@ -897,7 +899,7 @@ export class VentasSedesComponent implements OnInit {
     const mapVentas = new Map<string, { monto: number; ops: number; nombre: string }>();
     this.ventasFecha.forEach(v => {
       const cur = mapVentas.get(v.SedeKey) || { monto: 0, ops: 0, nombre: v.Sede };
-      mapVentas.set(v.SedeKey, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1, nombre: v.Sede });
+      mapVentas.set(v.SedeKey, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1), nombre: v.Sede });
     });
 
     // TODAS las NC/INC por sede (por AF) → se RESTAN del neto. ventasFecha ya incluye toda
@@ -974,8 +976,25 @@ export class VentasSedesComponent implements OnInit {
     return (v.Vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
   }
 
+  /** Estado NC/incautación/error del sistema/moras mal cobradas/anulado → la venta NO cuenta
+   *  como operación ni sale en el detalle de ventas (los montos no cambian). */
+  private esVentaNoCuenta(estado: string): boolean {
+    const e = (estado || '').toString().trim().toUpperCase();
+    return e.includes('NOTA DE') || e.includes('INCAUTAC') || e.includes('ERROR DEL SISTEMA')
+      || e.includes('MORAS MAL COBRADAS') || e.includes('ANULAD');
+  }
+
+  /** filtroVentas sin las anuladas — grilla de detalle de ventas. */
+  get filtroVentasDetalle(): any[] {
+    if (this._detSrc !== this.filtroVentas) { this._detSrc = this.filtroVentas; this._det = this.filtroVentas.filter(v => !v.NoCuenta); }
+    return this._det;
+  }
+  private _detSrc: any[] | null = null;
+  private _det: any[] = [];
+
   calcularKPIs(): void {
-    this.totalVentas = this.filtroVentas.length;
+    // # ventas: sin las de estado NC/incautación/error/moras/anulado (se ven en su detalle).
+    this.totalVentas = this.filtroVentas.filter(v => !v.NoCuenta).length;
     // Monto total: SIEMPRE por mes de venta (congelado) — filtroVentas ya incluye toda
     // venta del mes, así se le haya aplicado una NC/incautación después.
     const brutoActivo = this.filtroVentas.reduce((sum, v) => sum + v.MontoConsolidado, 0);
@@ -1198,7 +1217,7 @@ export class VentasSedesComponent implements OnInit {
     this.filtroVentas.forEach(v => {
       const nombre = this.nombreVendedor(v);
       const cur = mapVentas.get(nombre) || { monto: 0, ops: 0 };
-      mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      mapVentas.set(nombre, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
 
     const mapNC = this.agruparNCTodas(nc => this.nombreVendedor(nc));
@@ -1264,7 +1283,7 @@ export class VentasSedesComponent implements OnInit {
       const montoNC = Math.round(ncPorSemana.get(s.label) || 0);
       const montoINC = Math.round(incPorSemana.get(s.label) || 0);
       const montoVentas = Math.round(bruto);
-      const ops = ventas.length;
+      const ops = ventas.filter(v => !v.NoCuenta).length;   // sin anuladas (NC/incautación/...)
       return {
         Semana: s.label,
         MontoVentas: montoVentas,
@@ -1281,7 +1300,7 @@ export class VentasSedesComponent implements OnInit {
     this.filtroVentas.forEach(v => {
       const ent = this.entidadDisplay(v.Entidad);
       const cur = mapVentas.get(ent) || { monto: 0, ops: 0 };
-      mapVentas.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      mapVentas.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
     const mapNC = this.agruparNCTodas(nc => this.entidadDisplay(nc.Entidad));
     const mapINC = this.agruparINCTodas(inc => this.entidadDisplay(inc.Entidad));
@@ -1310,7 +1329,7 @@ export class VentasSedesComponent implements OnInit {
     motos.forEach(v => {
       const ent = this.entidadDisplay(v.Entidad);
       const cur = map.get(ent) || { monto: 0, ops: 0 };
-      map.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      map.set(ent, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
     this.motosPorEntidad = Array.from(map, ([Entidad, d]) => ({
       Entidad, Monto: Math.round(d.monto), NroOps: d.ops
@@ -1324,7 +1343,7 @@ export class VentasSedesComponent implements OnInit {
     motos.forEach(v => {
       const tipo = v.TipoProducto || 'SIN TIPO';
       const cur = map.get(tipo) || { monto: 0, ops: 0 };
-      map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      map.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
     this.motosPorTipoProducto = Array.from(map, ([TipoProducto, d]) => ({
       TipoProducto, Monto: Math.round(d.monto), NroOps: d.ops
@@ -1341,7 +1360,7 @@ export class VentasSedesComponent implements OnInit {
     this.filtroVentas.forEach(v => {
       const tipo = tipoKey(v);
       const cur = mapVentas.get(tipo) || { monto: 0, ops: 0 };
-      mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      mapVentas.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
 
     const mapNC = this.agruparNCTodas(tipoKey);
@@ -1391,7 +1410,7 @@ export class VentasSedesComponent implements OnInit {
         if (!mapVendedor.has(nombre)) mapVendedor.set(nombre, new Map());
         const inner = mapVendedor.get(nombre)!;
         const cur   = inner.get(tipo) || { monto: 0, ops: 0 };
-        inner.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+        inner.set(tipo, { monto: cur.monto + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
       });
 
     this.tiposProductoGlobalGo = Array.from(tiposSet).sort();
@@ -1637,7 +1656,7 @@ export class VentasSedesComponent implements OnInit {
     this.filtroVentas.forEach(v => {
       const nombre = this.nombreVendedor(v);
       const cur = mapVentas.get(nombre) || { ventas: 0, ops: 0 };
-      mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + 1 });
+      mapVentas.set(nombre, { ventas: cur.ventas + (v.MontoConsolidado || 0), ops: cur.ops + (v.NoCuenta ? 0 : 1) });
     });
 
     // filtroVentas ya incluye toda venta del mes (congelada); la NC resta aparte en su
