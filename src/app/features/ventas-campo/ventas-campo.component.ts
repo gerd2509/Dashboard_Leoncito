@@ -459,15 +459,16 @@ export class VentasCampoComponent implements OnInit {
   }
 
   /**
-   * ¿La venta NO cuenta como operación? Estado NOTA DE CRÉDITO, INCAUTACIÓN, ERROR DEL
-   * SISTEMA, MORAS MAL COBRADAS o ANULADO: no entra al N° de ventas/operaciones ni al detalle
-   * de ventas (se ve en el detalle de notas de crédito). Los montos no cambian: la venta
-   * sigue en su mes y la NC/incautación resta en su mes de afectación.
+   * ¿La venta NO cuenta como operación (conteo "al cierre del mes", nunca cambia un mes
+   * cerrado)? Solo si quedó anulada (NC/INCAUTACIÓN/ERROR DEL SISTEMA/MORAS MAL COBRADAS/
+   * ANULADO) con afectación en el MISMO mes de la venta. Una NC de un mes posterior no
+   * toca el mes de la venta. Los montos no cambian.
    */
-  private esVentaNoCuenta(estado: string): boolean {
+  private esVentaNoCuenta(estado: string, anioCv: number, mesCv: number, anioAf: any, mesAf: any): boolean {
     const e = (estado || '').toString().trim().toUpperCase();
-    return e.includes('NOTA DE') || e.includes('INCAUTAC') || e.includes('ERROR DEL SISTEMA')
+    const anulada = e.includes('NOTA DE') || e.includes('INCAUTAC') || e.includes('ERROR DEL SISTEMA')
       || e.includes('MORAS MAL COBRADAS') || e.includes('ANULAD');
+    return anulada && +anioAf === +anioCv && +mesAf === +mesCv;
   }
 
   /** Arma dataVentas / dataNotasCredito / dataGlobalGo / dataMargen desde filas de la BD. */
@@ -555,7 +556,7 @@ export class VentasCampoComponent implements OnInit {
           Margen: tot ? tot.mt : 0, ValorVenta: tot ? tot.vv : 0, LineaReal: primaryLinea,
           // Re-venta al mismo cliente tras una NC: NO cuenta como operación nueva (la
           // operación es la venta original) — misma regla que el Reporte Global.
-          NoCuenta: this.esVentaNoCuenta(r.estado_venta),
+          NoCuenta: !!r.es_anulada || !!r.es_refacturacion,
         });
       }
       if (esNC) {
@@ -584,7 +585,7 @@ export class VentasCampoComponent implements OnInit {
           AsesorVenta: (r.asesor_venta || '').toString().trim(),
           TipoBase: (r.tipo_base || '').toString().trim().toUpperCase(),
           SinDerivacion: !!r.sin_derivacion, Extranjero: !!r.extranjero, AtribManual: !!r.asesor_manual,
-          NoCuenta: this.esVentaNoCuenta(r.estado_venta),
+          NoCuenta: !!r.es_anulada || !!r.es_refacturacion,
         });
       }
     }
@@ -733,7 +734,7 @@ export class VentasCampoComponent implements OnInit {
             Margen: this.parseNumber(row['MargenTotal']),
             ValorVenta: this.parseNumber(row['ValorVenta']),
             LineaReal: primaryLinea,
-            NoCuenta: this.esVentaNoCuenta(estadoVenta)
+            NoCuenta: this.esVentaNoCuenta(estadoVenta, fechaCv.getFullYear(), fechaCv.getMonth() + 1, row['AñoAF'], row['MesAF'])
           });
         }
 
@@ -780,7 +781,7 @@ export class VentasCampoComponent implements OnInit {
             TipoProducto: (row['TipoProducto'] || 'SIN TIPO').toString().trim().toUpperCase(),
             Vendedor: (row['Vendedor'] || 'SIN VENDEDOR').toString().trim().toUpperCase(),
             AsesorVenta: (row['AsesorVenta'] || '').toString().trim(),
-            NoCuenta: this.esVentaNoCuenta(estadoVenta)
+            NoCuenta: this.esVentaNoCuenta(estadoVenta, fechaCv.getFullYear(), fechaCv.getMonth() + 1, row['AñoAF'], row['MesAF'])
           });
         }
       });

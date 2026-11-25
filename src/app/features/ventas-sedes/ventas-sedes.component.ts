@@ -406,7 +406,7 @@ export class VentasSedesComponent implements OnInit {
           TipoCredito: row.tipo_credito,
           TipoProducto: row.estado_tipo_producto, // aproximación (la fuente no trae TipoProducto)
           Fuente: (row.atrib_fuente_sede || '').toString().trim().toUpperCase(),  // fuente generadora (atribución sedes)
-          NoCuenta: this.esVentaNoCuenta(estadoVenta),
+          NoCuenta: this.esVentaNoCuenta(estadoVenta, row.anio_cv, row.mes_cv, row.anio_af, row.mes_af),
         });
       }
 
@@ -573,7 +573,7 @@ export class VentasSedesComponent implements OnInit {
             AsesorVenta: row['AsesorVenta'],
             TipoCredito: row['TipoCredito'],
             TipoProducto: row['TipoProducto'],
-            NoCuenta: this.esVentaNoCuenta(estadoVenta),
+            NoCuenta: this.esVentaNoCuenta(estadoVenta, this.getFechaJS(row['FECHAVENTA']).getFullYear(), this.getFechaJS(row['FECHAVENTA']).getMonth() + 1, row['AñoAF'], row['MesAF']),
           });
         }
 
@@ -976,12 +976,17 @@ export class VentasSedesComponent implements OnInit {
     return (v.Vendedor || 'SIN VENDEDOR').toString().trim().toUpperCase();
   }
 
-  /** Estado NC/incautación/error del sistema/moras mal cobradas/anulado → la venta NO cuenta
-   *  como operación ni sale en el detalle de ventas (los montos no cambian). */
-  private esVentaNoCuenta(estado: string): boolean {
+  /**
+   * ¿La venta NO cuenta como operación (conteo "al cierre del mes", nunca cambia un mes
+   * cerrado)? Solo si quedó anulada (NC/INCAUTACIÓN/ERROR DEL SISTEMA/MORAS MAL COBRADAS/
+   * ANULADO) con afectación en el MISMO mes de la venta. Una NC de un mes posterior no
+   * toca el mes de la venta. Los montos no cambian.
+   */
+  private esVentaNoCuenta(estado: string, anioCv: number, mesCv: number, anioAf: any, mesAf: any): boolean {
     const e = (estado || '').toString().trim().toUpperCase();
-    return e.includes('NOTA DE') || e.includes('INCAUTAC') || e.includes('ERROR DEL SISTEMA')
+    const anulada = e.includes('NOTA DE') || e.includes('INCAUTAC') || e.includes('ERROR DEL SISTEMA')
       || e.includes('MORAS MAL COBRADAS') || e.includes('ANULAD');
+    return anulada && +anioAf === +anioCv && +mesAf === +mesCv;
   }
 
   /** filtroVentas sin las anuladas — grilla de detalle de ventas. */
