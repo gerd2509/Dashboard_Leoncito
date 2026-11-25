@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
@@ -15,7 +15,9 @@ interface Recordatorio {
  * Recordatorio de Pulso comercial: aparece en grande, encima de cualquier pantalla,
  * cuando el administrador (o el horario automático) le envía al asesor lo que le falta
  * para su meta del día. Solo para asesores de Realzza (Chiclayo, Piura y Lima).
- * Consulta cada 90 s mientras la pestaña está a la vista (respuesta de pocos bytes).
+ * Llega EN VIVO: el panel deja abierta una conexión (/recordatorios/stream) y la API le
+ * empuja el recordatorio en ~3 s. Si la conexión se cae, se reconecta sola; además,
+ * cada 5 min y al volver a la pestaña se consulta por si acaso.
  */
 @Component({
   selector: 'app-recordatorio-pulso',
@@ -100,7 +102,14 @@ interface Recordatorio {
 export class RecordatorioPulsoComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
+  private zone = inject(NgZone);
+  private cdr = inject(ChangeDetectorRef);
   private timer: any = null;
+  private abort: AbortController | null = null;
+  private conectado = false;
+  private reintento: any = null;
+  private esperaMs = 3000;
+  private activo = true;
   private vistos = new Set<number>();
   cola: Recordatorio[] = [];
   enviando = false;
@@ -116,23 +125,85 @@ export class RecordatorioPulsoComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     if (typeof document === 'undefined' || !this.aplica) return;
-    setTimeout(() => this.consultar(), 4000);
-    this.timer = setInterval(() => { if (document.visibilityState === 'visible') this.consultar(); }, 90_000);
+    setTimeout(() => { this.consultar(); this.conectar(); }, 2500);
+    // Respaldo por si la conexión en vivo se cayó sin avisar
+    this.timer = setInterval(() => { if (document.visibilityState === 'visible') this.consultar(); }, 5 * 60_000);
   }
-  ngOnDestroy(): void { if (this.timer) clearInterval(this.timer); }
+  ngOnDestroy(): void {
+    this.activo = false;
+    if (this.timer) clearInterval(this.timer);
+    if (this.reintento) clearTimeout(this.reintento);
+    this.abort?.abort();
+  }
 
   @HostListener('document:visibilitychange')
-  alVolver(): void { if (document.visibilityState === 'visible' && this.aplica) this.consultar(); }
+  alVolver(): void {
+    if (document.visibilityState !== 'visible' || !this.aplica) return;
+    this.consultar();
+    if (!this.conectado) this.conectar();
+  }
+
+  /** Conexión en vivo: lee el flujo text/event-stream con fetch (lleva el token en la cabecera). */
+  private async conectar(): Promise<void> {
+    const token = this.auth.getToken();
+    if (!this.activo || this.conectado || !token || typeof fetch === 'undefined' || typeof TextDecoder === 'undefined') return;
+    this.conectado = true;
+    this.abort = new AbortController();
+    let cortePorSesion = false;
+    try {
+      const res = await fetch(`${environment.gestionBase}/recordatorios/stream`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' },
+        signal: this.abort.signal, cache: 'no-store',
+      });
+      if (res.status === 401 || res.status === 400) { cortePorSesion = true; return; }
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
+      this.esperaMs = 3000;
+      const lector = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const { value, done } = await lector.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+        let i: number;
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          this.procesarEvento(buf.slice(0, i));
+          buf = buf.slice(i + 2);
+        }
+      }
+    } catch { /* sin red o se cerró: se reintenta abajo */ }
+    finally {
+      this.conectado = false;
+      if (this.activo && !cortePorSesion && this.auth.isLoggedIn()) {
+        this.reintento = setTimeout(() => this.conectar(), this.esperaMs);
+        this.esperaMs = Math.min(this.esperaMs * 2, 60_000);
+      }
+    }
+  }
+
+  private procesarEvento(bloque: string): void {
+    let evento = 'message';
+    const datos: string[] = [];
+    for (const linea of bloque.split('\n')) {
+      if (linea.startsWith('event:')) evento = linea.slice(6).trim();
+      else if (linea.startsWith('data:')) datos.push(linea.slice(5).trimStart());
+    }
+    if (evento !== 'recordatorio' || !datos.length) return;
+    try { this.zone.run(() => this.agregar([JSON.parse(datos.join('\n'))])); } catch { /* evento mal formado */ }
+  }
+
+  private agregar(lista: Recordatorio[]): void {
+    const nuevos = (lista || []).filter((x) => x && !this.vistos.has(x.id) && !this.cola.some((c) => c.id === x.id));
+    if (!nuevos.length) return;
+    this.cola = [...this.cola, ...nuevos];
+    this.sonar();
+    this.cdr.markForCheck();
+  }
 
   private consultar(): void {
     if (!this.auth.isLoggedIn()) return;
     this.http.get<{ data: Recordatorio[] }>(`${environment.gestionBase}/recordatorios/mios`).subscribe({
-      next: (r) => {
-        const nuevos = (r?.data || []).filter((x) => !this.vistos.has(x.id) && !this.cola.some((c) => c.id === x.id));
-        if (!nuevos.length) return;
-        this.cola = [...this.cola, ...nuevos];
-        this.sonar();
-      },
+      next: (r) => this.agregar(r?.data || []),
       error: () => { /* sin conexión: se reintenta en la próxima vuelta */ },
     });
   }
