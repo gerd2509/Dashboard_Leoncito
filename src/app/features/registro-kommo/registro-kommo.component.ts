@@ -10,7 +10,7 @@ import { CapSedesService } from '../../services/cap-sedes.service';
 
 // Modelo del formulario (todos string para el binding de DevExtreme).
 interface FormKommo {
-  canal: string; tienda: string; estado_gestion: string; resultado_gestion: string; market_place: string;
+  canal: string; tienda: string; estado_gestion: string; resultado_gestion: string; market_place: string; mk_presupuesto: string;
   tipo_cliente: string; dni_cliente: string; celular_gestionado: string; nombre_cliente: string;
   asesor: string; sede: string; fecha_lead_asignado: string;
   motivo_no_contacto: string; producto_interes: string; motivo_interes: string;
@@ -22,7 +22,7 @@ interface FormKommo {
 }
 function blankForm(canal: Canal): FormKommo {
   return {
-    canal, tienda: canal, estado_gestion: '', resultado_gestion: '', market_place: 'NO',
+    canal, tienda: canal, estado_gestion: '', resultado_gestion: '', market_place: 'NO', mk_presupuesto: 'NO',
     tipo_cliente: '', dni_cliente: '', celular_gestionado: '', nombre_cliente: '', asesor: '', sede: '', fecha_lead_asignado: '',
     motivo_no_contacto: '', producto_interes: '', motivo_interes: '', fecha_interes_agend: '', hora_interes_agend: '', comentario_agend: '',
     fecha_interes_deriv: '', hora_interes_deriv: '', comentario_deriv: '',

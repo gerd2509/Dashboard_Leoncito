@@ -20,6 +20,7 @@ export interface GestionKommo {
   estado_gestion: string;        // CONTACTO | NO CONTACTO
   resultado_gestion?: string;
   market_place?: string;         // SI | NO
+  mk_presupuesto?: string;       // MK - Presupuesto: SI | NO
   producto_interes?: string;
   motivo_interes?: string;
   motivo_agendamiento?: string;

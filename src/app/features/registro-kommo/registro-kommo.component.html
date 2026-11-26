@@ -63,6 +63,10 @@
           <dx-select-box [dataSource]="siNo" [(value)]="f.market_place" stylingMode="outlined"></dx-select-box>
         </div>
         <div class="rk-field">
+          <label>MK - Presupuesto</label>
+          <dx-select-box [dataSource]="siNo" [(value)]="f.mk_presupuesto" stylingMode="outlined"></dx-select-box>
+        </div>
+        <div class="rk-field">
           <label>Estado de gestión *</label>
           <dx-select-box [dataSource]="estados" [(value)]="f.estado_gestion"
             [isValid]="!(intento && invEstado)" (onValueChanged)="touched()" stylingMode="outlined"></dx-select-box>

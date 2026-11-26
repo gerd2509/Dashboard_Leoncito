@@ -56,6 +56,9 @@
       <dxi-column dataField="estado_gestion" caption="Estado" [width]="120"></dxi-column>
       <dxi-column dataField="resultado_gestion" caption="Resultado" [width]="140"></dxi-column>
       <dxi-column dataField="market_place" caption="MP" [width]="70"></dxi-column>
+      <dxi-column dataField="mk_presupuesto" caption="MK - Presupuesto" [width]="130">
+        <dxo-lookup [dataSource]="['SI', 'NO']"></dxo-lookup>
+      </dxi-column>
       <dxi-column dataField="producto_interes" caption="Producto" [width]="140" [visible]="false"></dxi-column>
       <dxi-column dataField="motivo_interes" caption="Motivo interés" [width]="170" [visible]="false"></dxi-column>
       <dxi-column dataField="motivo_agendamiento" caption="Motivo agend." [width]="150" [visible]="false"></dxi-column>
