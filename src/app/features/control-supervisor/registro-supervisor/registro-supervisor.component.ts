@@ -24,7 +24,7 @@ interface GestionRapida {
   controlada: boolean;   // ya tiene un control del supervisor ese día
 }
 
-const TIPO_BASE = ['BBDD', 'KOMMO', 'TIENDA', 'REFERIDOS', 'BRILLA', 'BBDD KOMMO', 'RECURRENTES NO ASIGNADOS', 'MARKET PLACE', 'MK PRESUPUESTO', 'EFECTIVA', 'REDES SSENDA'];
+const TIPO_BASE = ['BBDD', 'KOMMO', 'TIENDA', 'REFERIDOS', 'BRILLA', 'BBDD KOMMO', 'RECURRENTES NO ASIGNADOS', 'MARKET PLACE', 'MARKET PLACE PRESUPUESTO', 'EFECTIVA', 'REDES SSENDA'];
 
 // Margen máximo (en días) para que una publicación de Market Place esté "al día".
 const MARGEN_MP_DIAS = 4;
