@@ -82,7 +82,7 @@ export class AtribucionCallComponent implements OnInit {
   // TipoBase (Realzza): los que maneja la gestión Realzza.
   readonly tipoBaseRzOpciones = [
     'BBDD', 'CALL', 'KOMMO', 'BBDD KOMMO', 'TIENDA', 'REFERIDOS', 'BRILLA', 'EFECTIVA',
-    'MARKET PLACE', 'RECURRENTES NO ASIGNADOS', 'REDES SSENDA',
+    'MARKET PLACE', 'MK PRESUPUESTO', 'RECURRENTES NO ASIGNADOS', 'REDES SSENDA',
   ];
 
   // ── Popup de edición ──
