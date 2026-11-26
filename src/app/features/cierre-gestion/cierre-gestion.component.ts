@@ -557,8 +557,7 @@ export class CierreGestionComponent implements OnInit {
       if (tieneMetaChiclayo) {
         contactabilidad = this.conMetaPct(contactabilidad, this.META_RZ_LLAMADAS);
         kommo = this.conMetaPct(kommo, this.META_RZ_KOMMO);
-        market = this.conMetaPct(market, this.META_RZ_MARKET)
-          .map(f => ({ ...f, 'META_PRES_PCT': this.META_RZ_PRESUPUESTO > 0 ? (f['PRESUPUESTO'] || 0) / this.META_RZ_PRESUPUESTO : 0 }));
+        market = this.conMetaPct(market, this.META_RZ_MARKET);
       }
 
       const pctTotal = this.textoPctTotal(contactabilidad);
@@ -574,7 +573,6 @@ export class CierreGestionComponent implements OnInit {
   private readonly META_RZ_LLAMADAS = 30;
   private readonly META_RZ_KOMMO = 5;
   private readonly META_RZ_MARKET = 5;
-  private readonly META_RZ_PRESUPUESTO = 5;   // Market Place con MK - Presupuesto = SI (por ahora igual que KOMMO)
   private readonly META_RZ_AGENDA = 5;
 
   /** Agrega META_PCT (TOTAL de la fila ÷ meta diaria) a cada fila, para pintarla en semáforo. */
@@ -1424,7 +1422,7 @@ export class CierreGestionComponent implements OnInit {
         else if (valor < 50) { this.pintarCelda(e.cellElement, '#d68e3bff', 'black'); }
       }
       // Cumplimiento de meta diaria (Realzza Chiclayo): verde cumplido, naranja intermedio, rojo falta.
-      if (e.column?.dataField === 'META_PCT' || e.column?.dataField === 'META_PRES_PCT') {
+      if (e.column?.dataField === 'META_PCT') {
         const valor = (e.value ?? 0) * 100;
         if (valor >= 100) { this.pintarCelda(e.cellElement, '#4CAF50', 'white'); }
         else if (valor >= 50) { this.pintarCelda(e.cellElement, '#FFA726', 'black'); }
@@ -1432,7 +1430,7 @@ export class CierreGestionComponent implements OnInit {
       }
     }
     // Mismo semáforo en la fila de TOTAL (promedio del equipo) de % META.
-    if (e.rowType === 'totalFooter' && (e.column?.dataField === 'META_PCT' || e.column?.dataField === 'META_PRES_PCT')) {
+    if (e.rowType === 'totalFooter' && e.column?.dataField === 'META_PCT') {
       const item = e.summaryItems?.find((s: any) => s.summaryType === 'avg');
       const valor = item ? (item.value ?? 0) * 100 : null;
       if (valor !== null) {
